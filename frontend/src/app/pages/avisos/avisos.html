@@ -1,0 +1,158 @@
+<section class="avisos-header">
+  <div class="container">
+    <span class="avisos-label">COMUNICAÇÃO</span>
+    <h1>Avisos e Comunicados</h1>
+    <p>
+      Fique por dentro das novidades, alterações de reuniões,
+      eventos e informações importantes da irmandade.
+    </p>
+  </div>
+</section>
+
+<section class="aviso-destaque-section">
+  <div class="container">
+    <div class="aviso-destaque">
+
+      <span class="destaque-badge">
+        ⚠ AVISO EM DESTAQUE
+      </span>
+
+      <h2>Encontro Regional de Jogadores Anônimos</h2>
+
+      <p>
+        Convidamos todos os membros para participar do Encontro Regional de JA.
+        Será um momento de compartilhamento, aprendizado e fortalecimento da recuperação.
+      </p>
+
+      <div class="aviso-info">
+        <span>📅 15 de Julho de 2026</span>
+        <span>📍 Campinas - SP</span>
+      </div>
+
+      <button
+        class="btn btn-yellow"
+        (click)="abrirModal()">
+        Saiba Mais
+      </button>
+
+    </div>
+  </div>
+</section>
+
+<section class="avisos-section">
+  <div class="container">
+
+    <div class="avisos-grid">
+
+      <article class="aviso-card">
+        <span class="aviso-tag reuniao">REUNIÕES</span>
+
+        <h3>Alteração Temporária de Local</h3>
+
+        <p>
+          A reunião de terça-feira foi transferida para o Salão Comunitário Central
+          devido a reformas no local habitual.
+        </p>
+
+        <small>21/06/2026</small>
+      </article>
+
+      <article class="aviso-card">
+        <span class="aviso-tag evento">EVENTOS</span>
+
+        <h3>Workshop sobre os Doze Passos</h3>
+
+        <p>
+          Participe de uma tarde dedicada ao estudo e compartilhamento
+          dos Doze Passos do programa.
+        </p>
+
+        <small>18/07/2026</small>
+      </article>
+
+      <article class="aviso-card">
+        <span class="aviso-tag informativo">INFORMATIVO</span>
+
+        <h3>Novo Material Disponível</h3>
+
+        <p>
+          A seção de Reflexões do Dia recebeu novos conteúdos para leitura diária.
+        </p>
+
+        <small>10/06/2026</small>
+      </article>
+
+      <article class="aviso-card">
+        <span class="aviso-tag comunidade">COMUNIDADE</span>
+
+        <h3>Grupo Esperança Celebra Aniversário</h3>
+
+        <p>
+          Reunião especial em comemoração a mais um ano de atividades do grupo.
+        </p>
+
+        <small>05/06/2026</small>
+      </article>
+
+    </div>
+
+  </div>
+  @if (showModal) {
+
+    <div
+      class="modal-overlay"
+      (click)="fecharModal()">
+
+      <div
+        class="modal-content"
+        (click)="$event.stopPropagation()">
+
+        <button
+          class="modal-close"
+          (click)="fecharModal()">
+          ✕
+        </button>
+
+        <span class="modal-badge">
+      AVISO IMPORTANTE
+    </span>
+
+        <h2>Corpus Christi</h2>
+
+        <p class="modal-data">
+          Publicado em 04/06/2026
+        </p>
+
+        <p>
+          No dia 04/06/26 alguns grupos de igreja não terão reunião
+          devido ao feriado de Corpus Christi.
+        </p>
+
+        <p>
+          Antes de se deslocar, confirme o funcionamento do grupo
+          através da linha de ajuda.
+        </p>
+
+        <div class="modal-actions">
+
+          <a
+            href="https://wa.me/5519999999999"
+            target="_blank"
+            class="btn-whatsapp">
+            Falar no WhatsApp
+          </a>
+
+          <button
+            class="btn-fechar"
+            (click)="fecharModal()">
+            Fechar
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  }
+</section>

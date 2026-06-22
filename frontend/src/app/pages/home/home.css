@@ -1,0 +1,304 @@
+* {
+  background: #F0F4F8;
+}
+
+.admin-footer {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  border-top: 1px solid #742C24;
+  background: #f1f5f9;
+}
+
+.admin-footer a {
+  font-size: 0.8rem;
+  color: #742C24;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 10px 16px;
+  border: 1px solid #D4A843;
+  border-radius: 10px;
+  transition: 0.25s ease;
+  opacity: 0.85;
+}
+
+.admin-footer a:hover {
+  color: #D4A843;
+  border-color: #742C24;
+  opacity: 1;
+  transform: translateY(-2px);
+}
+/* ══════════════════════════════════════════
+   SEÇÃO: OS DOZE PASSOS (teaser + página)
+══════════════════════════════════════════ */
+
+.doze-passos-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.doze-passos-header h2 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.doze-passos-header h1 {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--text-dark);
+  margin-bottom: 16px;
+}
+
+.doze-passos-header p {
+  font-size: 0.95rem;
+  color: #64748b;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+.passos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.passo-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  padding: 28px;
+  display: flex;
+  gap: 16px;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.passos-card p{
+  background: #fff;
+}
+
+.passo-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.passo-num {
+  min-width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #742C24, #6b5624);
+  color: white;
+  font-weight: 800;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+}
+
+.passo-text {
+  background: #fff;
+  font-size: 1rem;
+  line-height: 1.65;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ══════════════════════════════════════════
+   SEÇÃO: 20 PERGUNTAS TEASER (home)
+══════════════════════════════════════════ */
+
+.questions-preview {
+  padding: 90px clamp(20px, 5vw, 60px);
+  display: flex;
+  justify-content: center;
+  background: #f1f5f9;
+}
+
+.questions-preview-card {
+  width: 100%;
+  max-width: 1050px;
+  background: white;
+  box-shadow: 10px 10px 5px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 32px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(32px, 5vw, 70px);
+  gap: 60px;
+  position: relative;
+}
+
+.questions-preview-card::before {
+  content: "";
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: rgba(215, 170, 67, 0.08);
+  filter: blur(80px);
+  right: -80px;
+  top: -80px;
+}
+
+.questions-preview-content {
+  background: #fff;
+  flex: 1;
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  position: relative;
+  z-index: 2;
+}
+
+.questions-preview-content p {
+  background: #fff;
+}
+
+.questions-preview-content h2 {
+  background: #fff;
+}
+
+.questions-preview-content a {
+  background: #fff;
+}
+
+.questions-preview-image {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.questions-preview-image img {
+  width: 100%;
+  max-width: 430px;
+  border-radius: 24px;
+  object-fit: cover;
+  filter: brightness(0.92);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.questions-preview h2 {
+  font-size: clamp(2rem, 4vw, 50px);
+  line-height: 0.95;
+  color: var(--cor-padrao-ja);
+  font-weight: 800;
+  letter-spacing: -2px;
+}
+
+.questions-preview p {
+  font-size: 18px;
+  line-height: 1.75;
+  color: black;
+}
+
+.questions-preview a {
+  width: fit-content;
+  margin-top: 10px;
+  background: var(--yellow-gold);
+  color: #111;
+  text-decoration: none;
+  padding: 18px 28px;
+  border-radius: 16px;
+  font-size: 17px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.questions-preview a:hover {
+  transform: translateY(-3px);
+  background: #e2b54b;
+  box-shadow: 0 14px 30px rgba(215, 170, 67, 0.2);
+}
+
+
+
+footer {
+  background: var(--cor-padrao-ja);
+  color: white;
+  padding: 40px clamp(20px, 5vw, 60px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+footer p         { font-size: 0.85rem; opacity: 0.7; }
+
+.footer-crisis   { font-size: 0.85rem; opacity: 0.9; text-align: right; }
+
+.footer-crisis strong {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+/* home.css */
+@media (max-width: 900px) {
+  .sobre-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .reunioes-grid {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+
+  .questions-preview-card {
+    flex-direction: column;
+    gap: 32px;
+    padding: 32px 24px;
+  }
+
+  .questions-preview-image {
+    display: none;
+  }
+
+  .passos-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .quem-somos h2 {
+    font-size: 1.6rem;
+  }
+
+  .contact-cta h3 {
+    font-size: 1.3rem;
+  }
+
+  .contact-cta-buttons {
+    flex-direction: column;
+  }
+
+  .whatsapp-btn {
+    font-size: 1rem;
+    padding: 16px 20px;
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+.btn-yellow2 {
+  background: var(--yellow-gold);
+  color: #1a1a1a;
+  padding: 18px clamp(40px, 10vw, 160px);
+}

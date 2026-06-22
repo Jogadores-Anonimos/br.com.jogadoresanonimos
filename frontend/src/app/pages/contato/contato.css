@@ -1,0 +1,108 @@
+.contato-header {
+  background: var(--cor-padrao-ja);
+  padding: 50px 60px;
+  color: white;
+  text-align: center;
+}
+
+.contato-header h1 {
+  font-size: 2.4rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.contato-header p {
+  font-size: 1.1rem;
+  opacity: 0.85;
+}
+
+.contato-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.contato-section h2 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--cor-padrao-ja);
+  margin-bottom: 8px;
+}
+
+.contato-section p {
+  font-size: 1rem;
+  color: #64748b;
+  margin-bottom: 24px;
+}
+
+.contato-btns {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.contato-divider {
+  border-top: 1px solid #e2e8f0;
+}
+
+.contato-social {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.social-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: white;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.social-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.instagram { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+.facebook  { background: #1877F2; }
+.email     { background: #742C24; }
+.yahoo     { background: #6001D2; }
+
+.whatsapp-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #25D366;
+  color: white;
+  padding: 26px 42px;
+  min-width: 260px;
+  font-size: 1.5rem;
+  border-radius: 14px;
+  text-decoration: none;
+  font-weight: 700;
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 6px 18px rgba(37, 211, 102, 0.25);
+}
+
+.whatsapp-btn:hover {
+  background: #1ebe5d;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(37, 211, 102, 0.35);
+}
+
+.whatsapp-btn svg {
+  width: 24px;
+  height: 24px;
+  fill: white;
+  flex-shrink: 0;
+}

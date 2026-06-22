@@ -1,0 +1,122 @@
+footer {
+  background: var(--cor-padrao-ja);
+  color: white;
+  padding: 40px clamp(20px, 5vw, 60px);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  gap: 24px;
+  margin-top: auto;
+}
+
+footer p {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin: 2px 0;
+}
+
+.footer-left p { opacity: 0.7; }
+
+.footer-center {
+  text-align: center;
+}
+
+.footer-center p {
+  font-size: 0.95rem;
+  opacity: 0.9;
+  margin-bottom: 12px;
+}
+.footer-center-row {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+.footer-contact,
+.footer-social-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-contact p,
+.footer-social-col p {
+  font-size: 0.95rem;
+  opacity: 0.9;
+  margin: 0 0 2px;
+}
+
+.footer-icons,
+.footer-social-icons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footer-icons {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-right {
+  text-align: right;
+}
+
+.footer-empresa {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-bottom: 4px;
+}
+
+.footer-social {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.footer-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 20px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.footer-icon:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.footer-icon.facebook {
+  background: #1877F2;
+}
+
+.footer-icon.instagram {
+  background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+}
+
+.footer-icon.whatsapp {
+  background: #25D366;
+}
+
+@media (max-width: 768px) {
+  footer {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .footer-right { text-align: center; }
+
+  .footer-social { justify-content: center; }
+}

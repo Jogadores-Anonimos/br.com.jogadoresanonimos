@@ -1,0 +1,62 @@
+<button class="chatbot-btn" (click)="toggleChat()">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+</button>
+
+@if (isOpen) {
+
+  <div class="chatbot-window">
+
+    <div class="chatbot-header">
+      <div class="chatbot-header-logo">
+        <img ngSrc="images/header/logo-jogadores-anonimos.png" width="40" height="40" alt="Logo" style="border-radius:50%;">
+        <div class="chatbot-header-text">
+          <strong>Jogadores Anônimos</strong>
+          <span>Fale conosco</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chatbot-body">
+
+      <div id="chat-messages">
+
+        @for (msg of messages; track $index) {
+
+          <div
+            class="msg"
+            [class.user]="msg.type === 'user'"
+            [class.bot]="msg.type === 'bot'">
+
+            {{ msg.text }}
+
+          </div>
+
+        }
+
+      </div>
+
+      <div class="chatbot-input">
+
+        <input
+          type="text"
+          placeholder="Digite sua mensagem..."
+          [(ngModel)]="inputText"
+          (keyup.enter)="sendMessage()">
+
+        <button
+          id="chatSend"
+          (click)="sendMessage()">
+
+          ➤
+
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+}

@@ -1,0 +1,20 @@
+<div class="ticker-outer">
+  <div class="ticker-border" [style.background-color]="'#b8903a'"></div>
+  <div class="ticker-wrapper" [style.background-color]="color">
+    <div
+      class="ticker-track"
+      [style.animation-duration]="speed + 's'"
+      [class.paused]="paused"
+      (mouseenter)="paused = true"
+      (mouseleave)="paused = false"
+    >
+      @for (_ of [0, 1]; track $index) {
+        @for (msg of messages; track $index) {
+          <span class="ticker-item">{{ msg }}</span>
+          <span class="ticker-sep">{{ separator }}</span>
+        }
+      }
+    </div>
+  </div>
+  <div class="ticker-border" [style.background-color]="'#b8903a'"></div>
+</div>

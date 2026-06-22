@@ -1,0 +1,259 @@
+<div class="reunioes-page">
+  <div class="reunioes-layout">
+    <div class="reunioes-sidebar">
+      <h1>Localizar Reuniões</h1>
+      <ul>
+
+        <li>
+          <img src="https://flagcdn.com/w40/br.png" alt="Brasil">
+          <a (click)="abrirBrasil($event)">Brasil</a>
+        </li>
+
+        <li>
+          <img src="https://flagcdn.com/w40/ao.png" alt="Angola">
+          <a (click)="abrirOnline($event)">Angola</a>
+        </li>
+
+        <li>
+          <img src="https://flagcdn.com/w40/mz.png" alt="Moçambique">
+          <a (click)="abrirOnline($event)">Moçambique</a>
+        </li>
+
+      </ul>
+    </div>
+    <div class="reunioes-main">
+      <div class="reunioes-tabs" role="tablist">
+        <button class="reunioes-tab" [class.active]="tabAtiva === 'presenciais'" (click)="tabAtiva = 'presenciais'">Presenciais</button>
+        <button class="reunioes-tab" [class.active]="tabAtiva === 'online'" (click)="tabAtiva = 'online'">Online</button>
+      </div>
+      <div [hidden]="tabAtiva !== 'presenciais'">
+        <div class="reunioes-map">
+          <div id="map"></div>
+        </div>
+        <div class="reunioes-search">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#94a3b8" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input type="text" placeholder="Buscar por bairro, cidade ou CEP">
+        </div>
+        <div class="filter-btns">
+          <button class="filter-btn" [class.active]="filtroAtivo === 'todas'" (click)="filtroAtivo = 'todas'">Todas as reuniões</button>
+          <button class="filter-btn" [class.active]="filtroAtivo === 'hoje'" (click)="filtroAtivo = 'hoje'">Hoje</button>
+          <button class="filter-btn" [class.active]="filtroAtivo === 'semana'" (click)="filtroAtivo = 'semana'">Esta semana</button>
+        </div>
+        <p class="reunioes-count">
+          {{ reunioesMock.length }} reuniões encontradas
+        </p>
+
+        <div id="lista-reunioes">
+
+          @for (reuniao of reunioesMock; track reuniao.id) {
+
+            <div class="reuniao-card">
+
+              <div class="reuniao-date">
+                <span class="day">{{ reuniao.dia }}</span>
+                <span class="month">{{ reuniao.mes }}</span>
+                <span class="weekday">{{ reuniao.semana }}</span>
+              </div>
+
+              <div class="reuniao-info">
+                <h4>{{ reuniao.nome }}</h4>
+
+                <div class="time">
+                  {{ reuniao.horario }}
+                </div>
+
+                <div class="tipo">
+                  📍 {{ reuniao.tipo }}
+                </div>
+
+                <span class="dist-badge">
+          {{ reuniao.cidade }}
+        </span>
+              </div>
+
+              <div class="reuniao-action">
+                <button
+                  class="btn-detalhes"
+                  (click)="abrirModal(reuniao)">
+                  Ver detalhes
+                </button>
+              </div>
+
+            </div>
+
+          }
+
+        </div>
+        @if(reuniaoSelecionada){
+
+          <div class="reuniao-modal-overlay"
+               (click)="fecharModal()">
+
+            <div class="reuniao-modal"
+                 (click)="$event.stopPropagation()">
+
+              <button
+                class="modal-close"
+                (click)="fecharModal()">
+                ✕
+              </button>
+
+              <div class="modal-header-bar">
+                <h2>{{ reuniaoSelecionada.nome }}</h2>
+
+                <span class="modal-tipo-badge">
+        {{ reuniaoSelecionada.tipo }}
+      </span>
+              </div>
+
+              <div class="modal-body">
+
+                <div class="modal-info-grid">
+
+                  <div class="modal-info-item">
+                    <div class="modal-info-icon">📅</div>
+                    <div>
+                      <div class="modal-info-label">Dia</div>
+                      <div class="modal-info-value">
+                        {{ reuniaoSelecionada.semana }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="modal-info-item">
+                    <div class="modal-info-icon">🕐</div>
+                    <div>
+                      <div class="modal-info-label">Horário</div>
+                      <div class="modal-info-value">
+                        {{ reuniaoSelecionada.horario }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="modal-info-item">
+                    <div class="modal-info-icon">📍</div>
+                    <div>
+                      <div class="modal-info-label">Endereço</div>
+                      <div class="modal-info-value">
+                        {{ reuniaoSelecionada.endereco }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="modal-info-item">
+                    <div class="modal-info-icon">🏙️</div>
+                    <div>
+                      <div class="modal-info-label">Cidade</div>
+                      <div class="modal-info-value">
+                        {{ reuniaoSelecionada.cidade }}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="modal-descricao">
+                  <h4>Sobre esta reunião</h4>
+                  <p>{{ reuniaoSelecionada.descricao }}</p>
+                </div>
+
+                <div class="modal-actions">
+
+                  <a
+                    class="modal-btn modal-btn-whatsapp"
+                    href="https://wa.me/5511111111111"
+                    target="_blank">
+
+                    WhatsApp
+                  </a>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        }
+      </div>
+
+      <div class="online-content" [hidden]="tabAtiva !== 'online'">
+
+        <div class="online-header">
+          <h3>Reuniões Online</h3>
+
+          <p>
+            Solicite o link da reunião via WhatsApp.
+            Os grupos acontecem através do Zoom.
+          </p>
+        </div>
+
+        <div class="online-countries">
+
+          <div class="online-country-card">
+
+            <img
+              src="https://flagcdn.com/w80/br.png"
+              alt="Brasil">
+
+            <h4>Brasil</h4>
+
+            <p>Reuniões online em português.</p>
+
+            <a
+              class="btn-online"
+              href="https://wa.me/55111111111111"
+              target="_blank">
+              Solicitar link
+            </a>
+
+          </div>
+
+          <div class="online-country-card">
+
+            <img
+              src="https://flagcdn.com/w80/ao.png"
+              alt="Angola">
+
+            <h4>Angola</h4>
+
+            <p>Solicite o acesso à reunião online.</p>
+
+            <a
+              class="btn-online"
+              href="https://wa.me/55111111111111"
+              target="_blank">
+              Solicitar link
+            </a>
+
+          </div>
+
+          <div class="online-country-card">
+
+            <img
+              src="https://flagcdn.com/w80/mz.png"
+              alt="Moçambique">
+
+            <h4>Moçambique</h4>
+
+            <p>Solicite o acesso à reunião online.</p>
+
+            <a
+              class="btn-online"
+              href="https://wa.me/55111111111111"
+              target="_blank">
+              Solicitar link
+            </a>
+
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

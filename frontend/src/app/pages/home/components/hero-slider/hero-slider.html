@@ -1,0 +1,67 @@
+<section class="hero">
+
+  @for (slide of slides; track $index) {
+
+    <div
+      class="slide"
+      [class.active]="currentSlide === $index">
+
+      <img
+        [src]="slide.imagem"
+        [alt]="slide.titulo"
+        loading="lazy"
+        style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.7;">
+
+      <div
+        style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,0.65) 45%,transparent 80%);">
+      </div>
+
+      <div class="slide-content">
+
+        <h1>{{ slide.titulo }}</h1>
+
+        <p>{{ slide.descricao }}</p>
+
+        <div class="slide-btns">
+
+          <a
+            class="btn"
+            [class.btn-red]="slide.corBotao === 'red'"
+            [class.btn-yellow]="slide.corBotao === 'yellow'"
+            [routerLink]="slide.rota">
+
+            {{ slide.botao }}
+
+          </a>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  }
+
+  <button class="slider-arrow slider-prev" (click)="prevSlide()">
+    &#8249;
+  </button>
+
+  <button class="slider-arrow slider-next" (click)="nextSlide()">
+    &#8250;
+  </button>
+
+  <div class="slider-dots">
+
+    @for (slide of slides; track $index) {
+
+      <button
+        class="dot"
+        [class.active]="currentSlide === $index"
+        (click)="stopSlider(); goSlide($index); startSlider()">
+      </button>
+
+    }
+
+  </div>
+
+</section>

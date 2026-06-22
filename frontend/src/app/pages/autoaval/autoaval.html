@@ -1,0 +1,66 @@
+<div class="autoaval-header">
+  <h1>ENTENDA SUA RELAÇÃO COM O JOGO</h1>
+  <p>Uma conversa honesta consigo mesmo</p>
+</div>
+
+<div class="autoaval-hero">
+  <img src="images/main-page/gabarito.jpg" alt="Autoavaliação" loading="lazy">
+  <div class="autoaval-hero-content">
+    <div class="autoaval-hero-text">
+      <p>Escritas por pessoas que passaram pelo mesmo que você talvez esteja passando. Não é um diagnóstico, não é um julgamento, é um espelho.</p>
+      <p>O questionário é completamente anônimo.</p>
+      <div class="autoaval-cta-card">
+        <a (click)="iniciarQuiz()">Responder &nbsp; →</a>
+      </div>
+      <div class="autoaval-badges">
+        <div class="autoaval-badge">Leva 3 minutos</div>
+        <div class="autoaval-badge">Anônimo</div>
+        <div class="autoaval-badge">Sem julgamentos</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (quizIniciado) {
+  <div class="autoaval-quiz-overlay">
+    <div style="max-width:700px;margin:0 auto;">
+
+      @if (resultado) {
+        <div style="text-align:center;">
+          <h2 style="font-size:1.8rem;font-weight:800;margin-bottom:16px;">Resultado</h2>
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" style="margin-bottom:16px;">
+            <circle cx="12" cy="12" r="10" [attr.fill]="resultadoIconCor"/>
+            @if (sim >= 9) {
+              <path d="M15 9L9 15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              <path d="M9 9L15 15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            } @else if (sim >= 4) {
+              <path d="M8 12H16" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            } @else {
+              <path d="M8 12L11 15L16 9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            }
+          </svg>
+          <p style="font-size:1.1rem;line-height:1.75;color:#475569;margin-bottom:24px;">{{ resultadoTexto }}</p>
+          <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+            <a class="btn btn-red" routerLink="/dashboard" style="padding:16px 40px;">Analisar Resultado</a>
+            <a class="btn btn-yellow" routerLink="/reunioes" style="padding:16px 40px;">Encontrar um grupo</a>
+          </div>
+        </div>
+      } @else {
+        <div style="margin-bottom:8px;font-size:0.85rem;color:#64748b;font-weight:600;">
+          Pergunta {{ perguntaAtual + 1 }} de {{ perguntas.length }}
+        </div>
+        <div style="height:6px;background:#e2e8f0;border-radius:3px;margin-bottom:32px;">
+          <div style="height:6px;background:#742C24;border-radius:3px;transition:width 0.4s;" [style.width]="progresso + '%'"></div>
+        </div>
+        <h3 style="font-size:1.3rem;font-weight:700;margin-bottom:32px;line-height:1.5;">
+          {{ perguntas[perguntaAtual] }}
+        </h3>
+        <div style="display:flex;gap:16px;">
+          <button class="btn btn-yellow" (click)="responder('sim')" [disabled]="!botoesAtivos" style="flex:1;font-size:1.1rem;padding:16px;color:#ffffff;">SIM</button>
+          <button class="btn btn-red" (click)="responder('nao')" [disabled]="!botoesAtivos" style="flex:1;font-size:1.1rem;padding:16px;color:#ffffff;">NÃO</button>
+        </div>
+      }
+
+    </div>
+  </div>
+}

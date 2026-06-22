@@ -1,0 +1,5 @@
+app-barra-deslizante {
+  position: sticky;
+  top: 75px;
+  z-index: 99;
+}

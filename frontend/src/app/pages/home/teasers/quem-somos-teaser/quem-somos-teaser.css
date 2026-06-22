@@ -1,0 +1,29 @@
+.quem-somos {
+  margin-bottom: 0;
+  padding-bottom: 30px;
+}
+
+.quem-somos h2 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--cor-padrao-ja);
+  margin-bottom: 32px;
+}
+
+.quem-somos p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #334155;
+  margin-bottom: 16px;
+}
+
+.btn-quemsomos{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 48px;
+}
+
+.btn btn-yellow {
+  margin-top: 200px;
+}
