@@ -225,3 +225,145 @@
     font-size: 0.95rem;
   }
 }
+
+.passos-tabs {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.passos-tab {
+  background: transparent;
+  border: 2px solid rgba(255,255,255,0.5);
+  color: rgba(255,255,255,0.7);
+  padding: 10px 24px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.passos-tab.active,
+.passos-tab:hover {
+  background: white;
+  border-color: white;
+  color: var(--cor-padrao-ja);
+}
+
+.unidade-desc {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #475569;
+  max-width: 800px;
+  margin: 0 auto 40px;
+  text-align: center;
+  padding: 0 20px;
+}
+
+.passo-page-card.unidade {
+  border-left: 4px solid var(--yellow-gold);
+}
+
+.passo-page-num.unidade {
+  background: var(--yellow-gold);
+  color: #1a1a1a;
+}
+.passos-teaser {
+  background: #f1f5f9;
+  padding: 75px 0;
+}
+
+.passos-teaser-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.passos-teaser-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #94a3b8;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.passos-teaser-header h2 {
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 900;
+  color: var(--cor-padrao-ja);
+  margin-bottom: 16px;
+}
+
+.passos-teaser-header p {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #475569;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.passos-teaser-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.passos-teaser-card {
+  background: white;
+  border-radius: 16px;
+  padding: 28px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.passos-teaser-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.07);
+}
+
+.passos-teaser-num {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--cor-padrao-ja);
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.passos-teaser-card p {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #334155;
+  padding-top: 10px;
+}
+
+.passos-teaser-mais {
+  text-align: center;
+  margin-top: 20px;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 600px) {
+  .passos-teaser-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

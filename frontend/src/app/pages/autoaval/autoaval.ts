@@ -18,9 +18,9 @@ export class Autoaval {
   resultado: any = null;
 
   perguntas = [
-    "Você sente perda de controle ao jogar?",
-    "Você já tentou parar e não conseguiu?",
-    "Você já gastou mais do que podia?",
+    "Você já perdeu horas de trabalho ou da escola devido ao jogo?",
+    "Alguma vez o jogo já causou infelicidade na sua vida familiar?",
+    "O jogo afetou a sua reputação?",
     "Você já mentiu sobre o quanto joga?",
     "O jogo já prejudicou sua vida financeira?",
     "Você já sentiu ansiedade por não jogar?",

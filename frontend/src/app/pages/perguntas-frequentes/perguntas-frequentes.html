@@ -1,0 +1,40 @@
+<section class="faq-section">
+
+  <div class="container">
+
+    <div class="faq-header">
+      <span>Perguntas Frequentes</span>
+      <h1>Dúvidas sobre Jogadores Anônimos</h1>
+    </div>
+
+    <div class="faq-list">
+
+      @for (faq of faqs; track $index) {
+
+        <div class="faq-item">
+
+          <button class="faq-question" (click)="toggleFaq($index)">
+
+            <span>{{ faq.pergunta }}</span>
+
+            <span>
+              {{ faqAberta === $index ? '−' : '+' }}
+            </span>
+
+          </button>
+
+          @if (faqAberta === $index) {
+            <div class="faq-answer">
+              {{ faq.resposta }}
+            </div>
+          }
+
+        </div>
+
+      }
+
+    </div>
+
+  </div>
+
+</section>

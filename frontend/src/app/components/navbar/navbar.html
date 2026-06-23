@@ -2,9 +2,12 @@
   <a class="nav-logo" routerLink="" data-page="home">
     <img ngSrc="images/header/logo-jogadores-anonimos.png" width="60" height="60" alt="Logo" priority>
     <div class="nav-logo-text">
-      <span style="color:#E8A020;">JOGADORES</span>
-      <span style="color:#E8A020; font-weight:700;">ANÔNIMOS DO BRASIL</span>
-      <span style="color:#ffffff;">ERSJAB | JAERJ</span>
+      <a class="nav-logo-text" routerLink="" style="text-decoration: none">
+        <span style="color:#E8A020;">JOGADORES</span>
+        <span style="color:#E8A020; font-weight:700;">ANÔNIMOS DO BRASIL</span>
+        <span style="color:#ffffff;">ERSJAB | JAERJ</span>
+      </a>
+
     </div>
   </a>
 
@@ -29,8 +32,8 @@
       </button>
       <ul class="dropdown-menu" [class.open]="dropdownAberto">
         <li><a routerLink="/contato" routerLinkActive="active">CONTATO</a></li>
-        <li><a routerLink="/setimo-passo" routerLinkActive="active">PODCAST</a></li>
-        <li><a routerLink="/painel" routerLinkActive="active">PAINEL</a></li>
+        <li><a routerLink="/podcast" routerLinkActive="active">PODCAST</a></li>
+        <li><a routerLink="/dashboard" routerLinkActive="active">PAINEL</a></li>
         <li><a routerLink="/anonimato" routerLinkActive="active">ANONIMATO</a></li>
         <li><a routerLink="/jogo-compulsivo" routerLinkActive="active">JOGO COMPULSIVO</a></li>
         <li><a routerLink="/uma-nova-chance" routerLinkActive="active">UMA NOVA CHANCE</a></li>

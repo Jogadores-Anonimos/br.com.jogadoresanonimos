@@ -30,38 +30,69 @@ export class Chatbot implements OnInit {
   routes = [
     {
       page: 'quem-somos',
-      keywords: ['quem somos', 'sobre o site', 'o que eh esse site', 'site', 'o que é esse site'],
+      keywords: ['quem somos', 'sobre site', 'o que e esse site', 'site'],
       reply: 'Somos uma plataforma de apoio e informação sobre jogos e recuperação.'
     },
     {
       page: 'reunioes',
-      keywords: ['reunião', 'reunioes', 'grupo', 'ajuda'],
+      keywords: ['reunioes', 'reuniao', 'grupo', 'ajuda', 'encontro'],
       reply: 'Aqui você encontra reuniões e grupos de apoio próximos.'
     },
     {
       page: 'autoaval',
-      keywords: ['auto avaliação', 'autoavaliacao', 'teste'],
+      keywords: ['autoavaliacao', 'teste', 'avaliacao', 'auto avaliacao'],
       reply: 'Faça sua autoavaliação para entender sua relação com jogos.'
     },
     {
-      page: "doze-passos",
-      keywords: ["12 passos", "doze passos", "passos", "recuperação"],
-      reply: "O programa dos 12 passos ajuda na recuperação."
+      page: 'doze-passos',
+      keywords: ['12 passos', 'doze passos', 'passos', 'recuperacao'],
+      reply: 'O programa dos 12 passos ajuda na recuperação.'
     },
     {
-      page: "relatos",
-      keywords: ["relato", "história", "experiência", "depoimento"],
-      reply: "Leia relatos reais de pessoas que passaram por isso."
+      page: 'relatos',
+      keywords: ['relato', 'historias', 'experiencia', 'depoimento'],
+      reply: 'Leia relatos reais de pessoas que passaram por isso.'
     },
     {
-      page: "contato",
-      keywords: ["contato", "falar com alguém", "suporte", "ajuda", "whatsapp", "watsapp"],
-      reply: "Você pode falar com nossa equipe na página de contato."
+      page: 'contato',
+      keywords: ['contato', 'falar com alguem', 'suporte', 'ajuda', 'whatsapp'],
+      reply: 'Você pode falar com nossa equipe na página de contato.'
+    },
+
+    {
+      page: 'podcast',
+      keywords: ['podcast', 'audio', 'ouvir', 'historia audio', 'episodio'],
+      reply: 'Ouça histórias e experiências compartilhadas em áudio.'
     },
     {
-      page: "dashboard",
-      keywords: ["painel", "dashboard", "minha conta", "resultados"],
-      reply: "Aqui está seu painel de controle."
+      page: 'anonimato',
+      keywords: ['anonimato', 'anonimo', 'privacidade', 'sigilo'],
+      reply: 'O anonimato é um princípio fundamental da nossa irmandade.'
+    },
+    {
+      page: 'jogo-compulsivo',
+      keywords: ['jogo compulsivo', 'compulsao', 'vicio jogo', 'dependencia jogo'],
+      reply: 'Entenda como funciona a compulsão por jogos e seus impactos.'
+    },
+    {
+      page: 'uma-nova-chance',
+      keywords: ['nova chance', 'recomeco', 'esperanca', 'recomecar'],
+      reply: 'A recuperação é possível. Sempre existe uma nova chance.'
+    },
+    {
+      page: 'perguntas-frequentes',
+      keywords: ['faq', 'duvidas', 'perguntas frequentes', 'ajuda perguntas'],
+      reply: 'Veja respostas para as dúvidas mais comuns sobre o programa.'
+    },
+    {
+      page: 'literatura',
+      keywords: ['literatura', 'livros', 'material', 'folhetos'],
+      reply: 'Acesse materiais e literatura de apoio à recuperação.'
+    },
+    {
+      page: 'dashboard',
+      keywords: ['painel', 'dashboard', 'resultados', 'minha conta'],
+      reply: 'Aqui está seu painel de controle.'
     }
   ];
 
@@ -139,7 +170,8 @@ export class Chatbot implements OnInit {
     text = text
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
 
     return this.routes.find(route =>
       route.keywords.some(keyword =>

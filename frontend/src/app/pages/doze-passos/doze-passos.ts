@@ -7,4 +7,6 @@ import { Component } from '@angular/core';
   templateUrl: './doze-passos.html',
   styleUrl: './doze-passos.css',
 })
-export class DozePassos {}
+export class DozePassos {
+  abaAtiva: '12passos' | 'unidade' = '12passos';
+}

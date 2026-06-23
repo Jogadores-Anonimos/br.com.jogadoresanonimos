@@ -1,0 +1,133 @@
+.page-hero {
+  background: var(--gray-100);
+  padding: 40px 0;
+}
+
+.page-hero .container {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.hero-tag {
+  display: inline-block;
+  background: var(--yellow-gold);
+  color: #111;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: .9rem;
+  margin-bottom: 24px;
+}
+
+.page-hero h1 {
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  color: var(--cor-padrao-ja);
+  font-weight: 800;
+}
+
+.page-hero p {
+  max-width: 800px;
+  margin: 0 auto;
+  color: #64748b;
+  line-height: 1.8;
+  font-size: 1.1rem;
+}
+
+/* POEMA SECTION */
+
+.poema-section {
+  padding: 10px 0;
+  padding-bottom: 40px;
+  background: var(--gray-100);
+}
+
+.poema-section .container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.poema-card {
+  background: white;
+  border-radius: 24px;
+  padding: 50px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+.poema-card blockquote {
+  font-size: 1.2rem;
+  line-height: 2;
+  color: #475569;
+  margin: 0;
+  white-space: pre-line;
+}
+
+/* CTA SECTION */
+
+.cta-section {
+  padding: 80px 0;
+  background: white;
+  text-align: center;
+}
+
+.cta-section .container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.cta-section h2 {
+  font-size: 2.2rem;
+  color: var(--cor-padrao-ja);
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.cta-section p {
+  color: #64748b;
+  font-size: 1.1rem;
+  margin-bottom: 30px;
+  line-height: 1.7;
+}
+
+/* BOTÃO (mantém seu padrão global se já existir) */
+.btn-yellow2 {
+  display: inline-block;
+  background: var(--yellow-gold);
+  color: #111;
+  padding: 14px 28px;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: 0.25s;
+}
+
+.btn-yellow2:hover {
+  transform: translateY(-3px);
+  opacity: 0.95;
+}
+
+/* RESPONSIVO */
+
+@media (max-width: 900px) {
+  .poema-card {
+    padding: 30px;
+  }
+
+  .cta-section h2 {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .page-hero {
+    padding: 50px 0;
+  }
+
+  .poema-card {
+    padding: 24px;
+  }
+
+  .poema-card blockquote {
+    font-size: 1.05rem;
+  }
+}

@@ -100,7 +100,21 @@ section {
 }
 
 .btn-red    { background: var(--cor-padrao-ja); color: var(--white); }
-.btn-yellow { background: var(--yellow-gold);   color: #1a1a1a; width: 600px; height: 70px; font-size: 1.4rem;}
+.btn-yellow {
+  background: var(--yellow-gold);
+  color: #1a1a1a;
+  font-size: 1.4rem;
+  padding: 14px 32px;
+  width: 475px;
+}
+
+@media (max-width: 600px) {
+  .btn-yellow {
+    font-size: 0.9rem;
+    padding: 10px 20px;
+    width: 100%;
+  }
+}
 
 .btn-yellow2 {
   background: var(--yellow-gold);

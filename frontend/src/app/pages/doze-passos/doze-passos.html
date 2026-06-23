@@ -1,72 +1,63 @@
-  <div class="passos-hero">
-    <div class="passos-hero-content">
-      <div class="passos-hero-logo">
-        <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <circle cx="22" cy="22" r="20" stroke="#ffffff" stroke-width="2.5" />
-          <circle cx="22" cy="22" r="13" stroke="#ffffff" stroke-width="2" />
-          <circle cx="22" cy="22" r="6" fill="#D4A843" />
-        </svg>
-        <div>
-          <h1>OS 12 PASSOS</h1>
-          <p>Um caminho de recuperação, esperança e transformação.</p>
-        </div>
+<div class="passos-hero">
+  <div class="passos-hero-content">
+    <div class="passos-hero-logo">
+      <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="22" cy="22" r="20" stroke="#ffffff" stroke-width="2.5" />
+        <circle cx="22" cy="22" r="13" stroke="#ffffff" stroke-width="2" />
+        <circle cx="22" cy="22" r="6" fill="#D4A843" />
+      </svg>
+      <div>
+        <h1>OS 12 PASSOS</h1>
+        <p>Um caminho de recuperação, esperança e transformação.</p>
       </div>
     </div>
-  </div>
 
+    <div class="passos-tabs">
+      <button class="passos-tab" [class.active]="abaAtiva === '12passos'" (click)="abaAtiva = '12passos'">
+        12 Passos
+      </button>
+      <button class="passos-tab" [class.active]="abaAtiva === 'unidade'" (click)="abaAtiva = 'unidade'">
+        12 Passos de Unidade
+      </button>
+    </div>
+  </div>
+</div>
+
+@if (abaAtiva === '12passos') {
   <div class="passos-page-container">
     <div class="passos-page-grid">
-      <div class="passo-page-card">
-        <div class="passo-page-num">1</div>
-        <p>Admitimos que éramos impotentes perante o jogo e que nossas vidas haviam se tornado ingovernáveis.</p>
-      </div>
-      <div class="passo-page-card">
-        <div class="passo-page-num">2</div>
-        <p>Viemos a acreditar que um Poder superior a nós mesmos poderia devolver-nos à sanidade.</p>
-      </div>
-      <div class="passo-page-card">
-        <div class="passo-page-num">3</div>
-        <p>Decidimos entregar nossa vontade e nossa vida aos cuidados de Deus, na forma em que O concebíamos.</p>
-      </div>
-      <div class="passo-page-card">
-        <div class="passo-page-num">4</div>
-        <p>Fizemos minucioso e destemido inventário moral de nós mesmos.</p>
-      </div>
-      <div class="passo-page-card">
-        <div class="passo-page-num">5</div>
-        <p>Admitimos perante Deus, perante nós mesmos e perante outro ser humano a natureza exata de nossas falhas.
-        </p>
-      </div>
-      <div class="passo-page-card">
-        <div class="passo-page-num">6</div>
-        <p>Prontificamo-nos inteiramente a deixar que Deus removesse todos esses defeitos de caráter.</p>
-      </div>
-      <div class="passo-page-card">
-        <div class="passo-page-num">7</div>
-        <p>Humildemente pedimos a Ele que removesse nossos defeitos.</p>
-      </div>
-      <div class="passo-page-card">
-        <div class="passo-page-num">8</div>
-        <p>Fizemos uma relação de todas as pessoas que tínhamos prejudicado e nos dispusemos a reparar os danos a elas
-          causados.</p>
-      </div>
-      <div class="passo-page-card">
-        <div class="passo-page-num">9</div>
-        <p>Fizemos reparações diretas dos danos causados a tais pessoas, sempre que possível, salvo quando fazê-lo
-          significasse prejudicá-las ou a outrem.</p>
-      </div>
-      <div class="passo-page-card">
-        <div class="passo-page-num">10</div>
-        <p>Continuamos fazendo o inventário pessoal e, quando estávamos errados, nós o admitíamos prontamente.</p>
-      </div>
-      <div class="passo-page-card">
-        <div class="passo-page-num">11</div>
-        <p>Procuramos, através da prece e da meditação, melhorar nosso contato consciente com Deus.</p>
-      </div>
-      <div class="passo-page-card">
-        <div class="passo-page-num">12</div>
-        <p>Tendo experimentado um despertar espiritual, procuramos transmitir esta mensagem a outros jogadores
-          compulsivos.</p>
-      </div>
+      <div class="passo-page-card"><div class="passo-page-num">1</div><p>Admitimos que éramos impotentes perante o jogo e que nossas vidas haviam se tornado ingovernáveis.</p></div>
+      <div class="passo-page-card"><div class="passo-page-num">2</div><p>Viemos a acreditar que um Poder superior a nós mesmos poderia devolver-nos à sanidade.</p></div>
+      <div class="passo-page-card"><div class="passo-page-num">3</div><p>Decidimos entregar nossa vontade e nossa vida aos cuidados de Deus, na forma em que O concebíamos.</p></div>
+      <div class="passo-page-card"><div class="passo-page-num">4</div><p>Fizemos minucioso e destemido inventário moral de nós mesmos.</p></div>
+      <div class="passo-page-card"><div class="passo-page-num">5</div><p>Admitimos perante Deus, perante nós mesmos e perante outro ser humano a natureza exata de nossas falhas.</p></div>
+      <div class="passo-page-card"><div class="passo-page-num">6</div><p>Prontificamo-nos inteiramente a deixar que Deus removesse todos esses defeitos de caráter.</p></div>
+      <div class="passo-page-card"><div class="passo-page-num">7</div><p>Humildemente pedimos a Ele que removesse nossos defeitos.</p></div>
+      <div class="passo-page-card"><div class="passo-page-num">8</div><p>Fizemos uma relação de todas as pessoas que tínhamos prejudicado e nos dispusemos a reparar os danos a elas causados.</p></div>
+      <div class="passo-page-card"><div class="passo-page-num">9</div><p>Fizemos reparações diretas dos danos causados a tais pessoas, sempre que possível, salvo quando fazê-lo significasse prejudicá-las ou a outrem.</p></div>
+      <div class="passo-page-card"><div class="passo-page-num">10</div><p>Continuamos fazendo o inventário pessoal e, quando estávamos errados, nós o admitíamos prontamente.</p></div>
+      <div class="passo-page-card"><div class="passo-page-num">11</div><p>Procuramos, através da prece e da meditação, melhorar nosso contato consciente com Deus.</p></div>
+      <div class="passo-page-card"><div class="passo-page-num">12</div><p>Tendo experimentado um despertar espiritual, procuramos transmitir esta mensagem a outros jogadores compulsivos.</p></div>
     </div>
   </div>
+}
+
+@if (abaAtiva === 'unidade') {
+  <div class="passos-page-container">
+    <p class="unidade-desc">O Programa de Unidade de JA é composto por 12 Passos e serve para proteger a Irmandade de desmembramento. Os membros atuam em união sob os princípios da Unidade, com intuito de preservar e perpetuar uma oportunidade para si e para outros jogadores compulsivos se recuperar e crescer dentro da Irmandade.</p>
+    <div class="passos-page-grid">
+      <div class="passo-page-card unidade"><div class="passo-page-num unidade">1</div><p>Nosso bem-estar comum deve ser o primeiro lugar; uma recuperação individual depende da unidade do grupo.</p></div>
+      <div class="passo-page-card unidade"><div class="passo-page-num unidade">2</div><p>Nossos líderes são apenas servidores de confiança; eles não governam.</p></div>
+      <div class="passo-page-card unidade"><div class="passo-page-num unidade">3</div><p>O único requisito para tornar-se membro de Jogadores Anônimos é o desejo de parar de jogar.</p></div>
+      <div class="passo-page-card unidade"><div class="passo-page-num unidade">4</div><p>Todo grupo deve ser autônomo, exceto nos assuntos que afetam outros grupos ou Jogadores Anônimos como um todo.</p></div>
+      <div class="passo-page-card unidade"><div class="passo-page-num unidade">5</div><p>Jogadores Anônimos tem apenas um objetivo primordial – levar sua mensagem ao jogador compulsivo que ainda sofre.</p></div>
+      <div class="passo-page-card unidade"><div class="passo-page-num unidade">6</div><p>Jogadores Anônimos não devem permitir, financiar ou emprestar seu nome a órgãos administrados ou empreendimentos externos, evitando assim problemas de dinheiro, propriedade e prestígio afastados de nosso propósito primordial.</p></div>
+      <div class="passo-page-card unidade"><div class="passo-page-num unidade">7</div><p>Todo o Grupo de Jogadores Anônimos deve ser totalmente auto-sustentável, recusando contribuições externas.</p></div>
+      <div class="passo-page-card unidade"><div class="passo-page-num unidade">8</div><p>Jogadores Anônimos devem permanecer para sempre não profissional, mas nossos centros de serviço podem empregar funcionários.</p></div>
+      <div class="passo-page-card unidade"><div class="passo-page-num unidade">9</div><p>Jogadores Anônimos, como tal, nunca deveriam ser organizados; mas podemos criar juntas ou comitês de serviço sendo diretamente responsáveis por aqueles que servem.</p></div>
+      <div class="passo-page-card unidade"><div class="passo-page-num unidade">10</div><p>Jogadores Anônimos não tem opinião sobre assuntos externos; dessa forma o nome de Jogadores Anônimos nunca deve ser lançado na controvérsia pública.</p></div>
+      <div class="passo-page-card unidade"><div class="passo-page-num unidade">11</div><p>Nossa política de relações-públicas está mais baseada na atração do que na promoção; precisamos sempre manter o anonimato pessoal em nível de imprensa, rádio, filmes e televisão.</p></div>
+      <div class="passo-page-card unidade"><div class="passo-page-num unidade">12</div><p>O anonimato é uma base espiritual do programa de Jogadores Anônimos, sempre nos lembrando de colocar os princípios acima das personalidades.</p></div>
+    </div>
+  </div>
+}

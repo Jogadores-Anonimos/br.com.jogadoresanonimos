@@ -31,3 +31,12 @@
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
 }
+
+@media (max-width: 900px) {
+  .ticker-border { height: 4px; }
+  .ticker-wrapper { padding: 6px 0; }
+  .ticker-item {
+    font-size: 10px;
+    padding: 0 16px;
+  }
+}

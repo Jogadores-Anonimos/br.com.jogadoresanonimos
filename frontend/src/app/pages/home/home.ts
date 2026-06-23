@@ -13,6 +13,6 @@ import { ReflexoesTeaser } from './teasers/reflexoes-teaser/reflexoes-teaser';
   standalone: true,
   imports: [CommonModule, RouterLink, HeroSlider, AvisosTeaser, QuemSomosTeaser, ContatoTeaser, ReunioesTeaser, ReflexoesTeaser],
   templateUrl: './home.html',
-  styleUrl: './home.css'
+  styleUrl: './home.css',
 })
 export class Home {}

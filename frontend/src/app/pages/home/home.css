@@ -302,3 +302,231 @@ footer p         { font-size: 0.85rem; opacity: 0.7; }
   color: #1a1a1a;
   padding: 18px clamp(40px, 10vw, 160px);
 }
+
+.teaser-section {
+  padding: 75px 0;
+}
+
+.teaser-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+
+.teaser-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.teaser-titulo {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--cor-padrao-ja);
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+
+.teaser-desc {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #475569;
+  margin-bottom: 28px;
+}
+
+.teaser-stats {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 32px;
+  padding: 20px 0;
+  border-top: 1px solid rgba(116,44,36,0.1);
+  border-bottom: 1px solid rgba(116,44,36,0.1);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-num {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--cor-padrao-ja);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.teaser-img img {
+  width: 100%;
+  border-radius: 16px;
+  object-fit: cover;
+  height: 380px;
+}
+
+@media (max-width: 768px) {
+  .teaser-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .teaser-titulo { font-size: 1.6rem; }
+
+  .teaser-img img { height: 240px; }
+}
+.passos-teaser {
+  background: #f1f5f9;
+  padding: 75px 0;
+}
+
+.passos-teaser-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.passos-teaser-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #94a3b8;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.passos-teaser-header h2 {
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 900;
+  color: var(--cor-padrao-ja);
+  margin-bottom: 16px;
+}
+
+.passos-teaser-header p {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #475569;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.passos-teaser-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.passos-teaser-card {
+  background: white;
+  border-radius: 16px;
+  padding: 28px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.passos-teaser-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.07);
+}
+
+.passos-teaser-num {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--cor-padrao-ja);
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.passos-teaser-card p {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #334155;
+  padding-top: 10px;
+  background:#ffffff;
+}
+
+.passos-teaser-mais {
+  text-align: center;
+  margin-top: 20px;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 600px) {
+  .passos-teaser-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.passos-teaser-unidade {
+  margin-top: 60px;
+  padding-top: 48px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.passos-teaser-unidade-header h3 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--cor-padrao-ja);
+  margin-bottom: 8px;
+}
+
+.passos-teaser-unidade-header p {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: #475569;
+  max-width: 500px;
+}
+
+@media (max-width: 600px) {
+  .passos-teaser-unidade {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.teaser-highlight {
+  margin-top: 18px;
+  padding: 14px 18px;
+  background: #f1f5f9;
+  border-left: 4px solid var(--yellow-gold);
+  border-radius: 10px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.teaser-quote {
+  margin-top: 18px;
+  font-style: italic;
+  color: #64748b;
+  font-size: 1.05rem;
+}
