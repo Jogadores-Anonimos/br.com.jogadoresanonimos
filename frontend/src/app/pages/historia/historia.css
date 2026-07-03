@@ -1,0 +1,120 @@
+.historia-page {
+  display: block;
+}
+
+.hero {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.hero-content {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.hero h1 {
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  font-weight: 800;
+  margin-bottom: var(--spacing-sm);
+}
+
+.hero .lead {
+  font-size: 1.15rem;
+  line-height: 1.8;
+  opacity: 0.95;
+}
+
+.section {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.section-alt {
+  background: var(--color-bg-section);
+  max-width: none;
+}
+
+.section-alt > * {
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.section h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: var(--cor-padrao-ja);
+  margin-bottom: var(--spacing-md);
+}
+
+.section p {
+  color: var(--color-text);
+  line-height: 1.9;
+  font-size: 1.1rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.placeholder-note {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-size: 0.95rem;
+  border-left: 4px solid var(--yellow-gold);
+  padding-left: var(--spacing-sm);
+}
+
+.cta-final {
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+  background: var(--color-bg-section);
+}
+
+.cta-final h2 {
+  color: var(--cor-padrao-ja);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  margin-bottom: var(--spacing-sm);
+}
+
+.cta-final p {
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-md);
+  font-size: 1.1rem;
+}
+
+.btn-cta {
+  display: inline-block;
+  background: var(--yellow-btn);
+  color: var(--cor-padrao-ja);
+  font-weight: 700;
+  text-decoration: none;
+  padding: 14px 32px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.btn-cta:hover {
+  background: var(--yellow-gold);
+  transform: translateY(-2px);
+}
+
+.btn-cta:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 3px;
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: var(--spacing-lg) var(--spacing-sm);
+  }
+
+  .section,
+  .cta-final {
+    padding: var(--spacing-lg) var(--spacing-sm);
+  }
+
+  .section p,
+  .cta-final p {
+    font-size: 1rem;
+  }
+}

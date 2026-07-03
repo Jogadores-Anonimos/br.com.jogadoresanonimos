@@ -1,0 +1,117 @@
+<main class="vinte-page">
+
+  <section class="hero">
+    <div class="hero-content">
+      <h1>20 Perguntas</h1>
+      <p class="lead">
+        Este questionário é baseado nas 20 Perguntas usadas por Jogadores
+        Anônimos em todo o mundo para ajudar alguém a reconhecer se o jogo se
+        tornou um problema. É totalmente anônimo, leva poucos minutos e
+        nenhuma resposta fica salva nem é enviada para lugar nenhum.
+      </p>
+    </div>
+  </section>
+
+  <section class="section quiz-section">
+
+    @if (!quizIniciado) {
+      <div class="quiz-card quiz-intro-card">
+        <h2>Antes de começar</h2>
+        <ul class="quiz-info-list">
+          <li>São 20 perguntas, respondidas com "Sim" ou "Não".</li>
+          <li>Responda com o máximo de sinceridade possível.</li>
+          <li>Não existe resposta certa ou errada — é apenas um espelho.</li>
+          <li>
+            A maioria dos jogadores compulsivos responde SIM a pelo menos
+            7 dessas perguntas.
+          </li>
+        </ul>
+        <button type="button" class="btn-cta" (click)="iniciarQuiz()">
+          Começar o questionário
+        </button>
+      </div>
+    } @else if (resultado) {
+      <div
+        class="quiz-card quiz-resultado"
+        [class.quiz-resultado--atencao]="sinaisIdentificados"
+        role="status"
+      >
+        <h2>Resultado</h2>
+        <p class="quiz-resultado-contagem">
+          Você respondeu SIM a
+          <strong>{{ resultado.totalSim }}</strong>
+          de {{ resultado.totalPerguntas }} perguntas.
+        </p>
+
+        @if (sinaisIdentificados) {
+          <p>
+            Esse número está dentro do que a maioria dos jogadores
+            compulsivos costuma responder. Isso não é um diagnóstico, mas
+            pode ser um sinal importante de que vale a pena conversar com
+            alguém que entende do assunto.
+          </p>
+        } @else {
+          <p>
+            Seu número de respostas SIM está abaixo do critério que costuma
+            indicar compulsão pelo jogo. Ainda assim, se alguma dessas
+            perguntas te incomodou, conversar com alguém de confiança pode
+            ajudar.
+          </p>
+        }
+
+        <p>
+          Se você identificou sinais em si mesmo, o próximo passo pode ser
+          encontrar uma reunião perto de você ou ligar para um dos nossos
+          hotlines.
+        </p>
+
+        <div class="quiz-resultado-acoes">
+          <a class="btn-cta" routerLink="/reunioes">Encontrar uma Reunião</a>
+          <a class="btn-cta btn-cta--outline" routerLink="/hotlines">
+            Ligar para um Hotline
+          </a>
+        </div>
+
+        <button type="button" class="btn-link" (click)="refazer()">
+          Refazer o questionário
+        </button>
+      </div>
+    } @else {
+      <div class="quiz-card">
+        <p class="quiz-progresso-label">
+          Pergunta {{ perguntaAtual + 1 }} de {{ perguntas.length }}
+        </p>
+        <div
+          class="quiz-progresso-barra"
+          role="progressbar"
+          [attr.aria-valuenow]="progresso"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          <div class="quiz-progresso-preenchido" [style.width.%]="progresso"></div>
+        </div>
+
+        <h2 class="quiz-pergunta">{{ perguntas[perguntaAtual] }}</h2>
+
+        <div class="quiz-botoes">
+          <button
+            type="button"
+            class="btn-quiz btn-quiz--sim"
+            (click)="responder('sim')"
+          >
+            Sim
+          </button>
+          <button
+            type="button"
+            class="btn-quiz btn-quiz--nao"
+            (click)="responder('nao')"
+          >
+            Não
+          </button>
+        </div>
+      </div>
+    }
+
+  </section>
+
+</main>

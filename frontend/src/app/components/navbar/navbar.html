@@ -1,44 +1,79 @@
-<nav id="navbar">
-  <a class="nav-logo" routerLink="" data-page="home">
-    <img ngSrc="images/header/logo-jogadores-anonimos.png" width="60" height="60" alt="Logo" priority>
-    <div class="nav-logo-text">
-      <a class="nav-logo-text" routerLink="" style="text-decoration: none">
-        <span style="color:#E8A020;">JOGADORES</span>
-        <span style="color:#E8A020; font-weight:700;">ANÔNIMOS DO BRASIL</span>
-        <span style="color:#ffffff;">ERSJAB | JAERJ</span>
-      </a>
+<div class="utility-bar">
+  <div class="utility-bar-links">
+    <a routerLink="/contribuir" class="utility-link">Contribuição</a>
+    <a routerLink="/loja" class="utility-link">Loja</a>
+    <a routerLink="/loja" class="utility-link utility-cart" aria-label="Carrinho">
+      <i class="ti ti-shopping-cart" aria-hidden="true"></i>
+      <span>Carrinho</span>
+    </a>
+  </div>
+  <div class="utility-bar-actions">
+    <a routerLink="/reunioes" class="utility-btn">Encontrar Reunião</a>
+    <a routerLink="/hotlines" class="utility-btn">Hotlines Brasil</a>
+  </div>
+</div>
 
-    </div>
+<nav id="navbar" aria-label="Navegação principal">
+  <a class="nav-logo" routerLink="/">
+    <img
+      src="images/header/logo-jogadores-anonimos.png"
+      width="60"
+      height="60"
+      alt="Logo Jogadores Anônimos do Brasil"
+    />
+    <span class="nav-logo-text">JOGADORES ANÔNIMOS DO BRASIL</span>
   </a>
 
-  <button class="hamburger" (click)="toggleMenu()" aria-label="Menu">
+  <button
+    class="hamburger"
+    type="button"
+    (click)="toggleMenu()"
+    aria-label="Abrir menu de navegação"
+    [attr.aria-expanded]="menuAberto"
+  >
     <span></span><span></span><span></span>
   </button>
 
   <ul class="nav-links" [class.open]="menuAberto" role="list">
-    <li><a routerLink="/avisos" routerLinkActive="active">AVISOS</a></li>
-    <li><a routerLink="/quem-somos" routerLinkActive="active">HISTORIA</a></li>
-    <li><a routerLink="/reunioes" routerLinkActive="active">REUNIÕES</a></li>
-    <li><a routerLink="/enderecos" routerLinkActive="active">ENDEREÇOS</a></li>
-    <li><a routerLink="/doze-passos" routerLinkActive="active">12 PASSOS</a></li>
-    <li><a routerLink="/autoaval" routerLinkActive="active">AS 20 PERGUNTAS</a></li>
-    <li><a routerLink="/reflexoes" routerLinkActive="active">REFLEXÃO DO DIA</a></li>
-    <li><a routerLink="/literatura" routerLinkActive="active">LITERATURA</a></li>
-    <li><a routerLink="/relatos" routerLinkActive="active">RELATOS</a></li>
-    <li><a routerLink="/contribuir" routerLinkActive="active">7º PASSO DA UNIDADE</a></li>
+    <li>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+    </li>
+
     <li class="dropdown">
-      <button class="dropdown-toggle" (click)="toggleDropdown()">
-        MAIS <i class="ti ti-chevron-down"></i>
+      <button
+        class="dropdown-toggle"
+        type="button"
+        (click)="toggleDropdown('sobre', $event)"
+        [attr.aria-expanded]="dropdownsAbertos.sobre"
+      >
+        Sobre <i class="ti ti-chevron-down" aria-hidden="true"></i>
       </button>
-      <ul class="dropdown-menu" [class.open]="dropdownAberto">
-        <li><a routerLink="/contato" routerLinkActive="active">CONTATO</a></li>
-        <li><a routerLink="/podcast" routerLinkActive="active">PODCAST</a></li>
-        <li><a routerLink="/dashboard" routerLinkActive="active">PAINEL</a></li>
-        <li><a routerLink="/anonimato" routerLinkActive="active">ANONIMATO</a></li>
-        <li><a routerLink="/jogo-compulsivo" routerLinkActive="active">JOGO COMPULSIVO</a></li>
-        <li><a routerLink="/uma-nova-chance" routerLinkActive="active">UMA NOVA CHANCE</a></li>
-        <li><a routerLink="/perguntas-frequentes" routerLinkActive="active">PERGUNTAS FREQUENTES</a></li>
+      <ul class="dropdown-menu" [class.open]="dropdownsAbertos.sobre">
+        <li><a routerLink="/historia" routerLinkActive="active">História</a></li>
       </ul>
     </li>
+
+    <li class="dropdown">
+      <button
+        class="dropdown-toggle"
+        type="button"
+        (click)="toggleDropdown('recursos', $event)"
+        [attr.aria-expanded]="dropdownsAbertos.recursos"
+      >
+        Recursos <i class="ti ti-chevron-down" aria-hidden="true"></i>
+      </button>
+      <ul class="dropdown-menu" [class.open]="dropdownsAbertos.recursos">
+        <li><a routerLink="/literatura" routerLinkActive="active">Literatura</a></li>
+        <li><a routerLink="/programa-de-recuperacao" routerLinkActive="active">Programa de Recuperação</a></li>
+        <li><a routerLink="/programa-de-unidade" routerLinkActive="active">Programa de Unidade</a></li>
+        <li><a routerLink="/perguntas-e-respostas" routerLinkActive="active">Perguntas &amp; Respostas</a></li>
+        <li><a routerLink="/vinte-perguntas" routerLinkActive="active">20 Perguntas</a></li>
+        <li><a routerLink="/escritorios-regionais" routerLinkActive="active">Escritórios Regionais</a></li>
+        <li><a routerLink="/boletim-informativo" routerLinkActive="active">Boletim Informativo</a></li>
+      </ul>
+    </li>
+
+    <li><a routerLink="/loja" routerLinkActive="active">Loja</a></li>
+    <li><a routerLink="/minha-conta" routerLinkActive="active">Minha Conta</a></li>
   </ul>
 </nav>

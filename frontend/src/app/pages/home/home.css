@@ -1,532 +1,205 @@
-* {
-  background: #F0F4F8;
-}
-
-.admin-footer {
-  display: flex;
-  justify-content: center;
-  padding: 20px;
-  border-top: 1px solid #742C24;
-  background: #f1f5f9;
-}
-
-.admin-footer a {
-  font-size: 0.8rem;
-  color: #742C24;
-  font-weight: 600;
-  text-decoration: none;
-  padding: 10px 16px;
-  border: 1px solid #D4A843;
-  border-radius: 10px;
-  transition: 0.25s ease;
-  opacity: 0.85;
-}
-
-.admin-footer a:hover {
-  color: #D4A843;
-  border-color: #742C24;
-  opacity: 1;
-  transform: translateY(-2px);
-}
-/* ══════════════════════════════════════════
-   SEÇÃO: OS DOZE PASSOS (teaser + página)
-══════════════════════════════════════════ */
-
-.doze-passos-header {
-  text-align: center;
-  margin-bottom: 60px;
-}
-
-.doze-passos-header h2 {
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: #94a3b8;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-}
-
-.doze-passos-header h1 {
-  font-size: 2.2rem;
-  font-weight: 900;
-  color: var(--text-dark);
-  margin-bottom: 16px;
-}
-
-.doze-passos-header p {
-  font-size: 0.95rem;
-  color: #64748b;
-  max-width: 600px;
-  margin: 0 auto;
-  line-height: 1.7;
-}
-
-.passos-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-.passo-card {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 24px;
-  padding: 28px;
-  display: flex;
-  gap: 16px;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.passos-card p{
-  background: #fff;
-}
-
-.passo-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-.passo-num {
-  min-width: 62px;
-  height: 62px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #742C24, #6b5624);
-  color: white;
-  font-weight: 800;
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
-}
-
-.passo-text {
-  background: #fff;
-  font-size: 1rem;
-  line-height: 1.65;
-  font-weight: 500;
-  color: #475569;
-}
-
-/* ══════════════════════════════════════════
-   SEÇÃO: 20 PERGUNTAS TEASER (home)
-══════════════════════════════════════════ */
-
-.questions-preview {
-  padding: 90px clamp(20px, 5vw, 60px);
-  display: flex;
-  justify-content: center;
-  background: #f1f5f9;
-}
-
-.questions-preview-card {
-  width: 100%;
-  max-width: 1050px;
-  background: white;
-  box-shadow: 10px 10px 5px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 32px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: clamp(32px, 5vw, 70px);
-  gap: 60px;
-  position: relative;
-}
-
-.questions-preview-card::before {
-  content: "";
-  position: absolute;
-  width: 320px;
-  height: 320px;
-  border-radius: 50%;
-  background: rgba(215, 170, 67, 0.08);
-  filter: blur(80px);
-  right: -80px;
-  top: -80px;
-}
-
-.questions-preview-content {
-  background: #fff;
-  flex: 1;
-  max-width: 760px;
+.home {
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  position: relative;
-  z-index: 2;
 }
 
-.questions-preview-content p {
-  background: #fff;
-}
-
-.questions-preview-content h2 {
-  background: #fff;
-}
-
-.questions-preview-content a {
-  background: #fff;
-}
-
-.questions-preview-image {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-}
-
-.questions-preview-image img {
-  width: 100%;
-  max-width: 430px;
-  border-radius: 24px;
-  object-fit: cover;
-  filter: brightness(0.92);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
-}
-
-.questions-preview h2 {
-  font-size: clamp(2rem, 4vw, 50px);
-  line-height: 0.95;
-  color: var(--cor-padrao-ja);
-  font-weight: 800;
-  letter-spacing: -2px;
-}
-
-.questions-preview p {
-  font-size: 18px;
-  line-height: 1.75;
-  color: black;
-}
-
-.questions-preview a {
-  width: fit-content;
-  margin-top: 10px;
-  background: var(--yellow-gold);
-  color: #111;
-  text-decoration: none;
-  padding: 18px 28px;
-  border-radius: 16px;
-  font-size: 17px;
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.75rem;
+  border-radius: var(--radius-sm);
   font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.questions-preview a:hover {
-  transform: translateY(-3px);
-  background: #e2b54b;
-  box-shadow: 0 14px 30px rgba(215, 170, 67, 0.2);
+.btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
+.btn:focus-visible {
+  outline: 3px solid var(--yellow-gold);
+  outline-offset: 2px;
+}
 
+.btn--primary {
+  background: var(--yellow-btn);
+  color: var(--black);
+}
 
-footer {
+.btn--secondary {
+  background: transparent;
+  color: var(--white);
+  border: 2px solid var(--white);
+}
+
+.hero {
   background: var(--cor-padrao-ja);
-  color: white;
-  padding: 40px clamp(20px, 5vw, 60px);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: auto;
-}
-
-footer p         { font-size: 0.85rem; opacity: 0.7; }
-
-.footer-crisis   { font-size: 0.85rem; opacity: 0.9; text-align: right; }
-
-.footer-crisis strong {
-  display: block;
-  font-size: 0.95rem;
-  margin-bottom: 4px;
-}
-
-/* home.css */
-@media (max-width: 900px) {
-  .sobre-grid {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
-
-  .reunioes-grid {
-    grid-template-columns: 1fr !important;
-    gap: 32px !important;
-  }
-
-  .questions-preview-card {
-    flex-direction: column;
-    gap: 32px;
-    padding: 32px 24px;
-  }
-
-  .questions-preview-image {
-    display: none;
-  }
-
-  .passos-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 600px) {
-  .quem-somos h2 {
-    font-size: 1.6rem;
-  }
-
-  .contact-cta h3 {
-    font-size: 1.3rem;
-  }
-
-  .contact-cta-buttons {
-    flex-direction: column;
-  }
-
-  .whatsapp-btn {
-    font-size: 1rem;
-    padding: 16px 20px;
-    min-width: 0;
-    width: 100%;
-  }
-}
-
-.btn-yellow2 {
-  background: var(--yellow-gold);
-  color: #1a1a1a;
-  padding: 18px clamp(40px, 10vw, 160px);
-}
-
-.teaser-section {
-  padding: 75px 0;
-}
-
-.teaser-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 60px;
-  align-items: center;
-}
-
-.teaser-label {
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: #94a3b8;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-}
-
-.teaser-titulo {
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: var(--cor-padrao-ja);
-  margin-bottom: 16px;
-  line-height: 1.2;
-}
-
-.teaser-desc {
-  font-size: 1rem;
-  line-height: 1.8;
-  color: #475569;
-  margin-bottom: 28px;
-}
-
-.teaser-stats {
-  display: flex;
-  gap: 32px;
-  margin-bottom: 32px;
-  padding: 20px 0;
-  border-top: 1px solid rgba(116,44,36,0.1);
-  border-bottom: 1px solid rgba(116,44,36,0.1);
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-num {
-  font-size: 1.8rem;
-  font-weight: 800;
-  color: var(--cor-padrao-ja);
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 0.8rem;
-  color: #94a3b8;
-  margin-top: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.teaser-img img {
-  width: 100%;
-  border-radius: 16px;
-  object-fit: cover;
-  height: 380px;
-}
-
-@media (max-width: 768px) {
-  .teaser-grid {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
-
-  .teaser-titulo { font-size: 1.6rem; }
-
-  .teaser-img img { height: 240px; }
-}
-.passos-teaser {
-  background: #f1f5f9;
-  padding: 75px 0;
-}
-
-.passos-teaser-header {
+  color: var(--white);
+  padding: var(--spacing-xl) var(--spacing-md);
   text-align: center;
-  margin-bottom: 48px;
 }
 
-.passos-teaser-label {
-  font-size: 0.78rem;
+.hero__content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hero__question {
+  font-size: 2rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  color: #94a3b8;
-  text-transform: uppercase;
-  display: block;
-  margin-bottom: 12px;
+  line-height: 1.3;
+  margin-bottom: var(--spacing-sm);
 }
 
-.passos-teaser-header h2 {
-  font-size: clamp(1.8rem, 4vw, 2.8rem);
-  font-weight: 900;
+.hero__slogan {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--yellow);
+}
+
+.intro {
+  padding: var(--spacing-xl) var(--spacing-md);
+  background: var(--color-bg-surface);
+  text-align: center;
+}
+
+.intro__text {
+  max-width: 700px;
+  margin: 0 auto;
+  font-size: 1.15rem;
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.cta-primary {
+  background: var(--color-bg-section);
+  padding: var(--spacing-xl) var(--spacing-md);
+  text-align: center;
+}
+
+.cta-primary__title {
+  font-size: 1.75rem;
   color: var(--cor-padrao-ja);
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-lg);
 }
 
-.passos-teaser-header p {
-  font-size: 1rem;
-  line-height: 1.8;
-  color: #475569;
-  max-width: 600px;
-  margin: 0 auto;
+.cta-primary .btn--secondary {
+  color: var(--cor-padrao-ja);
+  border-color: var(--cor-padrao-ja);
 }
 
-.passos-teaser-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.passos-teaser-card {
-  background: white;
-  border-radius: 16px;
-  padding: 28px;
-  border: 1px solid #e2e8f0;
+.cta-primary__actions {
   display: flex;
-  align-items: flex-start;
-  gap: 20px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  gap: var(--spacing-sm);
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-.passos-teaser-card:hover {
+.quiz-teaser {
+  padding: var(--spacing-xl) var(--spacing-md);
+  text-align: center;
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+}
+
+.quiz-teaser__title {
+  font-size: 1.5rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.quiz-teaser__text {
+  max-width: 600px;
+  margin: 0 auto var(--spacing-lg);
+  line-height: 1.6;
+}
+
+.quick-links {
+  padding: var(--spacing-xl) var(--spacing-md);
+  background: var(--color-bg-surface);
+  text-align: center;
+}
+
+.quick-links__title {
+  font-size: 1.5rem;
+  color: var(--cor-padrao-ja);
+  margin-bottom: var(--spacing-lg);
+}
+
+.quick-links__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--spacing-lg);
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.quick-link-card {
+  display: block;
+  padding: var(--spacing-lg);
+  background: var(--color-bg-section);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: var(--color-text);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.quick-link-card:hover,
+.quick-link-card:focus-visible {
   transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.07);
+  box-shadow: var(--shadow-md);
+  outline: none;
 }
 
-.passos-teaser-num {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--cor-padrao-ja);
-  color: white;
-  font-size: 1.2rem;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+.quick-link-card:focus-visible {
+  outline: 3px solid var(--yellow-gold);
+  outline-offset: 2px;
 }
 
-.passos-teaser-card p {
-  font-size: 0.95rem;
-  line-height: 1.7;
-  color: #334155;
-  padding-top: 10px;
-  background:#ffffff;
-}
-
-.passos-teaser-mais {
-  text-align: center;
-  margin-top: 20px;
-  color: #94a3b8;
-  font-size: 0.9rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-}
-
-@media (max-width: 600px) {
-  .passos-teaser-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.passos-teaser-unidade {
-  margin-top: 60px;
-  padding-top: 48px;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 32px;
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.passos-teaser-unidade-header h3 {
-  font-size: 1.4rem;
-  font-weight: 800;
+.quick-link-card h3 {
   color: var(--cor-padrao-ja);
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-xs);
 }
 
-.passos-teaser-unidade-header p {
-  font-size: 0.9rem;
-  line-height: 1.7;
-  color: #475569;
-  max-width: 500px;
+.quick-link-card p {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.newsletter-teaser {
+  padding: var(--spacing-xl) var(--spacing-md);
+  text-align: center;
+  background: var(--color-bg-section);
+}
+
+.newsletter-teaser__title {
+  font-size: 1.5rem;
+  color: var(--cor-padrao-ja);
+  margin-bottom: var(--spacing-sm);
+}
+
+.newsletter-teaser__text {
+  max-width: 600px;
+  margin: 0 auto var(--spacing-lg);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.newsletter-teaser .btn--secondary {
+  color: var(--cor-padrao-ja);
+  border-color: var(--cor-padrao-ja);
 }
 
 @media (max-width: 600px) {
-  .passos-teaser-unidade {
-    flex-direction: column;
-    align-items: flex-start;
+  .hero__question {
+    font-size: 1.5rem;
   }
-}
 
-.teaser-highlight {
-  margin-top: 18px;
-  padding: 14px 18px;
-  background: #f1f5f9;
-  border-left: 4px solid var(--yellow-gold);
-  border-radius: 10px;
-  color: #475569;
-  font-weight: 600;
-}
-
-.teaser-quote {
-  margin-top: 18px;
-  font-style: italic;
-  color: #64748b;
-  font-size: 1.05rem;
+  .hero__slogan {
+    font-size: 2rem;
+  }
 }

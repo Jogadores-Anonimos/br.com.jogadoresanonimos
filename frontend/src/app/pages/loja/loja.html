@@ -1,0 +1,26 @@
+<main class="loja">
+  <h1 class="loja__titulo">Loja Online</h1>
+
+  <div class="loja__em-breve">
+    <div class="loja__icone" aria-hidden="true">
+      <span class="loja__icone-sacola"></span>
+    </div>
+    <p class="loja__mensagem">Em breve</p>
+    <p class="loja__descricao">
+      Estamos preparando nossa loja com materiais de recuperação e itens da irmandade.
+    </p>
+  </div>
+
+  <div class="loja__grid">
+    @for (produto of produtos; track $index) {
+      <article class="loja__card">
+        <div class="loja__card-imagem" aria-hidden="true"></div>
+        <h2 class="loja__card-titulo">{{ produto.titulo }}</h2>
+        <p class="loja__card-preco">{{ produto.preco }}</p>
+        <button type="button" class="loja__card-botao" disabled>
+          Adicionar ao carrinho (em breve)
+        </button>
+      </article>
+    }
+  </div>
+</main>

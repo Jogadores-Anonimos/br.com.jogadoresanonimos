@@ -1,0 +1,109 @@
+<section class="conta-page">
+  <div class="conta-hero">
+    <h1>Minha Conta</h1>
+    <p class="lead">
+      Entre com seu apelido ou crie uma conta anônima para acompanhar seu
+      acesso aos recursos da irmandade.
+    </p>
+  </div>
+
+  <div class="conta-grid">
+    <!-- Bloco de login -->
+    <div class="conta-card">
+      <h2>Já tenho conta</h2>
+
+      <form (ngSubmit)="onLoginSubmit()" #loginForm="ngForm">
+        <div class="campo">
+          <label for="login-usuario">Usuário ou e-mail</label>
+          <input
+            id="login-usuario"
+            name="usuarioOuEmail"
+            type="text"
+            autocomplete="username"
+            [(ngModel)]="loginUsuarioOuEmail"
+            required
+          />
+        </div>
+
+        <div class="campo">
+          <label for="login-senha">Senha</label>
+          <input
+            id="login-senha"
+            name="senha"
+            type="password"
+            autocomplete="current-password"
+            [(ngModel)]="loginSenha"
+            required
+          />
+        </div>
+
+        <div class="campo campo-checkbox">
+          <input
+            id="lembrar-de-mim"
+            name="lembrarDeMim"
+            type="checkbox"
+            [(ngModel)]="lembrarDeMim"
+          />
+          <label for="lembrar-de-mim">Lembrar de mim</label>
+        </div>
+
+        <button type="submit" class="btn-cta" [disabled]="loginEnviando || loginForm.invalid">
+          {{ loginEnviando ? 'Entrando...' : 'Entrar' }}
+        </button>
+
+        <a href="#" class="link-secundario" (click)="$event.preventDefault()">Esqueci minha senha</a>
+
+        @if (loginMensagem) {
+          <p class="mensagem" [class.mensagem-sucesso]="loginSucesso" [class.mensagem-erro]="!loginSucesso">
+            {{ loginMensagem }}
+          </p>
+        }
+      </form>
+    </div>
+
+    <!-- Bloco de registro -->
+    <div class="conta-card">
+      <h2>Criar conta</h2>
+      <p class="conta-card-descricao">
+        Usamos apenas seu e-mail para recuperação de conta — nunca
+        pedimos nome real ou outros dados que possam te identificar.
+      </p>
+
+      <form (ngSubmit)="onRegistroSubmit()" #registroForm="ngForm">
+        <div class="campo">
+          <label for="registro-email">E-mail</label>
+          <input
+            id="registro-email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            [(ngModel)]="registroEmail"
+            required
+          />
+        </div>
+
+        <div class="campo">
+          <label for="registro-senha">Senha</label>
+          <input
+            id="registro-senha"
+            name="senha"
+            type="password"
+            autocomplete="new-password"
+            [(ngModel)]="registroSenha"
+            required
+          />
+        </div>
+
+        <button type="submit" class="btn-cta" [disabled]="registroEnviando || registroForm.invalid">
+          {{ registroEnviando ? 'Criando...' : 'Criar conta' }}
+        </button>
+
+        @if (registroMensagem) {
+          <p class="mensagem" [class.mensagem-sucesso]="registroSucesso" [class.mensagem-erro]="!registroSucesso">
+            {{ registroMensagem }}
+          </p>
+        }
+      </form>
+    </div>
+  </div>
+</section>

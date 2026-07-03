@@ -1,46 +1,45 @@
-<div class="literatura-page">
+<main class="literatura-page">
 
-  <div class="literatura-hero">
-    <span class="literatura-label">MATERIAL DE APOIO</span>
-    <h1>Literatura</h1>
-    <p>Conheça os livros e folhetos utilizados por Jogadores Anônimos para apoiar a jornada de recuperação.</p>
-  </div>
-
-  <div class="literatura-container">
-
-    <div class="literatura-filtros">
-      <button class="filtro-btn" [class.active]="filtroAtivo === 'todos'" (click)="filtroAtivo = 'todos'">
-        Todos
-      </button>
-      <button class="filtro-btn" [class.active]="filtroAtivo === 'livro'" (click)="filtroAtivo = 'livro'">
-        <i class="ti ti-book"></i> Livros
-      </button>
-      <button class="filtro-btn" [class.active]="filtroAtivo === 'folheto'" (click)="filtroAtivo = 'folheto'">
-        <i class="ti ti-file-text"></i> Folhetos
-      </button>
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Literatura</h1>
+      <p class="lead">
+        Materiais escritos pela própria irmandade de Jogadores Anônimos para
+        apoiar a recuperação: cadernos de passos, folhetos e manuais usados
+        por grupos em todo o mundo.
+      </p>
     </div>
+  </section>
+
+  <section class="section">
+    <p class="aviso">
+      O catálogo abaixo é uma tradução de referência das publicações usadas
+      pela irmandade. A disponibilidade real de cada título em português e
+      os canais de distribuição da JA Brasil ainda estão sendo confirmados
+      com o cliente.
+    </p>
 
     <div class="literatura-grid">
-      @for (item of literaturasFiltradas; track $index) {
+      @for (item of publicacoes; track item.titulo) {
         <div class="literatura-card">
-          <div class="literatura-card-img">
-            <img [src]="item.imagem" [alt]="item.titulo" loading="lazy"
-                 onerror="this.style.display='none'; this.parentElement.classList.add('sem-imagem')">
-            <span class="literatura-tipo" [class.livro]="item.tipo === 'livro'">
-              {{ item.tipo === 'livro' ? 'Livro' : 'Folheto' }}
-            </span>
-          </div>
-          <div class="literatura-card-body">
-            <p class="literatura-formato">
-              <i class="ti ti-ruler"></i> {{ item.formato }}
-            </p>
-            <h3>{{ item.titulo }}</h3>
-            <p class="literatura-desc">{{ item.descricao }}</p>
-          </div>
+          <h2>{{ item.titulo }}</h2>
+          <span class="tag-disponibilidade">
+            [confirmar disponibilidade em português]
+          </span>
         </div>
       }
     </div>
+  </section>
 
-  </div>
+  <section class="cta-final">
+    <h2>Quer entender melhor o programa?</h2>
+    <p>
+      Conheça as perguntas mais frequentes sobre a recuperação do jogo
+      compulsivo e o funcionamento da irmandade.
+    </p>
+    <a class="btn-cta" routerLink="/perguntas-e-respostas">
+      Ver Perguntas &amp; Respostas
+    </a>
+  </section>
 
-</div>
+</main>

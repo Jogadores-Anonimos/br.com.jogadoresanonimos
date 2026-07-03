@@ -1,0 +1,36 @@
+<main class="unidade-page">
+
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Programa de Unidade</h1>
+      <p class="lead">
+        Para manter a unidade, nossa experiência mostrou que:
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="revisar-nota">
+      [tradução a revisar com o cliente/comitê de literatura]
+    </p>
+
+    <ol class="principios-lista">
+      @for (principio of principios; track $index) {
+        <li class="principio-item">
+          <span class="principio-num" aria-hidden="true">{{ $index + 1 }}</span>
+          <p>{{ principio }}</p>
+        </li>
+      }
+    </ol>
+  </section>
+
+  <section class="cta-final">
+    <h2>Ajude a manter viva essa mensagem</h2>
+    <p>
+      A Jogadores Anônimos se sustenta exclusivamente com as contribuições
+      voluntárias de seus próprios membros e amigos.
+    </p>
+    <a class="btn-cta" routerLink="/contribuir">Fazer uma Contribuição</a>
+  </section>
+
+</main>

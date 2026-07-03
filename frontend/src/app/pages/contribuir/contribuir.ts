@@ -2,8 +2,10 @@ import { Component } from '@angular/core';
 
 @Component({
   selector: 'app-contribuir',
+  standalone: true,
   imports: [],
   templateUrl: './contribuir.html',
-  styleUrl: './contribuir.css',
+  styleUrl: './contribuir.css'
 })
-export class Contribuir {}
+export class Contribuir {
+}

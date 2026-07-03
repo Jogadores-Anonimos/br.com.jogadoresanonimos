@@ -1,0 +1,158 @@
+.conta-page {
+  display: block;
+}
+
+.conta-hero {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.conta-hero h1 {
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  font-weight: 800;
+  margin-bottom: var(--spacing-sm);
+}
+
+.conta-hero .lead {
+  max-width: 620px;
+  margin: 0 auto;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  opacity: 0.95;
+}
+
+.conta-grid {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--spacing-xl) var(--spacing-md);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+}
+
+.conta-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-lg);
+}
+
+.conta-card h2 {
+  color: var(--cor-padrao-ja);
+  font-size: 1.4rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.conta-card-descricao {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: var(--spacing-md);
+}
+
+.campo {
+  margin-bottom: var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.campo label {
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.campo input[type='text'],
+.campo input[type='email'],
+.campo input[type='password'] {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-bg-surface);
+}
+
+.campo input:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 1px;
+}
+
+.campo-checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.campo-checkbox label {
+  font-weight: 400;
+}
+
+.btn-cta {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  background: var(--yellow-btn);
+  color: var(--cor-padrao-ja);
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  padding: 14px 32px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s ease, transform 0.2s ease;
+  margin-top: var(--spacing-xs);
+}
+
+.btn-cta:hover:not(:disabled) {
+  background: var(--yellow-gold);
+  transform: translateY(-2px);
+}
+
+.btn-cta:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 3px;
+}
+
+.btn-cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.link-secundario {
+  display: block;
+  text-align: center;
+  margin-top: var(--spacing-sm);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  text-decoration: underline;
+}
+
+.mensagem {
+  margin-top: var(--spacing-sm);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.mensagem-sucesso {
+  color: var(--color-success);
+}
+
+.mensagem-erro {
+  color: var(--color-danger);
+}
+
+@media (max-width: 768px) {
+  .conta-hero {
+    padding: var(--spacing-lg) var(--spacing-sm);
+  }
+
+  .conta-grid {
+    grid-template-columns: 1fr;
+    padding: var(--spacing-lg) var(--spacing-sm);
+  }
+}
