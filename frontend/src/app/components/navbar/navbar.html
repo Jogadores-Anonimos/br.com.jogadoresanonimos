@@ -1,15 +1,48 @@
 <div class="utility-bar">
   <div class="utility-bar-links">
-    <a routerLink="/contribuir" class="utility-link">Contribuição</a>
-    <a routerLink="/loja" class="utility-link">Loja</a>
-    <a routerLink="/loja" class="utility-link utility-cart" aria-label="Carrinho">
-      <i class="ti ti-shopping-cart" aria-hidden="true"></i>
-      <span>Carrinho</span>
+    <a routerLink="/contribuir" class="utility-link">
+      <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 21s-7-4.35-9.5-9A5.5 5.5 0 0 1 12 5.5 5.5 5.5 0 0 1 21.5 12C19 16.65 12 21 12 21z"/>
+      </svg>
+      <span>Contribuição</span>
     </a>
+    <a routerLink="/loja" class="utility-link">
+      <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5"/>
+        <path d="M4 5.5v15"/>
+        <path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"/>
+      </svg>
+      <span>Loja</span>
+    </a>
+    <span class="utility-icon-btn utility-cart" aria-label="Itens no carrinho: 0">
+      <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="9" cy="20" r="1"/>
+        <circle cx="18" cy="20" r="1"/>
+        <path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"/>
+      </svg>
+      <span class="cart-count">0</span>
+    </span>
+    <button type="button" class="utility-icon-btn" aria-label="Buscar (em breve)" disabled>
+      <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"/>
+        <line x1="21" y1="21" x2="16.5" y2="16.5"/>
+      </svg>
+    </button>
   </div>
+  <a routerLink="/reunioes" class="utility-btn">
+    <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 22s7-6.2 7-12A7 7 0 0 0 5 10c0 5.8 7 12 7 12z"/>
+      <circle cx="12" cy="10" r="2.5"/>
+    </svg>
+    <span>Encontrar Reunião</span>
+  </a>
   <div class="utility-bar-actions">
-    <a routerLink="/reunioes" class="utility-btn">Encontrar Reunião</a>
-    <a routerLink="/hotlines" class="utility-btn">Hotlines Brasil</a>
+    <a routerLink="/hotlines" class="utility-link">
+      <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 4h4l1.5 4.5-2.3 1.7a12 12 0 0 0 5.6 5.6l1.7-2.3L20 15v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>
+      </svg>
+      <span>Hotlines Brasil</span>
+    </a>
   </div>
 </div>
 
@@ -21,7 +54,7 @@
       height="60"
       alt="Logo Jogadores Anônimos do Brasil"
     />
-    <span class="nav-logo-text">JOGADORES ANÔNIMOS DO BRASIL</span>
+    <span class="nav-logo-text">JOGADORES<br>ANÔNIMOS<br>DO BRASIL</span>
   </a>
 
   <button
@@ -34,46 +67,64 @@
     <span></span><span></span><span></span>
   </button>
 
-  <ul class="nav-links" [class.open]="menuAberto" role="list">
-    <li>
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
-    </li>
+  <div class="nav-menu" [class.open]="menuAberto">
+    <ul class="nav-links" role="list">
+      <li>
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+      </li>
 
-    <li class="dropdown">
-      <button
-        class="dropdown-toggle"
-        type="button"
-        (click)="toggleDropdown('sobre', $event)"
-        [attr.aria-expanded]="dropdownsAbertos.sobre"
-      >
-        Sobre <i class="ti ti-chevron-down" aria-hidden="true"></i>
-      </button>
-      <ul class="dropdown-menu" [class.open]="dropdownsAbertos.sobre">
-        <li><a routerLink="/historia" routerLinkActive="active">História</a></li>
-      </ul>
-    </li>
+      <li class="dropdown">
+        <button
+          class="dropdown-toggle"
+          type="button"
+          (click)="toggleDropdown('sobre', $event)"
+          [attr.aria-expanded]="dropdownsAbertos.sobre"
+        >
+          Sobre
+          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <ul class="dropdown-menu" [class.open]="dropdownsAbertos.sobre">
+          <li><a routerLink="/historia" routerLinkActive="active">História</a></li>
+        </ul>
+      </li>
 
-    <li class="dropdown">
-      <button
-        class="dropdown-toggle"
-        type="button"
-        (click)="toggleDropdown('recursos', $event)"
-        [attr.aria-expanded]="dropdownsAbertos.recursos"
-      >
-        Recursos <i class="ti ti-chevron-down" aria-hidden="true"></i>
-      </button>
-      <ul class="dropdown-menu" [class.open]="dropdownsAbertos.recursos">
-        <li><a routerLink="/literatura" routerLinkActive="active">Literatura</a></li>
-        <li><a routerLink="/programa-de-recuperacao" routerLinkActive="active">Programa de Recuperação</a></li>
-        <li><a routerLink="/programa-de-unidade" routerLinkActive="active">Programa de Unidade</a></li>
-        <li><a routerLink="/perguntas-e-respostas" routerLinkActive="active">Perguntas &amp; Respostas</a></li>
-        <li><a routerLink="/vinte-perguntas" routerLinkActive="active">20 Perguntas</a></li>
-        <li><a routerLink="/escritorios-regionais" routerLinkActive="active">Escritórios Regionais</a></li>
-        <li><a routerLink="/boletim-informativo" routerLinkActive="active">Boletim Informativo</a></li>
-      </ul>
-    </li>
+      <li class="dropdown">
+        <button
+          class="dropdown-toggle"
+          type="button"
+          (click)="toggleDropdown('recursos', $event)"
+          [attr.aria-expanded]="dropdownsAbertos.recursos"
+        >
+          Recursos
+          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <ul class="dropdown-menu" [class.open]="dropdownsAbertos.recursos">
+          <li><a routerLink="/literatura" routerLinkActive="active">Literatura</a></li>
+          <li><a routerLink="/programa-de-recuperacao" routerLinkActive="active">Programa de Recuperação</a></li>
+          <li><a routerLink="/programa-de-unidade" routerLinkActive="active">Programa de Unidade</a></li>
+          <li><a routerLink="/perguntas-e-respostas" routerLinkActive="active">Perguntas &amp; Respostas</a></li>
+          <li><a routerLink="/vinte-perguntas" routerLinkActive="active">20 Perguntas</a></li>
+          <li><a routerLink="/escritorios-regionais" routerLinkActive="active">Escritórios Regionais</a></li>
+          <li><a routerLink="/boletim-informativo" routerLinkActive="active">Boletim Informativo</a></li>
+        </ul>
+      </li>
 
-    <li><a routerLink="/loja" routerLinkActive="active">Loja</a></li>
-    <li><a routerLink="/minha-conta" routerLinkActive="active">Minha Conta</a></li>
-  </ul>
+      <li><a routerLink="/loja" routerLinkActive="active">Loja</a></li>
+    </ul>
+
+    <div class="nav-account">
+      <span class="nav-divider" aria-hidden="true"></span>
+      <a class="nav-account-link" routerLink="/minha-conta" routerLinkActive="active">
+        <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+        </svg>
+        <span>Minha Conta</span>
+      </a>
+    </div>
+  </div>
 </nav>
