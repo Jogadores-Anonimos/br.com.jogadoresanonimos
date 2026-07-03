@@ -1,0 +1,54 @@
+<main class="escritorios-page">
+
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Escritórios Regionais</h1>
+      <p class="lead">
+        Pontos de contato de serviço da irmandade organizados por região e
+        estado.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="aviso" role="note">
+      Os endereços e contatos listados nesta página ainda estão em processo
+      de confirmação com o cliente. Até lá, todos os campos aparecem como
+      <strong>[a confirmar]</strong>.
+    </p>
+  </section>
+
+  <section class="section">
+    <h2>Escritórios Regionais de Serviço</h2>
+    <ul class="lista-enderecos">
+      @for (item of escritorios; track item.nome) {
+        <li class="endereco-item">
+          <h3>{{ item.nome }}</h3>
+          <p>{{ item.endereco }}</p>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section class="section section-alt">
+    <h2>Endereços de Intergrupos</h2>
+    <ul class="lista-enderecos">
+      @for (item of intergrupos; track item.nome) {
+        <li class="endereco-item">
+          <h3>{{ item.nome }}</h3>
+          <p>{{ item.endereco }}</p>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section class="cta-final">
+    <h2>Não encontrou o contato da sua região?</h2>
+    <p>
+      Enquanto os endereços regionais são confirmados, você também pode
+      encontrar apoio pelos nossos hotlines.
+    </p>
+    <a class="btn-cta" routerLink="/hotlines">Ver Hotlines Brasil</a>
+  </section>
+
+</main>

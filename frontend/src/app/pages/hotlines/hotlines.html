@@ -1,0 +1,38 @@
+<main class="hotlines">
+  <section class="hotlines__cta">
+    <h1 class="hotlines__cta-title">Comece sua jornada de recuperação</h1>
+    <p class="hotlines__cta-text">
+      Se você ou alguém que você conhece precisa de apoio para lidar com o jogo compulsivo, dê o
+      primeiro passo agora mesmo.
+    </p>
+    <a class="btn btn--primary" routerLink="/reunioes">Encontrar uma Reunião</a>
+  </section>
+
+  <section class="hotlines__list">
+    <h2 class="hotlines__list-title">Hotlines por Estado</h2>
+    <p class="hotlines__notice">
+      Esta lista está em expansão. Ainda não cobre todos os estados brasileiros — novos contatos
+      serão adicionados conforme forem confirmados junto aos grupos regionais.
+    </p>
+
+    <div class="hotlines__table-wrapper">
+      <table class="hotlines__table">
+        <caption class="sr-only">Lista de hotlines de apoio por estado brasileiro</caption>
+        <thead>
+          <tr>
+            <th scope="col">Estado</th>
+            <th scope="col">Telefone</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of estados; track item.estado) {
+            <tr>
+              <td>{{ item.estado }}</td>
+              <td>{{ item.telefone }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>

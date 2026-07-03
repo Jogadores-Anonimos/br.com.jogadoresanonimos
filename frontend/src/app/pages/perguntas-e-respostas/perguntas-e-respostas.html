@@ -1,0 +1,26 @@
+<main class="perguntas-page">
+
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Perguntas &amp; Respostas</h1>
+      <p class="lead">
+        Reunimos aqui as dúvidas mais comuns sobre o jogo compulsivo e sobre
+        a irmandade de Jogadores Anônimos. Se sua pergunta não estiver aqui,
+        procure uma reunião: lá você encontrará pessoas dispostas a
+        conversar e compartilhar experiências.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="faq-lista">
+      @for (item of faqs; track item.pergunta) {
+        <details class="faq-item">
+          <summary class="faq-pergunta">{{ item.pergunta }}</summary>
+          <p class="faq-resposta">{{ item.resposta }}</p>
+        </details>
+      }
+    </div>
+  </section>
+
+</main>

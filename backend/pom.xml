@@ -8,11 +8,11 @@
 		<version>4.1.0</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>psi_site</groupId>
-	<artifactId>ads3</artifactId>
+	<groupId>br.com.jogadoresanonimos</groupId>
+	<artifactId>jogadoresanonimos</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
+	<name>jogadoresanonimos</name>
+	<description>Backend do site da Jogadores Anonimos do Brasil</description>
 	<url/>
 	<licenses>
 		<license/>

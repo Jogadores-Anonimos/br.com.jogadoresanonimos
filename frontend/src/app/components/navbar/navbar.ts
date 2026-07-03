@@ -1,34 +1,44 @@
-import {Component, ElementRef, HostListener, ViewEncapsulation } from '@angular/core';
+import { Component, ElementRef, HostListener } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { NgOptimizedImage } from '@angular/common';
+
+type DropdownKey = 'sobre' | 'recursos';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, NgOptimizedImage],
+  imports: [RouterLink, RouterLinkActive],
   templateUrl: './navbar.html',
-  styleUrl: './navbar.css',
-  encapsulation: ViewEncapsulation.None
+  styleUrl: './navbar.css'
 })
-export class NavbarComponent {
-  constructor(private el: ElementRef) {}
+export class Navbar {
+  constructor(private readonly el: ElementRef<HTMLElement>) {}
 
   menuAberto = false;
 
-  toggleMenu() {
+  dropdownsAbertos: Record<DropdownKey, boolean> = {
+    sobre: false,
+    recursos: false
+  };
+
+  toggleMenu(): void {
     this.menuAberto = !this.menuAberto;
   }
 
-  dropdownAberto = false;
+  toggleDropdown(chave: DropdownKey, event: Event): void {
+    event.stopPropagation();
+    const estavaAberto = this.dropdownsAbertos[chave];
+    this.fecharDropdowns();
+    this.dropdownsAbertos[chave] = !estavaAberto;
+  }
 
-  toggleDropdown() {
-    this.dropdownAberto = !this.dropdownAberto;
+  private fecharDropdowns(): void {
+    this.dropdownsAbertos = { sobre: false, recursos: false };
   }
 
   @HostListener('document:click', ['$event'])
-  fecharDropdown(event: Event) {
-    if (!this.el.nativeElement.contains(event.target)) {
-      this.dropdownAberto = false;
+  aoClicarFora(event: Event): void {
+    if (!this.el.nativeElement.contains(event.target as Node)) {
+      this.fecharDropdowns();
     }
   }
 }
