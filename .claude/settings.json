@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm install)",
+      "Bash(npm ci)",
+      "Bash(ng *)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(mvn test)",
+      "Bash(mvn clean install)",
+      "Bash(./mvnw *)",
+      "Bash(docker compose *)",
+      "Bash(docker ps)",
+      "Bash(docker logs*)",
+      "WebSearch",
+      "WebFetch(domain:gamblersanonymous.org)",
+      "Bash(curl -o *)",
+      "Bash(curl -O *)",
+      "Bash(wget *)",
+      "Bash(npx playwright screenshot*)",
+      "Bash(npx playwright test*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/application-prod.yml)",
+      "Read(**/application-prod.properties)",
+      "Bash(git push*)",
+      "Bash(git reset --hard*)",
+      "Bash(rm -rf*)",
+      "Bash(docker compose down -v*)",
+      "Bash(psql*)"
+    ]
+  }
+}

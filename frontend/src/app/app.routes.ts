@@ -12,6 +12,7 @@ import { Reunioes } from './pages/reunioes/reunioes';
 import { Hotlines } from './pages/hotlines/hotlines';
 import { Contribuir } from './pages/contribuir/contribuir';
 import { Loja } from './pages/loja/loja';
+import { GamAnon } from './pages/gam-anon/gam-anon';
 import { MinhaConta } from './pages/minha-conta/minha-conta';
 import { Privacidade } from './pages/privacidade/privacidade';
 import { Termos } from './pages/termos/termos';
@@ -30,6 +31,7 @@ export const routes: Routes = [
   { path: 'hotlines', component: Hotlines },
   { path: 'contribuir', component: Contribuir },
   { path: 'loja', component: Loja },
+  { path: 'gam-anon', component: GamAnon },
   { path: 'minha-conta', component: MinhaConta },
   { path: 'privacidade', component: Privacidade },
   { path: 'termos', component: Termos },

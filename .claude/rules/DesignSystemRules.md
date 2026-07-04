@@ -16,6 +16,8 @@ Esse arquivo é a única fonte de verdade para o design system.
 
 ## Regras obrigatórias
 
+- **Mobile e Responsive first**
+- Assistência para quem deixa a fonte padrão grande, ou seja, não quebrar o layout com zoom ou fonte grande.
 - **Nunca usar valores de cor hardcoded** (hex, rgb, hsl, nomes de cor como
   `blue`) diretamente em componentes ou estilos. Sempre referenciar a
   variável CSS correspondente, ex: `color: var(--color-primary);`.
@@ -32,6 +34,9 @@ Esse arquivo é a única fonte de verdade para o design system.
 - Espaçamento, raio de borda e sombras também devem vir de variáveis
   (`--spacing-*`, `--radius-*`, `--shadow-*`) quando essas existirem no
   projeto, pelo mesmo motivo: consistência e facilidade de manutenção.
+- Seguir fielmente o layout solicitado, por exemplo: se for apresentado uma imagem referência, e for pedido, 
+- copie fielmente, mesmo que tenha que fazer perguntas sobre, caso seja pedido algo novo e sem referência, ai sim, 
+- use sua criatividade, mas sempre seguindo as regras do design system.
 
 ## Estrutura esperada das variáveis
 

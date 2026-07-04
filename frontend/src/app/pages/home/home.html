@@ -23,46 +23,66 @@
   </section>
 
   <section class="cta-primary">
-    <h2 class="cta-primary__title">Inicie sua Jornada de Recuperação</h2>
-    <div class="cta-primary__actions">
-      <a class="btn btn--primary" routerLink="/reunioes">Participar de uma Reunião</a>
-      <a class="btn btn--secondary" routerLink="/historia">Saiba Mais</a>
+    <div class="cta-primary-grey-panel">
+      <div class="cta-primary__panel">
+        <h2 class="cta-primary__title">Inicie sua Jornada de Recuperação.</h2>
+        <p class="cta-primary__subtext">
+          Participe de uma reunião da sua escolha: presencial, virtual ou por telefone.
+        </p>
+        <div class="cta-primary__actions">
+          <a class="btn btn--primary" routerLink="/reunioes">Participar de uma Reunião</a>
+          <a class="btn btn--secondary" routerLink="/historia">Saiba Mais</a>
+        </div>
+      </div>
     </div>
   </section>
 
   <section class="quiz-teaser">
-    <h2 class="quiz-teaser__title">Você tem dúvidas se o jogo é um problema para você?</h2>
-    <p class="quiz-teaser__text">
-      As 20 Perguntas são um autoquestionário usado por membros da Jogadores Anônimos para refletir
-      sobre a própria relação com o jogo. É rápido, anônimo e pode ser o primeiro passo.
-    </p>
-    <a class="btn btn--primary" routerLink="/vinte-perguntas">Fazer as 20 Perguntas</a>
-  </section>
+    <div class="quiz-teaser__row">
+      <div class="quiz-teaser__panel">
+        <p class="quiz-teaser__kicker">Aqui para ajudar você no caminho da recuperação.</p>
+        <h2 class="quiz-teaser__title">Você tem dúvidas se o jogo é um problema para você?</h2>
+        <p class="quiz-teaser__text">
+          As 20 Perguntas são um autoquestionário usado por membros da Jogadores Anônimos para refletir
+          sobre a própria relação com o jogo. É rápido, anônimo e pode ser o primeiro passo.
+        </p>
+        <a class="btn btn--cta" routerLink="/vinte-perguntas">Fazer as 20 Perguntas</a>
+      </div>
 
-  <section class="quick-links">
-    <h2 class="quick-links__title">Saiba mais sobre a irmandade</h2>
-    <div class="quick-links__grid">
-      <a class="quick-link-card" routerLink="/perguntas-e-respostas">
-        <h3>Perguntas &amp; Respostas</h3>
-        <p>Dúvidas frequentes sobre o jogo compulsivo e o caminho de recuperação.</p>
-      </a>
-      <a class="quick-link-card" routerLink="/programa-de-recuperacao">
-        <h3>Programa de Recuperação</h3>
-        <p>Conheça os 12 Passos que guiam a recuperação dos membros.</p>
-      </a>
-      <a class="quick-link-card" routerLink="/programa-de-unidade">
-        <h3>Programa de Unidade</h3>
-        <p>Os princípios que mantêm nossos grupos unidos, autônomos e autossustentáveis.</p>
-      </a>
+      <nav class="quiz-teaser__links" aria-label="Saiba mais sobre a irmandade">
+        <a class="quiz-teaser__link" routerLink="/historia">Sobre a Jogadores Anônimos</a>
+        <a class="quiz-teaser__link" routerLink="/perguntas-e-respostas">Perguntas &amp; Respostas</a>
+        <a class="quiz-teaser__link" routerLink="/programa-de-recuperacao">Programa de Recuperação</a>
+        <a class="quiz-teaser__link" routerLink="/programa-de-unidade">Programa de Unidade</a>
+        <a class="quiz-teaser__link" routerLink="/gam-anon">Gam-Anon: Ajuda para Amigos e Família</a>
+        <a class="quiz-teaser__link" routerLink="/loja">Loja Online</a>
+      </nav>
     </div>
   </section>
 
   <section class="newsletter-teaser">
-    <h2 class="newsletter-teaser__title">Fique por dentro das novidades e relatos de membros</h2>
-    <p class="newsletter-teaser__text">
-      Acompanhe o nosso Boletim Informativo com histórias de recuperação, avisos de grupos e
-      novidades da irmandade.
-    </p>
-    <a class="btn btn--secondary" routerLink="/boletim-informativo">Ler o Boletim Informativo</a>
+    <div class="newsletter-teaser__card">
+      <div class="newsletter-teaser__header">
+        <span class="newsletter-teaser__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="white" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M14 3v4h4" stroke="white" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M8.5 9h3M8.5 12h7M8.5 15h7" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <div>
+          <p class="newsletter-teaser__kicker">Fique conectado com a gente</p>
+          <h2 class="newsletter-teaser__title">Boletim Informativo</h2>
+        </div>
+      </div>
+      <p class="newsletter-teaser__text">
+        O Boletim Informativo é uma publicação mensal feita por e para membros da Jogadores
+        Anônimos do Brasil. Ele traz relatos de recuperação para que os membros compartilhem
+        experiência, força e esperança entre si, além de avisos de grupos e novidades que ajudam
+        a irmandade a continuar levando a mensagem a quem ainda sofre. Ler o Boletim todo mês é
+        uma ótima forma de se manter conectado.
+      </p>
+      <a class="newsletter-teaser__cta" routerLink="/boletim-informativo">Ler o Boletim Informativo</a>
+    </div>
   </section>
 </main>

@@ -1,0 +1,24 @@
+.pagina-legal {
+  max-width: 750px;
+  margin: 0 auto;
+  padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.pagina-legal__titulo {
+  color: var(--cor-padrao-ja);
+  font-size: 1.75rem;
+  margin-bottom: var(--spacing-lg);
+  text-align: center;
+}
+
+.pagina-legal__conteudo p {
+  color: var(--color-text);
+  line-height: 1.7;
+  margin-bottom: var(--spacing-md);
+}
+
+.pagina-legal__conteudo p:last-child {
+  font-style: italic;
+  color: var(--color-text-muted);
+  margin-bottom: 0;
+}

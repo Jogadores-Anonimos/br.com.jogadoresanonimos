@@ -1,4 +1,4 @@
-<div class="utility-bar">
+<div class="utility-bar" [attr.inert]="scrolled && isMobileLayout ? '' : null" [attr.aria-hidden]="scrolled && isMobileLayout ? 'true' : null">
   <div class="utility-bar-links">
     <a routerLink="/contribuir" class="utility-link">
       <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -22,7 +22,13 @@
       </svg>
       <span class="cart-count">0</span>
     </span>
-    <button type="button" class="utility-icon-btn" aria-label="Buscar (em breve)" disabled>
+    <button
+      type="button"
+      class="utility-icon-btn"
+      (click)="toggleBusca()"
+      [attr.aria-label]="buscaAberta ? 'Fechar busca' : 'Abrir busca'"
+      [attr.aria-expanded]="buscaAberta"
+    >
       <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="11" cy="11" r="7"/>
         <line x1="21" y1="21" x2="16.5" y2="16.5"/>
@@ -36,6 +42,14 @@
     </svg>
     <span>Encontrar Reunião</span>
   </a>
+  <span class="utility-account-divider" aria-hidden="true"></span>
+  <a routerLink="/minha-conta" class="utility-account-link" routerLinkActive="active">
+    <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+    </svg>
+    <span>Minha Conta</span>
+  </a>
   <div class="utility-bar-actions">
     <a routerLink="/hotlines" class="utility-link">
       <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -46,10 +60,35 @@
   </div>
 </div>
 
+<div
+  class="search-panel"
+  [class.open]="buscaAberta"
+  [attr.inert]="!buscaAberta ? '' : null"
+  [attr.aria-hidden]="!buscaAberta ? 'true' : null"
+>
+  <input
+    type="search"
+    placeholder="Buscar"
+    class="search-panel__input"
+    aria-label="Buscar"
+  />
+  <button
+    type="button"
+    class="search-panel__close"
+    (click)="toggleBusca()"
+    aria-label="Fechar busca"
+  >
+    <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </button>
+</div>
+
 <nav id="navbar" aria-label="Navegação principal">
   <a class="nav-logo" routerLink="/">
     <img
-      src="images/header/logo-jogadores-anonimos.png"
+      src="/images/header/logo-jogadores-anonimos-monograma.png"
       width="60"
       height="60"
       alt="Logo Jogadores Anônimos do Brasil"
@@ -57,15 +96,37 @@
     <span class="nav-logo-text">JOGADORES<br>ANÔNIMOS<br>DO BRASIL</span>
   </a>
 
-  <button
-    class="hamburger"
-    type="button"
-    (click)="toggleMenu()"
-    aria-label="Abrir menu de navegação"
-    [attr.aria-expanded]="menuAberto"
-  >
-    <span></span><span></span><span></span>
-  </button>
+  <div class="navbar-mobile-actions">
+    <button
+      class="hamburger"
+      type="button"
+      (click)="toggleMenu()"
+      aria-label="Abrir menu de navegação"
+      [attr.aria-expanded]="menuAberto"
+    >
+      <span></span><span></span><span></span>
+    </button>
+    <button
+      type="button"
+      class="utility-icon-btn"
+      (click)="toggleBusca()"
+      [attr.aria-label]="buscaAberta ? 'Fechar busca' : 'Abrir busca'"
+      [attr.aria-expanded]="buscaAberta"
+    >
+      <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"/>
+        <line x1="21" y1="21" x2="16.5" y2="16.5"/>
+      </svg>
+    </button>
+    <span class="utility-icon-btn utility-cart" aria-label="Itens no carrinho: 0">
+      <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="9" cy="20" r="1"/>
+        <circle cx="18" cy="20" r="1"/>
+        <path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"/>
+      </svg>
+      <span class="cart-count">0</span>
+    </span>
+  </div>
 
   <div class="nav-menu" [class.open]="menuAberto">
     <ul class="nav-links" role="list">

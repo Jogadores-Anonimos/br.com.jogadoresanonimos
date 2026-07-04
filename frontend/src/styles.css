@@ -15,10 +15,18 @@
   --color-text-muted: #64748b;
   --color-bg-section: #f8fafc;
   --color-bg-surface: var(--white);
+  /* Faixa cinza-claro usada como "moldura" atrás de painéis escuros (ex: CTA da home),
+     precisa ser visivelmente mais escura que --color-bg-section para criar a camada
+     intermediária entre o fundo branco da página e um painel escuro. */
+  --color-bg-frame: #e7e9eb;
   --color-border: #e2e8f0;
   --color-danger: #dc2626;
   --color-success: #16a34a;
   --color-warning: #b45309;
+  /* Vermelho de destaque para CTAs de marketing (ex: botão "Fazer as 20 Perguntas").
+     Mesmo valor de --color-danger hoje, mas é um token separado de propósito: um é
+     estado de erro, o outro é identidade visual de botão — não devem mudar juntos. */
+  --color-cta: #dc2626;
 
   /* Espaçamento */
   --spacing-xs: 8px;
@@ -26,6 +34,7 @@
   --spacing-md: 24px;
   --spacing-lg: 40px;
   --spacing-xl: 64px;
+  --spacing-2xl: 120px;
 
   /* Raio de borda */
   --radius-sm: 12px;
@@ -35,12 +44,21 @@
   /* Sombras */
   --shadow-sm: 0 10px 30px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 20px 50px rgba(0, 0, 0, 0.08);
+  /* Sombra mais pronunciada, usada em cards com imagem de fundo (ex: painel
+     de CTA com mapa-múndi, card de newsletter) — precisa de mais contraste
+     que --shadow-sm/--shadow-md para se destacar sobre uma imagem. */
+  --shadow-lg: 0 4px 10px rgba(0, 0, 0, 0.3);
 
   /* Navegação e rodapé */
   --nav-height: 132px;
   --color-nav-text: var(--white);
   --color-nav-text-muted: rgba(255, 255, 255, 0.75);
   --color-background-dark: #241714;
+  /* Mesmo valor de --color-background-dark, em formato "r, g, b" — permite
+     compor rgba(var(--color-background-dark-rgb), alpha) para overlays com
+     opacidade variável, já que CSS não deriva alpha de uma hex var direto. */
+  --color-background-dark-rgb: 36, 23, 20;
+  --color-map-panel: #98a1a9;
 }
 
 html {

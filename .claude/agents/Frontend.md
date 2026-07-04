@@ -36,6 +36,9 @@ no site da Jogadores Anônimos do Brasil.
   navegação por teclado funcional, isso é especialmente importante num
   site de apoio a pessoas em situação vulnerável.
 - Responsivo por padrão, incluindo mobile.
+- Seguir fielmente o layout solicitado, por exemplo: se for apresentado uma imagem referência, e for pedido,
+- copie fielmente, mesmo que tenha que fazer perguntas sobre, caso seja pedido algo novo e sem referência, ai sim,
+- use sua criatividade, mas sempre seguindo as regras do design system.
 
 ## Antes de codar
 1. Olhe a estrutura de pastas existente em `frontend/` para seguir o

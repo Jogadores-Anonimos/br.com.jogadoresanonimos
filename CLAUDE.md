@@ -3,6 +3,7 @@
 ## Visão geral
 Site para atender com informações e suporte a jogadores compulsivos,
 baseado no site americano da irmandade (https://gamblersanonymous.org/).
+Muitas coisas serão copiadas so Gamblers Anonymous, mas o site brasileiro terá algumas diferenças.
 O site é feito em Angular, com backend em Spring Boot e banco em PostgreSQL.
 **O anonimato do usuário deve ser preservado em todas as camadas do sistema.**
 
@@ -35,6 +36,8 @@ O site é feito em Angular, com backend em Spring Boot e banco em PostgreSQL.
   e caso essa pagina tenha outra, crie um component para isso, para ajudar na manutenção e legibilidade do código.
 
 ## Padrões de arquitetura
+- Sempre delege as tarefas de frontend, backend pros agentes de cada camada, não misture responsabilidades, 
+- não deixe de usar os agentes, apenas para casos de exceção, como por exemplo, quando o o agente não existe para aquela tarefa.
 - Anonimato é requisito de arquitetura, não só de UI: nunca logar, persistir
   ou expor dados que permitam identificar um usuário (nome real, IP, e-mail
   pessoal) junto com dados de participação ou relatos.
@@ -48,6 +51,7 @@ O site é feito em Angular, com backend em Spring Boot e banco em PostgreSQL.
 - Logs de aplicação não podem conter dados pessoais, nem em nível debug.
 - Variáveis sensíveis (senhas de banco, chaves JWT, credenciais de storage)
   ficam em `.env` / secrets do Docker — nunca hardcoded ou commitadas.
+- Não pedir permissão para utilizar tools ou escrever quando eu pedir alterações no backend ou frontend, mas sempre documentar a decisão tomada e o motivo.
 
 ## Privacidade e conformidade
 - Site deve seguir a LGPD (Lei Geral de Proteção de Dados).
