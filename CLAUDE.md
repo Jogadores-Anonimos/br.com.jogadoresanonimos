@@ -38,6 +38,8 @@ O site é feito em Angular, com backend em Spring Boot e banco em PostgreSQL.
 ## Padrões de arquitetura
 - Sempre delege as tarefas de frontend, backend pros agentes de cada camada, não misture responsabilidades, 
 - não deixe de usar os agentes, apenas para casos de exceção, como por exemplo, quando o o agente não existe para aquela tarefa.
+- Pode delegar para mais de um agente igual, exemplo: se uma tarefa for grande, delege dois/tres frontends.
+- Não misture responsabilidades dos agentes, por exemplo, não peça para o agente de frontend fazer uma tarefa de backend, ou vice-versa.
 - Anonimato é requisito de arquitetura, não só de UI: nunca logar, persistir
   ou expor dados que permitam identificar um usuário (nome real, IP, e-mail
   pessoal) junto com dados de participação ou relatos.
@@ -52,6 +54,8 @@ O site é feito em Angular, com backend em Spring Boot e banco em PostgreSQL.
 - Variáveis sensíveis (senhas de banco, chaves JWT, credenciais de storage)
   ficam em `.env` / secrets do Docker — nunca hardcoded ou commitadas.
 - Não pedir permissão para utilizar tools ou escrever quando eu pedir alterações no backend ou frontend, mas sempre documentar a decisão tomada e o motivo.
+- Não faça commit de nada, apenas escreva o código e explique a decisão tomada, caso seja necessário, e aguarde instruções para commitar. **Isso é uma regra indiscutível do projeto.**
+
 
 ## Privacidade e conformidade
 - Site deve seguir a LGPD (Lei Geral de Proteção de Dados).
@@ -60,6 +64,7 @@ O site é feito em Angular, com backend em Spring Boot e banco em PostgreSQL.
   reuniões, etc) e quem tem acesso a eles.
 
 ## O que NÃO fazer
+- Não commitar a não ser que eu peça
 - Não commitar direto na branch main
 - Não adicionar dependências novas sem perguntar
 - Não implementar nenhuma feature de rastreamento/analytics sem confirmar antes

@@ -12,7 +12,7 @@
         <path d="M4 5.5v15"/>
         <path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"/>
       </svg>
-      <span>Loja</span>
+      <span>Loja de Livros</span>
     </a>
     <span class="utility-icon-btn utility-cart" aria-label="Itens no carrinho: 0">
       <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -55,7 +55,7 @@
       <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M5 4h4l1.5 4.5-2.3 1.7a12 12 0 0 0 5.6 5.6l1.7-2.3L20 15v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>
       </svg>
-      <span>Hotlines Brasil</span>
+      <span>Linhas de Ajuda</span>
     </a>
   </div>
 </div>
@@ -134,14 +134,25 @@
         <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
       </li>
 
-      <li class="dropdown">
+      <li
+        class="dropdown"
+        (mouseenter)="abrirDropdown('sobre')"
+        (mouseleave)="fecharDropdown('sobre')"
+      >
+        <a
+          class="dropdown-label"
+          routerLink="/sobre"
+          routerLinkActive="active"
+        >
+          Sobre os Jogadores Anônimos
+        </a>
         <button
-          class="dropdown-toggle"
+          class="dropdown-toggle dropdown-toggle--icon"
           type="button"
           (click)="toggleDropdown('sobre', $event)"
           [attr.aria-expanded]="dropdownsAbertos.sobre"
+          aria-label="Abrir submenu Sobre os Jogadores Anônimos"
         >
-          Sobre
           <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="6 9 12 15 18 9"/>
           </svg>
@@ -151,7 +162,11 @@
         </ul>
       </li>
 
-      <li class="dropdown">
+      <li
+        class="dropdown"
+        (mouseenter)="abrirDropdown('recursos')"
+        (mouseleave)="fecharDropdown('recursos')"
+      >
         <button
           class="dropdown-toggle"
           type="button"

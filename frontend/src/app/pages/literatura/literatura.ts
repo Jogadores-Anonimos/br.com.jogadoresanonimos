@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 
 interface PublicacaoLiteratura {
   titulo: string;
@@ -8,7 +9,7 @@ interface PublicacaoLiteratura {
 @Component({
   selector: 'app-literatura',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, ResourceLayout],
   templateUrl: './literatura.html',
   styleUrl: './literatura.css',
 })

@@ -5,18 +5,26 @@
   z-index: 1000;
   /* Altura real da .utility-bar no estado "no topo" — única fonte de verdade
      usada tanto para colapsar a barra ao rolar quanto para recalcular a
-     posição do menu mobile (ver @media 900px mais abaixo). Ao rolar
+     posição do menu mobile (ver @media 1100px mais abaixo). Ao rolar
      (.scrolled), essa variável some pra 0 e todo o resto se ajusta sozinho. */
   --utility-bar-height: 48px;
 }
 
 /* O efeito de encolher no scroll (utility-bar sumindo + logo menor) é
-   exclusivo do layout mobile/tablet (ver @media max-width: 900px logo
+   exclusivo do layout mobile/tablet (ver @media max-width: 1100px logo
    abaixo). Em desktop o header em si permanece estático, sem reagir ao
    scroll — mas o painel de busca ainda alterna qual bloco ele cobre
    conforme `.scrolled`: no topo cobre só a .utility-bar (o "micro
    header"), depois de rolar passa a cobrir o #navbar (ver @media
-   min-width: 901px logo abaixo do #navbar). */
+   min-width: 1101px logo abaixo do #navbar).
+   Breakpoint estendido de 900 para 1100px: em larguras de tablet (iPad
+   retrato/paisagem) o layout desktop completo (logo + "Home" + "Sobre os
+   Jogadores Anônimos" + "Recursos" + "Loja" + "Minha Conta", com o gap
+   maior de var(--spacing-xl) na utility-bar) não cabia mais, quebrando
+   linha/sobrepondo itens (ex: "Loja de Livros" quebrando em 3 linhas).
+   Em vez de redesenhar o layout desktop para caber em telas menores,
+   optou-se por estender o modo hambúrguer/mobile — já validado e
+   aprovado — para cobrir também essa faixa de tablet. */
 
 /* Barra utilitária */
 .utility-bar {
@@ -37,7 +45,10 @@
 .utility-bar-actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-lg);
+  /* Mais respiro horizontal entre os itens da barra utilitária (antes
+     var(--spacing-lg)), pra não ficar "espremido" em relação à referência
+     americana. */
+  gap: var(--spacing-xl);
   flex: 1;
 }
 
@@ -62,7 +73,7 @@
   text-decoration: none;
   color: var(--color-nav-text-muted);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: var(--font-weight-regular);
   letter-spacing: 0.02em;
   transition: color 0.2s;
 }
@@ -114,7 +125,7 @@
   background: var(--yellow-btn);
   color: var(--cor-padrao-ja);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   line-height: 15px;
   text-align: center;
 }
@@ -128,9 +139,12 @@
   color: var(--cor-padrao-ja);
   background: var(--yellow-btn);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   letter-spacing: 0.02em;
-  padding: var(--spacing-sm) var(--spacing-lg);
+  /* Padding horizontal maior (antes var(--spacing-lg)) pra ficar um botão de
+     destaque de verdade, mais largo/proeminente — como o "FIND A MEETING" da
+     referência americana — e não uma pilulazinha pequena. */
+  padding: var(--spacing-sm) var(--spacing-xl);
   transition: filter 0.2s;
   white-space: nowrap;
   box-sizing: border-box;
@@ -147,7 +161,7 @@
 }
 
 /* "Minha Conta" e o divisor abaixo só existem para a barra utilitária no
-   layout mobile (ver @media max-width: 900px) — no desktop essa ação já
+   layout mobile (ver @media max-width: 1100px) — no desktop essa ação já
    fica disponível em `.nav-account-link`, dentro do nav principal. */
 .utility-account-divider {
   display: none;
@@ -161,7 +175,7 @@
   text-decoration: none;
   color: var(--color-nav-text);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   letter-spacing: 0.02em;
   transition: color 0.2s;
 }
@@ -177,7 +191,7 @@
 }
 
 /* Grupo hambúrguer + busca + carrinho do nav principal — exclusivo do
-   layout mobile (ver @media max-width: 900px). No desktop essas ações já
+   layout mobile (ver @media max-width: 1100px). No desktop essas ações já
    existem na barra utilitária escura (.utility-bar-links / .utility-cart). */
 .navbar-mobile-actions {
   display: none;
@@ -211,11 +225,11 @@
    #navbar), usando `position: absolute` ancorado no :host (que já é
    `position: sticky`, portanto o containing block certo pra cobrir
    qualquer um dos dois blocos do header).
-   Por padrão (mobile, <= 900px) ele cobre sempre o #navbar, igual ao
+   Por padrão (mobile, <= 1100px) ele cobre sempre o #navbar, igual ao
    comportamento original — `top` começa depois da .utility-bar
    (var(--utility-bar-height), já mantida certinha em cada breakpoint) e
    `height` é a altura do próprio #navbar (var(--nav-height)).
-   Em desktop (>= 901px, ver media query abaixo) esse padrão muda: no
+   Em desktop (>= 1101px, ver media query abaixo) esse padrão muda: no
    topo (sem `.scrolled`) o painel cobre só a .utility-bar (o "micro
    header"); depois de rolar (`.scrolled`), a .utility-bar não colapsa
    como no mobile — ela continua ocupando espaço no topo — então o
@@ -322,7 +336,7 @@
 .nav-logo-text {
   font-family: var(--font-brand);
   font-size: 17px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   letter-spacing: 0.03em;
   color: var(--cor-padrao-ja);
   max-width: 230px;
@@ -343,7 +357,7 @@
   gap: 6px;
   text-decoration: none;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   letter-spacing: 0.03em;
   color: var(--color-text);
   padding-bottom: 4px;
@@ -377,7 +391,7 @@
   gap: 6px;
   text-decoration: none;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   letter-spacing: 0.03em;
   color: var(--color-text);
   transition: color 0.2s;
@@ -417,7 +431,15 @@
   position: relative;
   display: flex;
   align-items: center;
+  gap: var(--spacing-xs);
   list-style: none;
+}
+
+/* Label do grupo "Sobre" — é um link de verdade (navega para /sobre), por
+   isso é um `<a>` dentro de `.nav-links`, herdando o mesmo visual dos demais
+   itens do menu (`.nav-links a` mais abaixo) sem precisar duplicar estilo. */
+.dropdown-label {
+  white-space: nowrap;
 }
 
 .dropdown-toggle {
@@ -425,13 +447,17 @@
   border: none;
   color: var(--color-text);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   letter-spacing: 0.03em;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 0;
+  /* Mesmo padding-bottom de `.nav-links a`/`.dropdown-label` — sem isso, este
+     botão reservava menos espaço abaixo do texto que os demais itens de
+     topo, fazendo o `.nav-links` (que usa `align-items: center`) centralizar
+     todo mundo com base numa altura de linha inconsistente entre os itens. */
+  padding-bottom: 4px;
   border-bottom: 2px solid transparent;
   transition: border-color 0.2s, color 0.2s;
 }
@@ -447,6 +473,40 @@
   border-bottom-color: var(--cor-padrao-ja);
 }
 
+/* Variante só com o ícone do chevron, usada no grupo "Sobre" (cujo label
+   virou um link separado, `.dropdown-label`, que já navega sozinho). O botão
+   aqui só alterna o submenu — fallback de clique/teclado para quem não usa
+   hover, sem nenhum texto próprio.
+   A largura fica fixa em 28px só pra garantir uma área de toque decente
+   (exceção técnica de layout, sem variável de spacing equivalente) — mas a
+   ALTURA não pode ser um valor fixo desligado do resto: antes tinha
+   `height: 28px`, que não guardava nenhuma relação com a altura natural dos
+   itens vizinhos (`.dropdown-label`, `.nav-links a`: texto + padding-bottom +
+   border-bottom), e como o `.nav-links` usa `align-items: center`, esse
+   botão virava o item mais alto da linha e empurrava todo o resto pra fora
+   do lugar. Por isso aqui a altura é deixada livre (sem `height`) e
+   reconstruída com o MESMO padding-bottom + border-bottom (transparente,
+   nunca visível) dos demais itens de topo — o ícone fica ~2-3px mais baixo
+   que o texto (chevron 15px vs. a altura de linha do texto), diferença
+   pequena o bastante para não ser perceptível, mas que já resolve o
+   desalinhamento de vários pixels que a altura fixa causava. */
+.dropdown-toggle--icon {
+  font-size: 0;
+  gap: 0;
+  justify-content: center;
+  width: 28px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  transition: color 0.2s, background 0.2s;
+}
+
+.dropdown-toggle--icon:hover,
+.dropdown-toggle--icon:focus-visible {
+  background: var(--color-bg-section);
+  border-bottom-color: transparent;
+}
+
 .dropdown-menu {
   display: none;
   position: absolute;
@@ -455,12 +515,31 @@
   transform: translateX(-50%);
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-md);
   min-width: 240px;
   padding: var(--spacing-xs) 0;
   list-style: none;
   z-index: 999;
   box-shadow: var(--shadow-md);
+}
+
+/* Ponte invisível cobrindo o vão entre `.dropdown-toggle` e `.dropdown-menu`
+   (o `top: calc(100% + var(--spacing-sm))` acima). Esse vão fica fora da
+   caixa do `<li class="dropdown">` (que só tem a altura do botão), então o
+   mouse "sai" do `<li>` ao atravessá-lo, disparando `mouseleave` antes do
+   usuário alcançar o menu. Como este pseudo-elemento é descendente do
+   próprio `.dropdown-menu` (por sua vez descendente do `<li>`), ele mantém
+   o ponteiro "dentro" da árvore do `<li>` nesse trecho, sem alterar nenhum
+   espaçamento visível — não tem background/borda, é puramente uma área de
+   hover. Desabilitado no mobile (ver @media max-width: 1100px), onde o menu
+   vira `position: static` e não tem esse gap. */
+.dropdown-menu::before {
+  content: '';
+  position: absolute;
+  top: calc(-1 * var(--spacing-sm));
+  left: 0;
+  right: 0;
+  height: var(--spacing-sm);
 }
 
 .dropdown-menu.open {
@@ -471,7 +550,7 @@
   display: block;
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: var(--font-weight-regular);
   color: var(--color-text);
   text-decoration: none;
   white-space: nowrap;
@@ -487,12 +566,12 @@
 
 /* Exclusivo do desktop (fora do media query mobile abaixo): no desktop a
    .utility-bar nunca colapsa (isso só acontece no layout mobile/tablet,
-   ver @media max-width: 900px), então o painel de busca precisa alternar
+   ver @media max-width: 1100px), então o painel de busca precisa alternar
    manualmente qual bloco cobre com base em `.scrolled`:
    - no topo (sem `.scrolled`): cobre só a .utility-bar (o "micro header");
    - rolado (`.scrolled`): cobre o #navbar (logo + links), que é o bloco
      que fica visível/no topo assim que a página rola. */
-@media (min-width: 901px) {
+@media (min-width: 1101px) {
   .search-panel {
     top: 0;
     height: var(--utility-bar-height);
@@ -504,7 +583,7 @@
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   /* Estado "rolado": a utility-bar recolhe (via --utility-bar-height: 0) e o
      logo do nav principal encolhe. Restrito ao layout mobile/tablet — em
      desktop (fora deste media query) o header nunca reage ao scroll. */
@@ -572,6 +651,12 @@
     flex: 3 1 0;
     justify-content: center;
     font-size: 13px;
+    /* No mobile o botão divide a linha com "Minha Conta" (ver
+       .utility-account-link logo abaixo) — o padding horizontal generoso do
+       desktop (var(--spacing-xl)) não cabe aqui, então volta pra um valor
+       menor só neste breakpoint. */
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
   }
 
   .utility-account-divider {
@@ -641,23 +726,47 @@
     display: none;
   }
 
+  /* `flex-wrap: wrap` é o que permite ao grupo "Sobre" ter dois itens de
+     cabeçalho lado a lado (`.dropdown-label` + `.dropdown-toggle--icon`) e
+     ainda assim empurrar o submenu (`.dropdown-menu`, com `width: 100%` mais
+     abaixo) para a linha seguinte — sem isso o submenu ficaria espremido ao
+     lado do cabeçalho em vez de aparecer abaixo dele. No grupo "Recursos"
+     (sem `.dropdown-label`), o próprio `.dropdown-toggle` já ocupa 100% da
+     linha, então o comportamento de quebra continua igual ao anterior. */
   .dropdown {
     margin: 0;
     padding: 0;
     position: static;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     align-items: stretch;
+    gap: 0;
     width: 100%;
   }
 
-  /* No mobile o cabeçalho do grupo ("Sobre"/"Recursos") fica sempre visível,
-     como um item de menu clicável que expande/colapsa o submenu — mesma
-     lógica de toggleDropdown() já usada no desktop, só o layout muda. */
+  /* No mobile o label do grupo "Sobre" ocupa o espaço disponível ao lado do
+     botão do chevron (`.dropdown-toggle--icon`), na mesma linha. */
+  .dropdown-label {
+    flex: 1;
+    padding: var(--spacing-sm);
+    font-size: 14px;
+    border-bottom: none;
+  }
+
+  .dropdown-label:hover,
+  .dropdown-label.active {
+    border-bottom-color: transparent;
+  }
+
+  /* No mobile o cabeçalho do grupo "Recursos" (sem `.dropdown-label`) fica
+     sempre visível, como um item de menu clicável que expande/colapsa o
+     submenu — mesma lógica de toggleDropdown() já usada no desktop, só o
+     layout muda. */
   .dropdown-toggle {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 100%;
+    flex: 1;
     padding: var(--spacing-sm);
     font-size: 14px;
     border-bottom: none;
@@ -666,6 +775,16 @@
   .dropdown-toggle:hover,
   .dropdown-toggle:focus-visible {
     border-bottom-color: transparent;
+  }
+
+  /* Variante icon-only do grupo "Sobre": não precisa do `flex: 1` nem do
+     padding horizontal generoso do botão de texto acima, só uma área de
+     toque quadrada ao lado do `.dropdown-label`. */
+  .dropdown-toggle--icon {
+    flex: 0 0 44px;
+    justify-content: center;
+    height: auto;
+    padding: 0;
   }
 
   .chevron-icon {
@@ -690,6 +809,14 @@
     min-width: unset;
     border-radius: 0;
     width: 100%;
+  }
+
+  /* Sem gap nem `position: absolute` nesse breakpoint (menu vira estático,
+     expandido inline via clique) — a "ponte" de hover do desktop não se
+     aplica aqui e, com o pai virando `position: static`, o `::before`
+     absoluto perderia o ancestral posicionado correto. Desabilitado. */
+  .dropdown-menu::before {
+    content: none;
   }
 
   .dropdown-menu li {

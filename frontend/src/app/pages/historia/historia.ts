@@ -1,10 +1,10 @@
 import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 
 @Component({
   selector: 'app-historia',
   standalone: true,
-  imports: [RouterLink],
+  imports: [ResourceLayout],
   templateUrl: './historia.html',
   styleUrl: './historia.css',
 })

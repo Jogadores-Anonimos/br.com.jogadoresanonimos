@@ -10,6 +10,18 @@
   --font-body: Arial, Helvetica, sans-serif;
   --font-brand: 'Sora', Arial, sans-serif;
 
+  /* Peso de fonte semântico — evita valores soltos (600/700/800) espalhados
+     pelos componentes. Migração em andamento: hoje só navbar.css e
+     resource-layout.css usam essas variáveis, o restante do projeto ainda
+     tem valores hardcoded e será migrado depois. */
+  --font-weight-heading: 600;
+  --font-weight-semibold: 500;
+  --font-weight-regular: 400;
+  /* Único peso realmente "negrito" (700) do projeto — reservado como exceção
+     exclusiva da navbar (ver navbar.css). O restante do site usa os pesos
+     mais leves acima. */
+  --font-weight-bold: 700;
+
   /* Cores semânticas de texto e superfície */
   --color-text: #1e293b;
   --color-text-muted: #64748b;
@@ -36,10 +48,14 @@
   --spacing-xl: 64px;
   --spacing-2xl: 120px;
 
-  /* Raio de borda */
-  --radius-sm: 12px;
-  --radius-md: 20px;
-  --radius-lg: 28px;
+  /* Raio de borda — zerado propositalmente: decisão de design é que nenhum
+     elemento do site tenha canto arredondado. As variáveis são mantidas
+     (em vez de removidas) porque todo o projeto já referencia
+     var(--radius-sm|md|lg) em vez de valores soltos — zerar aqui é o
+     suficiente para refletir globalmente. */
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
 
   /* Sombras */
   --shadow-sm: 0 10px 30px rgba(0, 0, 0, 0.05);

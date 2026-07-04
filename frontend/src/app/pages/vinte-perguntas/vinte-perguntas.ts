@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 
 type Resposta = 'sim' | 'nao';
 
@@ -11,7 +12,7 @@ interface ResultadoQuiz {
 @Component({
   selector: 'app-vinte-perguntas',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, ResourceLayout],
   templateUrl: './vinte-perguntas.html',
   styleUrl: './vinte-perguntas.css',
 })

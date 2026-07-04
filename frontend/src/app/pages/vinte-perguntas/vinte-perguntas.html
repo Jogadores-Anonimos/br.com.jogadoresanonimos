@@ -1,18 +1,12 @@
-<main class="vinte-page">
-
-  <section class="hero">
-    <div class="hero-content">
-      <h1>20 Perguntas</h1>
-      <p class="lead">
-        Este questionário é baseado nas 20 Perguntas usadas por Jogadores
-        Anônimos em todo o mundo para ajudar alguém a reconhecer se o jogo se
-        tornou um problema. É totalmente anônimo, leva poucos minutos e
-        nenhuma resposta fica salva nem é enviada para lugar nenhum.
-      </p>
-    </div>
-  </section>
+<app-resource-layout titulo="20 Perguntas">
 
   <section class="section quiz-section">
+    <p class="lead">
+      Este questionário é baseado nas 20 Perguntas usadas por Jogadores
+      Anônimos em todo o mundo para ajudar alguém a reconhecer se o jogo se
+      tornou um problema. É totalmente anônimo, leva poucos minutos e
+      nenhuma resposta fica salva nem é enviada para lugar nenhum.
+    </p>
 
     @if (!quizIniciado) {
       <div class="quiz-card quiz-intro-card">
@@ -114,4 +108,4 @@
 
   </section>
 
-</main>
+</app-resource-layout>

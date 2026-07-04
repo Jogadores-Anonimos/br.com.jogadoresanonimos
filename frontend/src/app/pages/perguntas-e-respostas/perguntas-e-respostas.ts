@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 
 interface PerguntaResposta {
   pergunta: string;
@@ -8,7 +9,7 @@ interface PerguntaResposta {
 @Component({
   selector: 'app-perguntas-e-respostas',
   standalone: true,
-  imports: [],
+  imports: [ResourceLayout],
   templateUrl: './perguntas-e-respostas.html',
   styleUrl: './perguntas-e-respostas.css',
 })

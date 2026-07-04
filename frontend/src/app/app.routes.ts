@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { Home } from './pages/home/home';
+import { Sobre } from './pages/sobre/sobre';
 import { Historia } from './pages/historia/historia';
 import { ProgramaDeRecuperacao } from './pages/programa-de-recuperacao/programa-de-recuperacao';
 import { ProgramaDeUnidade } from './pages/programa-de-unidade/programa-de-unidade';
@@ -19,6 +20,7 @@ import { Termos } from './pages/termos/termos';
 
 export const routes: Routes = [
   { path: '', component: Home },
+  { path: 'sobre', component: Sobre },
   { path: 'historia', component: Historia },
   { path: 'programa-de-recuperacao', component: ProgramaDeRecuperacao },
   { path: 'programa-de-unidade', component: ProgramaDeUnidade },

@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 
 interface EnderecoServico {
   nome: string;
@@ -9,7 +10,7 @@ interface EnderecoServico {
 @Component({
   selector: 'app-escritorios-regionais',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, ResourceLayout],
   templateUrl: './escritorios-regionais.html',
   styleUrl: './escritorios-regionais.css',
 })

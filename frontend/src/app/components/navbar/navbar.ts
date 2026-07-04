@@ -9,11 +9,15 @@ type DropdownKey = 'sobre' | 'recursos';
  * utility-bar pisque ao primeiro pixel de scroll (ex: bounce do iOS). */
 const SCROLL_THRESHOLD_PX = 10;
 
-/** Mesmo breakpoint do `@media (max-width: 900px)` em `navbar.css` — é só
+/** Mesmo breakpoint do `@media (max-width: 1100px)` em `navbar.css` — é só
  * abaixo dele que a .utility-bar realmente encolhe/some visualmente ao
  * rolar. Precisa ficar em sincronia com o CSS: se um mudar, o outro
- * também precisa mudar. */
-const MOBILE_LAYOUT_BREAKPOINT_PX = 900;
+ * também precisa mudar.
+ * Valor estendido de 900 para 1100 para também cobrir larguras de tablet
+ * (iPad em retrato e paisagem), onde o layout desktop completo (logo +
+ * todos os links + espaçamento maior) não cabe mais — nessa faixa o modo
+ * hambúrguer/mobile é usado em vez de tentar encolher o layout desktop. */
+const MOBILE_LAYOUT_BREAKPOINT_PX = 1100;
 
 @Component({
   selector: 'app-navbar',
@@ -57,8 +61,8 @@ export class Navbar implements OnDestroy {
 
   menuAberto = false;
 
-  /** Só no layout mobile/tablet (<= 900px) a .utility-bar realmente
-   * encolhe/some visualmente ao rolar (ver @media max-width: 900px em
+  /** Só no layout mobile/tablet (<= 1100px) a .utility-bar realmente
+   * encolhe/some visualmente ao rolar (ver @media max-width: 1100px em
    * navbar.css). É essa flag — e não `scrolled` sozinho — que decide se a
    * barra deve virar `inert`: em desktop a barra nunca some da tela, então
    * nunca deve ficar inacessível a cliques/teclado, mesmo depois de rolar. */
@@ -89,11 +93,34 @@ export class Navbar implements OnDestroy {
     }
   }
 
+  /** Fallback de clique/teclado (Enter/Espaço no botão focado) — continua
+   * necessário porque toque real em mobile não dispara `mouseenter` de forma
+   * confiável, e usuários de teclado não têm "hover" algum. Sem isso, quem
+   * navega por toque ou teclado ficaria sem forma de abrir o submenu. */
   toggleDropdown(chave: DropdownKey, event: Event): void {
     event.stopPropagation();
-    const estavaAberto = this.dropdownsAbertos[chave];
-    this.fecharDropdowns();
-    this.dropdownsAbertos[chave] = !estavaAberto;
+    if (this.dropdownsAbertos[chave]) {
+      this.fecharDropdown(chave);
+    } else {
+      this.abrirDropdown(chave);
+    }
+  }
+
+  /** Abre um dropdown por hover (`mouseenter` no `<li class="dropdown">`),
+   * fechando o outro — mesma exclusividade que já existia no clique. */
+  abrirDropdown(chave: DropdownKey): void {
+    this.dropdownsAbertos = {
+      sobre: chave === 'sobre',
+      recursos: chave === 'recursos'
+    };
+  }
+
+  /** Fecha só o dropdown informado (`mouseleave`) — nunca os dois de uma vez,
+   * para não correr risco de fechar o dropdown vizinho caso o `mouseleave`
+   * de um item dispare logo depois do `mouseenter` do outro (ex: usuário
+   * movendo o mouse rapidamente entre "Sobre" e "Recursos"). */
+  fecharDropdown(chave: DropdownKey): void {
+    this.dropdownsAbertos[chave] = false;
   }
 
   /** Chamado pelos dois botões de lupa (desktop e mobile) — ambos controlam

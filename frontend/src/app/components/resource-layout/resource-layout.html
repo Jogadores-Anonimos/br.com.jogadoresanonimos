@@ -1,0 +1,88 @@
+<main class="resource-layout">
+  <aside class="resource-sidebar" aria-label="Navegação de páginas de recursos">
+    <nav class="resource-nav">
+      <h2 class="resource-sidebar-title">Recursos</h2>
+
+      <ul class="resource-nav-list">
+        <!-- Grupo "Sobre": item pai (/sobre) + filho indentado (/historia).
+             Cada link controla seu próprio estado ativo de forma independente
+             (sem propagar pro <li> pai) — só a rota exata correspondente fica
+             destacada por vez. `exact: true` em "Sobre" evita falso-positivo
+             por prefixo de rota (sem isso, /historia também casaria com "/"
+             +"sobre" como prefixo de rota ativa). -->
+        <li class="resource-nav-group">
+          <a routerLink="/sobre" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Sobre os Jogadores Anônimos</a>
+          <ul class="resource-nav-sublist">
+            <li><a routerLink="/historia" routerLinkActive="active">História</a></li>
+          </ul>
+        </li>
+        <li>
+          <a routerLink="/reunioes" routerLinkActive="active">Encontrar uma Reunião</a>
+        </li>
+        <li>
+          <a routerLink="/hotlines" routerLinkActive="active">Hotlines Brasil</a>
+        </li>
+
+        <!-- Grupo "Recursos": aqui é só um cabeçalho de agrupamento (sem link
+             próprio nem destaque de "pai ativo"), com os filhos indentados
+             abaixo — mesma hierarquia já usada no dropdown "Recursos" da
+             navbar. -->
+        <li class="resource-nav-group">
+          <span class="resource-nav-group-label">Recursos</span>
+          <ul class="resource-nav-sublist">
+            <li><a routerLink="/literatura" routerLinkActive="active">Literatura</a></li>
+            <li><a routerLink="/programa-de-recuperacao" routerLinkActive="active">Programa de Recuperação</a></li>
+            <li><a routerLink="/programa-de-unidade" routerLinkActive="active">Programa de Unidade</a></li>
+            <li><a routerLink="/perguntas-e-respostas" routerLinkActive="active">Perguntas &amp; Respostas</a></li>
+            <li><a routerLink="/vinte-perguntas" routerLinkActive="active">20 Perguntas</a></li>
+            <li><a routerLink="/escritorios-regionais" routerLinkActive="active">Escritórios Regionais</a></li>
+            <li><a routerLink="/boletim-informativo" routerLinkActive="active">Boletim Informativo</a></li>
+            <li><a routerLink="/gam-anon" routerLinkActive="active">Gam-Anon</a></li>
+          </ul>
+        </li>
+      </ul>
+
+      <ul class="resource-nav-list">
+        <li><a routerLink="/loja" routerLinkActive="active">Loja</a></li>
+      </ul>
+    </nav>
+
+    <div class="resource-sidebar-cta">
+      <h2>Comece sua jornada de recuperação</h2>
+      <p>Encontre uma reunião perto de você e dê o primeiro passo.</p>
+      <a class="resource-sidebar-cta__btn" routerLink="/reunioes">Participar de uma Reunião</a>
+    </div>
+  </aside>
+
+  <div class="resource-main">
+    <!-- Cartão branco do conteúdo principal: o banner fica quase encostado
+         nas bordas do cartão (só a pequena margem de .resource-card__banner),
+         e é só a partir de .resource-card__body (breadcrumb + artigo) que o
+         padding "cheio" do cartão aparece. -->
+    <div class="resource-card">
+      <div class="resource-banner">
+        <div
+          class="resource-banner__image"
+          [style.background-image]="'url(' + bannerSrc + ')'"
+        ></div>
+        <div class="resource-banner__scrim"></div>
+        <div class="resource-banner__overlay">
+          <h1>{{ titulo }}</h1>
+        </div>
+      </div>
+
+      <div class="resource-card__body">
+        <nav class="resource-breadcrumb" aria-label="Breadcrumb">
+          <ol>
+            <li><a routerLink="/">Home</a></li>
+            <li aria-current="page">{{ breadcrumbLabel || titulo }}</li>
+          </ol>
+        </nav>
+
+        <article class="resource-content">
+          <ng-content></ng-content>
+        </article>
+      </div>
+    </div>
+  </div>
+</main>

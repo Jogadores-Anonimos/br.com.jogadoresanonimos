@@ -1,18 +1,13 @@
-<main class="recuperacao-page">
-
-  <section class="hero">
-    <div class="hero-content">
-      <h1>Programa de Recuperação</h1>
-      <p class="lead">
-        Os Doze Passos de Jogadores Anônimos são o caminho de recuperação
-        seguido por milhares de membros da irmandade em todo o mundo. Eles
-        representam uma jornada de honestidade, apoio mútuo e transformação
-        pessoal.
-      </p>
-    </div>
-  </section>
+<app-resource-layout titulo="Programa de Recuperação">
 
   <section class="section">
+    <p class="lead">
+      Os Doze Passos de Jogadores Anônimos são o caminho de recuperação
+      seguido por milhares de membros da irmandade em todo o mundo. Eles
+      representam uma jornada de honestidade, apoio mútuo e transformação
+      pessoal.
+    </p>
+
     <ol class="passos-lista">
       @for (passo of passos; track $index) {
         <li class="passo-item">
@@ -32,4 +27,4 @@
     <a class="btn-cta" routerLink="/reunioes">Encontrar uma Reunião</a>
   </section>
 
-</main>
+</app-resource-layout>
