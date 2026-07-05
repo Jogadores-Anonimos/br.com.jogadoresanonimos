@@ -1,30 +1,68 @@
-<main class="contribuir">
-  <header class="contribuir__header">
-    <h1 class="contribuir__titulo">Contribua com a Jogadores Anônimos do Brasil</h1>
-    <p class="contribuir__texto">
-      A Jogadores Anônimos se mantém apenas com as contribuições voluntárias dos próprios membros e
-      apoiadores. Não aceitamos doações de fontes externas — essa é a nossa Sétima Tradição: "todo
-      grupo deve ser autossustentável, recusando contribuições de fora da irmandade".
-    </p>
-    <p class="contribuir__texto">
-      Sua contribuição ajuda a manter salas de reunião, materiais de recuperação e a estrutura que
-      permite que mais pessoas encontrem ajuda.
-    </p>
-  </header>
+<app-resource-layout titulo="Contribuir">
 
-  <section class="contribuir__metodos">
-    <h2 class="contribuir__subtitulo">Formas de contribuição</h2>
-    <ul class="contribuir__lista">
-      <li><strong>Pix:</strong> chave [a definir]</li>
-      <li><strong>Transferência bancária:</strong> dados bancários [a definir]</li>
-      <li><strong>Contribuição em reunião presencial:</strong> converse com o tesoureiro do seu grupo local</li>
-    </ul>
-  </section>
+  @if (respostaMembro === 'sim') {
+    <header class="contribuir__header">
+      <h1 class="contribuir__titulo">Contribua com a Jogadores Anônimos do Brasil</h1>
+      <p class="contribuir__texto">
+        A Jogadores Anônimos se mantém apenas com as contribuições voluntárias dos próprios membros e
+        apoiadores. Não aceitamos doações de fontes externas, essa é a nossa Sétima Tradição: "todo
+        grupo deve ser autossustentável, recusando contribuições de fora da irmandade".
+      </p>
+      <p class="contribuir__texto">
+        Sua contribuição ajuda a manter salas de reunião, materiais de recuperação e a estrutura que
+        permite que mais pessoas encontrem ajuda.
+      </p>
+    </header>
 
-  <section class="contribuir__confirmacao">
-    <input type="checkbox" id="confirma-membro" class="contribuir__checkbox" />
-    <label for="confirma-membro" class="contribuir__label">
-      Esta contribuição é destinada apenas a membros e apoiadores da JA Brasil.
-    </label>
-  </section>
-</main>
+    <section class="contribuir__metodos">
+      <h2 class="contribuir__subtitulo">Formas de contribuição</h2>
+      <ul class="contribuir__lista">
+        <li><strong>Pix:</strong> chave [a definir]</li>
+        <li><strong>Transferência bancária:</strong> dados bancários [a definir]</li>
+        <li><strong>Contribuição em reunião presencial:</strong> converse com o tesoureiro do seu grupo local</li>
+      </ul>
+    </section>
+  }
+
+  @if (respostaMembro !== 'sim') {
+    <div class="membro-overlay">
+      <div
+        #painel
+        class="membro-painel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="membro-titulo"
+        aria-describedby="membro-texto"
+        (keydown)="onModalKeydown($event)"
+      >
+        @if (respostaMembro === 'pendente') {
+          <h2 id="membro-titulo" class="membro-titulo">Você é membro da Jogadores Anônimos?</h2>
+          <p id="membro-texto" class="membro-texto">
+            Obrigado por considerar contribuir com a Jogadores Anônimos. Nós nos sustentamos através
+            das nossas próprias contribuições.
+          </p>
+          <div class="membro-acoes">
+            <button type="button" class="btn-membro" (click)="registrarResposta('nao')">
+              Não
+            </button>
+            <button type="button" class="btn-membro" (click)="registrarResposta('sim')">
+              Sim
+            </button>
+          </div>
+        }
+
+        @if (respostaMembro === 'nao') {
+          <h2 id="membro-titulo" class="membro-titulo">Contribuição restrita a membros</h2>
+          <p id="membro-texto" class="membro-texto">
+            Sinto muito, mas apenas membros da Jogadores Anônimos podem contribuir, nós nos
+            sustentamos através das nossas próprias contribuições.
+          </p>
+          <div class="membro-acoes">
+            <a routerLink="/" class="btn-membro">Voltar para o Início</a>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+</app-resource-layout>

@@ -4,28 +4,18 @@
 
 .resource-layout {
   display: grid;
-  /* 330px (antes 360px, antes disso 330px, e antes disso 280px): pedido
-     explícito do usuário pra liberar mais espaço pra coluna de conteúdo
-     (1fr, cresce automaticamente conforme a sidebar encolhe), sem precisar
-     mexer no max-width do container. */
   grid-template-columns: 330px 1fr;
   align-items: start;
-  /* var(--spacing-md) (antes var(--spacing-lg), antes var(--spacing-xl)):
-     aproxima ainda mais o cartão branco do conteúdo do cartão branco da
-     sidebar — pedido explícito do usuário pra reduzir o espaço em branco
-     entre as duas colunas. */
   gap: var(--spacing-md);
-  /* 1600px (antes 1400px, antes 1280px) + padding horizontal reduzido pra
-     var(--spacing-md) (antes var(--spacing-lg)): as duas caixas brancas
-     ficam visivelmente mais próximas das bordas da janela, com menos margem
-     cinza nas laterais — pedido explícito do usuário. */
   max-width: 1600px;
   margin: 0 auto;
   padding: var(--spacing-lg) var(--spacing-md) var(--spacing-2xl);
 }
 
-/* Sidebar fixa: acompanha o scroll da página, mas nunca sobrepõe a navbar
-   (que também é sticky) — o offset usa a mesma --nav-height da navbar. */
+.resource-layout.resource-layout--full {
+  grid-template-columns: 1fr;
+}
+
 .resource-sidebar {
   position: sticky;
   top: calc(var(--nav-height) + var(--spacing-lg));
@@ -34,42 +24,14 @@
   gap: var(--spacing-lg);
 }
 
-/* Título geral da sidebar inteira (equivalente ao "Resources" no topo do
-   cartão da referência americana) — fica dentro do mesmo cartão branco
-   .resource-nav, como primeiro filho, antes da lista de navegação (não fora
-   dele). <h2> porque a página já tem um <h1> no banner. Padding horizontal
-   igual ao dos links (var(--spacing-md)) já que o cartão não tem mais
-   padding horizontal próprio (ver .resource-nav abaixo). padding-bottom
-   igual ao padding-top de um link (var(--spacing-sm)) — somado ao próprio
-   padding-top do primeiro link da lista, reproduz o mesmo ritmo de ~32px
-   usado entre os demais itens, em vez de um espaço maior/diferente. */
 .resource-sidebar-title {
   padding: 0 var(--spacing-md) var(--spacing-sm);
   color: var(--color-text);
   font-size: 1.75rem;
   font-weight: var(--font-weight-heading);
-  /* Linha divisória entre o título "Recursos" e a lista de navegação abaixo,
-     mesma linha (1px, --color-border) já usada entre os itens da lista —
-     antes só havia o espaçamento do padding-bottom, sem separação visual. */
   border-bottom: 1px solid var(--color-border);
 }
 
-/* Cartão branco envolvendo só as listas de navegação (sem o CTA escuro
-   abaixo, que já tem fundo próprio) — separa visualmente a sidebar do
-   fundo cinza-claro da página, igual à referência americana.
-   Padding só vertical: o padding horizontal fica por conta de cada link
-   (.resource-nav-list a / .resource-nav-sublist a) — se ficasse aqui, o
-   fundo colorido do item ativo/hover nunca preencheria a largura toda da
-   linha, ponta a ponta (bug reportado: "sobra respiro nas laterais").
-   Sem gap: título e as duas <ul class="resource-nav-list"> (a principal e a
-   solta do "Loja") ficam coladas — o espaçamento entre elas já vem só do
-   padding vertical de cada link/título + as linhas divisórias abaixo, a
-   mesma fonte usada entre os demais itens (gap seria uma segunda fonte de
-   espaço somada, deixando alguns intervalos maiores que outros).
-   Sem padding-bottom (antes var(--spacing-sm) em cima E embaixo): o cartão
-   deve terminar logo depois do último item da lista ("Loja"), sem sobra de
-   espaço em branco — o padding-bottom próprio do link já cuida do respiro
-   entre o texto e a borda inferior do cartão. */
 .resource-nav {
   display: flex;
   flex-direction: column;
@@ -84,29 +46,13 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  /* Sem gap: o espaçamento entre itens agora vem do padding vertical de
-     cada link somado à linha divisória (border-bottom) entre eles — duas
-     fontes de espaço somadas ficariam "soltas" demais. */
   gap: 0;
 }
 
-/* Divisória sutil entre cada item de navegação de topo (ex: entre o grupo
-   "Sobre" e "Encontrar uma Reunião", entre este e "Hotlines Brasil"), sem
-   duplicar no último item de cada lista (que já encosta no próximo bloco/
-   no fim do cartão). */
 .resource-nav-list > li:not(:last-child) {
   border-bottom: 1px solid var(--color-border);
 }
 
-/* "Loja" vive sozinha numa <ul class="resource-nav-list"> própria, separada
-   da lista anterior — sendo ao mesmo tempo primeiro E último item da sua
-   lista, a regra acima não gera nenhuma linha nela (nem acima, nem abaixo).
-   Como o gap entre as duas <ul> já foi zerado (.resource-nav acima), sem
-   isso sobraria só o "buraco" do cartão sem nenhuma divisória ali. Aqui a
-   segunda lista ganha a linha no topo do seu próprio primeiro item,
-   reproduzindo o mesmo par linha+espaçamento que existe entre os demais
-   itens (ver .resource-nav-list a, cujo padding vertical já cuida do
-   espaçamento, essa regra só adiciona a linha em si). */
 .resource-nav-list + .resource-nav-list > li {
   border-top: 1px solid var(--color-border);
 }
@@ -130,35 +76,22 @@
   color: var(--cor-padrao-ja);
 }
 
-/* Destaca o item da página atual — o próprio pedido do usuário ("destacando
-   com uma cor de fundo o item da página atual"). */
 .resource-nav-list a.active {
   background: var(--cor-padrao-ja);
   color: var(--white);
 }
 
-/* Grupo pai/filho (ex: "Sobre" > "História", "Recursos" > seus links) —
-   mesma hierarquia já usada no dropdown da navbar, aqui representada com
-   indentação em vez de submenu flutuante. Sem gap: o link "Sobre" e sua
-   sublista ("História") ficam colados, sem divisória entre eles — a
-   divisória de .resource-nav-list > li:not(:last-child) já aparece depois
-   do grupo inteiro (ou seja, visualmente entre "História" e o próximo
-   item de topo, "Encontrar uma Reunião"). */
 .resource-nav-group {
   display: flex;
   flex-direction: column;
   gap: 0;
 }
 
-/* Cabeçalho de agrupamento sem link próprio (ex: "Recursos") — mesmo
-   tratamento visual que .resource-nav-heading já usava. Padding horizontal
-   igual ao dos links de topo (var(--spacing-md)) pra alinhar com eles, já
-   que o cartão .resource-nav não tem mais padding horizontal próprio. */
 .resource-nav-group-label {
   display: block;
   margin-top: var(--spacing-sm);
-  padding: 0 var(--spacing-md);
-  color: var(--color-text-muted);
+  padding: 15px var(--spacing-md);
+  color: black;
   font-size: 0.8rem;
   font-weight: var(--font-weight-heading);
   text-transform: uppercase;
@@ -172,47 +105,14 @@
   gap: 0;
 }
 
-/* Divisória sutil entre cada item da sublista (ex: entre os itens de
-   "Recursos"), sem duplicar no último item (ex: "Gam-Anon", ou "História"
-   quando é filho único). */
 .resource-nav-sublist li:not(:last-child) {
   border-bottom: 1px solid var(--color-border);
 }
 
-/* Indenta os links filhos em relação aos links de topo — mesmo padding
-   vertical/box model de .resource-nav-list a, só com mais respiro à
-   esquerda (padding-left maior em vez de margin, pra não encolher a
-   largura do link/fundo colorido). */
 .resource-nav-sublist a {
   padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) calc(var(--spacing-md) + var(--spacing-sm));
 }
 
-/* Quadro de destaque com fundo escuro ao final da sidebar, equivalente ao
-   "Attend a Meeting" do site americano. Padding e altura generosos pra bater
-   com a referência (bastante espaço em branco entre título/parágrafo/botão).
-   O `background` combina duas camadas: um gradiente diagonal em branco
-   semi-transparente (efeito de "brilho"/profundidade, como na referência,
-   mais claro num canto e some até 45% do caminho) sobreposto à cor sólida
-   --color-background-dark já usada — não é uma cor nova, só uma composição
-   de opacidade sobre a variável existente. Opacidade subiu de 0.08 pra 0.18
-   e o ponto de transparência de 55% pra 45%: com 0.08 o "sheen" diagonal
-   ficava praticamente imperceptível; 0.18 deixa a faixa clara nitidamente
-   visível sobre o fundo escuro sem comprometer o contraste do texto branco
-   por cima (ainda bem abaixo de 0.3, faixa em que começaria a "lavar" o
-   texto).
-   border-radius: 0 direto (em vez de var(--radius-md), mesmo essa variável já
-   sendo 0 globalmente em styles.css) — pedido explícito do usuário é este
-   card específico ficar visivelmente quadrado, sem depender de nenhum token
-   que possa mudar globalmente no futuro.
-   padding subiu de var(--spacing-lg) (40px) pra var(--spacing-xl) (64px):
-   com a coluna da sidebar em 360px, o card ficava mais largo que antes mas o
-   padding não acompanhou — título quase encostava na borda esquerda e o
-   botão ia quase de ponta a ponta. var(--spacing-2xl) (120px) foi descartado
-   por deixar a área útil de texto (360px - 240px = 120px) estreita demais e
-   forçar quebras de linha ruins no português.
-   min-height subiu de 320px pra 380px (dentro da faixa 360-400px pedida) —
-   acompanha o padding maior e devolve a proporção "mais alto que largo" da
-   referência americana, com respiro visível abaixo do botão. */
 .resource-sidebar-cta {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 45%),
     var(--color-background-dark);
@@ -241,58 +141,18 @@
   margin-bottom: var(--spacing-md);
 }
 
-/* Fonte/padding reduzidos (antes sem font-size definido, herdando 1rem) — o
-   texto em português ("Participar de uma Reunião") é mais longo que o
-   equivalente em inglês e quebrava em duas linhas, ficando "inchado" em
-   relação ao card.
-   display:block + width:100% removidos (antes esticava o botão de ponta a
-   ponta do card) — na referência americana o botão é dimensionado só pelo
-   próprio texto/padding, alinhado à esquerda junto com título e parágrafo,
-   não ocupando a largura toda. display:inline-block + align-self:flex-start
-   (o pai .resource-sidebar-cta é flex-column) fazem o botão encolher pro
-   tamanho do conteúdo. font-size reduzido pra 0.85rem (antes 0.9rem) e
-   padding horizontal reduzido pra var(--spacing-sm) (antes var(--spacing-md))
-   — pedido explícito do usuário pra deixar o botão visivelmente mais
-   compacto, sem quebrar "Participar de uma Reunião" em duas linhas. */
 .resource-sidebar-cta__btn {
   display: inline-block;
   align-self: flex-start;
   box-sizing: border-box;
   text-align: center;
   background: var(--yellow-btn);
-  /* var(--color-text) (quase preto, #1e293b) em vez de var(--cor-padrao-ja):
-     pedido do usuário pra destacar mais o texto sobre o amarelo do botão.
-     Entre preto e branco, preto/quase-preto contrasta bem mais com o
-     amarelo --yellow-btn (#F5C518) — branco puro sobre esse tom de amarelo
-     fica com contraste baixo (reprovaria WCAG AA), enquanto --color-text
-     passa com folga. */
   color: var(--color-text);
-  /* var(--font-weight-bold) (700, antes var(--font-weight-semibold)/500):
-     pedido explícito do usuário pra deixar o texto do botão "gordinho"/em
-     negrito — mesma variável já usada na navbar, só reaproveitada aqui. */
   font-weight: var(--font-weight-bold);
-  /* white-space: nowrap: o texto ("Participar de uma Reunião") nunca pode
-     quebrar em duas linhas — pedido explícito do usuário. Isso exige medir
-     de verdade a largura do texto contra a área útil de cada card (medi com
-     GDI+/Arial Bold real, não só "no olho"): a coluna mais apertada não é a
-     do tablet (260px de coluna, mas só var(--spacing-md)/24px de padding de
-     card = 212px de área útil) e sim a do DESKTOP (330px de coluna, só que
-     com var(--spacing-xl)/64px de padding de card = só 202px de área útil,
-     menos ainda descontando o padding horizontal do próprio botão). Com
-     nowrap, 0.9rem (14.4px) mede ~185px de texto — passa da área útil do
-     desktop e do botão estouraria a largura do card. 0.8rem (12.8px) mede
-     ~165px, com folga nos três breakpoints (desktop, tablet e mobile, que
-     tem bem mais espaço por ser card full-width) — por isso a base é 0.8rem
-     aqui, com um bônus de tamanho só no mobile (ver @media max-width:
-     600px), onde sobra espaço de sobra pra um texto maior. */
   font-size: 0.8rem;
   letter-spacing: 0.01em;
   text-decoration: none;
   white-space: nowrap;
-  /* Padding vertical reduzido pra var(--spacing-xs) (8px, antes
-     var(--spacing-sm)/16px uniforme) — pedido explícito do usuário pra
-     diminuir a altura visível do botão. Horizontal mantido em
-     var(--spacing-sm), como já estava. */
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-sm);
   transition: background 0.2s ease, transform 0.2s ease;
@@ -312,11 +172,6 @@
   min-width: 0;
 }
 
-/* Cartão branco envolvendo o conteúdo principal (banner + breadcrumb +
-   artigo) — o padding "cheio" do cartão só é aplicado a partir de
-   .resource-card__body; o banner fica com uma margem pequena e consistente
-   (.resource-banner aqui dentro), sem encostar 0px na borda, mas também sem
-   o respiro maior que breadcrumb/artigo têm. */
 .resource-card {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
@@ -331,12 +186,6 @@
   padding: 0 var(--spacing-lg) var(--spacing-lg);
 }
 
-/* Banner com a foto padrão (bannerSrc) em escala de cinza — título
-   centralizado vertical e horizontalmente por cima (ver
-   .resource-banner__overlay abaixo). A imagem fica numa camada própria
-   (.resource-banner__image) em vez de background-image direto neste
-   elemento, porque o filtro grayscale precisa se aplicar só à foto, não ao
-   véu escuro/texto sobrepostos. */
 .resource-banner {
   position: relative;
   isolation: isolate;
@@ -358,11 +207,6 @@
   filter: grayscale(100%);
 }
 
-/* Véu escuro uniforme sobre a foto em P&B, garantindo contraste suficiente
-   para o título branco em qualquer ponto do banner (antes o gradiente era
-   mais forte embaixo/mais fraco em cima, pensado pra título alinhado no
-   rodapé — agora o título é centralizado, então o véu precisa ser parelho
-   na área toda). Mesmo tom de --color-background-dark já usado alhures. */
 .resource-banner__scrim {
   position: absolute;
   inset: 0;
@@ -424,26 +268,11 @@
   padding-bottom: var(--spacing-lg);
 }
 
-/* A partir daqui (tablet + mobile) a lista de navegação lateral some por
-   completo — na referência americana ela só existe no desktop largo; abaixo
-   disso a navegação equivalente já existe via os dropdowns "Sobre"/
-   "Recursos" da navbar principal, então não há perda de funcionalidade.
-   Isso também esvazia .resource-nav-list/.resource-nav-group/
-   .resource-nav-sublist de conteúdo visível nessas larguras — as regras que
-   antes existiam aqui só pra reempilhar essas listas em coluna no mobile
-   (era código de layout pra uma lista que agora nunca aparece) foram
-   removidas. */
 @media (max-width: 900px) {
   .resource-nav {
     display: none;
   }
 
-  /* Faixa "tablet": vira 2 colunas (CTA + conteúdo lado a lado) em vez de
-     empilhar tudo — só a partir de 600px (ver override abaixo) que o
-     layout empilha de verdade em 1 coluna. 260px (contra os 330px do
-     desktop): a coluna do CTA precisa ficar bem mais estreita aqui pra
-     sobrar espaço de verdade pro conteúdo ao lado, numa tela de
-     tablet/iPad. */
   .resource-layout {
     grid-template-columns: 260px 1fr;
     padding: var(--spacing-md) var(--spacing-sm) var(--spacing-xl);
@@ -454,11 +283,6 @@
     position: static;
   }
 
-  /* Padding/altura do CTA reduzidos em relação ao desktop (que usa
-     var(--spacing-xl) / 380px, pensados pra uma coluna de 330px) — na
-     coluna estreita de 260px da faixa tablet, esses valores maiores
-     deixavam pouquíssima área útil de texto e forçavam quebras de linha
-     ruins em "Comece sua jornada de recuperação". */
   .resource-sidebar-cta {
     padding: var(--spacing-md);
     min-height: 280px;
@@ -469,19 +293,12 @@
   }
 }
 
-/* Faixa "mobile": empilha tudo em 1 coluna só. A ordem no DOM já favorece o
-   CTA aparecer primeiro (.resource-sidebar vem antes de .resource-main no
-   HTML), depois o conteúdo — igual à referência americana. */
 @media (max-width: 600px) {
   .resource-layout {
     grid-template-columns: 1fr;
     gap: var(--spacing-lg);
   }
 
-  /* De volta a um card mais "cheio" que na faixa tablet: aqui o CTA ocupa a
-     largura toda da tela (não uma coluna estreita de 260px ao lado do
-     conteúdo), então o padding/altura enxutos da faixa tablet deixariam
-     bastante espaço em branco sobrando dos lados sem necessidade. */
   .resource-sidebar-cta {
     padding: var(--spacing-lg);
     min-height: 300px;
@@ -491,11 +308,6 @@
     font-size: 1.45rem;
   }
 
-  /* Aqui o card é full-width (não uma coluna estreita), sobrando bem mais
-     área útil de texto que no desktop/tablet (ver cálculo no comentário de
-     .resource-sidebar-cta__btn) — dá pra voltar o botão pro tamanho maior
-     original (0.9rem) sem risco de quebrar linha ou estourar a largura do
-     card. */
   .resource-sidebar-cta__btn {
     font-size: 0.9rem;
   }

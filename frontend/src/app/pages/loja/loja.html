@@ -1,11 +1,53 @@
-<main class="loja">
-  <h1 class="loja__titulo">Loja Online</h1>
+<app-resource-layout titulo="Loja" [bannerSrc]="bannerSrc">
+  <ng-container sidebar>
+    <div class="loja-categorias">
+      <h2 class="loja-categorias__title">Categorias de Produtos</h2>
+      <ul class="loja-categorias__list">
+        @for (categoria of categorias; track categoria; let i = $index) {
+          <li>
+            <span
+              class="loja-categorias__item"
+              [class.loja-categorias__item--ativa]="i === 0"
+              title="Loja em desenvolvimento"
+            >
+              {{ categoria }}
+            </span>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <div class="loja-cta">
+      <h2>Comece sua jornada de recuperação</h2>
+      <p>Encontre uma reunião perto de você e dê o primeiro passo.</p>
+      <a class="loja-cta__btn" routerLink="/reunioes">Participar de uma Reunião</a>
+    </div>
+
+    <div class="loja-updates">
+      <h2>Pedidos por Correio ou Fax</h2>
+      <p>Baixe nosso formulário de pedido.</p>
+      <button
+        type="button"
+        class="loja-updates__btn"
+        disabled
+        title="Formulário ainda não disponível"
+      >
+        Baixar Formulário
+      </button>
+    </div>
+
+    <div class="loja-updates">
+      <h2>Atualizações da Literatura</h2>
+      <p>Veja o catálogo de literatura da JA Brasil.</p>
+      <a class="loja-updates__btn" routerLink="/literatura">Ver Literatura</a>
+    </div>
+  </ng-container>
 
   <div class="loja__em-breve">
     <div class="loja__icone" aria-hidden="true">
       <span class="loja__icone-sacola"></span>
     </div>
-    <p class="loja__mensagem">Em breve</p>
+    <h2 class="loja__mensagem">Em breve</h2>
     <p class="loja__descricao">
       Estamos preparando nossa loja com materiais de recuperação e itens da irmandade.
     </p>
@@ -15,12 +57,19 @@
     @for (produto of produtos; track $index) {
       <article class="loja__card">
         <div class="loja__card-imagem" aria-hidden="true"></div>
-        <h2 class="loja__card-titulo">{{ produto.titulo }}</h2>
-        <p class="loja__card-preco">{{ produto.preco }}</p>
-        <button type="button" class="loja__card-botao" disabled>
+        <div class="loja__card-info">
+          <h3 class="loja__card-titulo">{{ produto.titulo }}</h3>
+          <p class="loja__card-preco">{{ produto.preco }}</p>
+        </div>
+        <button
+          type="button"
+          class="loja__card-botao"
+          disabled
+          title="Loja em desenvolvimento"
+        >
           Adicionar ao carrinho (em breve)
         </button>
       </article>
     }
   </div>
-</main>
+</app-resource-layout>

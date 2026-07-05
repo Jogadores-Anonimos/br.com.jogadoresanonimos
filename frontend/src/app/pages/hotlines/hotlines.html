@@ -1,38 +1,54 @@
-<main class="hotlines">
-  <section class="hotlines__cta">
-    <h1 class="hotlines__cta-title">Comece sua jornada de recuperação</h1>
-    <p class="hotlines__cta-text">
-      Se você ou alguém que você conhece precisa de apoio para lidar com o jogo compulsivo, dê o
-      primeiro passo agora mesmo.
-    </p>
-    <a class="btn btn--primary" routerLink="/reunioes">Encontrar uma Reunião</a>
-  </section>
+<app-resource-layout titulo="Linhas de Ajuda">
 
-  <section class="hotlines__list">
-    <h2 class="hotlines__list-title">Hotlines por Estado</h2>
-    <p class="hotlines__notice">
-      Esta lista está em expansão. Ainda não cobre todos os estados brasileiros — novos contatos
-      serão adicionados conforme forem confirmados junto aos grupos regionais.
+  <section class="section">
+    <p class="lead">
+      Clique no estado desejado para ver a lista de linhas de ajuda.
     </p>
 
-    <div class="hotlines__table-wrapper">
-      <table class="hotlines__table">
-        <caption class="sr-only">Lista de hotlines de apoio por estado brasileiro</caption>
-        <thead>
-          <tr>
-            <th scope="col">Estado</th>
-            <th scope="col">Telefone</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of estados; track item.estado) {
-            <tr>
-              <td>{{ item.estado }}</td>
-              <td>{{ item.telefone }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
+    <div class="hotlines-accordion">
+      @for (item of estados; track item.estado; let i = $index) {
+        <div class="hotlines-item">
+          <h3 class="hotlines-item__heading">
+            <button
+              type="button"
+              class="hotlines-item__trigger"
+              [id]="'hotline-cabecalho-' + i"
+              [attr.aria-expanded]="estadoAberto === item.estado"
+              [attr.aria-controls]="'hotline-painel-' + i"
+              (click)="toggleEstado(item.estado)"
+            >
+              <span>{{ item.estado }}</span>
+              <span class="hotlines-item__chevron" aria-hidden="true"></span>
+            </button>
+          </h3>
+
+          <div
+            class="hotlines-item__painel"
+            [id]="'hotline-painel-' + i"
+            role="region"
+            [attr.aria-labelledby]="'hotline-cabecalho-' + i"
+            [hidden]="estadoAberto !== item.estado"
+          >
+            <ul class="hotlines-item__lista">
+              @for (linha of item.linhas; track linha.label) {
+                <li><strong>{{ linha.label }}:</strong> {{ linha.telefone }}</li>
+              }
+            </ul>
+          </div>
+        </div>
+      }
     </div>
   </section>
-</main>
+
+  <section class="cta-final">
+    <h2>Comece sua jornada de recuperação</h2>
+    <p>
+      Se você ou alguém que você conhece precisa de apoio para lidar com o
+      jogo compulsivo, dê o primeiro passo agora mesmo.
+    </p>
+    <div class="cta-final-acoes">
+      <a class="btn-cta" routerLink="/reunioes">Encontrar uma Reunião</a>
+    </div>
+  </section>
+
+</app-resource-layout>

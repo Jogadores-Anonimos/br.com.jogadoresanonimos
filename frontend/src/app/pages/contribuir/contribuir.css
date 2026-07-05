@@ -1,9 +1,3 @@
-.contribuir {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: var(--spacing-xl) var(--spacing-md);
-}
-
 .contribuir__titulo {
   color: var(--cor-padrao-ja);
   font-size: 1.75rem;
@@ -37,31 +31,82 @@
   line-height: 1.8;
 }
 
-.contribuir__confirmacao {
+.membro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
   display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-sm);
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+  background: rgba(var(--color-background-dark-rgb), 0.65);
+}
+
+.membro-painel {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
-  border-left: 4px solid var(--yellow-gold);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+.membro-titulo {
+  color: var(--cor-padrao-ja);
+  font-size: 1.4rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.membro-texto {
+  color: var(--color-text);
+  line-height: 1.6;
+  margin-bottom: var(--spacing-lg);
+}
+
+.membro-acoes {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--spacing-sm);
+  justify-content: center;
+}
+
+.btn-membro {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--yellow-btn);
+  color: var(--color-text);
+  font-weight: var(--font-weight-bold);
+  font-size: 1rem;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
   border-radius: var(--radius-sm);
-  padding: var(--spacing-md);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
-.contribuir__checkbox {
-  margin-top: 0.3rem;
-  width: 1.2rem;
-  height: 1.2rem;
-  accent-color: var(--cor-padrao-ja);
-  flex-shrink: 0;
+.btn-membro:hover {
+  background: var(--yellow-gold);
+  transform: translateY(-2px);
 }
 
-.contribuir__checkbox:focus-visible {
-  outline: 3px solid var(--yellow-gold);
+.btn-membro:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
   outline-offset: 2px;
 }
 
-.contribuir__label {
-  color: var(--color-text);
-  line-height: 1.6;
+@media (max-width: 480px) {
+  .membro-painel {
+    padding: var(--spacing-md);
+  }
+
+  .membro-acoes {
+    flex-direction: column;
+  }
 }

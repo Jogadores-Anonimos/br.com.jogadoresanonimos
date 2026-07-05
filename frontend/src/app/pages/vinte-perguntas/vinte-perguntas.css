@@ -1,9 +1,14 @@
 .quiz-section {
-  max-width: 700px;
   padding: var(--spacing-lg) 0;
 }
 
-.lead {
+.quiz-intro-heading {
+  color: var(--cor-padrao-ja);
+  font-size: clamp(1.4rem, 3vw, 1.8rem);
+  margin-bottom: var(--spacing-sm);
+}
+
+.quiz-intro-lead {
   color: var(--color-text);
   font-size: 1.1rem;
   line-height: 1.8;
@@ -18,38 +23,10 @@
   box-shadow: var(--shadow-sm);
 }
 
-.quiz-intro-card h2,
 .quiz-resultado h2 {
   color: var(--cor-padrao-ja);
   font-size: clamp(1.4rem, 3vw, 1.8rem);
   margin-bottom: var(--spacing-md);
-}
-
-.quiz-info-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-lg);
-}
-
-.quiz-info-list li {
-  position: relative;
-  padding-left: var(--spacing-md);
-  color: var(--color-text);
-  line-height: 1.7;
-  font-size: 1.05rem;
-}
-
-.quiz-info-list li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.6em;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--yellow-gold);
 }
 
 .btn-cta {
@@ -107,21 +84,30 @@
   transition: width 0.3s ease;
 }
 
+.quiz-pergunta-linha {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
 .quiz-pergunta {
+  flex: 1;
   font-size: 1.3rem;
   font-weight: 700;
   line-height: 1.6;
   color: var(--color-text);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: 0;
 }
 
 .quiz-botoes {
   display: flex;
+  flex-shrink: 0;
   gap: var(--spacing-md);
 }
 
 .btn-quiz {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 140px;
   padding: 16px;
   font-size: 1.05rem;
   font-weight: 700;
@@ -167,6 +153,7 @@
 .quiz-resultado p {
   color: var(--color-text);
   line-height: 1.8;
+  max-width: 640px;
   margin-bottom: var(--spacing-md);
 }
 
@@ -205,7 +192,22 @@
     padding: var(--spacing-md);
   }
 
+  .quiz-pergunta-linha {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .quiz-pergunta {
+    margin-bottom: var(--spacing-lg);
+  }
+
   .quiz-botoes {
     flex-direction: column;
+  }
+
+  .btn-quiz {
+    flex: 1;
+    min-width: 0;
   }
 }

@@ -17,12 +17,6 @@ interface ResultadoQuiz {
   styleUrl: './vinte-perguntas.css',
 })
 export class VintePerguntas {
-  /**
-   * As 20 Perguntas são material de programa público da irmandade
-   * Jogadores Anônimos, usadas mundialmente para autoavaliação.
-   * Nenhuma resposta é armazenada ou enviada — tudo acontece só
-   * na memória do navegador durante a visita.
-   */
   readonly perguntas: string[] = [
     'Você já perdeu tempo de trabalho ou de escola por causa do jogo?',
     'O jogo já tornou sua vida familiar infeliz?',
@@ -46,7 +40,6 @@ export class VintePerguntas {
     'Você já considerou se autodestruir ou cometer suicídio como resultado do jogo?',
   ];
 
-  /** Critério oficial: a maioria dos jogadores compulsivos responde SIM a pelo menos 7 destas perguntas. */
   readonly limiarSinais = 7;
 
   quizIniciado = false;

@@ -1,25 +1,14 @@
 <app-resource-layout titulo="20 Perguntas">
 
   <section class="section quiz-section">
-    <p class="lead">
-      Este questionário é baseado nas 20 Perguntas usadas por Jogadores
-      Anônimos em todo o mundo para ajudar alguém a reconhecer se o jogo se
-      tornou um problema. É totalmente anônimo, leva poucos minutos e
-      nenhuma resposta fica salva nem é enviada para lugar nenhum.
+    <h2 class="quiz-intro-heading">Você é um jogador compulsivo?</h2>
+    <p class="quiz-intro-lead">
+      Responda as 20 perguntas abaixo e veja nossos comentários com base
+      nas suas respostas.
     </p>
 
     @if (!quizIniciado) {
       <div class="quiz-card quiz-intro-card">
-        <h2>Antes de começar</h2>
-        <ul class="quiz-info-list">
-          <li>São 20 perguntas, respondidas com "Sim" ou "Não".</li>
-          <li>Responda com o máximo de sinceridade possível.</li>
-          <li>Não existe resposta certa ou errada — é apenas um espelho.</li>
-          <li>
-            A maioria dos jogadores compulsivos responde SIM a pelo menos
-            7 dessas perguntas.
-          </li>
-        </ul>
         <button type="button" class="btn-cta" (click)="iniciarQuiz()">
           Começar o questionário
         </button>
@@ -85,23 +74,25 @@
           <div class="quiz-progresso-preenchido" [style.width.%]="progresso"></div>
         </div>
 
-        <h2 class="quiz-pergunta">{{ perguntas[perguntaAtual] }}</h2>
+        <div class="quiz-pergunta-linha">
+          <h2 class="quiz-pergunta">{{ perguntas[perguntaAtual] }}</h2>
 
-        <div class="quiz-botoes">
-          <button
-            type="button"
-            class="btn-quiz btn-quiz--sim"
-            (click)="responder('sim')"
-          >
-            Sim
-          </button>
-          <button
-            type="button"
-            class="btn-quiz btn-quiz--nao"
-            (click)="responder('nao')"
-          >
-            Não
-          </button>
+          <div class="quiz-botoes">
+            <button
+              type="button"
+              class="btn-quiz btn-quiz--sim"
+              (click)="responder('sim')"
+            >
+              Sim
+            </button>
+            <button
+              type="button"
+              class="btn-quiz btn-quiz--nao"
+              (click)="responder('nao')"
+            >
+              Não
+            </button>
+          </div>
         </div>
       </div>
     }

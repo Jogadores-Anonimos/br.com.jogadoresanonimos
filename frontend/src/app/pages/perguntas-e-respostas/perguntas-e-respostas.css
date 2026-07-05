@@ -2,68 +2,73 @@
   padding: var(--spacing-lg) 0;
 }
 
-.lead {
-  color: var(--color-text);
-  font-size: 1.1rem;
-  line-height: 1.8;
-  margin-bottom: var(--spacing-lg);
+.faq-titulo {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--cor-padrao-ja);
+  margin-bottom: var(--spacing-md);
 }
 
 .faq-lista {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
+  border-top: 1px solid var(--color-border);
 }
 
 .faq-item {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-sm) var(--spacing-md);
-  box-shadow: var(--shadow-sm);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .faq-pergunta {
   cursor: pointer;
   list-style: none;
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--cor-padrao-ja);
-  padding: var(--spacing-xs) 0;
+  font-weight: var(--font-weight-bold);
+  font-size: 1.05rem;
+  color: var(--color-text);
+  padding: 16px var(--spacing-sm);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-sm);
+  transition: background 0.15s ease;
 }
 
 .faq-pergunta::-webkit-details-marker {
   display: none;
 }
 
-.faq-pergunta::after {
-  content: '+';
+.faq-pergunta:hover {
+  background: var(--color-bg-section);
+}
+
+.faq-item[open] .faq-pergunta {
+  background: var(--color-bg-section);
+}
+
+.faq-pergunta__chevron {
   flex-shrink: 0;
-  font-size: 1.4rem;
-  font-weight: 400;
-  color: var(--yellow-gold);
+  width: 10px;
+  height: 10px;
+  border: solid var(--cor-padrao-ja);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
   transition: transform 0.2s ease;
 }
 
-.faq-item[open] .faq-pergunta::after {
-  content: '\2212';
+.faq-item[open] .faq-pergunta__chevron {
+  transform: rotate(-135deg);
 }
 
 .faq-pergunta:focus-visible {
   outline: 3px solid var(--cor-padrao-ja);
-  outline-offset: 3px;
-  border-radius: var(--radius-sm);
+  outline-offset: -3px;
 }
 
 .faq-resposta {
   color: var(--color-text);
   line-height: 1.8;
   font-size: 1.05rem;
-  padding-top: var(--spacing-xs);
+  background: var(--color-bg-section);
+  padding: 0 var(--spacing-sm) var(--spacing-md);
+  margin: 0;
 }
 
 @media (max-width: 768px) {
@@ -72,10 +77,12 @@
   }
 
   .faq-pergunta {
+    padding: 16px var(--spacing-xs);
     font-size: 1rem;
   }
 
   .faq-resposta {
+    padding: 0 var(--spacing-xs) var(--spacing-sm);
     font-size: 1rem;
   }
 }

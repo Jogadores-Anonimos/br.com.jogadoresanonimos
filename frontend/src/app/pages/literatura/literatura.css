@@ -2,60 +2,52 @@
   padding: var(--spacing-lg) 0;
 }
 
-.lead {
-  color: var(--color-text);
-  font-size: 1.1rem;
-  line-height: 1.8;
-  margin-bottom: var(--spacing-md);
-}
-
-.aviso {
-  color: var(--color-text-muted);
-  font-style: italic;
-  font-size: 0.98rem;
-  border-left: 4px solid var(--yellow-gold);
-  padding-left: var(--spacing-sm);
-  margin-bottom: var(--spacing-lg);
-}
-
-/* Colunas responsivas por largura mínima do card, em vez de contagem fixa —
-   se adapta melhor à coluna de conteúdo mais estreita deste layout (ao lado
-   da sidebar fixa) do que um `repeat(3, 1fr)` amarrado a breakpoints de
-   viewport. */
 .literatura-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: var(--spacing-md);
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: var(--spacing-lg);
+  row-gap: var(--spacing-lg);
+}
+
+.literatura-card:nth-child(n + 4) {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--spacing-lg);
 }
 
 .literatura-card {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: var(--spacing-md);
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  box-shadow: var(--shadow-sm);
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-xs);
+}
+
+.literatura-capa {
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  background: var(--color-bg-section);
 }
 
 .literatura-card h2 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  line-height: 1.5;
+  line-height: 1.4;
   color: var(--cor-padrao-ja);
+  margin-top: var(--spacing-sm);
 }
 
-.tag-disponibilidade {
-  align-self: flex-start;
-  font-size: 0.78rem;
+.literatura-formato {
+  font-size: 0.85rem;
   font-weight: 600;
-  color: var(--color-warning);
-  background: var(--color-bg-section);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 4px 10px;
+  color: var(--color-text-muted);
+}
+
+.literatura-descricao {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
 }
 
 .cta-final {
@@ -85,9 +77,11 @@
   background: var(--yellow-btn);
   color: var(--cor-padrao-ja);
   font-weight: 700;
+  font-size: 1rem;
   text-decoration: none;
   padding: 14px 32px;
   border-radius: var(--radius-sm);
+  cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
@@ -101,6 +95,17 @@
   outline-offset: 3px;
 }
 
+@media (max-width: 1300px) {
+  .literatura-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .literatura-card:nth-child(n + 3) {
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--spacing-lg);
+  }
+}
+
 @media (max-width: 768px) {
   .section,
   .cta-final {
@@ -109,5 +114,14 @@
 
   .cta-final {
     padding: var(--spacing-lg) var(--spacing-sm);
+  }
+
+  .literatura-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .literatura-card:nth-child(n + 2) {
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--spacing-lg);
   }
 }

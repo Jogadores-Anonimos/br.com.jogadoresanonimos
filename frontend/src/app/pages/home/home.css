@@ -126,11 +126,6 @@
     gap: var(--spacing-md);
   }
 
-  /* Overlay dedicado ao mobile: o gradiente diagonal (100deg) do desktop foi
-     pensado para revelar a foto só na metade direita de uma tela larga. Em
-     telas estreitas essa "área clara" acaba cobrindo boa parte da largura,
-     deixando a foto forte demais. Aqui usamos um gradiente vertical mais
-     uniforme e mais escuro, para a foto ficar discreta atrás do texto. */
   .hero::before {
     background: linear-gradient(
       180deg,
@@ -202,9 +197,6 @@
   margin: 0 auto;
   padding: 50px 80px;
   display: grid;
-  /* Áreas nomeadas em vez de flex aninhado: permite reordenar título, subtexto
-     e ações de forma independente por breakpoint (mobile precisa do subtexto
-     entre o título e os botões) sem duplicar HTML nem alterar o desktop. */
   grid-template-columns: 1fr auto;
   grid-template-areas:
     'title actions'
@@ -285,8 +277,6 @@
     padding: var(--spacing-lg) var(--spacing-md);
     background-size: 130% auto;
     background-position: center;
-    /* Mobile segue a ordem da referência: título → subtexto → ações,
-       diferente da ordem lado a lado título+ações do desktop. */
     grid-template-columns: 1fr;
     grid-template-areas:
       'title'
@@ -354,9 +344,6 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  /* Overlay mais escuro que o do .hero no lado claro (0.6 vs 0.1): aqui a lista de
-     links fica sobre a área mais clara da foto, e precisa de contraste garantido
-     pra acessibilidade, diferente do .hero que não tem conteúdo interativo ali. */
   background: linear-gradient(
     100deg,
     var(--color-background-dark) 0%,
@@ -430,9 +417,6 @@
     padding: var(--spacing-2xl) var(--spacing-xl);
   }
 
-  /* Mesmo princípio do overlay do .hero: em telas estreitas o gradiente
-     diagonal (100deg) revela demais a foto de fundo, competindo com o texto
-     e a lista de links. Uniformiza e escurece o overlay no mobile. */
   .quiz-teaser::after {
     background: linear-gradient(
       180deg,
@@ -464,9 +448,6 @@
 
 @media (max-width: 480px) {
   .quiz-teaser {
-    /* Padding horizontal subiu de var(--spacing-md) para var(--spacing-lg)
-       a pedido do usuário (mais respiro no mobile); deixou de acompanhar o
-       card do .cta-primary neste breakpoint. */
     padding: var(--spacing-xl) var(--spacing-lg);
   }
 
@@ -567,9 +548,6 @@
 @media (max-width: 600px) {
   .newsletter-teaser__card {
     padding: var(--spacing-lg) var(--spacing-md);
-    /* Referência mostra o card inteiro centralizado no mobile (ícone,
-       kicker, título, texto e CTA), diferente do desktop, onde ícone e
-       texto ficam lado a lado alinhados à esquerda. */
     text-align: center;
   }
 

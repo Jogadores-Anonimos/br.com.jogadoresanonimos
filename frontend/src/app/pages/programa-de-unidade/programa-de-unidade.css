@@ -4,49 +4,22 @@
 
 .lead {
   color: var(--color-text);
+  font-weight: 700;
   font-size: 1.1rem;
   line-height: 1.8;
 }
 
-.revisar-nota {
-  color: var(--color-text-muted);
-  font-style: italic;
-  font-size: 0.9rem;
-  border-left: 4px solid var(--yellow-gold);
-  padding-left: var(--spacing-sm);
-  margin-bottom: var(--spacing-lg);
-}
-
 .principios-lista {
   list-style: none;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-md);
 }
 
 .principio-item {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-md);
-  background: var(--color-bg-surface);
+  background: var(--color-bg-section);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
   padding: var(--spacing-md);
-  box-shadow: var(--shadow-sm);
-}
-
-.principio-num {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--cor-padrao-ja);
-  color: var(--white);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 1.1rem;
 }
 
 .principio-item p {
@@ -82,9 +55,11 @@
   background: var(--yellow-btn);
   color: var(--cor-padrao-ja);
   font-weight: 700;
+  font-size: 1rem;
   text-decoration: none;
   padding: 14px 32px;
   border-radius: var(--radius-sm);
+  cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
@@ -98,13 +73,22 @@
   outline-offset: 3px;
 }
 
+@media (max-width: 1300px) {
+  .principios-lista {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .section {
     padding: var(--spacing-md) 0;
   }
 
+  .principios-lista {
+    grid-template-columns: 1fr;
+  }
+
   .principio-item {
-    gap: var(--spacing-sm);
     padding: var(--spacing-sm);
   }
 

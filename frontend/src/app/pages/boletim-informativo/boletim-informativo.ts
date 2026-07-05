@@ -9,4 +9,6 @@ import { ResourceLayout } from '../../components/resource-layout/resource-layout
   templateUrl: './boletim-informativo.html',
   styleUrl: './boletim-informativo.css',
 })
-export class BoletimInformativo {}
+export class BoletimInformativo {
+  edicoes: { label: string; url: string | null }[] = [];
+}

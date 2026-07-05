@@ -1,35 +1,20 @@
-.conta-page {
-  display: block;
-}
-
-.conta-hero {
-  background: var(--cor-padrao-ja);
-  color: var(--white);
-  text-align: center;
-  padding: var(--spacing-xl) var(--spacing-md);
-}
-
-.conta-hero h1 {
-  font-size: clamp(2rem, 5vw, 2.8rem);
-  font-weight: 800;
-  margin-bottom: var(--spacing-sm);
-}
-
-.conta-hero .lead {
-  max-width: 620px;
-  margin: 0 auto;
-  font-size: 1.1rem;
-  line-height: 1.8;
-  opacity: 0.95;
-}
-
+/* Estado 1 */
 .conta-grid {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: var(--spacing-xl) var(--spacing-md);
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--spacing-lg);
+}
+
+.conta-secao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.conta-secao__titulo {
+  color: var(--color-text);
+  font-size: 1.4rem;
+  font-weight: var(--font-weight-heading);
 }
 
 .conta-card {
@@ -38,12 +23,6 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   padding: var(--spacing-lg);
-}
-
-.conta-card h2 {
-  color: var(--cor-padrao-ja);
-  font-size: 1.4rem;
-  margin-bottom: var(--spacing-sm);
 }
 
 .conta-card-descricao {
@@ -92,6 +71,11 @@
   font-weight: 400;
 }
 
+.conta-captcha {
+  margin: var(--spacing-sm) 0;
+  min-height: 78px;
+}
+
 .btn-cta {
   display: inline-block;
   width: 100%;
@@ -99,6 +83,7 @@
   background: var(--yellow-btn);
   color: var(--cor-padrao-ja);
   font-weight: 700;
+  font-size: 1rem;
   border: none;
   cursor: pointer;
   padding: 14px 32px;
@@ -146,13 +131,299 @@
   color: var(--color-danger);
 }
 
-@media (max-width: 768px) {
-  .conta-hero {
-    padding: var(--spacing-lg) var(--spacing-sm);
-  }
+/* Estado 2 */
+.conta-dashboard {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: var(--spacing-lg);
+  align-items: start;
+}
 
+.conta-dashboard__nav ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-section);
+  border: 1px solid var(--color-border);
+}
+
+.conta-dashboard__nav li:not(:last-child) {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.conta-dashboard__tab {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+  font-size: 0.95rem;
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.conta-dashboard__tab:hover,
+.conta-dashboard__tab:focus-visible {
+  background: var(--color-bg-surface);
+  color: var(--cor-padrao-ja);
+}
+
+.conta-dashboard__tab.active {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+}
+
+.conta-dashboard__tab--sair {
+  color: var(--color-danger);
+}
+
+.conta-dashboard__content {
+  min-width: 0;
+}
+
+.conta-dashboard__content h2 {
+  color: var(--color-text);
+  font-size: 1.15rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.conta-dashboard__lead {
+  color: var(--color-text-muted);
+  line-height: 1.7;
+  margin-bottom: var(--spacing-md);
+}
+
+/* Aba Dashboard */
+.conta-dashboard__resumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.conta-dashboard__resumo-card {
+  background: var(--color-bg-section);
+  border: 1px solid var(--color-border);
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conta-dashboard__resumo-numero {
+  color: var(--cor-padrao-ja);
+  font-size: 2rem;
+  font-weight: var(--font-weight-heading);
+  line-height: 1;
+}
+
+.conta-dashboard__resumo-label {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.conta-dashboard__atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.conta-dashboard__atalho {
+  background: transparent;
+  border: 1px solid var(--cor-padrao-ja);
+  color: var(--cor-padrao-ja);
+  font-weight: var(--font-weight-semibold);
+  font-size: 0.9rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.conta-dashboard__atalho:hover,
+.conta-dashboard__atalho:focus-visible {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+}
+
+.conta-tabela-wrapper {
+  overflow-x: auto;
+}
+
+.conta-tabela {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.conta-tabela th,
+.conta-tabela td {
+  text-align: left;
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.conta-tabela th {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+
+.conta-status {
+  display: inline-block;
+  color: var(--color-warning);
+  font-weight: var(--font-weight-semibold);
+  font-size: 0.85rem;
+}
+
+.conta-status--concluido {
+  color: var(--color-success);
+}
+
+.conta-downloads {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.conta-downloads__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.conta-downloads__item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conta-downloads__data {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.conta-downloads__btn {
+  flex-shrink: 0;
+  border: none;
+  background: var(--yellow-btn);
+  color: var(--color-text);
+  font-weight: var(--font-weight-bold);
+  font-size: 0.85rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  opacity: 0.85;
+  cursor: not-allowed;
+}
+
+/* Aba Endereços */
+.conta-enderecos-intro {
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-md);
+}
+
+.conta-enderecos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+}
+
+.conta-enderecos__bloco h3 {
+  color: var(--color-text);
+  font-size: 1.15rem;
+  font-weight: var(--font-weight-heading);
+  margin-bottom: var(--spacing-sm);
+}
+
+.conta-enderecos__add {
+  display: inline-block;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: var(--spacing-xs);
+  color: var(--cor-padrao-ja);
+  font-weight: var(--font-weight-semibold);
+  font-size: 0.95rem;
+  text-decoration: underline;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.conta-enderecos__vazio {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.conta-form-detalhes {
+  max-width: 680px;
+}
+
+.conta-form-detalhes__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 var(--spacing-md);
+}
+
+.campo--full {
+  grid-column: 1 / -1;
+}
+
+.campo-ajuda {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.conta-form-detalhes .campo input[type='text'],
+.conta-form-detalhes .campo input[type='email'],
+.conta-form-detalhes .campo input[type='password'] {
+  padding: 10px 12px;
+}
+
+.conta-form-detalhes .btn-cta {
+  width: auto;
+  display: inline-block;
+}
+
+@media (max-width: 768px) {
   .conta-grid {
     grid-template-columns: 1fr;
-    padding: var(--spacing-lg) var(--spacing-sm);
+  }
+
+  .conta-dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .conta-dashboard__nav ul {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .conta-dashboard__nav li:not(:last-child) {
+    border-bottom: none;
+    border-right: 1px solid var(--color-border);
+  }
+
+  .conta-form-detalhes__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .conta-dashboard__resumo {
+    grid-template-columns: 1fr;
+  }
+
+  .conta-enderecos {
+    grid-template-columns: 1fr;
   }
 }

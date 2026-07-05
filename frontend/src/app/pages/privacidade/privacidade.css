@@ -11,23 +11,8 @@
   text-align: center;
 }
 
-.pagina-legal__aviso {
-  background: var(--color-bg-section);
-  border-left: 4px solid var(--yellow-gold);
-  border-radius: var(--radius-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  color: var(--color-text-muted);
-  margin-bottom: var(--spacing-lg);
-  line-height: 1.6;
-}
-
 .pagina-legal__conteudo p {
   color: var(--color-text);
   line-height: 1.7;
   margin-bottom: var(--spacing-md);
-}
-
-.pagina-legal__conteudo p:last-child {
-  font-style: italic;
-  color: var(--color-text-muted);
 }

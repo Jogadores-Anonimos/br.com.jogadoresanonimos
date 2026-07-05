@@ -4,6 +4,9 @@ import { ResourceLayout } from '../../components/resource-layout/resource-layout
 
 interface PublicacaoLiteratura {
   titulo: string;
+  imagem: string;
+  formato: string;
+  descricao: string;
 }
 
 @Component({
@@ -15,18 +18,47 @@ interface PublicacaoLiteratura {
 })
 export class Literatura {
   readonly publicacoes: PublicacaoLiteratura[] = [
-    { titulo: 'Caderno de 20 Perguntas — Você é um Jogador Compulsivo?' },
-    { titulo: 'Perguntas e Respostas Sobre o Jogo — Folheto' },
-    { titulo: 'Sugestões da JA para Lidar com o Impulso de Jogar' },
-    { titulo: 'Primeiro Passo — A Base da Recuperação do Jogo Compulsivo' },
-    { titulo: 'Folheto Trabalhando os Passos' },
-    { titulo: 'Caderno de Unidade dos 12 Passos' },
-    { titulo: 'Livro de Estudo em Grupo sobre os Passos de Unidade' },
-    { titulo: 'Livro Combinado (Combo Book)' },
-    { titulo: 'Jovens Jogadores em Recuperação' },
-    { titulo: 'Manual de Grupo da JA' },
-    { titulo: 'Código de Orientação da JA' },
-    { titulo: 'Pacote de Informações da JA' },
-    { titulo: 'Sugestões da JA para Retenção de Novos Membros' },
+    {
+      titulo: 'Sua Primeira Reunião',
+      imagem: '/images/literatura/sua-primeira-reuniao.jpg',
+      formato: 'Folheto de uma dobra, 15×21 cm',
+      descricao:
+        'Traz esclarecimentos iniciais sobre os Jogadores Anônimos e acolhe novos membros.',
+    },
+    {
+      titulo: 'Um Novo Começo',
+      imagem: '/images/literatura/um-novo-comeco.jpg',
+      formato: 'Manual, 104 páginas, 15×21 cm',
+      descricao:
+        'Aborda os passos de recuperação, apadrinhamento, ferramentas e depoimentos de recuperação.',
+    },
+    {
+      titulo: 'Guia para o Inventário do Quarto Passo',
+      imagem: '/images/literatura/guia-inventario-quarto-passo.jpg',
+      formato: 'Caderno de exercícios, 18 páginas, 15×21 cm',
+      descricao:
+        "Auxilia na reflexão do 'inventário moral' para quem está no programa.",
+    },
+    {
+      titulo: 'Combo',
+      imagem: '/images/literatura/combo.jpg',
+      formato: 'Guia de bolso, 18 páginas, 9×14 cm',
+      descricao:
+        'Resume o conteúdo do programa; lido durante as reuniões de terapia.',
+    },
+    {
+      titulo: 'Em Direção aos Noventa Dias',
+      imagem: '/images/literatura/em-direcao-noventa-dias.jpg',
+      formato: 'Guia de bolso, 20 páginas, 9×14 cm',
+      descricao:
+        'Traz ferramentas de abstinência para o período inicial de 90 dias de recuperação.',
+    },
+    {
+      titulo: 'Além dos Noventa Dias',
+      imagem: '/images/literatura/alem-noventa-dias.jpg',
+      formato: 'Guia de bolso, 26 páginas, 9×14 cm',
+      descricao:
+        'Recursos para superar obstáculos de recuperação para membros já estabelecidos.',
+    },
   ];
 }

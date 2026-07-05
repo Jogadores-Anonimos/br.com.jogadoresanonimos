@@ -9,35 +9,21 @@
   /* Tipografia */
   --font-body: Arial, Helvetica, sans-serif;
   --font-brand: 'Sora', Arial, sans-serif;
-
-  /* Peso de fonte semântico — evita valores soltos (600/700/800) espalhados
-     pelos componentes. Migração em andamento: hoje só navbar.css e
-     resource-layout.css usam essas variáveis, o restante do projeto ainda
-     tem valores hardcoded e será migrado depois. */
   --font-weight-heading: 600;
   --font-weight-semibold: 500;
   --font-weight-regular: 400;
-  /* Único peso realmente "negrito" (700) do projeto — reservado como exceção
-     exclusiva da navbar (ver navbar.css). O restante do site usa os pesos
-     mais leves acima. */
   --font-weight-bold: 700;
 
-  /* Cores semânticas de texto e superfície */
+  /* Cores */
   --color-text: #1e293b;
   --color-text-muted: #64748b;
   --color-bg-section: #f8fafc;
   --color-bg-surface: var(--white);
-  /* Faixa cinza-claro usada como "moldura" atrás de painéis escuros (ex: CTA da home),
-     precisa ser visivelmente mais escura que --color-bg-section para criar a camada
-     intermediária entre o fundo branco da página e um painel escuro. */
   --color-bg-frame: #e7e9eb;
   --color-border: #e2e8f0;
   --color-danger: #dc2626;
   --color-success: #16a34a;
   --color-warning: #b45309;
-  /* Vermelho de destaque para CTAs de marketing (ex: botão "Fazer as 20 Perguntas").
-     Mesmo valor de --color-danger hoje, mas é um token separado de propósito: um é
-     estado de erro, o outro é identidade visual de botão — não devem mudar juntos. */
   --color-cta: #dc2626;
 
   /* Espaçamento */
@@ -48,11 +34,7 @@
   --spacing-xl: 64px;
   --spacing-2xl: 120px;
 
-  /* Raio de borda — zerado propositalmente: decisão de design é que nenhum
-     elemento do site tenha canto arredondado. As variáveis são mantidas
-     (em vez de removidas) porque todo o projeto já referencia
-     var(--radius-sm|md|lg) em vez de valores soltos — zerar aqui é o
-     suficiente para refletir globalmente. */
+  /* Raio de borda */
   --radius-sm: 0;
   --radius-md: 0;
   --radius-lg: 0;
@@ -60,19 +42,13 @@
   /* Sombras */
   --shadow-sm: 0 10px 30px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 20px 50px rgba(0, 0, 0, 0.08);
-  /* Sombra mais pronunciada, usada em cards com imagem de fundo (ex: painel
-     de CTA com mapa-múndi, card de newsletter) — precisa de mais contraste
-     que --shadow-sm/--shadow-md para se destacar sobre uma imagem. */
   --shadow-lg: 0 4px 10px rgba(0, 0, 0, 0.3);
 
-  /* Navegação e rodapé */
+  /* Navegação */
   --nav-height: 132px;
   --color-nav-text: var(--white);
   --color-nav-text-muted: rgba(255, 255, 255, 0.75);
   --color-background-dark: #241714;
-  /* Mesmo valor de --color-background-dark, em formato "r, g, b" — permite
-     compor rgba(var(--color-background-dark-rgb), alpha) para overlays com
-     opacidade variável, já que CSS não deriva alpha de uma hex var direto. */
   --color-background-dark-rgb: 36, 23, 20;
   --color-map-panel: #98a1a9;
 }

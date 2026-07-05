@@ -8,11 +8,14 @@
       pessoal.
     </p>
 
+    <p class="passos-intro">
+      Aqui estão os passos que compõem um Programa de Recuperação:
+    </p>
+
     <ol class="passos-lista">
       @for (passo of passos; track $index) {
         <li class="passo-item">
-          <span class="passo-num" aria-hidden="true">{{ $index + 1 }}</span>
-          <p>{{ passo }}</p>
+          <p><strong>{{ $index + 1 }}.</strong> {{ passo }}</p>
         </li>
       }
     </ol>

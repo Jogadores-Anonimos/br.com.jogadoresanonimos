@@ -1,109 +1,375 @@
-<section class="conta-page">
-  <div class="conta-hero">
-    <h1>Minha Conta</h1>
-    <p class="lead">
-      Entre com seu apelido ou crie uma conta anônima para acompanhar seu
-      acesso aos recursos da irmandade.
-    </p>
-  </div>
+<app-resource-layout titulo="Minha Conta" [bannerSrc]="bannerSrc" [mostrarSidebar]="false">
+  @if (auth.usuarioAtual(); as usuario) {
+    <!-- Estado 2 -->
+    <div class="conta-dashboard">
+      <nav class="conta-dashboard__nav" aria-label="Navegação da conta">
+        <ul>
+          <li>
+            <button
+              type="button"
+              class="conta-dashboard__tab"
+              [class.active]="abaAtiva === 'dashboard'"
+              [attr.aria-current]="abaAtiva === 'dashboard' ? 'page' : null"
+              (click)="selecionarAba('dashboard')"
+            >
+              Dashboard
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              class="conta-dashboard__tab"
+              [class.active]="abaAtiva === 'pedidos'"
+              [attr.aria-current]="abaAtiva === 'pedidos' ? 'page' : null"
+              (click)="selecionarAba('pedidos')"
+            >
+              Pedidos
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              class="conta-dashboard__tab"
+              [class.active]="abaAtiva === 'downloads'"
+              [attr.aria-current]="abaAtiva === 'downloads' ? 'page' : null"
+              (click)="selecionarAba('downloads')"
+            >
+              Downloads
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              class="conta-dashboard__tab"
+              [class.active]="abaAtiva === 'enderecos'"
+              [attr.aria-current]="abaAtiva === 'enderecos' ? 'page' : null"
+              (click)="selecionarAba('enderecos')"
+            >
+              Endereços
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              class="conta-dashboard__tab"
+              [class.active]="abaAtiva === 'detalhes'"
+              [attr.aria-current]="abaAtiva === 'detalhes' ? 'page' : null"
+              (click)="selecionarAba('detalhes')"
+            >
+              Detalhes da Conta
+            </button>
+          </li>
+          <li>
+            <button type="button" class="conta-dashboard__tab conta-dashboard__tab--sair" (click)="sair()">
+              Sair
+            </button>
+          </li>
+        </ul>
+      </nav>
 
-  <div class="conta-grid">
-    <!-- Bloco de login -->
-    <div class="conta-card">
-      <h2>Já tenho conta</h2>
+      <div class="conta-dashboard__content">
+        @switch (abaAtiva) {
+          @case ('dashboard') {
+            <h2>Olá, {{ usuario.identificador }}</h2>
+            <p class="conta-dashboard__lead">
+              A partir do seu painel você acompanha seus pedidos, baixa a literatura
+              disponível e atualiza os dados da sua conta anônima.
+            </p>
 
-      <form (ngSubmit)="onLoginSubmit()" #loginForm="ngForm">
-        <div class="campo">
-          <label for="login-usuario">Usuário ou e-mail</label>
-          <input
-            id="login-usuario"
-            name="usuarioOuEmail"
-            type="text"
-            autocomplete="username"
-            [(ngModel)]="loginUsuarioOuEmail"
-            required
-          />
-        </div>
+            <div class="conta-dashboard__resumo">
+              <div class="conta-dashboard__resumo-card">
+                <span class="conta-dashboard__resumo-numero">{{ pedidos.length }}</span>
+                <span class="conta-dashboard__resumo-label">Pedidos realizados</span>
+              </div>
+              <div class="conta-dashboard__resumo-card">
+                <span class="conta-dashboard__resumo-numero">{{ downloads.length }}</span>
+                <span class="conta-dashboard__resumo-label">Downloads disponíveis</span>
+              </div>
+            </div>
 
-        <div class="campo">
-          <label for="login-senha">Senha</label>
-          <input
-            id="login-senha"
-            name="senha"
-            type="password"
-            autocomplete="current-password"
-            [(ngModel)]="loginSenha"
-            required
-          />
-        </div>
+            <div class="conta-dashboard__atalhos">
+              <button type="button" class="conta-dashboard__atalho" (click)="selecionarAba('pedidos')">
+                Ver meus pedidos
+              </button>
+              <button type="button" class="conta-dashboard__atalho" (click)="selecionarAba('downloads')">
+                Ver meus downloads
+              </button>
+              <button type="button" class="conta-dashboard__atalho" (click)="selecionarAba('detalhes')">
+                Editar detalhes da conta
+              </button>
+            </div>
+          }
 
-        <div class="campo campo-checkbox">
-          <input
-            id="lembrar-de-mim"
-            name="lembrarDeMim"
-            type="checkbox"
-            [(ngModel)]="lembrarDeMim"
-          />
-          <label for="lembrar-de-mim">Lembrar de mim</label>
-        </div>
+          @case ('pedidos') {
+            <h2>Pedidos</h2>
+            @if (pedidos.length) {
+              <div class="conta-tabela-wrapper">
+                <table class="conta-tabela">
+                  <thead>
+                    <tr>
+                      <th scope="col">Pedido</th>
+                      <th scope="col">Data</th>
+                      <th scope="col">Item</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (pedido of pedidos; track pedido.numero) {
+                      <tr>
+                        <td data-label="Pedido">{{ pedido.numero }}</td>
+                        <td data-label="Data">{{ pedido.data }}</td>
+                        <td data-label="Item">{{ pedido.item }}</td>
+                        <td data-label="Status">
+                          <span
+                            class="conta-status"
+                            [class.conta-status--concluido]="pedido.status === 'Concluído'"
+                          >
+                            {{ pedido.status }}
+                          </span>
+                        </td>
+                        <td data-label="Total">{{ pedido.total }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p>Você ainda não fez nenhum pedido.</p>
+            }
+          }
 
-        <button type="submit" class="btn-cta" [disabled]="loginEnviando || loginForm.invalid">
-          {{ loginEnviando ? 'Entrando...' : 'Entrar' }}
-        </button>
+          @case ('downloads') {
+            <h2>Downloads</h2>
+            @if (downloads.length) {
+              <ul class="conta-downloads">
+                @for (download of downloads; track download.titulo) {
+                  <li class="conta-downloads__item">
+                    <div>
+                      <strong>{{ download.titulo }}</strong>
+                      <span class="conta-downloads__data">Disponibilizado em {{ download.disponibilizadoEm }}</span>
+                    </div>
+                    <button
+                      type="button"
+                      class="conta-downloads__btn"
+                      disabled
+                      title="Download ainda não disponível"
+                    >
+                      Baixar
+                    </button>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p>Nenhum download disponível.</p>
+            }
+          }
 
-        <a href="#" class="link-secundario" (click)="$event.preventDefault()">Esqueci minha senha</a>
+          @case ('enderecos') {
+            <h2>Endereços</h2>
+            <p class="conta-enderecos-intro">
+              Estes endereços serão usados por padrão nos pedidos da loja.
+            </p>
 
-        @if (loginMensagem) {
-          <p class="mensagem" [class.mensagem-sucesso]="loginSucesso" [class.mensagem-erro]="!loginSucesso">
-            {{ loginMensagem }}
-          </p>
+            <div class="conta-enderecos">
+              <div class="conta-enderecos__bloco">
+                <h3>Endereço de Cobrança</h3>
+                <button type="button" class="conta-enderecos__add" disabled title="Recurso ainda não disponível">
+                  + Adicionar endereço de cobrança
+                </button>
+                <p class="conta-enderecos__vazio">Nenhum endereço cadastrado — recurso ainda não disponível.</p>
+              </div>
+
+              <div class="conta-enderecos__bloco">
+                <h3>Endereço de Entrega</h3>
+                <button type="button" class="conta-enderecos__add" disabled title="Recurso ainda não disponível">
+                  + Adicionar endereço de entrega
+                </button>
+                <p class="conta-enderecos__vazio">Nenhum endereço cadastrado — recurso ainda não disponível.</p>
+              </div>
+            </div>
+          }
+
+          @case ('detalhes') {
+            <h2>Detalhes da Conta</h2>
+
+            <form (ngSubmit)="onSalvarDetalhes()" #detalhesForm="ngForm" class="conta-form-detalhes">
+              <div class="conta-form-detalhes__grid">
+                <div class="campo">
+                  <label for="detalhes-nome">Nome de exibição</label>
+                  <input
+                    id="detalhes-nome"
+                    name="nomeExibicao"
+                    type="text"
+                    [(ngModel)]="nomeExibicao"
+                  />
+                  <small class="campo-ajuda">Assim seu apelido aparece nesta seção da conta.</small>
+                </div>
+
+                <div class="campo">
+                  <label for="detalhes-email">E-mail</label>
+                  <input
+                    id="detalhes-email"
+                    name="emailDetalhes"
+                    type="email"
+                    autocomplete="email"
+                    [(ngModel)]="emailDetalhes"
+                  />
+                </div>
+
+                <div class="campo campo--full">
+                  <label for="detalhes-senha-atual">Senha atual</label>
+                  <input
+                    id="detalhes-senha-atual"
+                    name="senhaAtualDetalhes"
+                    type="password"
+                    autocomplete="current-password"
+                    [(ngModel)]="senhaAtualDetalhes"
+                  />
+                </div>
+
+                <div class="campo">
+                  <label for="detalhes-nova-senha">Nova senha</label>
+                  <input
+                    id="detalhes-nova-senha"
+                    name="novaSenhaDetalhes"
+                    type="password"
+                    autocomplete="new-password"
+                    [(ngModel)]="novaSenhaDetalhes"
+                  />
+                </div>
+
+                <div class="campo">
+                  <label for="detalhes-confirmar-senha">Confirmar nova senha</label>
+                  <input
+                    id="detalhes-confirmar-senha"
+                    name="confirmarNovaSenhaDetalhes"
+                    type="password"
+                    autocomplete="new-password"
+                    [(ngModel)]="confirmarNovaSenhaDetalhes"
+                  />
+                </div>
+              </div>
+
+              <button type="submit" class="btn-cta">Salvar Alterações</button>
+
+              @if (detalhesMensagem) {
+                <p class="mensagem">{{ detalhesMensagem }}</p>
+              }
+            </form>
+          }
         }
-      </form>
+      </div>
     </div>
+  } @else {
+    <!-- Estado 1 -->
+    <div class="conta-grid">
+      <!-- Bloco de login -->
+      <div class="conta-secao">
+        <h2 class="conta-secao__titulo">Já tenho conta</h2>
 
-    <!-- Bloco de registro -->
-    <div class="conta-card">
-      <h2>Criar conta</h2>
-      <p class="conta-card-descricao">
-        Usamos apenas seu e-mail para recuperação de conta — nunca
-        pedimos nome real ou outros dados que possam te identificar.
-      </p>
+        <div class="conta-card">
+          <form (ngSubmit)="onLoginSubmit()" #loginForm="ngForm">
+            <div class="campo">
+              <label for="login-usuario">Usuário ou e-mail</label>
+              <input
+                id="login-usuario"
+                name="usuarioOuEmail"
+                type="text"
+                autocomplete="username"
+                [(ngModel)]="loginUsuarioOuEmail"
+                required
+              />
+            </div>
 
-      <form (ngSubmit)="onRegistroSubmit()" #registroForm="ngForm">
-        <div class="campo">
-          <label for="registro-email">E-mail</label>
-          <input
-            id="registro-email"
-            name="email"
-            type="email"
-            autocomplete="email"
-            [(ngModel)]="registroEmail"
-            required
-          />
+            <div class="campo">
+              <label for="login-senha">Senha</label>
+              <input
+                id="login-senha"
+                name="senha"
+                type="password"
+                autocomplete="current-password"
+                [(ngModel)]="loginSenha"
+                required
+              />
+            </div>
+
+            <div class="campo campo-checkbox">
+              <input
+                id="lembrar-de-mim"
+                name="lembrarDeMim"
+                type="checkbox"
+                [(ngModel)]="lembrarDeMim"
+              />
+              <label for="lembrar-de-mim">Lembrar de mim</label>
+            </div>
+
+            <div class="conta-captcha" #captchaLogin></div>
+
+            <button type="submit" class="btn-cta" [disabled]="loginEnviando || loginForm.invalid">
+              {{ loginEnviando ? 'Entrando...' : 'Entrar' }}
+            </button>
+
+            <a href="#" class="link-secundario" (click)="$event.preventDefault()">Esqueci minha senha</a>
+
+            @if (loginMensagem) {
+              <p class="mensagem" [class.mensagem-sucesso]="loginSucesso" [class.mensagem-erro]="!loginSucesso">
+                {{ loginMensagem }}
+              </p>
+            }
+          </form>
         </div>
+      </div>
 
-        <div class="campo">
-          <label for="registro-senha">Senha</label>
-          <input
-            id="registro-senha"
-            name="senha"
-            type="password"
-            autocomplete="new-password"
-            [(ngModel)]="registroSenha"
-            required
-          />
-        </div>
+      <!-- Bloco de registro -->
+      <div class="conta-secao">
+        <h2 class="conta-secao__titulo">Criar conta</h2>
 
-        <button type="submit" class="btn-cta" [disabled]="registroEnviando || registroForm.invalid">
-          {{ registroEnviando ? 'Criando...' : 'Criar conta' }}
-        </button>
-
-        @if (registroMensagem) {
-          <p class="mensagem" [class.mensagem-sucesso]="registroSucesso" [class.mensagem-erro]="!registroSucesso">
-            {{ registroMensagem }}
+        <div class="conta-card">
+          <p class="conta-card-descricao">
+            Usamos apenas seu e-mail para recuperação de conta, nunca
+            pedimos nome real ou outros dados que possam te identificar.
           </p>
-        }
-      </form>
+
+          <form (ngSubmit)="onRegistroSubmit()" #registroForm="ngForm">
+            <div class="campo">
+              <label for="registro-email">E-mail</label>
+              <input
+                id="registro-email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                [(ngModel)]="registroEmail"
+                required
+              />
+            </div>
+
+            <div class="campo">
+              <label for="registro-senha">Senha</label>
+              <input
+                id="registro-senha"
+                name="senha"
+                type="password"
+                autocomplete="new-password"
+                [(ngModel)]="registroSenha"
+                required
+              />
+            </div>
+
+            <div class="conta-captcha" #captchaRegistro></div>
+
+            <button type="submit" class="btn-cta" [disabled]="registroEnviando || registroForm.invalid">
+              {{ registroEnviando ? 'Criando...' : 'Criar conta' }}
+            </button>
+
+            @if (registroMensagem) {
+              <p class="mensagem" [class.mensagem-sucesso]="registroSucesso" [class.mensagem-erro]="!registroSucesso">
+                {{ registroMensagem }}
+              </p>
+            }
+          </form>
+        </div>
+      </div>
     </div>
-  </div>
-</section>
+  }
+</app-resource-layout>

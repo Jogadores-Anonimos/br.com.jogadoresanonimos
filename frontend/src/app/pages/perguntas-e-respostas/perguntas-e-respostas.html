@@ -1,17 +1,15 @@
 <app-resource-layout titulo="Perguntas &amp; Respostas">
 
   <section class="section">
-    <p class="lead">
-      Reunimos aqui as dúvidas mais comuns sobre o jogo compulsivo e sobre
-      a irmandade de Jogadores Anônimos. Se sua pergunta não estiver aqui,
-      procure uma reunião: lá você encontrará pessoas dispostas a
-      conversar e compartilhar experiências.
-    </p>
+    <h2 class="faq-titulo">Perguntas Frequentes</h2>
 
     <div class="faq-lista">
       @for (item of faqs; track item.pergunta) {
         <details class="faq-item">
-          <summary class="faq-pergunta">{{ item.pergunta }}</summary>
+          <summary class="faq-pergunta">
+            {{ item.pergunta }}
+            <span class="faq-pergunta__chevron" aria-hidden="true"></span>
+          </summary>
           <p class="faq-resposta">{{ item.resposta }}</p>
         </details>
       }

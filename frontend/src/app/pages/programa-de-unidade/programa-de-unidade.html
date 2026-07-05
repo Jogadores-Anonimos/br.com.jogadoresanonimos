@@ -5,15 +5,10 @@
       Para manter a unidade, nossa experiência mostrou que:
     </p>
 
-    <p class="revisar-nota">
-      [tradução a revisar com o cliente/comitê de literatura]
-    </p>
-
     <ol class="principios-lista">
       @for (principio of principios; track $index) {
         <li class="principio-item">
-          <span class="principio-num" aria-hidden="true">{{ $index + 1 }}</span>
-          <p>{{ principio }}</p>
+          <p><strong>{{ $index + 1 }}.</strong> {{ principio }}</p>
         </li>
       }
     </ol>

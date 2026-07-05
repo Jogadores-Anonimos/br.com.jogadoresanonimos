@@ -1,26 +1,13 @@
 <app-resource-layout titulo="Literatura">
 
   <section class="section">
-    <p class="lead">
-      Materiais escritos pela própria irmandade de Jogadores Anônimos para
-      apoiar a recuperação: cadernos de passos, folhetos e manuais usados
-      por grupos em todo o mundo.
-    </p>
-
-    <p class="aviso">
-      O catálogo abaixo é uma tradução de referência das publicações usadas
-      pela irmandade. A disponibilidade real de cada título em português e
-      os canais de distribuição da JA Brasil ainda estão sendo confirmados
-      com o cliente.
-    </p>
-
     <div class="literatura-grid">
       @for (item of publicacoes; track item.titulo) {
         <div class="literatura-card">
+          <img class="literatura-capa" [src]="item.imagem" [alt]="item.titulo">
           <h2>{{ item.titulo }}</h2>
-          <span class="tag-disponibilidade">
-            [confirmar disponibilidade em português]
-          </span>
+          <span class="literatura-formato">{{ item.formato }}</span>
+          <p class="literatura-descricao">{{ item.descricao }}</p>
         </div>
       }
     </div>
