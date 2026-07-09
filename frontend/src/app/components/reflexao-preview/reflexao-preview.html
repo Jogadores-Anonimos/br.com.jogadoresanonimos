@@ -7,6 +7,7 @@
     } @else if (erro) {
       <p class="reflexao-preview__estado reflexao-preview__estado--erro">{{ erro }}</p>
     } @else if (reflexao) {
+      <p class="reflexao-preview__data">{{ dataFormatada }}</p>
       <p class="reflexao-preview__texto">{{ textoTruncado }}</p>
     }
 

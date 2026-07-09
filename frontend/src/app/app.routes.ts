@@ -6,14 +6,13 @@ import { Anonimato } from './pages/anonimato/anonimato';
 import { JogoCompulsivo } from './pages/jogo-compulsivo/jogo-compulsivo';
 import { UmaNovaChance } from './pages/uma-nova-chance/uma-nova-chance';
 import { ProgramaDeRecuperacao } from './pages/programa-de-recuperacao/programa-de-recuperacao';
-import { Depoimentos } from './pages/depoimentos/depoimentos';
+import { Relatos } from './pages/relatos/relatos';
 import { ProgramaDeUnidade } from './pages/programa-de-unidade/programa-de-unidade';
 import { PerguntasERespostas } from './pages/perguntas-e-respostas/perguntas-e-respostas';
 import { VintePerguntas } from './pages/vinte-perguntas/vinte-perguntas';
 import { Literatura } from './pages/literatura/literatura';
 import { Avisos } from './pages/avisos/avisos';
 import { EscritoriosRegionais } from './pages/escritorios-regionais/escritorios-regionais';
-import { BoletimInformativo } from './pages/boletim-informativo/boletim-informativo';
 import { Reunioes } from './pages/reunioes/reunioes';
 import { Hotlines } from './pages/hotlines/hotlines';
 import { Contribuir } from './pages/contribuir/contribuir';
@@ -32,14 +31,14 @@ export const routes: Routes = [
   { path: 'jogo-compulsivo', component: JogoCompulsivo },
   { path: 'uma-nova-chance', component: UmaNovaChance },
   { path: 'programa-de-recuperacao', component: ProgramaDeRecuperacao },
-  { path: 'depoimentos', component: Depoimentos },
+  { path: 'relatos', component: Relatos },
+  { path: 'depoimentos', redirectTo: 'relatos', pathMatch: 'full' },
   { path: 'programa-de-unidade', component: ProgramaDeUnidade },
   { path: 'perguntas-e-respostas', component: PerguntasERespostas },
   { path: 'vinte-perguntas', component: VintePerguntas },
   { path: 'literatura', component: Literatura },
   { path: 'avisos', component: Avisos },
   { path: 'escritorios-regionais', component: EscritoriosRegionais },
-  { path: 'boletim-informativo', component: BoletimInformativo },
   { path: 'reflexao-do-dia', component: ReflexaoDoDiaPage },
   { path: 'reunioes', component: Reunioes },
   { path: 'hotlines', component: Hotlines },

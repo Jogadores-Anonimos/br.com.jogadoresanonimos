@@ -1,0 +1,17 @@
+.app-header-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  --ticker-height: 0px;
+}
+
+/* --ticker-height replicado em navbar.css para o cálculo de top/max-height do menu mobile; manter sincronizado. */
+.app-header-sticky.com-barra-deslizante {
+  --ticker-height: 39px;
+}
+
+@media (max-width: 900px) {
+  .app-header-sticky.com-barra-deslizante {
+    --ticker-height: 26px;
+  }
+}

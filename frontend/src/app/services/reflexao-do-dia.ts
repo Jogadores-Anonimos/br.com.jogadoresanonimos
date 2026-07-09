@@ -2,19 +2,9 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
 
-// TODO: substituir por chamada real quando o endpoint estiver disponível
-// (ex: this.http.get<ReflexaoDoDiaResponse>('/api/reflexao-do-dia/atual') e
-// this.http.get<ReflexaoDoDiaResponse>(`/api/reflexao-do-dia/${mes}/${dia}`)).
-// O contrato público deste service (nomes dos métodos
-// obterReflexaoDeHoje/obterReflexaoPorData/obterDiasNoMes e os tipos de
-// retorno Observable<ReflexaoDoDiaResponse>) não deve mudar nessa troca —
-// apenas a implementação interna dos métodos.
+// TODO: substituir por chamada real (this.http.get<ReflexaoDoDiaResponse>('/api/reflexao-do-dia/...')) mantendo o contrato público
 
-/**
- * Reflexão de um dia específico do ano. Modelada por mês+dia (sem ano),
- * pois a reflexão se repete anualmente — igual ao calendário de
- * meditação diária do Gamblers Anonymous americano.
- */
+// modelada por mês+dia sem ano, pois a reflexão se repete anualmente (como o calendário do GA americano)
 export interface ReflexaoDoDia {
   mes: number; // 1-12
   dia: number; // 1-31, conforme o mês
@@ -42,31 +32,14 @@ const NOMES_MESES = [
   'dezembro',
 ];
 
-/**
- * Quantidade de dias por mês (índice 0 = janeiro).
- *
- * Simplificação aceita: fevereiro é tratado sempre com 28 dias (sem
- * considerar ano bissexto), já que a reflexão é por mês+dia, sem ano.
- * Se no futuro for necessário exibir "29 de fevereiro" em anos
- * bissextos, isso exige revisitar essa simplificação junto ao `ux-ui`.
- */
+// índice 0 = janeiro; fevereiro sempre 28 dias (sem considerar ano bissexto) já que a reflexão é só mês+dia
 const DIAS_POR_MES: number[] = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
-/**
- * Gera o texto placeholder usado nos meses que ainda não têm conteúdo
- * real cadastrado.
- */
 function textoPlaceholder(dia: number, mes: number): string {
   return `Reflexão do dia ${dia} de ${NOMES_MESES[mes - 1]} — texto de exemplo enquanto o conteúdo real não é cadastrado.`;
 }
 
-/**
- * Conteúdo real (fictício, mas variado e plausível) do mês atual do
- * sistema no momento em que este mock foi escrito (julho). Os demais 11
- * meses usam texto placeholder genérico — ver textoPlaceholder().
- *
- * Indexado por dia (posição 0 = dia 1).
- */
+// conteúdo variado só para o mês em que este mock foi escrito (julho); demais meses usam textoPlaceholder(). Indexado por dia (posição 0 = dia 1).
 const TEXTOS_JULHO: string[] = [
   'Hoje escolho lembrar que a recuperação é construída um dia de cada vez, não em uma corrida contra o tempo.',
   'A honestidade comigo mesmo é o primeiro passo para qualquer mudança duradoura.',
@@ -117,44 +90,19 @@ function gerarMesesDoAno(mesAtual: number): ReflexaoDoDia[][] {
   });
 }
 
-// Mock gerado dinamicamente a partir do mês corrente do sistema no momento
-// em que o app carrega (calculado com `new Date()`, igual a
-// obterReflexaoDeHoje()). Estrutura de dados pronta para as 365 entradas
-// (mês+dia), mas só o mês vigente tem conteúdo variado — os demais usam
-// placeholder genérico. Ver gerarMesesDoAno()/textoPlaceholder() acima.
 const REFLEXOES_MOCK: ReflexaoDoDia[][] = gerarMesesDoAno(new Date().getMonth() + 1);
 
 @Injectable({ providedIn: 'root' })
 export class ReflexaoDoDiaService {
-  /**
-   * Retorna a quantidade de dias de cada mês (índice 0 = janeiro),
-   * usada pelo frontend para montar a grade de seleção de dias.
-   *
-   * Simplificação aceita: fevereiro sempre com 28 dias (não considera
-   * ano bissexto), já que a reflexão é modelada só por mês+dia, sem ano.
-   */
   obterDiasNoMes(): number[] {
     return [...DIAS_POR_MES];
   }
 
-  /**
-   * Busca a reflexão do dia atual (mês+dia calculados a partir da data
-   * corrente do sistema), usada no preview da Home e como estado inicial
-   * da página de Recursos.
-   *
-   * Mock temporário: retorna dado estático simulando latência de rede.
-   */
   obterReflexaoDeHoje(): Observable<ReflexaoDoDiaResponse> {
     const hoje = new Date();
     return this.obterReflexaoPorData(hoje.getMonth() + 1, hoje.getDate());
   }
 
-  /**
-   * Busca a reflexão de um mês+dia específico, usada na navegação da
-   * página de Recursos (mês -> dia -> texto).
-   *
-   * Mock temporário: busca no array local simulando latência de rede.
-   */
   obterReflexaoPorData(mes: number, dia: number): Observable<ReflexaoDoDiaResponse> {
     if (mes < 1 || mes > 12) {
       return of<ReflexaoDoDiaResponse>({ success: false, error: 'Mês inválido.' }).pipe(delay(300));

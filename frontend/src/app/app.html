@@ -1,12 +1,15 @@
-<app-navbar></app-navbar>
-@if (mostrarBarraDeslizante()) {
-  <app-barra-deslizante
-    [messages]="[
-      'Nova sala de reunião disponível em São Paulo',
-      'Confira o Boletim Informativo deste mês'
-    ]"
-  ></app-barra-deslizante>
-}
+<header class="app-header-sticky" [class.com-barra-deslizante]="mostrarBarraDeslizante()">
+  <app-navbar></app-navbar>
+  @if (mostrarBarraDeslizante()) {
+    <app-barra-deslizante
+      [messages]="[
+        'EVITE A PRIMEIRA APOSTA. EVITE PESSOAS E LUGARES DE ATIVA. SÓ POR HOJE. FREQUENTE O MAIOR NÚMERO DE REUNIÕES POSSÍVEIS. AS REUNIÕES PRODUZEM RECUPERAÇÃO.',
+        'UM DIA DE CADA VEZ.',
+        'PERMITA-SE PEDIR AJUDA. SÓ FORÇA DE VONTADE NÃO É SUFICIENTE PARA SUPERAR O JOGO COMPULSIVO.'
+      ]"
+    ></app-barra-deslizante>
+  }
+</header>
 <main>
   <router-outlet></router-outlet>
 </main>

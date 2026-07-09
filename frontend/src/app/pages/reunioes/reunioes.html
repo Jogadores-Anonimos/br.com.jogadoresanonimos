@@ -127,9 +127,21 @@
                 <strong>Distância até você:</strong> {{ distanciaKm(reuniao) }} km
               </p>
             }
-            <button type="button" class="btn-detalhes" (click)="abrirDetalhes(reuniao)">
-              Ver detalhes
-            </button>
+            <div class="reuniao-card-acoes">
+              <button type="button" class="btn-detalhes" (click)="abrirDetalhes(reuniao)">
+                Ver detalhes
+              </button>
+              @if (reuniao.categoria === 'virtual') {
+                <a
+                  class="btn-cta btn-whatsapp"
+                  [href]="whatsappLink(reuniao)"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Falar no WhatsApp
+                </a>
+              }
+            </div>
           </div>
         } @empty {
           <p class="reunioes-vazio">
@@ -139,17 +151,6 @@
       </div>
     </section>
 
-    <section class="cta-final">
-      <h2>Ainda não tem certeza se o jogo é um problema para você?</h2>
-      <p>
-        Responda ao questionário de autoavaliação 20 Perguntas ou ligue para
-        um dos nossos hotlines.
-      </p>
-      <div class="cta-final-acoes">
-        <a class="btn-cta" routerLink="/vinte-perguntas">Fazer as 20 Perguntas</a>
-        <a class="btn-cta btn-cta--outline" routerLink="/hotlines">Linhas de Ajuda - Brasil</a>
-      </div>
-    </section>
   }
 
   @if (reuniaoDetalhe) {
@@ -194,7 +195,16 @@
             Falar no WhatsApp
           </a>
 
-          @if (!reservaConfirmada) {
+          @if (reuniaoDetalhe.categoria === 'virtual') {
+            <a
+              class="btn-cta btn-cta--outline"
+              [href]="whatsappLink(reuniaoDetalhe)"
+              target="_blank"
+              rel="noopener"
+            >
+              Solicitar link da reunião
+            </a>
+          } @else if (!reservaConfirmada) {
             <button type="button" class="btn-cta btn-cta--outline" (click)="reservarLugarLocal()">
               Reservar Lugar
             </button>

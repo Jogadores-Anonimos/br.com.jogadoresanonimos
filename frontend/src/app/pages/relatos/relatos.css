@@ -31,15 +31,14 @@
   color: var(--color-danger);
 }
 
-/* Lista de depoimentos */
-.depoimentos-lista {
+.relatos-lista {
   list-style: none;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--spacing-md);
 }
 
-.depoimento-card {
+.relato-card {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
@@ -49,14 +48,14 @@
   padding: var(--spacing-md);
 }
 
-.depoimento-card__texto {
+.relato-card__texto {
   color: var(--color-text);
   line-height: 1.8;
   font-size: 1rem;
   white-space: pre-line;
 }
 
-.depoimento-card__ler-mais {
+.relato-card__ler-mais {
   align-self: flex-start;
   background: none;
   border: none;
@@ -68,19 +67,18 @@
   cursor: pointer;
 }
 
-.depoimento-card__ler-mais:focus-visible {
+.relato-card__ler-mais:focus-visible {
   outline: 2px solid var(--cor-padrao-ja);
   outline-offset: 2px;
 }
 
-.depoimento-card__autor {
+.relato-card__autor {
   color: var(--color-text-muted);
   font-weight: var(--font-weight-semibold);
   font-size: 0.9rem;
   margin-top: auto;
 }
 
-/* Formulário */
 .secao-formulario h2 {
   color: var(--color-text);
   font-size: 1.4rem;
@@ -95,7 +93,7 @@
   line-height: 1.6;
 }
 
-.form-depoimento {
+.form-relato {
   max-width: 680px;
   display: flex;
   flex-direction: column;
@@ -242,7 +240,7 @@
 }
 
 @media (max-width: 900px) {
-  .depoimentos-lista {
+  .relatos-lista {
     grid-template-columns: 1fr;
   }
 }
@@ -252,7 +250,7 @@
     padding: var(--spacing-md) 0;
   }
 
-  .depoimento-card {
+  .relato-card {
     padding: var(--spacing-sm);
   }
 

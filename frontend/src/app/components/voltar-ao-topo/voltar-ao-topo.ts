@@ -4,15 +4,9 @@ import { auditTime } from 'rxjs/operators';
 
 const SCROLL_THRESHOLD_PX = 300;
 
-/** Intervalo mínimo entre reavaliações do scroll, para não recalcular
- * a visibilidade do botão a cada pixel rolado (menos trabalho na main
- * thread durante o scroll). */
+// auditTime para não recalcular a cada pixel rolado (menos trabalho na main thread)
 const SCROLL_AUDIT_MS = 100;
 
-/**
- * Botão flutuante "voltar ao topo". Aparece após um certo scroll da
- * página e, ao ser clicado, rola suavemente até o topo.
- */
 @Component({
   selector: 'app-voltar-ao-topo',
   standalone: true,

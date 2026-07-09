@@ -66,23 +66,49 @@
   [attr.inert]="!buscaAberta ? '' : null"
   [attr.aria-hidden]="!buscaAberta ? 'true' : null"
 >
-  <input
-    type="search"
-    placeholder="Buscar"
-    class="search-panel__input"
-    aria-label="Buscar"
-  />
-  <button
-    type="button"
-    class="search-panel__close"
-    (click)="toggleBusca()"
-    aria-label="Fechar busca"
-  >
-    <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <line x1="18" y1="6" x2="6" y2="18"/>
-      <line x1="6" y1="6" x2="18" y2="18"/>
-    </svg>
-  </button>
+  <form class="search-panel__form" role="search" (ngSubmit)="aoSubmeterBusca($event)">
+    <div class="search-panel__row">
+      <input
+        type="search"
+        name="busca"
+        placeholder="Buscar"
+        class="search-panel__input"
+        aria-label="Buscar"
+        [(ngModel)]="termoBusca"
+        autocomplete="off"
+      />
+      <button
+        type="button"
+        class="search-panel__close"
+        (click)="toggleBusca()"
+        aria-label="Fechar busca"
+      >
+        <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    @if (termoBusca.trim()) {
+      <ul class="search-panel__results" role="listbox" aria-label="Resultados da busca">
+        @if (resultadosBusca.length > 0) {
+          @for (item of resultadosBusca; track item.rota) {
+            <li role="option">
+              <a
+                [routerLink]="item.rota"
+                (click)="$event.preventDefault(); selecionarResultado(item)"
+              >
+                {{ item.titulo }}
+              </a>
+            </li>
+          }
+        } @else {
+          <li class="search-panel__no-results">Nenhuma página encontrada. Tente outra palavra.</li>
+        }
+      </ul>
+    }
+  </form>
 </div>
 
 <nav id="navbar" aria-label="Navegação principal">
@@ -167,13 +193,20 @@
         (mouseenter)="abrirDropdown('recursos')"
         (mouseleave)="fecharDropdown('recursos')"
       >
+        <a
+          class="dropdown-label"
+          routerLink="/reunioes"
+          routerLinkActive="active"
+        >
+          Recursos
+        </a>
         <button
-          class="dropdown-toggle"
+          class="dropdown-toggle dropdown-toggle--icon"
           type="button"
           (click)="toggleDropdown('recursos', $event)"
           [attr.aria-expanded]="dropdownsAbertos.recursos"
+          aria-label="Abrir submenu Recursos"
         >
-          Recursos
           <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="6 9 12 15 18 9"/>
           </svg>
@@ -182,15 +215,13 @@
           <li><a routerLink="/avisos" routerLinkActive="active">Avisos</a></li>
           <li><a routerLink="/literatura" routerLinkActive="active">Literatura</a></li>
           <li><a routerLink="/programa-de-recuperacao" routerLinkActive="active">Programa de Recuperação (Os 12 Passos)</a></li>
-          <li><a routerLink="/depoimentos" routerLinkActive="active">Depoimentos</a></li>
           <li><a routerLink="/programa-de-unidade" routerLinkActive="active">Programa da Unidade (12 Passos da Unidade)</a></li>
           <li><a routerLink="/perguntas-e-respostas" routerLinkActive="active">Perguntas &amp; Respostas</a></li>
           <li><a routerLink="/vinte-perguntas" routerLinkActive="active">20 Perguntas</a></li>
+          <li><a routerLink="/relatos" routerLinkActive="active">Relatos</a></li>
           <li><a routerLink="/escritorios-regionais" routerLinkActive="active">Escritórios Regionais</a></li>
-          <li><a routerLink="/boletim-informativo" routerLinkActive="active">Boletim Informativo</a></li>
           <li><a routerLink="/anonimato" routerLinkActive="active">Anonimato</a></li>
-          <li><a routerLink="/jogo-compulsivo" routerLinkActive="active">Jogo Compulsivo</a></li>
-          <li><a routerLink="/uma-nova-chance" routerLinkActive="active">Uma Nova Chance</a></li>
+          <li><a routerLink="/reunioes" routerLinkActive="active">Encontrar uma Reunião</a></li>
         </ul>
       </li>
 

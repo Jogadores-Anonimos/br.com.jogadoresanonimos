@@ -15,6 +15,5 @@ export class ResourceLayout {
 
   @Input() bannerSrc = '/images/home/reuniao-discussao.jpg';
 
-  // false para paginas sem sidebar (ex: Minha Conta)
   @Input() mostrarSidebar = true;
 }

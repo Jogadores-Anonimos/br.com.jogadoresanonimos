@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
+import { NOMES_MESES } from '../../config/meses.config';
 import {
   ReflexaoDoDia as ReflexaoDoDiaModel,
   ReflexaoDoDiaService,
@@ -7,32 +8,9 @@ import {
 
 interface OpcaoMes {
   numero: number; // 1-12
-  nome: string; // ex: 'Janeiro'
+  nome: string;
 }
 
-const NOMES_MESES = [
-  'Janeiro',
-  'Fevereiro',
-  'Março',
-  'Abril',
-  'Maio',
-  'Junho',
-  'Julho',
-  'Agosto',
-  'Setembro',
-  'Outubro',
-  'Novembro',
-  'Dezembro',
-];
-
-/**
- * Página completa da "Reflexão do Dia": grade de meses -> grade de dias
- * -> texto, tudo na mesma tela (sem navegação de rota entre os passos).
- *
- * Estado inicial já resolvido: mês e dia de hoje vêm pré-selecionados,
- * então a reflexão de hoje é visível sem nenhuma interação do usuário
- * (requisito definido pelo ux-ui).
- */
 @Component({
   selector: 'app-reflexao-do-dia',
   standalone: true,
@@ -76,9 +54,7 @@ export class ReflexaoDoDiaPage implements OnInit {
     }
 
     this.montarDiasDoMes(mes);
-    // Ao trocar de mês, ajusta o dia selecionado caso o mês novo tenha
-    // menos dias que o dia atualmente escolhido (ex: vindo de um mês de
-    // 31 dias com dia 31 selecionado para fevereiro).
+    // ajusta o dia caso o mês novo tenha menos dias que o dia atualmente escolhido
     const diaAjustado = Math.min(this.diaSelecionado || 1, this.diasDoMesSelecionado.length);
     this.selecionarDia(mes, diaAjustado);
   }

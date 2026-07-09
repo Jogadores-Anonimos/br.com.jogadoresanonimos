@@ -67,3 +67,15 @@ regras de negócio do projeto, mesmo quando a sugestão vem de você.
 - Não infere decisões a partir do código sozinho sem confirmação — você
   registra o que foi te ensinado, não o que você deduziu lendo arquivos
   (evita registrar suposições como se fossem fatos).
+
+## Importante: quem lê o que você escreve
+Os arquivos em `.claude/knowledge/` são **escrita dos agentes técnicos,
+leitura do `professor`** — não é uma base de contexto que os agentes
+técnicos (`backend`, `frontend`, `security`, `devops`, `system-design`,
+etc) devem consultar antes de executar uma tarefa nova, e o `po` também
+não os lê para delegar. Eles servem para: (1) o `professor` transformar em
+conteúdo de estudo no Notion, e (2) você mesmo perceber padrões
+recorrentes para sinalizar ao `po`. Se um agente técnico precisar de
+contexto de uma decisão passada, ele pergunta ao usuário ou ao `po`
+diretamente — não deve ficar lendo `.claude/knowledge/` por conta própria,
+isso só adiciona custo de contexto sem necessidade.
