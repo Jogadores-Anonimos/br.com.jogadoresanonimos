@@ -1,0 +1,126 @@
+<app-resource-layout titulo="Depoimentos" [bannerSrc]="bannerSrc">
+
+  <section class="section">
+    <p class="lead">
+      Cada pessoa que passa pela Jogadores Anônimos carrega uma história
+      diferente — mas todas se reconhecem em algum ponto do caminho. Aqui
+      você encontra relatos de outros membros sobre a jornada de
+      recuperação, e também pode compartilhar a sua, se quiser.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="lista-depoimentos-titulo">
+    <h2 id="lista-depoimentos-titulo" class="secao-titulo">
+      O que outros membros compartilharam
+    </h2>
+
+    @if (carregando) {
+      <p class="estado-info">Carregando depoimentos…</p>
+    } @else if (erroCarregamento) {
+      <p class="estado-info estado-info--erro">{{ erroCarregamento }}</p>
+    } @else if (depoimentos.length === 0) {
+      <p class="estado-info">
+        Ainda não há depoimentos publicados. Seja a primeira pessoa a
+        compartilhar sua história.
+      </p>
+    } @else {
+      <ul class="depoimentos-lista">
+        @for (depoimento of depoimentos; track depoimento.id) {
+          <li class="depoimento-card">
+            <p class="depoimento-card__texto">{{ textoExibido(depoimento) }}</p>
+
+            @if (precisaTruncar(depoimento)) {
+              <button
+                type="button"
+                class="depoimento-card__ler-mais"
+                (click)="alternarExpandido(depoimento)"
+                [attr.aria-expanded]="estaExpandido(depoimento)"
+              >
+                {{ estaExpandido(depoimento) ? 'ler menos' : 'ler mais' }}
+              </button>
+            }
+
+            <p class="depoimento-card__autor">{{ nomeParaExibir(depoimento) }}</p>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="section secao-formulario" aria-labelledby="form-depoimento-titulo">
+    <h2 id="form-depoimento-titulo">Quer compartilhar sua história?</h2>
+    <p class="secao-formulario__subtitulo">
+      Seu relato pode ser exatamente o que outra pessoa precisa ler hoje.
+    </p>
+
+    @if (enviado) {
+      <div class="confirmacao-envio" role="status">
+        <p>Recebemos seu depoimento, obrigado por compartilhar.</p>
+        <button type="button" class="link-secundario" (click)="compartilharNovamente()">
+          Compartilhar outro depoimento
+        </button>
+      </div>
+    } @else {
+      <form (ngSubmit)="onEnviarDepoimento()" #depoimentoForm="ngForm" class="form-depoimento">
+        <div class="campo">
+          <label for="depoimento-nome">Como quer ser chamado (opcional)</label>
+          <input
+            id="depoimento-nome"
+            name="nomeExibicao"
+            type="text"
+            [maxlength]="nomeExibicaoMaxLength"
+            placeholder="Ex: nome de guerra, iniciais, ou deixe em branco"
+            [(ngModel)]="novoNomeExibicao"
+          />
+          <small class="campo-ajuda">
+            Não use seu nome completo. Se preferir, publicamos como "Anônimo".
+          </small>
+        </div>
+
+        <p class="aviso-anonimato">
+          Este espaço é anônimo. Não inclua seu nome completo, endereço,
+          telefone, e-mail, nome de grupo/reunião específico ou qualquer
+          informação que possa te identificar ou identificar outra pessoa
+          no seu relato.
+        </p>
+
+        <div class="campo">
+          <label for="depoimento-texto">Seu depoimento</label>
+          <textarea
+            id="depoimento-texto"
+            name="texto"
+            rows="8"
+            required
+            [minlength]="textoMinLength"
+            [maxlength]="textoMaxLength"
+            [(ngModel)]="novoTexto"
+            #textoField="ngModel"
+            aria-describedby="depoimento-texto-contador"
+          ></textarea>
+          <small id="depoimento-texto-contador" class="campo-contador">
+            {{ novoTexto.length }} / {{ textoMaxLength }} caracteres (mínimo {{ textoMinLength }})
+          </small>
+        </div>
+
+        <p class="aviso-moderacao">
+          Seu depoimento passa por uma revisão da nossa equipe antes de ser
+          publicado. Isso pode levar alguns dias. Não é possível saber a
+          data exata de publicação.
+        </p>
+
+        <button
+          type="submit"
+          class="btn-cta"
+          [disabled]="enviando || depoimentoForm.invalid"
+        >
+          {{ enviando ? 'Enviando...' : 'Enviar depoimento' }}
+        </button>
+
+        @if (erroEnvio) {
+          <p class="mensagem mensagem-erro">{{ erroEnvio }}</p>
+        }
+      </form>
+    }
+  </section>
+
+</app-resource-layout>

@@ -9,6 +9,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+  min-width: 0;
 }
 
 .conta-secao__titulo {
@@ -74,6 +75,8 @@
 .conta-captcha {
   margin: var(--spacing-sm) 0;
   min-height: 78px;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .btn-cta {
@@ -396,7 +399,7 @@
   display: inline-block;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .conta-grid {
     grid-template-columns: 1fr;
   }
@@ -406,13 +409,24 @@
   }
 
   .conta-dashboard__nav ul {
-    flex-direction: row;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .conta-dashboard__nav li {
+    min-width: 0;
   }
 
   .conta-dashboard__nav li:not(:last-child) {
     border-bottom: none;
+  }
+
+  .conta-dashboard__nav li:nth-child(odd) {
     border-right: 1px solid var(--color-border);
+  }
+
+  .conta-dashboard__nav li:not(:nth-last-child(-n + 2)) {
+    border-bottom: 1px solid var(--color-border);
   }
 
   .conta-form-detalhes__grid {
@@ -425,5 +439,87 @@
 
   .conta-enderecos {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .conta-card {
+    padding: var(--spacing-md);
+  }
+
+  .conta-secao__titulo {
+    font-size: 1.2rem;
+  }
+
+  .conta-dashboard__tab {
+    font-size: 0.9rem;
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .conta-dashboard__resumo-numero {
+    font-size: 1.6rem;
+  }
+
+  /* Tabela de pedidos: em telas estreitas o formato tabular tradicional
+     fica ilegível (5 colunas não cabem e a rolagem horizontal escondia
+     Status/Total sem indicação visual). Convertemos cada linha num
+     "cartão" de pares rótulo/valor, usando os atributos data-label já
+     presentes no HTML — o cabeçalho continua no DOM (acessível para
+     leitor de tela), só sai da renderização visual. */
+  .conta-tabela-wrapper {
+    overflow-x: visible;
+  }
+
+  .conta-tabela thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+    padding: 0;
+    margin: -1px;
+  }
+
+  .conta-tabela,
+  .conta-tabela tbody,
+  .conta-tabela tr,
+  .conta-tabela td {
+    display: block;
+    width: 100%;
+  }
+
+  .conta-tabela tr {
+    margin-bottom: var(--spacing-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-xs) 0;
+  }
+
+  .conta-tabela tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .conta-tabela td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-bottom: none;
+    white-space: normal;
+    text-align: right;
+  }
+
+  .conta-tabela td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    text-align: left;
+    color: var(--color-text-muted);
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
   }
 }

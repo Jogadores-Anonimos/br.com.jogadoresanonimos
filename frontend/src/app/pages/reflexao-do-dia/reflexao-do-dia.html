@@ -1,0 +1,63 @@
+<app-resource-layout titulo="Reflexão do Dia" breadcrumbLabel="Reflexão do Dia">
+
+  <section class="reflexao">
+    <h2 class="reflexao__titulo">Reflexão Diária</h2>
+
+    <p class="reflexao__instrucao">
+      Escolha um mês e um dia para ler a reflexão correspondente. A
+      reflexão de hoje já aparece selecionada abaixo.
+    </p>
+
+    <div class="reflexao__quadro">
+      <h3 class="reflexao__subtitulo">Selecione o mês</h3>
+
+      <div class="reflexao__grade-meses" role="group" aria-label="Selecione o mês">
+        @for (mes of meses; track mes.numero) {
+          <button
+            type="button"
+            class="reflexao__botao-mes"
+            [class.reflexao__botao-mes--ativo]="mes.numero === mesSelecionado"
+            [attr.aria-pressed]="mes.numero === mesSelecionado"
+            (click)="selecionarMes(mes.numero)"
+          >
+            {{ mes.nome }}
+          </button>
+        }
+      </div>
+
+      @if (nomeMesSelecionado) {
+        <p class="reflexao__mes-destaque">{{ nomeMesSelecionado }}</p>
+      }
+
+      <h3 class="reflexao__subtitulo">Selecione o dia</h3>
+
+      <div class="reflexao__grade-dias" role="group" aria-label="Selecione o dia">
+        @for (dia of diasDoMesSelecionado; track dia) {
+          <button
+            type="button"
+            class="reflexao__botao-dia"
+            [class.reflexao__botao-dia--ativo]="dia === diaSelecionado"
+            [attr.aria-pressed]="dia === diaSelecionado"
+            (click)="selecionarDia(mesSelecionado, dia)"
+          >
+            {{ dia }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="reflexao__texto-box" aria-live="polite">
+      @if (carregando) {
+        <p class="reflexao__estado">Carregando reflexão...</p>
+      } @else if (erro) {
+        <p class="reflexao__estado reflexao__estado--erro">{{ erro }}</p>
+      } @else if (reflexao) {
+        <p class="reflexao__data">
+          {{ diaSelecionado }} de {{ nomeMesSelecionado }}
+        </p>
+        <p class="reflexao__texto">{{ reflexao.texto }}</p>
+      }
+    </div>
+  </section>
+
+</app-resource-layout>

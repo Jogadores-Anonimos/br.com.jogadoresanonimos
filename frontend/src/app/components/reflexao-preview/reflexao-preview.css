@@ -1,0 +1,76 @@
+/* Card de preview da Reflexão do Dia na Home. Mesma paleta vinho/dourado
+   usada na página completa /reflexao-do-dia, sempre via variáveis
+   globais do design system (--cor-padrao-ja, --yellow-gold, --white). */
+
+.reflexao-preview {
+  padding: var(--spacing-xl) var(--spacing-md);
+  background: var(--color-bg-section);
+}
+
+.reflexao-preview__card {
+  max-width: 900px;
+  margin: 0 auto;
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  text-align: center;
+}
+
+.reflexao-preview__titulo {
+  font-family: var(--font-brand);
+  font-style: italic;
+  font-weight: var(--font-weight-bold);
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  margin-bottom: var(--spacing-md);
+}
+
+.reflexao-preview__texto {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  font-style: italic;
+  color: var(--color-nav-text-muted);
+  max-width: 700px;
+  margin: 0 auto var(--spacing-lg);
+}
+
+.reflexao-preview__estado {
+  color: var(--color-nav-text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.reflexao-preview__estado--erro {
+  color: var(--yellow);
+}
+
+.reflexao-preview__cta {
+  display: inline-block;
+  background: var(--yellow-gold);
+  color: var(--cor-padrao-ja);
+  font-weight: var(--font-weight-bold);
+  text-decoration: none;
+  padding: 14px 32px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.reflexao-preview__cta:hover {
+  background: var(--yellow);
+  transform: translateY(-2px);
+}
+
+.reflexao-preview__cta:focus-visible {
+  outline: 3px solid var(--white);
+  outline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .reflexao-preview {
+    padding: var(--spacing-lg) var(--spacing-sm);
+  }
+
+  .reflexao-preview__card {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+}

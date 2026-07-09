@@ -464,6 +464,119 @@
   }
 }
 
+.mural-teaser {
+  padding: var(--spacing-xl) var(--spacing-md);
+  background: var(--color-bg-surface);
+}
+
+.mural-teaser__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  max-width: 1700px;
+  width: 95%;
+  margin: 0 auto var(--spacing-lg);
+}
+
+.mural-teaser__title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.mural-teaser__ver-todos {
+  font-weight: 600;
+  color: var(--cor-padrao-ja);
+  text-decoration: none;
+}
+
+.mural-teaser__ver-todos:hover {
+  text-decoration: underline;
+}
+
+.mural-teaser__ver-todos:focus-visible {
+  outline: 3px solid var(--yellow-gold);
+  outline-offset: 2px;
+}
+
+.mural-teaser__estado {
+  max-width: 1700px;
+  width: 95%;
+  margin: 0 auto;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.mural-teaser__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--spacing-lg);
+  max-width: 1700px;
+  width: 95%;
+  margin: 0 auto;
+}
+
+.mural-teaser__card {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+a.mural-teaser__card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+a.mural-teaser__card:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.mural-teaser__imagem-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--color-bg-section);
+  overflow: hidden;
+}
+
+.mural-teaser__imagem {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mural-teaser__legenda {
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--color-text);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .mural-teaser {
+    padding: var(--spacing-lg) var(--spacing-sm);
+  }
+
+  .mural-teaser__title {
+    font-size: 1.5rem;
+  }
+
+  .mural-teaser__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .newsletter-teaser {
   padding: var(--spacing-xl) var(--spacing-md);
   background: var(--color-bg-section);

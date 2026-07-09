@@ -1,0 +1,13 @@
+<button
+  type="button"
+  class="voltar-topo-fab"
+  [class.voltar-topo-fab--visivel]="visivel"
+  [attr.inert]="!visivel ? '' : null"
+  [attr.tabindex]="!visivel ? -1 : null"
+  (click)="voltarAoTopo()"
+  aria-label="Voltar ao topo da página"
+>
+  <svg class="voltar-topo-fab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <polyline points="6 15 12 9 18 15"/>
+  </svg>
+</button>

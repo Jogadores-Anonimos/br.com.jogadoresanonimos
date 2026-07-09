@@ -1,0 +1,30 @@
+<app-resource-layout titulo="Avisos">
+
+  <section class="section">
+    @if (carregando()) {
+      <p class="avisos-estado" role="status">Carregando avisos...</p>
+    } @else if (erro()) {
+      <p class="avisos-estado avisos-estado--erro" role="alert">
+        Não foi possível carregar os avisos no momento. Tente novamente mais tarde.
+      </p>
+    } @else if (avisos().length === 0) {
+      <p class="avisos-estado" role="status">Nenhum aviso publicado no momento.</p>
+    } @else {
+      <ul class="avisos-lista">
+        @for (aviso of avisos(); track aviso.id) {
+          <li class="aviso-card" [class.aviso-card--fixado]="aviso.fixado">
+            @if (aviso.fixado) {
+              <span class="aviso-badge">Importante</span>
+            }
+            <h2 class="aviso-titulo">{{ aviso.titulo }}</h2>
+            <p class="aviso-data">
+              Publicado em {{ aviso.dataPublicacao | date:'dd/MM/yyyy' }}
+            </p>
+            <p class="aviso-corpo">{{ aviso.corpo }}</p>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+</app-resource-layout>

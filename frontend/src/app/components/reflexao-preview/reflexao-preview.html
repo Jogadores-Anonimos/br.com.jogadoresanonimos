@@ -1,0 +1,17 @@
+<section class="reflexao-preview">
+  <div class="reflexao-preview__card">
+    <h2 class="reflexao-preview__titulo">Reflexão do Dia</h2>
+
+    @if (carregando) {
+      <p class="reflexao-preview__estado">Carregando reflexão de hoje...</p>
+    } @else if (erro) {
+      <p class="reflexao-preview__estado reflexao-preview__estado--erro">{{ erro }}</p>
+    } @else if (reflexao) {
+      <p class="reflexao-preview__texto">{{ textoTruncado }}</p>
+    }
+
+    <a class="reflexao-preview__cta" routerLink="/reflexao-do-dia">
+      Ver Reflexão Completa
+    </a>
+  </div>
+</section>

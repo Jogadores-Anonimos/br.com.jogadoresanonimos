@@ -52,13 +52,53 @@
       <nav class="quiz-teaser__links" aria-label="Saiba mais sobre a irmandade">
         <a class="quiz-teaser__link" routerLink="/historia">Sobre a Jogadores Anônimos</a>
         <a class="quiz-teaser__link" routerLink="/perguntas-e-respostas">Perguntas &amp; Respostas</a>
-        <a class="quiz-teaser__link" routerLink="/programa-de-recuperacao">Programa de Recuperação</a>
-        <a class="quiz-teaser__link" routerLink="/programa-de-unidade">Programa de Unidade</a>
-        <a class="quiz-teaser__link" routerLink="/gam-anon">Gam-Anon: Ajuda para Amigos e Família</a>
+        <a class="quiz-teaser__link" routerLink="/programa-de-recuperacao">Programa de Recuperação (Os 12 Passos)</a>
+        <a class="quiz-teaser__link" routerLink="/programa-de-unidade">Programa da Unidade (12 Passos da Unidade)</a>
         <a class="quiz-teaser__link" routerLink="/loja">Loja Online</a>
       </nav>
     </div>
   </section>
+
+  <section class="mural-teaser">
+    <div class="mural-teaser__header">
+      <h2 class="mural-teaser__title">Mural de Apoio</h2>
+      <a class="mural-teaser__ver-todos" routerLink="/mural-de-apoio">Ver todos</a>
+    </div>
+
+    @if (carregandoMural) {
+      <p class="mural-teaser__estado">Carregando o mural de apoio...</p>
+    } @else if (erroMural) {
+      <p class="mural-teaser__estado">
+        Não foi possível carregar o mural de apoio no momento.
+      </p>
+    } @else if (bannersMural.length > 0) {
+      <div class="mural-teaser__grid">
+        @for (banner of bannersMural; track banner.id) {
+          @if (banner.linkDestino) {
+            <a class="mural-teaser__card" [routerLink]="banner.linkDestino">
+              <div class="mural-teaser__imagem-wrap">
+                <img class="mural-teaser__imagem" [src]="banner.imagemUrl" [alt]="banner.altText">
+              </div>
+              @if (banner.legenda) {
+                <p class="mural-teaser__legenda">{{ banner.legenda }}</p>
+              }
+            </a>
+          } @else {
+            <div class="mural-teaser__card">
+              <div class="mural-teaser__imagem-wrap">
+                <img class="mural-teaser__imagem" [src]="banner.imagemUrl" [alt]="banner.altText">
+              </div>
+              @if (banner.legenda) {
+                <p class="mural-teaser__legenda">{{ banner.legenda }}</p>
+              }
+            </div>
+          }
+        }
+      </div>
+    }
+  </section>
+
+  <app-reflexao-preview></app-reflexao-preview>
 
   <section class="newsletter-teaser">
     <div class="newsletter-teaser__card">

@@ -53,3 +53,11 @@ Enquanto o endpoint correspondente no backend ainda não existir:
    contrato do endpoint antes de definir a interface de dados.
 3. Se o endpoint real já existir, use-o; se não, mocke seguindo o padrão
    acima.
+
+## Ensinar o agente aprendiz
+Ao concluir uma tarefa relevante, repasse um resumo curto ao agente
+`aprendiz` (o que foi feito, o trade-off/motivo, onde no projeto) para
+que a base de conhecimento do time (`.claude/knowledge/`) se mantenha
+atualizada entre sessões. Isso também alimenta o trabalho do agente
+`professor` de traduzir o progresso do sistema em conteúdo de estudo
+para o usuário.

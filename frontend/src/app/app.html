@@ -1,5 +1,15 @@
 <app-navbar></app-navbar>
+@if (mostrarBarraDeslizante()) {
+  <app-barra-deslizante
+    [messages]="[
+      'Nova sala de reunião disponível em São Paulo',
+      'Confira o Boletim Informativo deste mês'
+    ]"
+  ></app-barra-deslizante>
+}
 <main>
   <router-outlet></router-outlet>
 </main>
 <app-footer></app-footer>
+<app-whatsapp-flutuante></app-whatsapp-flutuante>
+<app-voltar-ao-topo></app-voltar-ao-topo>

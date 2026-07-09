@@ -2,38 +2,50 @@ import { Routes } from '@angular/router';
 import { Home } from './pages/home/home';
 import { Sobre } from './pages/sobre/sobre';
 import { Historia } from './pages/historia/historia';
+import { Anonimato } from './pages/anonimato/anonimato';
+import { JogoCompulsivo } from './pages/jogo-compulsivo/jogo-compulsivo';
+import { UmaNovaChance } from './pages/uma-nova-chance/uma-nova-chance';
 import { ProgramaDeRecuperacao } from './pages/programa-de-recuperacao/programa-de-recuperacao';
+import { Depoimentos } from './pages/depoimentos/depoimentos';
 import { ProgramaDeUnidade } from './pages/programa-de-unidade/programa-de-unidade';
 import { PerguntasERespostas } from './pages/perguntas-e-respostas/perguntas-e-respostas';
 import { VintePerguntas } from './pages/vinte-perguntas/vinte-perguntas';
 import { Literatura } from './pages/literatura/literatura';
+import { Avisos } from './pages/avisos/avisos';
 import { EscritoriosRegionais } from './pages/escritorios-regionais/escritorios-regionais';
 import { BoletimInformativo } from './pages/boletim-informativo/boletim-informativo';
 import { Reunioes } from './pages/reunioes/reunioes';
 import { Hotlines } from './pages/hotlines/hotlines';
 import { Contribuir } from './pages/contribuir/contribuir';
 import { Loja } from './pages/loja/loja';
-import { GamAnon } from './pages/gam-anon/gam-anon';
+import { MuralDeApoio } from './pages/mural-de-apoio/mural-de-apoio';
 import { MinhaConta } from './pages/minha-conta/minha-conta';
 import { Privacidade } from './pages/privacidade/privacidade';
 import { Termos } from './pages/termos/termos';
+import { ReflexaoDoDiaPage } from './pages/reflexao-do-dia/reflexao-do-dia';
 
 export const routes: Routes = [
   { path: '', component: Home },
   { path: 'sobre', component: Sobre },
   { path: 'historia', component: Historia },
+  { path: 'anonimato', component: Anonimato },
+  { path: 'jogo-compulsivo', component: JogoCompulsivo },
+  { path: 'uma-nova-chance', component: UmaNovaChance },
   { path: 'programa-de-recuperacao', component: ProgramaDeRecuperacao },
+  { path: 'depoimentos', component: Depoimentos },
   { path: 'programa-de-unidade', component: ProgramaDeUnidade },
   { path: 'perguntas-e-respostas', component: PerguntasERespostas },
   { path: 'vinte-perguntas', component: VintePerguntas },
   { path: 'literatura', component: Literatura },
+  { path: 'avisos', component: Avisos },
   { path: 'escritorios-regionais', component: EscritoriosRegionais },
   { path: 'boletim-informativo', component: BoletimInformativo },
+  { path: 'reflexao-do-dia', component: ReflexaoDoDiaPage },
   { path: 'reunioes', component: Reunioes },
   { path: 'hotlines', component: Hotlines },
   { path: 'contribuir', component: Contribuir },
   { path: 'loja', component: Loja },
-  { path: 'gam-anon', component: GamAnon },
+  { path: 'mural-de-apoio', component: MuralDeApoio },
   { path: 'minha-conta', component: MinhaConta },
   { path: 'privacidade', component: Privacidade },
   { path: 'termos', component: Termos },

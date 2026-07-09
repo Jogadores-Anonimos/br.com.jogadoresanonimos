@@ -1,0 +1,202 @@
+/* Reflexão do Dia — fundo vinho do design system, seguindo a referência
+   do site americano (Gamblers Anonymous). Cores sempre via variáveis
+   globais (ver .claude/rules/DesignSystemRules.md): --cor-padrao-ja para
+   o fundo, --white para os botões de mês, --yellow-gold para os botões
+   de dia.
+
+   Nota de fidelidade à referência: o design system deste projeto não
+   possui um token de fonte manuscrita/decorativa (só existe
+   --font-brand, que é 'Sora', sans-serif). Por isso o nome do mês em
+   destaque usa --font-brand em itálico/negrito como aproximação, em vez
+   de uma fonte cursiva nova não aprovada. Se esse efeito for importante
+   visualmente, sinalizar ao ux-ui/design-system para avaliar adicionar
+   um token de fonte decorativa ao styles.css. */
+
+.reflexao {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+  padding: var(--spacing-lg) var(--spacing-md);
+  border-radius: var(--radius-md);
+}
+
+.reflexao__titulo {
+  font-family: var(--font-brand);
+  font-style: italic;
+  font-weight: var(--font-weight-bold);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  text-align: center;
+  color: var(--white);
+  margin-bottom: var(--spacing-sm);
+}
+
+.reflexao__instrucao {
+  text-align: center;
+  color: var(--color-nav-text-muted);
+  max-width: 640px;
+  margin: 0 auto var(--spacing-lg);
+  line-height: 1.6;
+}
+
+.reflexao__quadro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.reflexao__subtitulo {
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+  margin-top: var(--spacing-sm);
+}
+
+/* Grade de meses: mobile-first, 2 colunas no menor breakpoint, crescendo
+   conforme o espaço disponível — não replica a grade fixa 4x3 da imagem
+   de referência em telas pequenas (requisito do ux-ui), mas preserva o
+   agrupamento em grade nas telas maiores. */
+.reflexao__grade-meses {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-xs);
+}
+
+.reflexao__botao-mes {
+  min-height: 44px;
+  background: var(--white);
+  color: var(--cor-padrao-ja);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-bold);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: var(--spacing-xs);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.reflexao__botao-mes:hover {
+  background: var(--color-bg-section);
+}
+
+.reflexao__botao-mes:focus-visible {
+  outline: 3px solid var(--yellow-gold);
+  outline-offset: 2px;
+}
+
+.reflexao__botao-mes--ativo {
+  background: var(--yellow-gold);
+  color: var(--cor-padrao-ja);
+}
+
+.reflexao__mes-destaque {
+  text-align: center;
+  font-family: var(--font-brand);
+  font-style: italic;
+  font-weight: var(--font-weight-bold);
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  color: var(--yellow-gold);
+  margin: var(--spacing-xs) 0;
+}
+
+/* Grade de dias: mobile-first, colunas menores que a de meses (mais
+   itens, até 31), mantendo a área mínima de toque de 44px mesmo no
+   menor breakpoint. */
+.reflexao__grade-dias {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--spacing-xs);
+}
+
+.reflexao__botao-dia {
+  min-height: 44px;
+  min-width: 44px;
+  background: var(--yellow-gold);
+  color: var(--cor-padrao-ja);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-bold);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.reflexao__botao-dia:hover {
+  background: var(--yellow);
+}
+
+.reflexao__botao-dia:focus-visible {
+  outline: 3px solid var(--white);
+  outline-offset: 2px;
+}
+
+.reflexao__botao-dia--ativo {
+  background: var(--white);
+  color: var(--cor-padrao-ja);
+}
+
+.reflexao__texto-box {
+  margin-top: var(--spacing-lg);
+  background: var(--color-bg-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  min-height: 140px;
+}
+
+.reflexao__data {
+  font-weight: var(--font-weight-bold);
+  color: var(--cor-padrao-ja);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.9rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.reflexao__texto {
+  font-size: 1.15rem;
+  line-height: 1.8;
+  font-style: italic;
+}
+
+.reflexao__estado {
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.reflexao__estado--erro {
+  color: var(--color-danger);
+}
+
+@media (min-width: 480px) {
+  .reflexao__grade-meses {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .reflexao__grade-dias {
+    grid-template-columns: repeat(7, 1fr);
+  }
+}
+
+@media (min-width: 700px) {
+  .reflexao {
+    padding: var(--spacing-xl) var(--spacing-lg);
+  }
+
+  .reflexao__grade-meses {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .reflexao__grade-dias {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .reflexao__grade-dias {
+    grid-template-columns: repeat(10, 1fr);
+  }
+}

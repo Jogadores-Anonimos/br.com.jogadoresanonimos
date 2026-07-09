@@ -1,0 +1,67 @@
+:host {
+  display: contents;
+}
+
+/* Botão fica à esquerda do botão flutuante de WhatsApp (48px de largura),
+   com --spacing-xs (8px) de gap entre os dois — ambos ancorados no
+   mesmo bottom/right do canto inferior direito. */
+.voltar-topo-fab {
+  position: fixed;
+  right: calc(var(--spacing-md) + 48px + var(--spacing-xs));
+  bottom: var(--spacing-md);
+  /* z-index alto para garantir prioridade sobre conteúdo de página, mas
+     abaixo da navbar (que usa até 1000) e de eventuais modais futuros;
+     mesmo nível do botão de WhatsApp pois não se sobrepõem. */
+  z-index: 900;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  /* Exceção justificada ao padrão "quadrado" do design system: botão de
+     ação flutuante circular é convenção de mercado, por isso 50% direto
+     em vez de var(--radius-lg), que é 0. */
+  border-radius: 50%;
+  border: none;
+  background: var(--color-button-neutral);
+  color: var(--white);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.voltar-topo-fab--visivel {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.voltar-topo-fab:hover,
+.voltar-topo-fab:focus-visible {
+  filter: brightness(0.92);
+}
+
+.voltar-topo-fab:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
+
+.voltar-topo-fab__icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .voltar-topo-fab {
+    right: calc(var(--spacing-sm) + 48px + var(--spacing-xs));
+    bottom: var(--spacing-sm);
+  }
+}
