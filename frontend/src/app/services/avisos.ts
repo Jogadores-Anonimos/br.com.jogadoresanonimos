@@ -2,18 +2,14 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { delay, map } from 'rxjs/operators';
 
-// TODO: substituir por chamada real quando o endpoint estiver disponível
-// (ex: this.http.get<AvisosResponse>('/api/avisos')). O contrato público
-// deste service (nome do método listarAvisos, tipo de retorno
-// Observable<AvisosResponse>) não deve mudar nessa troca — apenas a
-// implementação interna do método.
+// TODO: substituir por chamada real (this.http.get<AvisosResponse>('/api/avisos')) mantendo o mesmo contrato público
 
 export interface Aviso {
   id: string;
   titulo: string;
   corpo: string;
   dataPublicacao: string; // ISO
-  fixado: boolean; // aviso importante/destacado — deve aparecer primeiro na listagem
+  fixado: boolean; // deve aparecer primeiro na listagem
   dataExpiracao?: string; // ISO, opcional
 }
 
@@ -23,8 +19,6 @@ export interface AvisosResponse {
   error?: string;
 }
 
-// Dados mockados centralizados aqui por simplicidade (arquivo único e
-// pequeno). Caso a lista cresça, mover para avisos.mock.ts.
 const AVISOS_MOCK: Aviso[] = [
   {
     id: 'aviso-1',
@@ -79,15 +73,6 @@ const AVISOS_MOCK: Aviso[] = [
 
 @Injectable({ providedIn: 'root' })
 export class AvisosService {
-  /**
-   * Lista os avisos ordenados por: fixado primeiro, depois por
-   * dataPublicacao decrescente (mais recente primeiro).
-   *
-   * Mock temporário: retorna dados estáticos simulando latência de rede.
-   * Quando o endpoint de backend existir, a implementação interna passa
-   * a chamar `this.http.get<AvisosResponse>('/api/avisos')`, mantendo a
-   * mesma assinatura pública.
-   */
   listarAvisos(): Observable<AvisosResponse> {
     return of<AvisosResponse>({ success: true, data: AVISOS_MOCK }).pipe(
       delay(500),

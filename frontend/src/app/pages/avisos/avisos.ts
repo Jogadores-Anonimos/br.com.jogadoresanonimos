@@ -11,8 +11,7 @@ import { Aviso, AvisosService } from '../../services/avisos';
   styleUrl: './avisos.css',
 })
 export class Avisos implements OnInit {
-  // A lista já vem ordenada do service (fixado primeiro, depois data
-  // decrescente) — não reordenar aqui.
+  // já vem ordenada do service (fixado primeiro, depois data decrescente) — não reordenar aqui
   readonly avisos = signal<Aviso[]>([]);
   readonly carregando = signal(true);
   readonly erro = signal(false);

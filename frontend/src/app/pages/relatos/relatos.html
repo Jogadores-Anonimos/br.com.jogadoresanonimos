@@ -1,4 +1,4 @@
-<app-resource-layout titulo="Depoimentos" [bannerSrc]="bannerSrc">
+<app-resource-layout titulo="Relatos" [bannerSrc]="bannerSrc">
 
   <section class="section">
     <p class="lead">
@@ -9,63 +9,63 @@
     </p>
   </section>
 
-  <section class="section" aria-labelledby="lista-depoimentos-titulo">
-    <h2 id="lista-depoimentos-titulo" class="secao-titulo">
+  <section class="section" aria-labelledby="lista-relatos-titulo">
+    <h2 id="lista-relatos-titulo" class="secao-titulo">
       O que outros membros compartilharam
     </h2>
 
     @if (carregando) {
-      <p class="estado-info">Carregando depoimentos…</p>
+      <p class="estado-info">Carregando relatos…</p>
     } @else if (erroCarregamento) {
       <p class="estado-info estado-info--erro">{{ erroCarregamento }}</p>
-    } @else if (depoimentos.length === 0) {
+    } @else if (relatos.length === 0) {
       <p class="estado-info">
-        Ainda não há depoimentos publicados. Seja a primeira pessoa a
+        Ainda não há relatos publicados. Seja a primeira pessoa a
         compartilhar sua história.
       </p>
     } @else {
-      <ul class="depoimentos-lista">
-        @for (depoimento of depoimentos; track depoimento.id) {
-          <li class="depoimento-card">
-            <p class="depoimento-card__texto">{{ textoExibido(depoimento) }}</p>
+      <ul class="relatos-lista">
+        @for (relato of relatos; track relato.id) {
+          <li class="relato-card">
+            <p class="relato-card__texto">{{ textoExibido(relato) }}</p>
 
-            @if (precisaTruncar(depoimento)) {
+            @if (precisaTruncar(relato)) {
               <button
                 type="button"
-                class="depoimento-card__ler-mais"
-                (click)="alternarExpandido(depoimento)"
-                [attr.aria-expanded]="estaExpandido(depoimento)"
+                class="relato-card__ler-mais"
+                (click)="alternarExpandido(relato)"
+                [attr.aria-expanded]="estaExpandido(relato)"
               >
-                {{ estaExpandido(depoimento) ? 'ler menos' : 'ler mais' }}
+                {{ estaExpandido(relato) ? 'ler menos' : 'ler mais' }}
               </button>
             }
 
-            <p class="depoimento-card__autor">{{ nomeParaExibir(depoimento) }}</p>
+            <p class="relato-card__autor">{{ nomeParaExibir(relato) }}</p>
           </li>
         }
       </ul>
     }
   </section>
 
-  <section class="section secao-formulario" aria-labelledby="form-depoimento-titulo">
-    <h2 id="form-depoimento-titulo">Quer compartilhar sua história?</h2>
+  <section class="section secao-formulario" aria-labelledby="form-relato-titulo">
+    <h2 id="form-relato-titulo">Quer compartilhar sua história?</h2>
     <p class="secao-formulario__subtitulo">
       Seu relato pode ser exatamente o que outra pessoa precisa ler hoje.
     </p>
 
     @if (enviado) {
       <div class="confirmacao-envio" role="status">
-        <p>Recebemos seu depoimento, obrigado por compartilhar.</p>
+        <p>Recebemos seu relato, obrigado por compartilhar.</p>
         <button type="button" class="link-secundario" (click)="compartilharNovamente()">
-          Compartilhar outro depoimento
+          Compartilhar outro relato
         </button>
       </div>
     } @else {
-      <form (ngSubmit)="onEnviarDepoimento()" #depoimentoForm="ngForm" class="form-depoimento">
+      <form (ngSubmit)="onEnviarRelato()" #relatoForm="ngForm" class="form-relato">
         <div class="campo">
-          <label for="depoimento-nome">Como quer ser chamado (opcional)</label>
+          <label for="relato-nome">Como quer ser chamado (opcional)</label>
           <input
-            id="depoimento-nome"
+            id="relato-nome"
             name="nomeExibicao"
             type="text"
             [maxlength]="nomeExibicaoMaxLength"
@@ -85,9 +85,9 @@
         </p>
 
         <div class="campo">
-          <label for="depoimento-texto">Seu depoimento</label>
+          <label for="relato-texto">Seu relato</label>
           <textarea
-            id="depoimento-texto"
+            id="relato-texto"
             name="texto"
             rows="8"
             required
@@ -95,15 +95,15 @@
             [maxlength]="textoMaxLength"
             [(ngModel)]="novoTexto"
             #textoField="ngModel"
-            aria-describedby="depoimento-texto-contador"
+            aria-describedby="relato-texto-contador"
           ></textarea>
-          <small id="depoimento-texto-contador" class="campo-contador">
+          <small id="relato-texto-contador" class="campo-contador">
             {{ novoTexto.length }} / {{ textoMaxLength }} caracteres (mínimo {{ textoMinLength }})
           </small>
         </div>
 
         <p class="aviso-moderacao">
-          Seu depoimento passa por uma revisão da nossa equipe antes de ser
+          Seu relato passa por uma revisão da nossa equipe antes de ser
           publicado. Isso pode levar alguns dias. Não é possível saber a
           data exata de publicação.
         </p>
@@ -111,9 +111,9 @@
         <button
           type="submit"
           class="btn-cta"
-          [disabled]="enviando || depoimentoForm.invalid"
+          [disabled]="enviando || relatoForm.invalid"
         >
-          {{ enviando ? 'Enviando...' : 'Enviar depoimento' }}
+          {{ enviando ? 'Enviando...' : 'Enviar relato' }}
         </button>
 
         @if (erroEnvio) {

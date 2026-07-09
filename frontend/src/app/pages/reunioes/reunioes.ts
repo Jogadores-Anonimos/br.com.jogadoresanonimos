@@ -13,7 +13,7 @@ import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 
-type CategoriaReuniao = 'presencial' | 'nacional' | 'virtual' | 'telefone';
+type CategoriaReuniao = 'presencial' | 'virtual';
 type DiaSemana = 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo';
 type Periodo = 'Manhã' | 'Tarde' | 'Noite';
 type FiltroDia = DiaSemana | 'todos' | 'hoje';
@@ -75,19 +75,9 @@ export class Reunioes implements OnInit, OnDestroy {
       descricao: 'Reuniões em grupos físicos perto de você.',
     },
     {
-      valor: 'nacional',
-      titulo: 'Nacional',
-      descricao: 'Grupos em diferentes estados do Brasil.',
-    },
-    {
       valor: 'virtual',
       titulo: 'Virtual',
       descricao: 'Reuniões por videochamada, de onde você estiver.',
-    },
-    {
-      valor: 'telefone',
-      titulo: 'Telefone',
-      descricao: 'Reuniões por chamada de voz, sem precisar de vídeo.',
     },
   ];
 
@@ -183,28 +173,31 @@ export class Reunioes implements OnInit, OnDestroy {
       longitude: -47.0626,
     },
     {
-      nome: 'Grupo [a definir]',
-      categoria: 'nacional',
-      descricao: 'Rede de grupos em outros estados, indicada pra quem está fora da capital.',
-      dia: '[a definir]',
-      horario: '[a definir]',
-      local: '[cidade/estado a definir]',
-    },
-    {
-      nome: 'Grupo [a definir]',
+      nome: 'Grupo [a definir] — Encontro da Noite',
       categoria: 'virtual',
       descricao: 'Reunião por videochamada, sem precisar sair de casa.',
-      dia: '[a definir]',
-      horario: '[a definir]',
+      dia: 'Segunda-feira',
+      horario: '20h00',
       local: 'Link de acesso [a definir]',
+      whatsapp: WHATSAPP_PLACEHOLDER,
     },
     {
-      nome: 'Grupo [a definir]',
-      categoria: 'telefone',
-      descricao: 'Reunião só por voz, sem necessidade de câmera nem internet estável.',
-      dia: '[a definir]',
-      horario: '[a definir]',
-      local: 'Número de acesso [a definir]',
+      nome: 'Grupo [a definir] — Roda de Apoio',
+      categoria: 'virtual',
+      descricao: 'Encontro virtual voltado a quem está começando a jornada de recuperação.',
+      dia: 'Quarta-feira',
+      horario: '19h00',
+      local: 'Link de acesso [a definir]',
+      whatsapp: WHATSAPP_PLACEHOLDER,
+    },
+    {
+      nome: 'Grupo [a definir] — Fim de Semana',
+      categoria: 'virtual',
+      descricao: 'Reunião online de sábado, com espaço para novos membros compartilharem.',
+      dia: 'Sábado',
+      horario: '10h00',
+      local: 'Link de acesso [a definir]',
+      whatsapp: WHATSAPP_PLACEHOLDER,
     },
   ];
 

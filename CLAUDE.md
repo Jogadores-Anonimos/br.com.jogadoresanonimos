@@ -80,6 +80,13 @@ Ver `.claude/agents/*.md` para a definição completa de cada um.
   com a API; e, caso essa página tenha muita complexidade própria, criar
   um componente adicional para isso — tudo para ajudar na manutenção e
   legibilidade do código.
+- **Sem comentários grandes/excessivos no código** (frontend e backend):
+  nada de docstrings gigantes, blocos explicativos longos ou comentários
+  que só descrevem o óbvio. Comentário curto e pontual é aceitável quando
+  explica um porquê não-óbvio (ex: uma decisão de negócio ou uma
+  contornação de bug); o resto deve ser removido. Preferir código legível
+  por si só a comentário — inclusive se isso deixar o código estilisticamente
+  "mais feio", isso é aceitável.
 
 ## Padrões de arquitetura
 - Sempre delegue as tarefas de frontend, frontend-services, backend,

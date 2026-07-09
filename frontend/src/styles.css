@@ -51,6 +51,10 @@
   --color-background-dark: #241714;
   --color-background-dark-rgb: 36, 23, 20;
   --color-map-panel: #98a1a9;
+  /* Texto secundário sobre fundos escuros (ex: --color-background-dark).
+     --color-text-muted (#64748b) não atinge contraste AA (3.65:1) sobre
+     esse fundo; este tom (slate-300) atinge 11.7:1. */
+  --color-text-on-dark-muted: #cbd5e1;
 
   /* Botões flutuantes (widget de chat / voltar ao topo) */
   --color-whatsapp: #25d366;

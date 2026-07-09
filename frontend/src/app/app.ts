@@ -15,13 +15,19 @@ import { VoltarAoTopo } from './components/voltar-ao-topo/voltar-ao-topo';
   styleUrl: './app.css'
 })
 export class AppComponent {
+  // '/login' e '/dashboard' ainda não existem como rotas; deixados prontos para quando forem criadas.
+  private readonly PREFIXOS_SEM_BARRA_DESLIZANTE = ['/minha-conta', '/login', '/dashboard'];
+
   mostrarBarraDeslizante = signal(true);
 
   constructor(private router: Router) {
     this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe((event) => {
-        this.mostrarBarraDeslizante.set(!event.urlAfterRedirects.startsWith('/minha-conta'));
+        const ocultar = this.PREFIXOS_SEM_BARRA_DESLIZANTE.some((prefixo) =>
+          event.urlAfterRedirects.startsWith(prefixo)
+        );
+        this.mostrarBarraDeslizante.set(!ocultar);
       });
   }
 }

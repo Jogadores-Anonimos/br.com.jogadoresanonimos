@@ -55,7 +55,6 @@ export class MinhaConta implements OnDestroy {
     });
   }
 
-  // Estado 1
   loginUsuarioOuEmail = '';
   loginSenha = '';
   lembrarDeMim = false;
@@ -64,7 +63,6 @@ export class MinhaConta implements OnDestroy {
   loginSucesso = false;
   captchaLoginOk = false;
 
-  // Bloco de registro
   registroEmail = '';
   registroSenha = '';
   registroEnviando = false;
@@ -102,7 +100,6 @@ export class MinhaConta implements OnDestroy {
       });
   }
 
-  // Widgets reCAPTCHA
   private captchaLoginWidgetId: number | null = null;
   private captchaRegistroWidgetId: number | null = null;
   private captchaLoginTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -178,8 +175,8 @@ export class MinhaConta implements OnDestroy {
     this.appRef.tick();
   }
 
+  // evita retries do reCAPTCHA contra um container já removido do DOM
   ngOnDestroy(): void {
-    // evita retries do reCAPTCHA contra um container já removido do DOM
     if (this.captchaLoginTimeoutId !== null) {
       clearTimeout(this.captchaLoginTimeoutId);
     }
@@ -188,7 +185,6 @@ export class MinhaConta implements OnDestroy {
     }
   }
 
-  // Estado 2
   abaAtiva: AbaConta = 'dashboard';
 
   selecionarAba(aba: AbaConta): void {
@@ -232,7 +228,6 @@ export class MinhaConta implements OnDestroy {
     { titulo: 'Em Direção aos Noventa Dias', disponibilizadoEm: '28/06/2026' },
   ];
 
-  // Aba "Detalhes da Conta"
   nomeExibicao = '';
   emailDetalhes = '';
   senhaAtualDetalhes = '';

@@ -1,14 +1,6 @@
-import { Component, HostListener } from '@angular/core';
+import { Component, ElementRef, HostListener } from '@angular/core';
 import { WHATSAPP_CHAT_URL } from '../../config/whatsapp.config';
 
-/**
- * Botão flutuante de chat (WhatsApp / Join.chat). Ao clicar, abre um
- * popup simples (não é um modal bloqueante) com um link para o WhatsApp.
- *
- * TODO: quando a conta Join.chat da organização for conectada, este
- * componente deve ser substituído (ou adaptado) para carregar o script
- * oficial de embed do Join.chat em vez do link direto wa.me.
- */
 @Component({
   selector: 'app-whatsapp-flutuante',
   standalone: true,
@@ -20,6 +12,8 @@ export class WhatsappFlutuante {
   readonly whatsappChatUrl = WHATSAPP_CHAT_URL;
 
   popupAberto = false;
+
+  constructor(private readonly elementRef: ElementRef<HTMLElement>) {}
 
   togglePopup(): void {
     this.popupAberto = !this.popupAberto;
@@ -37,6 +31,18 @@ export class WhatsappFlutuante {
   @HostListener('document:keydown.escape')
   aoPressionarEsc(): void {
     if (this.popupAberto) {
+      this.fecharPopup();
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  aoClicarFora(event: MouseEvent): void {
+    if (!this.popupAberto) {
+      return;
+    }
+
+    const alvo = event.target as Node | null;
+    if (alvo && !this.elementRef.nativeElement.contains(alvo)) {
       this.fecharPopup();
     }
   }

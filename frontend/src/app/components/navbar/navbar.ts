@@ -1,7 +1,9 @@
 import { Component, ElementRef, HostBinding, HostListener, OnDestroy } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
+import { NAVBAR_SEARCH_INDEX, SearchIndexItem } from './navbar-search-index';
 
 type DropdownKey = 'sobre' | 'recursos';
 
@@ -9,10 +11,12 @@ const SCROLL_THRESHOLD_PX = 10;
 
 const MOBILE_LAYOUT_BREAKPOINT_PX = 1100;
 
+const MAX_RESULTADOS_BUSCA = 8;
+
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, FormsModule],
   templateUrl: './navbar.html',
   styleUrl: './navbar.css'
 })
@@ -50,6 +54,14 @@ export class Navbar implements OnDestroy {
 
   buscaAberta = false;
 
+  /**
+   * Termo de busca: vive só em memória do componente. Nunca é logado,
+   * persistido (localStorage/sessionStorage/cookie) ou colocado na URL,
+   * por requisito de anonimato do projeto. É sempre limpo quando o
+   * painel de busca fecha.
+   */
+  termoBusca = '';
+
   @HostBinding('class.scrolled')
   scrolled = false;
 
@@ -62,6 +74,7 @@ export class Navbar implements OnDestroy {
     this.menuAberto = !this.menuAberto;
     if (this.menuAberto) {
       this.buscaAberta = false;
+      this.limparBusca();
       this.fecharDropdowns();
     }
   }
@@ -91,7 +104,44 @@ export class Navbar implements OnDestroy {
     if (this.buscaAberta) {
       this.fecharDropdowns();
       this.menuAberto = false;
+    } else {
+      this.limparBusca();
     }
+  }
+
+  /** Resultados filtrados em tempo real a partir do termo atual. */
+  get resultadosBusca(): SearchIndexItem[] {
+    const termo = this.normalizarTermo(this.termoBusca);
+    if (!termo) {
+      return [];
+    }
+    return NAVBAR_SEARCH_INDEX.filter((item) =>
+      [item.titulo, ...item.keywords].some((texto) =>
+        this.normalizarTermo(texto).includes(termo)
+      )
+    ).slice(0, MAX_RESULTADOS_BUSCA);
+  }
+
+  private normalizarTermo(valor: string): string {
+    return valor.trim().toLowerCase();
+  }
+
+  selecionarResultado(item: SearchIndexItem): void {
+    this.buscaAberta = false;
+    this.limparBusca();
+    this.router.navigateByUrl(item.rota);
+  }
+
+  aoSubmeterBusca(event: Event): void {
+    event.preventDefault();
+    const primeiroResultado = this.resultadosBusca[0];
+    if (primeiroResultado) {
+      this.selecionarResultado(primeiroResultado);
+    }
+  }
+
+  private limparBusca(): void {
+    this.termoBusca = '';
   }
 
   private fecharDropdowns(): void {
@@ -104,6 +154,15 @@ export class Navbar implements OnDestroy {
       this.fecharDropdowns();
       this.buscaAberta = false;
       this.menuAberto = false;
+      this.limparBusca();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  aoPressionarEsc(): void {
+    if (this.buscaAberta) {
+      this.buscaAberta = false;
+      this.limparBusca();
     }
   }
 

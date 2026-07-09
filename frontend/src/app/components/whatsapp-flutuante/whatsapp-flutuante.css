@@ -6,20 +6,17 @@
   position: fixed;
   right: var(--spacing-md);
   bottom: var(--spacing-md);
-  /* z-index alto para garantir prioridade sobre conteúdo de página, mas
-     abaixo da navbar (que usa até 1000) e de eventuais modais futuros. */
+  /* abaixo da navbar (z-index até 1000) */
   z-index: 900;
 
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  min-height: 48px;
-  /* Exceção justificada ao padrão "quadrado" do design system: botão de
-     ação flutuante circular é convenção de mercado (WhatsApp, voltar ao
-     topo), por isso 50% direto em vez de var(--radius-lg), que é 0. */
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  min-height: 56px;
+  /* exceção ao design system: fab circular é convenção de mercado, var(--radius-lg) é 0 */
   border-radius: 50%;
   border: none;
   background: var(--color-whatsapp);
@@ -40,15 +37,16 @@
 }
 
 .whatsapp-fab__icon {
-  width: 28px;
-  height: 28px;
+  display: block;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
 }
 
 .whatsapp-popup {
   position: fixed;
   right: var(--spacing-md);
-  bottom: calc(var(--spacing-md) + 48px + var(--spacing-xs));
+  bottom: calc(var(--spacing-md) + 56px + var(--spacing-xs));
   z-index: 900;
 
   width: 320px;
@@ -111,11 +109,12 @@
   flex-direction: column;
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
+  background: var(--color-background-dark);
 }
 
 .whatsapp-popup__saudacao {
   margin: 0;
-  color: var(--color-text);
+  color: var(--color-text-on-dark-muted);
   font-size: 15px;
 }
 
@@ -123,6 +122,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: var(--spacing-xs);
   width: 100%;
   min-height: 48px;
   border: none;
@@ -133,6 +133,12 @@
   font-weight: var(--font-weight-bold);
   cursor: pointer;
   transition: filter 0.2s ease;
+}
+
+.whatsapp-popup__cta-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .whatsapp-popup__cta:hover,
@@ -149,7 +155,7 @@
   .whatsapp-popup {
     right: var(--spacing-sm);
     left: var(--spacing-sm);
-    bottom: calc(var(--spacing-sm) + 48px + var(--spacing-xs));
+    bottom: calc(var(--spacing-sm) + 56px + var(--spacing-xs));
     width: auto;
   }
 }

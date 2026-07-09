@@ -13,7 +13,6 @@ export class BarraDeslizante {
   @Input() speed: number = 30;
   // Cores do design system (styles.css) — nunca hardcode aqui.
   @Input() color: string = 'var(--cor-padrao-ja)';
-  @Input() borderColor: string = 'var(--yellow-gold)';
   @Input() separator: string = '•';
   paused = false;
 }

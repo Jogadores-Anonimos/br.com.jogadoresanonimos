@@ -1,9 +1,9 @@
+/* Altura real desta barra também é espelhada como --ticker-height em app.css; manter sincronizado se padding/font-size mudar. */
+:host {
+  display: block;
+}
+
 .ticker-outer { width: 100%; overflow: hidden; }
-.ticker-border { height: 6px; }
-/* Sem padding vertical aqui: qualquer respiro nesse nível empurra a
-   barra para baixo no fluxo do documento e cria um gap visível entre o
-   header e o ticker. O respiro visual da faixa vem do padding-block do
-   .ticker-item abaixo, que não afeta a posição do wrapper no fluxo. */
 .ticker-wrapper { overflow: hidden; }
 
 .ticker-track {
@@ -21,6 +21,7 @@
   color: var(--white);
   font-size: 13px;
   font-weight: 500;
+  line-height: 1.4;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 10px 32px;
@@ -28,6 +29,7 @@
 
 .ticker-sep {
   color: var(--color-nav-text-muted);
+  line-height: 1.4;
   padding: 10px 4px;
 }
 
@@ -37,7 +39,10 @@
 }
 
 @media (max-width: 900px) {
-  .ticker-border { height: 4px; }
+  :host {
+    --ticker-height: 26px;
+  }
+
   .ticker-item {
     font-size: 10px;
     padding: 6px 16px;

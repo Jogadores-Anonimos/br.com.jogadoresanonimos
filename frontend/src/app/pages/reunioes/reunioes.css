@@ -17,7 +17,9 @@
 
 .categorias-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 720px;
+  margin: 0 auto;
   gap: var(--spacing-md);
 }
 
@@ -110,9 +112,21 @@
   color: var(--color-text-muted);
 }
 
+.reuniao-card-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.reuniao-card-acoes .btn-whatsapp {
+  padding: 14px 20px;
+  font-size: 0.9rem;
+}
+
 .btn-detalhes {
   display: inline-block;
-  margin-top: var(--spacing-sm);
   background: transparent;
   color: var(--cor-padrao-ja);
   font-weight: 700;
@@ -367,35 +381,6 @@
   line-height: 1.6;
 }
 
-.cta-final {
-  text-align: center;
-  padding: var(--spacing-xl) var(--spacing-md);
-  background: var(--color-bg-section);
-  border-radius: var(--radius-md);
-}
-
-.cta-final h2 {
-  color: var(--cor-padrao-ja);
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  margin-bottom: var(--spacing-sm);
-}
-
-.cta-final p {
-  color: var(--color-text-muted);
-  margin-bottom: var(--spacing-md);
-  font-size: 1.1rem;
-  max-width: 640px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.cta-final-acoes {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--spacing-sm);
-}
-
 .btn-cta {
   display: inline-block;
   background: var(--yellow-btn);
@@ -431,10 +416,6 @@
 }
 
 @media (max-width: 1300px) {
-  .categorias-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   .categoria-card {
     min-height: 170px;
     padding: var(--spacing-md) var(--spacing-xs);
@@ -446,13 +427,8 @@
 }
 
 @media (max-width: 768px) {
-  .section,
-  .cta-final {
+  .section {
     padding: var(--spacing-md) 0;
-  }
-
-  .cta-final {
-    padding: var(--spacing-lg) var(--spacing-sm);
   }
 
   .mapa-wrapper {
@@ -482,5 +458,15 @@
   .detalhes-acoes .btn-cta {
     padding: 10px 14px;
     font-size: 0.85rem;
+  }
+
+  .reuniao-card-acoes {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .reuniao-card-acoes .btn-detalhes,
+  .reuniao-card-acoes .btn-whatsapp {
+    text-align: center;
   }
 }

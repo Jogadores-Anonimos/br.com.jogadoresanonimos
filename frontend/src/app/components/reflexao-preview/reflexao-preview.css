@@ -1,17 +1,13 @@
-/* Card de preview da Reflexão do Dia na Home. Mesma paleta vinho/dourado
-   usada na página completa /reflexao-do-dia, sempre via variáveis
-   globais do design system (--cor-padrao-ja, --yellow-gold, --white). */
-
 .reflexao-preview {
   padding: var(--spacing-xl) var(--spacing-md);
-  background: var(--color-bg-section);
+  background: var(--color-bg-surface);
 }
 
 .reflexao-preview__card {
   max-width: 900px;
   margin: 0 auto;
-  background: var(--cor-padrao-ja);
-  color: var(--white);
+  background: var(--color-bg-surface);
+  color: var(--color-text);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   padding: var(--spacing-xl) var(--spacing-lg);
@@ -23,25 +19,35 @@
   font-style: italic;
   font-weight: var(--font-weight-bold);
   font-size: clamp(1.6rem, 3vw, 2.2rem);
+  color: var(--cor-padrao-ja);
   margin-bottom: var(--spacing-md);
+}
+
+.reflexao-preview__data {
+  font-weight: var(--font-weight-bold);
+  color: var(--cor-padrao-ja);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.9rem;
+  margin-bottom: var(--spacing-sm);
 }
 
 .reflexao-preview__texto {
   font-size: 1.1rem;
   line-height: 1.8;
   font-style: italic;
-  color: var(--color-nav-text-muted);
+  color: var(--color-text-muted);
   max-width: 700px;
   margin: 0 auto var(--spacing-lg);
 }
 
 .reflexao-preview__estado {
-  color: var(--color-nav-text-muted);
+  color: var(--color-text-muted);
   margin-bottom: var(--spacing-lg);
 }
 
 .reflexao-preview__estado--erro {
-  color: var(--yellow);
+  color: var(--color-danger);
 }
 
 .reflexao-preview__cta {
@@ -61,7 +67,7 @@
 }
 
 .reflexao-preview__cta:focus-visible {
-  outline: 3px solid var(--white);
+  outline: 3px solid var(--cor-padrao-ja);
   outline-offset: 3px;
 }
 

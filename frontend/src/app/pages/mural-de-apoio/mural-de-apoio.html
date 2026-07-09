@@ -1,10 +1,5 @@
 <app-resource-layout titulo="Mural de Apoio">
   <section class="section">
-    <p class="lead">
-      Um espaço com imagens e materiais de apoio mantidos pela irmandade para ajudar você
-      em sua jornada de recuperação.
-    </p>
-
     @if (carregando) {
       <p class="mural-estado">Carregando o mural de apoio...</p>
     } @else if (erro) {
@@ -22,18 +17,12 @@
               <div class="mural-card__imagem-wrap">
                 <img class="mural-card__imagem" [src]="banner.imagemUrl" [alt]="banner.altText">
               </div>
-              @if (banner.legenda) {
-                <p class="mural-card__legenda">{{ banner.legenda }}</p>
-              }
             </a>
           } @else {
             <div class="mural-card">
               <div class="mural-card__imagem-wrap">
                 <img class="mural-card__imagem" [src]="banner.imagemUrl" [alt]="banner.altText">
               </div>
-              @if (banner.legenda) {
-                <p class="mural-card__legenda">{{ banner.legenda }}</p>
-              }
             </div>
           }
         }

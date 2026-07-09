@@ -460,12 +460,7 @@
     font-size: 1.6rem;
   }
 
-  /* Tabela de pedidos: em telas estreitas o formato tabular tradicional
-     fica ilegível (5 colunas não cabem e a rolagem horizontal escondia
-     Status/Total sem indicação visual). Convertemos cada linha num
-     "cartão" de pares rótulo/valor, usando os atributos data-label já
-     presentes no HTML — o cabeçalho continua no DOM (acessível para
-     leitor de tela), só sai da renderização visual. */
+  /* linhas viram "cartões" de rótulo/valor via data-label; thead permanece no DOM para leitor de tela */
   .conta-tabela-wrapper {
     overflow-x: visible;
   }

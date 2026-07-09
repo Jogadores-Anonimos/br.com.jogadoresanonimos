@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { NOMES_MESES } from '../../config/meses.config';
 import {
   ReflexaoDoDia,
   ReflexaoDoDiaService,
@@ -7,12 +8,6 @@ import {
 
 const TAMANHO_MAX_TRUNCADO = 220;
 
-/**
- * Card de preview da "Reflexão do Dia" usado na Home. Mostra APENAS a
- * reflexão do dia atual (sem grade de navegação de mês/dia — isso só
- * existe na página completa /reflexao-do-dia), com texto truncado e um
- * CTA para a página completa.
- */
 @Component({
   selector: 'app-reflexao-preview',
   standalone: true,
@@ -46,5 +41,13 @@ export class ReflexaoPreview implements OnInit {
       return texto;
     }
     return `${texto.slice(0, TAMANHO_MAX_TRUNCADO).trimEnd()}...`;
+  }
+
+  get dataFormatada(): string {
+    if (!this.reflexao) {
+      return '';
+    }
+    const nomeMes = NOMES_MESES[this.reflexao.mes - 1] ?? '';
+    return `${this.reflexao.dia} de ${nomeMes}`;
   }
 }
