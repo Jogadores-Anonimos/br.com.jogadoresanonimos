@@ -1,38 +1,13 @@
 .section {
+  max-width: 860px;
   padding: var(--spacing-lg) 0;
 }
 
-.lead {
+.section p {
   color: var(--color-text);
+  line-height: 1.9;
   font-size: 1.1rem;
-  line-height: 1.8;
-  margin-bottom: var(--spacing-lg);
-}
-
-.passos-intro {
-  color: var(--color-text);
-  font-weight: 700;
-  font-size: 1.05rem;
-  margin-bottom: var(--spacing-md);
-}
-
-.passos-lista {
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--spacing-md);
-}
-
-.passo-item {
-  background: var(--color-bg-section);
-  border: 1px solid var(--color-border);
-  padding: var(--spacing-md);
-}
-
-.passo-item p {
-  color: var(--color-text);
-  line-height: 1.8;
-  font-size: 1.1rem;
+  margin-bottom: var(--spacing-sm);
 }
 
 .cta-final {
@@ -80,30 +55,60 @@
   outline-offset: 3px;
 }
 
-@media (max-width: 1300px) {
-  .passos-lista {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (max-width: 768px) {
   .section {
     padding: var(--spacing-md) 0;
   }
 
-  .passos-lista {
-    grid-template-columns: 1fr;
-  }
-
-  .passo-item {
-    padding: var(--spacing-sm);
-  }
-
-  .passo-item p {
+  .section p {
     font-size: 1rem;
   }
 
   .cta-final {
     padding: var(--spacing-lg) var(--spacing-sm);
+  }
+}
+
+.passos-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+  padding: 0;
+  margin: var(--spacing-md) 0 0;
+}
+
+.passo-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.passo-card-numero {
+  color: var(--cor-padrao-ja);
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+.passo-card-texto {
+  margin: 0;
+  color: var(--color-text);
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+@media (min-width: 640px) {
+  .passos-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .passos-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }

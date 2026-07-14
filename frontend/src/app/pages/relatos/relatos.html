@@ -60,6 +60,11 @@
           Compartilhar outro relato
         </button>
       </div>
+    } @else if (!auth.usuarioAtual()) {
+      <p class="estado-info">
+        Você precisa estar logado para enviar um relato.
+        <a routerLink="/minha-conta">Entrar ou criar uma conta</a>.
+      </p>
     } @else {
       <form (ngSubmit)="onEnviarRelato()" #relatoForm="ngForm" class="form-relato">
         <div class="campo">
@@ -98,7 +103,12 @@
             aria-describedby="relato-texto-contador"
           ></textarea>
           <small id="relato-texto-contador" class="campo-contador">
-            {{ novoTexto.length }} / {{ textoMaxLength }} caracteres (mínimo {{ textoMinLength }})
+            @if (novoTexto.length < textoMinLength) {
+              Faltam {{ textoMinLength - novoTexto.length }} caracteres para poder enviar
+              (mínimo {{ textoMinLength }}, hoje {{ novoTexto.length }}).
+            } @else {
+              {{ novoTexto.length }} / {{ textoMaxLength }} caracteres.
+            }
           </small>
         </div>
 

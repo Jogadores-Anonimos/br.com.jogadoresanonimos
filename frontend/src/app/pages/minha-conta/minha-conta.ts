@@ -8,9 +8,17 @@ import {
   inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { of, timeout } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 import { Auth } from '../../services/auth';
+import { LoginResponse, UsuarioResponse } from '../../services/auth.model';
+import { apiError } from '../../services/api-envelope';
+import { ArquivoResponse } from '../../services/arquivo.model';
+import { BibliotecaPessoalService } from '../../services/biblioteca-pessoal';
+import { RecaptchaLoader } from '../../services/recaptcha-loader';
 
 declare const grecaptcha: any;
 
@@ -24,15 +32,10 @@ interface PedidoConta {
   total: string;
 }
 
-interface DownloadConta {
-  titulo: string;
-  disponibilizadoEm: string;
-}
-
 @Component({
   selector: 'app-minha-conta',
   standalone: true,
-  imports: [FormsModule, ResourceLayout],
+  imports: [FormsModule, RouterLink, ResourceLayout],
   templateUrl: './minha-conta.html',
   styleUrl: './minha-conta.css',
 })
@@ -42,6 +45,9 @@ export class MinhaConta implements OnDestroy {
   private readonly RECAPTCHA_SITE_KEY_TESTE = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
 
   private readonly appRef = inject(ApplicationRef);
+  private readonly recaptchaLoader = inject(RecaptchaLoader);
+  private readonly bibliotecaPessoal = inject(BibliotecaPessoalService);
+  private readonly router = inject(Router);
 
   constructor(
     public readonly auth: Auth,
@@ -49,12 +55,56 @@ export class MinhaConta implements OnDestroy {
     effect(() => {
       const usuario = this.auth.usuarioAtual();
       if (usuario) {
-        this.nomeExibicao = usuario.identificador;
-        this.emailDetalhes = usuario.identificador.includes('@') ? usuario.identificador : '';
+        // Admin não usa a área de cliente — cai direto no painel.
+        if (usuario.role === 'ADMIN') {
+          this.router.navigateByUrl('/admin');
+          return;
+        }
+        this.nomeExibicao = usuario.apelido;
+        this.carregarDownloads();
+        this.carregarDetalhesConta();
+      } else {
+        this.downloads = [];
       }
     });
   }
 
+  private carregarDetalhesConta(): void {
+    this.auth.buscarUsuarioLogado().subscribe((resposta) => {
+      if (resposta.success && resposta.data) {
+        this.nomeExibicao = resposta.data.apelido;
+        this.emailDetalhes = resposta.data.email;
+      }
+    });
+  }
+
+  private carregarDownloads(): void {
+    this.downloadsCarregando = true;
+    this.bibliotecaPessoal.listarMinhaBiblioteca().subscribe((resposta) => {
+      this.downloadsCarregando = false;
+      if (resposta.success && resposta.data) {
+        this.downloads = resposta.data;
+      }
+    });
+  }
+
+  removerDownload(arquivoId: string): void {
+    if (this.downloadsRemovendo.has(arquivoId)) {
+      return;
+    }
+    this.downloadsRemovendo.add(arquivoId);
+    this.bibliotecaPessoal.removerDaBiblioteca(arquivoId).subscribe((resposta) => {
+      this.downloadsRemovendo.delete(arquivoId);
+      if (resposta.success) {
+        this.downloads = this.downloads.filter((arquivo) => arquivo.id !== arquivoId);
+      }
+    });
+  }
+
+  // nomes de campo mantidos para não quebrar o template (minha-conta.html é
+  // domínio do agente frontend); "registroApelido" foi adicionado pois o
+  // contrato real de registro passou a exigir apelido — ver ux-ui/frontend
+  // para incluir o campo correspondente no formulário.
   loginUsuarioOuEmail = '';
   loginSenha = '';
   lembrarDeMim = false;
@@ -63,40 +113,71 @@ export class MinhaConta implements OnDestroy {
   loginSucesso = false;
   captchaLoginOk = false;
 
+  registroApelido = '';
   registroEmail = '';
   registroSenha = '';
+  registroConfirmarSenha = '';
   registroEnviando = false;
   registroMensagem = '';
   registroSucesso = false;
   captchaRegistroOk = false;
+  registroErrosCampo: Record<string, string> = {};
+
+  // Timeout de segurança: garante que o botão nunca fica preso em
+  // "Entrando..."/"Criando..." indefinidamente, mesmo se algo travar a
+  // requisição ou o observable nunca completar por um bug futuro.
+  private static readonly TIMEOUT_SUBMIT_MS = 5_000;
 
   onLoginSubmit(): void {
     this.loginEnviando = true;
     this.loginMensagem = '';
 
     this.auth
-      .login({ usuarioOuEmail: this.loginUsuarioOuEmail, senha: this.loginSenha })
+      .login({ identificador: this.loginUsuarioOuEmail, senha: this.loginSenha })
+      .pipe(
+        timeout(MinhaConta.TIMEOUT_SUBMIT_MS),
+        catchError(() =>
+          of(apiError<LoginResponse>('TIMEOUT', 'A requisição demorou demais. Tente novamente.')),
+        ),
+        finalize(() => {
+          this.loginEnviando = false;
+        }),
+      )
       .subscribe((resposta) => {
-        this.loginEnviando = false;
         this.loginSucesso = resposta.success;
         this.loginMensagem = resposta.success
           ? ''
-          : (resposta.error ?? 'Não foi possível entrar. Tente novamente.');
+          : (resposta.error?.message ?? 'Não foi possível entrar. Tente novamente.');
       });
   }
 
   onRegistroSubmit(): void {
     this.registroEnviando = true;
     this.registroMensagem = '';
+    this.registroErrosCampo = {};
 
     this.auth
-      .register({ email: this.registroEmail, senha: this.registroSenha })
+      .registrar({
+        apelido: this.registroApelido,
+        email: this.registroEmail,
+        senha: this.registroSenha,
+        confirmarSenha: this.registroConfirmarSenha,
+      })
+      .pipe(
+        timeout(MinhaConta.TIMEOUT_SUBMIT_MS),
+        catchError(() =>
+          of(apiError<UsuarioResponse>('TIMEOUT', 'A requisição demorou demais. Tente novamente.')),
+        ),
+        finalize(() => {
+          this.registroEnviando = false;
+        }),
+      )
       .subscribe((resposta) => {
-        this.registroEnviando = false;
         this.registroSucesso = resposta.success;
+        this.registroErrosCampo = resposta.error?.fields ?? {};
         this.registroMensagem = resposta.success
           ? ''
-          : (resposta.error ?? 'Não foi possível criar a conta. Tente novamente.');
+          : (resposta.error?.message ?? 'Não foi possível criar a conta. Tente novamente.');
       });
   }
 
@@ -108,7 +189,7 @@ export class MinhaConta implements OnDestroy {
   @ViewChild('captchaLogin')
   set captchaLoginRef(ref: ElementRef<HTMLDivElement> | undefined) {
     if (ref) {
-      this.renderizarRecaptcha(ref.nativeElement, 'login');
+      this.carregarERenderizarRecaptcha(ref.nativeElement, 'login');
     } else {
       this.captchaLoginWidgetId = null;
       this.captchaLoginOk = false;
@@ -118,11 +199,23 @@ export class MinhaConta implements OnDestroy {
   @ViewChild('captchaRegistro')
   set captchaRegistroRef(ref: ElementRef<HTMLDivElement> | undefined) {
     if (ref) {
-      this.renderizarRecaptcha(ref.nativeElement, 'registro');
+      this.carregarERenderizarRecaptcha(ref.nativeElement, 'registro');
     } else {
       this.captchaRegistroWidgetId = null;
       this.captchaRegistroOk = false;
     }
+  }
+
+  private carregarERenderizarRecaptcha(
+    container: HTMLDivElement,
+    formulario: 'login' | 'registro',
+  ): void {
+    this.recaptchaLoader
+      .carregar()
+      .then(() => this.renderizarRecaptcha(container, formulario))
+      .catch(() => {
+        this.definirCaptchaOk(formulario, false);
+      });
   }
 
   private renderizarRecaptcha(
@@ -191,42 +284,12 @@ export class MinhaConta implements OnDestroy {
     this.abaAtiva = aba;
   }
 
-  readonly pedidos: PedidoConta[] = [
-    {
-      numero: '#JAB-10432',
-      data: '02/06/2026',
-      item: 'Livro — Um Novo Começo',
-      status: 'Concluído',
-      total: 'R$ 45,90',
-    },
-    {
-      numero: '#JAB-10467',
-      data: '15/06/2026',
-      item: 'Chaveiro Jogadores Anônimos',
-      status: 'Concluído',
-      total: 'R$ 18,50',
-    },
-    {
-      numero: '#JAB-10501',
-      data: '28/06/2026',
-      item: 'Folheto — Sua Primeira Reunião (pacote c/10)',
-      status: 'Processando',
-      total: 'R$ 22,00',
-    },
-    {
-      numero: '#JAB-10528',
-      data: '03/07/2026',
-      item: 'Guia para o Inventário do Quarto Passo',
-      status: 'Processando',
-      total: 'R$ 15,90',
-    },
-  ];
+  // Loja em standby — sem pedido real ainda, lista vazia até reativar.
+  readonly pedidos: PedidoConta[] = [];
 
-  readonly downloads: DownloadConta[] = [
-    { titulo: 'Sua Primeira Reunião', disponibilizadoEm: '02/06/2026' },
-    { titulo: 'Um Novo Começo', disponibilizadoEm: '15/06/2026' },
-    { titulo: 'Em Direção aos Noventa Dias', disponibilizadoEm: '28/06/2026' },
-  ];
+  downloads: ArquivoResponse[] = [];
+  downloadsCarregando = false;
+  downloadsRemovendo = new Set<string>();
 
   nomeExibicao = '';
   emailDetalhes = '';
@@ -234,9 +297,55 @@ export class MinhaConta implements OnDestroy {
   novaSenhaDetalhes = '';
   confirmarNovaSenhaDetalhes = '';
   detalhesMensagem = '';
+  detalhesSucesso = false;
+  detalhesEnviando = false;
 
   onSalvarDetalhes(): void {
-    this.detalhesMensagem = 'Alteração de conta ainda não disponível — em breve.';
+    this.detalhesEnviando = true;
+    this.detalhesMensagem = '';
+    this.detalhesSucesso = false;
+
+    this.auth
+      .atualizarConta({ apelido: this.nomeExibicao, email: this.emailDetalhes })
+      .subscribe((resposta) => {
+        if (!resposta.success) {
+          this.detalhesEnviando = false;
+          this.detalhesMensagem = resposta.error?.message ?? 'Não foi possível salvar os dados informados.';
+          return;
+        }
+
+        this.salvarSenhaSeInformada();
+      });
+  }
+
+  private salvarSenhaSeInformada(): void {
+    const querTrocarSenha = this.senhaAtualDetalhes || this.novaSenhaDetalhes || this.confirmarNovaSenhaDetalhes;
+    if (!querTrocarSenha) {
+      this.detalhesEnviando = false;
+      this.detalhesSucesso = true;
+      this.detalhesMensagem = 'Dados da conta atualizados com sucesso.';
+      return;
+    }
+
+    this.auth
+      .alterarSenha({
+        senhaAtual: this.senhaAtualDetalhes,
+        novaSenha: this.novaSenhaDetalhes,
+        confirmarNovaSenha: this.confirmarNovaSenhaDetalhes,
+      })
+      .subscribe((resposta) => {
+        this.detalhesEnviando = false;
+        this.detalhesSucesso = resposta.success;
+        if (resposta.success) {
+          this.senhaAtualDetalhes = '';
+          this.novaSenhaDetalhes = '';
+          this.confirmarNovaSenhaDetalhes = '';
+          this.detalhesMensagem = 'Dados salvos e senha alterada com sucesso. Faça login novamente.';
+          this.auth.logout();
+        } else {
+          this.detalhesMensagem = resposta.error?.message ?? 'Dados salvos, mas não foi possível alterar a senha.';
+        }
+      });
   }
 
   sair(): void {

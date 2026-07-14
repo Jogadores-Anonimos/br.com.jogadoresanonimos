@@ -1,24 +1,9 @@
 <app-resource-layout titulo="História">
 
   <section class="section">
-    <p>
-      A irmandade de Jogadores Anônimos nasceu em janeiro de 1957, quando
-      dois homens que sofriam com a compulsão pelo jogo se encontraram e
-      perceberam que, compartilhando suas experiências e apoiando um ao
-      outro, conseguiam permanecer afastados do jogo. Dessa troca nasceu a
-      base do programa de recuperação que existe até hoje.
-    </p>
-    <p>
-      Em 13 de setembro de 1957 aconteceu a primeira reunião oficial de
-      Jogadores Anônimos, em Los Angeles, Califórnia. A partir desse
-      encontro, novos grupos foram surgindo em diferentes regiões dos
-      Estados Unidos e, com o passar dos anos, a mensagem de recuperação
-      atravessou fronteiras e alcançou diversos países ao redor do mundo.
-    </p>
-    <p class="placeholder-note">
-      [Data e história de fundação da Jogadores Anônimos do Brasil a
-      confirmar com o cliente]
-    </p>
+    @for (bloco of blocosTexto; track bloco.ordem) {
+      <div [innerHTML]="bloco.conteudo"></div>
+    }
   </section>
 
 </app-resource-layout>

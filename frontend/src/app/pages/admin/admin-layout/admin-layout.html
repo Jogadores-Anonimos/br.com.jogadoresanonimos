@@ -1,0 +1,45 @@
+<div class="admin-layout">
+  <button
+    type="button"
+    class="admin-layout__toggle"
+    (click)="toggleMenu()"
+    [attr.aria-expanded]="menuAberto"
+    aria-controls="admin-sidebar"
+  >
+    <span class="admin-layout__toggle-label">Menu do painel</span>
+  </button>
+
+  <aside
+    id="admin-sidebar"
+    class="admin-sidebar"
+    [class.admin-sidebar--aberta]="menuAberto"
+    aria-label="Navegação do painel administrativo"
+  >
+    <h1 class="admin-sidebar__titulo">Painel administrativo</h1>
+
+    <nav>
+      @for (grupo of grupos; track grupo.titulo) {
+        <div class="admin-sidebar__grupo">
+          <h2 class="admin-sidebar__grupo-titulo">{{ grupo.titulo }}</h2>
+          <ul class="admin-sidebar__lista">
+            @for (item of grupo.itens; track item.rota) {
+              <li>
+                <a
+                  [routerLink]="item.rota"
+                  routerLinkActive="active"
+                  (click)="fecharMenu()"
+                >
+                  {{ item.label }}
+                </a>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </nav>
+  </aside>
+
+  <main class="admin-conteudo">
+    <router-outlet></router-outlet>
+  </main>
+</div>

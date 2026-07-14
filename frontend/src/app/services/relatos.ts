@@ -1,33 +1,38 @@
-import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { catchError, delay } from 'rxjs/operators';
+import { catchError, delay, map } from 'rxjs/operators';
 
-// TODO: substituir por chamada real (GET/POST '/api/relatos') mantendo o contrato público
-//
-// Quando a chamada real existir, o envio deve levar um identificador de sessão opaco anti-abuso
-// (rate limiting no backend, ver .claude/knowledge/seguranca-depoimentos.md item 2) — nunca campo visível do formulário.
+import { environment } from '../../environments/environment';
+import { ApiEnvelope, apiError, apiSuccess } from './api-envelope';
+import { Pagina } from './pagina.model';
+import {
+  EditarRelatoRequest,
+  EnviarRelatoRequest,
+  RelatoAdmin,
+  RelatoEnvio,
+  RelatoPublico,
+  StatusRelato,
+} from './relato.model';
+import { RELATOS_MOCK } from './relato.mock';
 
-// só 'approved' pode ser retornado pela listagem pública (ver seguranca-depoimentos.md)
-export type StatusRelato = 'pending' | 'approved' | 'rejected';
+// Reexport para não quebrar consumidores existentes (pages/relatos, pages/home)
+// que importam o tipo `Relato` deste módulo.
+export type Relato = RelatoAdmin;
+export type { StatusRelato } from './relato.model';
 
-// deliberadamente sem e-mail, nome completo, telefone, CPF, geolocalização ou anexo — política de segurança
-export interface Relato {
-  id: string;
-  texto: string;
-  nomeExibicao: string | null; // null/vazio -> exibir como "Anônimo" na UI
-  status: StatusRelato;
-  dataCriacao: string; // ISO
-}
+const TEXTO_MIN_LENGTH = 50;
+const TEXTO_MAX_LENGTH = 4000;
+const NOME_EXIBICAO_MAX_LENGTH = 30;
+const TAMANHO_PAGINA_PADRAO = 20;
 
+// Formatos legados (pré-contrato real), mantidos só para não quebrar os
+// componentes que já consomem este service — internamente tudo já usa
+// ApiEnvelope/Pagina<T> conforme backend/docs/api/contrato-relatos.md.
 export interface RelatosResponse {
   success: boolean;
   data?: Relato[];
   error?: string;
-}
-
-export interface EnviarRelatoRequest {
-  texto: string;
-  nomeExibicao?: string;
 }
 
 export interface EnviarRelatoResponse {
@@ -36,66 +41,75 @@ export interface EnviarRelatoResponse {
   error?: string;
 }
 
-const TEXTO_MIN_LENGTH = 50;
-const TEXTO_MAX_LENGTH = 4000;
-const NOME_EXIBICAO_MAX_LENGTH = 30;
-
-// relatos fictícios e genéricos, sem nenhum dado sensível real
-const RELATOS_MOCK: Relato[] = [
-  {
-    id: 'relato-1',
-    texto:
-      'Cheguei ao grupo sem acreditar que conseguiria parar. Hoje, com a ajuda dos encontros semanais e do apoio dos outros membros, completei alguns meses de recuperação. Cada reunião me lembra que não preciso enfrentar isso sozinho.',
-    nomeExibicao: 'Marcos',
-    status: 'approved',
-    dataCriacao: '2026-07-05T13:20:00.000Z',
-  },
-  {
-    id: 'relato-2',
-    texto:
-      'Demorei anos para admitir que precisava de ajuda. Encontrar um espaço onde eu podia falar abertamente, sem julgamento, mudou minha forma de encarar a recuperação. Ainda é um processo diário, mas hoje sinto que tenho ferramentas para seguir em frente.',
-    nomeExibicao: null,
-    status: 'approved',
-    dataCriacao: '2026-07-02T09:45:00.000Z',
-  },
-  {
-    id: 'relato-3',
-    texto:
-      'O primeiro passo foi o mais difícil, mas participar das reuniões me deu uma rotina e pessoas em quem confiar. Reconstruir a confiança da minha família está sendo gradual, e sei que não estou sozinho nessa caminhada.',
-    nomeExibicao: 'J.',
-    status: 'approved',
-    dataCriacao: '2026-06-27T18:10:00.000Z',
-  },
-  {
-    id: 'relato-4',
-    texto:
-      'Nunca imaginei que dividir minha história com estranhos pudesse trazer tanto alívio. O grupo me ensinou que recaídas fazem parte do processo e que o importante é continuar tentando, um dia de cada vez.',
-    nomeExibicao: 'Ana',
-    status: 'approved',
-    dataCriacao: '2026-06-18T11:00:00.000Z',
-  },
-];
-
 @Injectable({ providedIn: 'root' })
 export class RelatosService {
-  listarRelatosAprovados(): Observable<RelatosResponse> {
+  private readonly http = inject(HttpClient);
+  private readonly publicaUrl = `${environment.apiBaseUrl}/relatos`;
+  private readonly adminUrl = `${environment.apiBaseUrl}/admin/relatos`;
+
+  // API pública nova, alinhada ao contrato — devolve Pagina<RelatoPublico>.
+  listarAprovados(pagina = 0, tamanho = TAMANHO_PAGINA_PADRAO): Observable<ApiEnvelope<Pagina<RelatoPublico>>> {
+    if (!environment.useMocks) {
+      return this.http
+        .get<ApiEnvelope<Pagina<RelatoPublico>>>(`${this.publicaUrl}?pagina=${pagina}&tamanho=${tamanho}`)
+        .pipe(
+          catchError(() =>
+            of(apiError<Pagina<RelatoPublico>>('UPSTREAM_ERROR', 'Não foi possível carregar os relatos no momento.')),
+          ),
+        );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
     const aprovados = RELATOS_MOCK.filter((r) => r.status === 'approved').sort(
       (a, b) => new Date(b.dataCriacao).getTime() - new Date(a.dataCriacao).getTime(),
     );
+    const conteudo: RelatoPublico[] = aprovados.map(({ id, texto, nomeExibicao, dataCriacao }) => ({
+      id,
+      texto,
+      nomeExibicao,
+      dataCriacao,
+    }));
 
-    return of<RelatosResponse>({ success: true, data: aprovados }).pipe(
-      delay(500),
-      catchError(() =>
-        of<RelatosResponse>({
-          success: false,
-          error: 'Não foi possível carregar os relatos no momento.',
-        }),
-      ),
+    return of(
+      apiSuccess<Pagina<RelatoPublico>>({
+        conteudo,
+        pagina,
+        tamanho,
+        totalElementos: conteudo.length,
+        totalPaginas: 1,
+      }),
+    ).pipe(delay(500));
+  }
+
+  // Mantido por compatibilidade com pages/relatos e pages/home, que hoje
+  // esperam um array simples (não Pagina<T>) em `data`.
+  listarRelatosAprovados(): Observable<RelatosResponse> {
+    return this.listarAprovados(0, TAMANHO_PAGINA_PADRAO).pipe(
+      map((envelope) => {
+        if (!envelope.success || !envelope.data) {
+          return { success: false, error: envelope.error?.message ?? 'Não foi possível carregar os relatos no momento.' };
+        }
+        return { success: true, data: envelope.data.conteudo as Relato[] };
+      }),
     );
   }
 
-  // não há confirmação de aprovação instantânea: todo relato entra 'pending' e só aparece após moderação
+  // Requer autenticação (JWT) — ver contrato item 1. O header de auth é
+  // adicionado pela infraestrutura HTTP compartilhada quando integrado à
+  // API real; este service nunca lida com token diretamente.
   enviarRelato(req: EnviarRelatoRequest): Observable<EnviarRelatoResponse> {
+    if (!environment.useMocks) {
+      return this.http.post<ApiEnvelope<RelatoEnvio>>(this.publicaUrl, req).pipe(
+        map((envelope) =>
+          envelope.success
+            ? { success: true, data: { recebido: true } }
+            : { success: false, error: envelope.error?.message ?? 'Não foi possível enviar seu relato agora.' },
+        ),
+        catchError(() => of({ success: false, error: 'Não foi possível enviar seu relato agora. Tente novamente em instantes.' })),
+      );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
     const texto = req.texto?.trim() ?? '';
     const nomeExibicao = req.nomeExibicao?.trim();
 
@@ -113,14 +127,120 @@ export class RelatosService {
       }).pipe(delay(300));
     }
 
-    return of<EnviarRelatoResponse>({ success: true, data: { recebido: true } }).pipe(
-      delay(500),
-      catchError(() =>
-        of<EnviarRelatoResponse>({
-          success: false,
-          error: 'Não foi possível enviar seu relato agora. Tente novamente em instantes.',
-        }),
-      ),
+    const novo: RelatoAdmin = {
+      id: `mock-relato-${RELATOS_MOCK.length + 1}`,
+      texto,
+      nomeExibicao: nomeExibicao || null,
+      status: 'pending',
+      dataCriacao: new Date().toISOString(),
+      dataAtualizacao: new Date().toISOString(),
+    };
+    RELATOS_MOCK.push(novo);
+
+    return of<EnviarRelatoResponse>({ success: true, data: { recebido: true } }).pipe(delay(500));
+  }
+
+  // --- Admin (moderação) ---
+
+  listarPorStatusAdmin(
+    status: StatusRelato,
+    pagina = 0,
+    tamanho = TAMANHO_PAGINA_PADRAO,
+  ): Observable<ApiEnvelope<Pagina<RelatoAdmin>>> {
+    if (!environment.useMocks) {
+      return this.http
+        .get<ApiEnvelope<Pagina<RelatoAdmin>>>(`${this.adminUrl}?status=${status}&pagina=${pagina}&tamanho=${tamanho}`)
+        .pipe(
+          catchError(() =>
+            of(apiError<Pagina<RelatoAdmin>>('UPSTREAM_ERROR', 'Não foi possível carregar os relatos.')),
+          ),
+        );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
+    const filtrados = RELATOS_MOCK.filter((r) => r.status === status).sort((a, b) =>
+      status === 'pending'
+        ? new Date(a.dataCriacao).getTime() - new Date(b.dataCriacao).getTime()
+        : new Date(b.dataAtualizacao).getTime() - new Date(a.dataAtualizacao).getTime(),
     );
+
+    return of(
+      apiSuccess<Pagina<RelatoAdmin>>({
+        conteudo: filtrados,
+        pagina,
+        tamanho,
+        totalElementos: filtrados.length,
+        totalPaginas: 1,
+      }),
+    ).pipe(delay(400));
+  }
+
+  editarRelatoAdmin(id: string, req: EditarRelatoRequest): Observable<ApiEnvelope<RelatoAdmin>> {
+    if (!environment.useMocks) {
+      return this.http.put<ApiEnvelope<RelatoAdmin>>(`${this.adminUrl}/${id}`, req).pipe(
+        catchError(() => of(apiError<RelatoAdmin>('UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+      );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
+    const texto = req.texto?.trim() ?? '';
+    if (texto.length < TEXTO_MIN_LENGTH || texto.length > TEXTO_MAX_LENGTH) {
+      return of(
+        apiError<RelatoAdmin>('VALIDATION_ERROR', `O texto deve ter entre ${TEXTO_MIN_LENGTH} e ${TEXTO_MAX_LENGTH} caracteres.`),
+      ).pipe(delay(300));
+    }
+
+    const relato = RELATOS_MOCK.find((r) => r.id === id);
+    if (!relato) {
+      return of(apiError<RelatoAdmin>('NOT_FOUND', 'Relato não encontrado.')).pipe(delay(300));
+    }
+    relato.texto = texto;
+    relato.dataAtualizacao = new Date().toISOString();
+    return of(apiSuccess(relato)).pipe(delay(400));
+  }
+
+  aprovarRelatoAdmin(id: string): Observable<ApiEnvelope<RelatoAdmin>> {
+    return this.transicionarStatusAdmin(id, 'approved', `${this.adminUrl}/${id}/aprovar`);
+  }
+
+  rejeitarRelatoAdmin(id: string): Observable<ApiEnvelope<RelatoAdmin>> {
+    return this.transicionarStatusAdmin(id, 'rejected', `${this.adminUrl}/${id}/rejeitar`);
+  }
+
+  reverterRelatoAdmin(id: string): Observable<ApiEnvelope<RelatoAdmin>> {
+    return this.transicionarStatusAdmin(id, 'pending', `${this.adminUrl}/${id}/reverter`);
+  }
+
+  excluirRelatoAdmin(id: string): Observable<ApiEnvelope<{ mensagem: string }>> {
+    if (!environment.useMocks) {
+      return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/${id}`).pipe(
+        catchError(() => of(apiError<{ mensagem: string }>('UPSTREAM_ERROR', 'Não foi possível remover o relato agora.'))),
+      );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
+    const indice = RELATOS_MOCK.findIndex((r) => r.id === id);
+    if (indice === -1) {
+      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Relato não encontrado.')).pipe(delay(300));
+    }
+    RELATOS_MOCK.splice(indice, 1);
+    return of(apiSuccess({ mensagem: 'Relato removido.' })).pipe(delay(400));
+  }
+
+  private transicionarStatusAdmin(id: string, novoStatus: StatusRelato, urlReal: string): Observable<ApiEnvelope<RelatoAdmin>> {
+    if (!environment.useMocks) {
+      return this.http.post<ApiEnvelope<RelatoAdmin>>(urlReal, {}).pipe(
+        catchError(() => of(apiError<RelatoAdmin>('UPSTREAM_ERROR', 'Não foi possível atualizar o status do relato.'))),
+      );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
+    const relato = RELATOS_MOCK.find((r) => r.id === id);
+    if (!relato) {
+      return of(apiError<RelatoAdmin>('NOT_FOUND', 'Relato não encontrado.')).pipe(delay(300));
+    }
+    relato.status = novoStatus;
+    relato.dataAtualizacao = new Date().toISOString();
+    return of(apiSuccess(relato)).pipe(delay(400));
   }
 }

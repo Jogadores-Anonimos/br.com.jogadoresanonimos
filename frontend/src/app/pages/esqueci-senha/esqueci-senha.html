@@ -1,0 +1,41 @@
+<app-resource-layout titulo="Esqueci Minha Senha" [bannerSrc]="bannerSrc" [mostrarSidebar]="false">
+  <div class="esqueci-senha">
+    <div class="esqueci-senha__card">
+      @if (enviado) {
+        <p class="esqueci-senha__mensagem esqueci-senha__mensagem--sucesso" role="status">
+          {{ mensagem }}
+        </p>
+        <a routerLink="/minha-conta" class="link-secundario">Voltar para o login</a>
+      } @else {
+        <p class="esqueci-senha__intro">
+          Informe seu apelido ou e-mail cadastrado. Se existir uma conta
+          correspondente, enviaremos um link para você redefinir sua senha.
+        </p>
+
+        <form (ngSubmit)="onSubmit()" #esqueciForm="ngForm">
+          <div class="campo">
+            <label for="esqueci-identificador">Apelido ou e-mail</label>
+            <input
+              id="esqueci-identificador"
+              name="identificador"
+              type="text"
+              autocomplete="username"
+              [(ngModel)]="identificador"
+              required
+            />
+          </div>
+
+          <button type="submit" class="btn-cta" [disabled]="enviando || esqueciForm.invalid">
+            {{ enviando ? 'Enviando...' : 'Enviar link de redefinição' }}
+          </button>
+
+          @if (mensagem && !enviado) {
+            <p class="mensagem mensagem-erro">{{ mensagem }}</p>
+          }
+        </form>
+
+        <a routerLink="/minha-conta" class="link-secundario">Voltar para o login</a>
+      }
+    </div>
+  </div>
+</app-resource-layout>

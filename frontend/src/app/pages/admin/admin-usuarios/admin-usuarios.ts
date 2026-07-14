@@ -1,0 +1,109 @@
+import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+
+import { Role } from '../../../services/auth.model';
+import { UsuarioAdminService } from '../../../services/usuario-admin';
+import { UsuarioAdmin } from '../../../services/usuario-admin.model';
+
+@Component({
+  selector: 'app-admin-usuarios',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './admin-usuarios.html',
+  styleUrl: './admin-usuarios.css',
+})
+export class AdminUsuarios implements OnInit {
+  private readonly usuarioAdminService = inject(UsuarioAdminService);
+
+  carregando = true;
+  erroCarregamento = '';
+  usuarios: UsuarioAdmin[] = [];
+
+  filtroTexto = '';
+  filtroRole: Role | '' = '';
+
+  roleSelecionada: Record<string, Role> = {};
+  confirmandoPromocao: string | null = null;
+  salvandoRole: string | null = null;
+  erroPorUsuario: Record<string, string> = {};
+
+  ngOnInit(): void {
+    this.carregarUsuarios();
+  }
+
+  get usuariosFiltrados(): UsuarioAdmin[] {
+    const texto = this.filtroTexto.trim().toLowerCase();
+    return this.usuarios.filter((usuario) => {
+      const bateTexto =
+        !texto ||
+        usuario.apelido.toLowerCase().includes(texto) ||
+        usuario.email.toLowerCase().includes(texto);
+      const bateRole = !this.filtroRole || usuario.role === this.filtroRole;
+      return bateTexto && bateRole;
+    });
+  }
+
+  private carregarUsuarios(): void {
+    this.carregando = true;
+    this.erroCarregamento = '';
+
+    this.usuarioAdminService.listarUsuarios().subscribe((envelope) => {
+      this.carregando = false;
+
+      if (envelope.success && envelope.data) {
+        this.usuarios = envelope.data;
+        this.roleSelecionada = {};
+        for (const usuario of this.usuarios) {
+          this.roleSelecionada[usuario.id] = usuario.role;
+        }
+      } else {
+        this.usuarios = [];
+        this.erroCarregamento = envelope.error?.message ?? 'Não foi possível carregar os usuários.';
+      }
+    });
+  }
+
+  onRoleSelecionada(usuario: UsuarioAdmin, novaRole: Role): void {
+    this.erroPorUsuario[usuario.id] = '';
+
+    if (novaRole === usuario.role) {
+      return;
+    }
+
+    if (novaRole === 'ADMIN') {
+      this.confirmandoPromocao = usuario.id;
+      return;
+    }
+
+    this.aplicarRole(usuario, novaRole);
+  }
+
+  confirmarPromocao(usuario: UsuarioAdmin): void {
+    this.confirmandoPromocao = null;
+    this.aplicarRole(usuario, 'ADMIN');
+  }
+
+  cancelarPromocao(usuario: UsuarioAdmin): void {
+    this.confirmandoPromocao = null;
+    this.roleSelecionada[usuario.id] = usuario.role;
+  }
+
+  private aplicarRole(usuario: UsuarioAdmin, novaRole: Role): void {
+    this.salvandoRole = usuario.id;
+    this.erroPorUsuario[usuario.id] = '';
+
+    this.usuarioAdminService.editarRole(usuario.id, { role: novaRole }).subscribe((envelope) => {
+      this.salvandoRole = null;
+
+      if (envelope.success && envelope.data) {
+        const atualizado = envelope.data;
+        this.usuarios = this.usuarios.map((u) => (u.id === atualizado.id ? atualizado : u));
+        this.roleSelecionada[atualizado.id] = atualizado.role;
+      } else {
+        this.erroPorUsuario[usuario.id] = envelope.error?.message ?? 'Não foi possível alterar a role agora.';
+        this.roleSelecionada[usuario.id] = usuario.role;
+      }
+    });
+  }
+}

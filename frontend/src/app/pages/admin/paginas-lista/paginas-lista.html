@@ -1,0 +1,42 @@
+<section class="paginas-lista">
+  <h1>Páginas do site</h1>
+  <p class="paginas-lista__descricao">
+    Edite o conteúdo de texto e imagem das páginas institucionais. Criação,
+    exclusão e mudança de layout não são permitidas nesta área.
+  </p>
+
+  @if (carregando()) {
+    <p class="paginas-lista__estado" role="status">Carregando páginas…</p>
+  } @else if (erro()) {
+    <p class="paginas-lista__estado paginas-lista__estado--erro" role="alert">{{ erro() }}</p>
+  } @else {
+    <div class="paginas-lista__tabela-wrapper">
+      <table class="paginas-lista__tabela">
+        <thead>
+          <tr>
+            <th scope="col">Título</th>
+            <th scope="col">Última edição</th>
+            <th scope="col"><span class="visualmente-oculto">Ações</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (pagina of paginas(); track pagina.slug) {
+            <tr>
+              <td data-label="Título">{{ pagina.titulo }}</td>
+              <td data-label="Última edição">{{ pagina.atualizadoEm | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td data-label="Ações">
+                <a class="paginas-lista__editar" [routerLink]="['/admin/paginas', pagina.slug]">
+                  Editar<span class="visualmente-oculto"> {{ pagina.titulo }}</span>
+                </a>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="3">Nenhuma página cadastrada.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

@@ -1,34 +1,9 @@
 <app-resource-layout titulo="Uma Nova Chance">
 
   <section class="section">
-    <p>
-      Se você chegou até aqui, talvez esteja no início de uma decisão
-      difícil, ou talvez já tenha dado os primeiros passos e ainda esteja
-      incerto se vai conseguir continuar. De qualquer lugar que você
-      esteja partindo, é possível recomeçar. Não existe um ponto de dano
-      tão grande que torne a recuperação impossível — existe, sim, um
-      processo, e ele começa exatamente de onde você está agora.
-    </p>
-    <p>
-      Recomeçar não significa apagar o que aconteceu. Significa
-      reconstruir, aos poucos: a confiança de quem foi magoado, a relação
-      com o próprio dinheiro, a autoestima que o jogo compulsivo costuma
-      corroer silenciosamente. Isso não acontece da noite para o dia, e
-      ninguém espera que aconteça — cada dia sem jogar é, por si só, uma
-      conquista real, mesmo quando ainda não parece suficiente.
-    </p>
-    <p>
-      Muita gente que hoje ajuda outras pessoas na irmandade um dia
-      esteve exatamente onde você está: incerta, cansada, sem saber se
-      valia a pena tentar de novo. O que sustentou essas pessoas não foi
-      uma solução rápida, foi o apoio de quem já tinha passado por isso e
-      a decisão diária de tentar mais um dia.
-    </p>
-    <p>
-      Não prometemos que vai ser fácil, mas prometemos que você não vai
-      precisar passar por isso sozinho. Uma nova chance começa com um
-      passo simples: pedir ajuda.
-    </p>
+    @for (bloco of blocosTexto; track bloco.ordem) {
+      <div [innerHTML]="bloco.conteudo"></div>
+    }
   </section>
 
 </app-resource-layout>

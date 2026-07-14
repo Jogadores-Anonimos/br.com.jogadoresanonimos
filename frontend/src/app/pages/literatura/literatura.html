@@ -1,16 +1,64 @@
 <app-resource-layout titulo="Literatura">
 
-  <section class="section">
-    <div class="literatura-grid">
-      @for (item of publicacoes; track item.titulo) {
-        <div class="literatura-card">
-          <img class="literatura-capa" [src]="item.imagem" [alt]="item.titulo">
-          <h2>{{ item.titulo }}</h2>
-          <span class="literatura-formato">{{ item.formato }}</span>
-          <p class="literatura-descricao">{{ item.descricao }}</p>
-        </div>
-      }
-    </div>
+  <section class="section literatura-publicacoes-pdf">
+    <h2 class="literatura-publicacoes-pdf__titulo">Publicações em PDF</h2>
+    @if (arquivos.length) {
+      <div class="literatura-pdf-grid">
+        @for (arquivo of arquivos; track arquivo.id) {
+          <article class="literatura-pdf-card">
+            @if (arquivo.thumbnailUrl) {
+              <img class="literatura-pdf-card__capa" [src]="arquivo.thumbnailUrl" [alt]="'Capa: ' + arquivo.titulo" loading="lazy" />
+            } @else {
+              <span class="literatura-pdf-card__icone" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 2h9l5 5v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" />
+                  <path d="M15 2v5h5" />
+                </svg>
+              </span>
+            }
+            <div class="literatura-pdf-card__texto">
+              <h3>{{ arquivo.titulo }}</h3>
+              @if (arquivo.descricao) {
+                <p>{{ arquivo.descricao }}</p>
+              }
+            </div>
+            <div class="literatura-pdf-card__acoes">
+              <a
+                class="literatura-pdf-card__btn"
+                [href]="arquivo.urlDownload"
+                target="_blank"
+                rel="noopener"
+                [attr.aria-label]="'Baixar PDF: ' + arquivo.titulo"
+              >
+                Baixar PDF
+              </a>
+              @if (auth.usuarioAtual()) {
+                @if (idsNaBiblioteca.has(arquivo.id)) {
+                  <span class="literatura-pdf-card__salvo">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                    Já está na minha biblioteca
+                  </span>
+                } @else {
+                  <button
+                    type="button"
+                    class="literatura-pdf-card__btn-secundario"
+                    [disabled]="idsSalvando.has(arquivo.id)"
+                    [attr.aria-label]="'Adicionar à minha biblioteca: ' + arquivo.titulo"
+                    (click)="adicionarABiblioteca(arquivo.id)"
+                  >
+                    {{ idsSalvando.has(arquivo.id) ? 'Adicionando…' : 'Adicionar à minha biblioteca' }}
+                  </button>
+                }
+              }
+            </div>
+          </article>
+        }
+      </div>
+    } @else {
+      <p class="literatura-vazio">Nenhuma publicação disponível no momento.</p>
+    }
   </section>
 
   <section class="cta-final">

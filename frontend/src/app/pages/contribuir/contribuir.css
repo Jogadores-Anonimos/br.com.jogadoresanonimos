@@ -110,3 +110,22 @@
     flex-direction: column;
   }
 }
+
+/* Espaçamento entre blocos de conteúdo do CMS (cada bloco é um <div>
+   próprio) e entre parágrafos/heading dentro de um mesmo bloco. */
+.section > div {
+  margin-bottom: var(--spacing-md);
+}
+
+.section p {
+  margin-bottom: var(--spacing-sm);
+}
+
+.section h2 {
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-sm);
+}
+
+.section > div:first-child h2:first-child {
+  margin-top: 0;
+}

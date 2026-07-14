@@ -175,13 +175,13 @@
           @if (banner.linkDestino) {
             <a class="mural-teaser__card" [routerLink]="banner.linkDestino">
               <div class="mural-teaser__imagem-wrap">
-                <img class="mural-teaser__imagem" [src]="banner.imagemUrl" [alt]="banner.altText">
+                <img class="mural-teaser__imagem" [src]="banner.imagemUrl" [alt]="banner.altText" loading="lazy" decoding="async">
               </div>
             </a>
           } @else {
             <div class="mural-teaser__card">
               <div class="mural-teaser__imagem-wrap">
-                <img class="mural-teaser__imagem" [src]="banner.imagemUrl" [alt]="banner.altText">
+                <img class="mural-teaser__imagem" [src]="banner.imagemUrl" [alt]="banner.altText" loading="lazy" decoding="async">
               </div>
             </div>
           }

@@ -1,0 +1,313 @@
+:host {
+  display: block;
+}
+
+.admin-reunioes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.admin-reunioes__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.admin-reunioes__titulo {
+  color: var(--color-text);
+  font-size: 1.4rem;
+  font-weight: var(--font-weight-heading);
+}
+
+.admin-reunioes__descricao {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 70ch;
+  margin-top: var(--spacing-xs);
+}
+
+.admin-reunioes__estado {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.admin-reunioes__estado--erro {
+  color: var(--color-danger);
+}
+
+.admin-reunioes__lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.admin-reunioes__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-reunioes__card-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+
+.admin-reunioes__card-titulo-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.admin-reunioes__card-titulo {
+  color: var(--color-text);
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-reunioes__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15em 0.6em;
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-md);
+  background: var(--yellow);
+  color: var(--color-text);
+}
+
+.admin-reunioes__badge--virtual {
+  background: var(--color-bg-frame);
+  color: var(--color-text-muted);
+}
+
+.admin-reunioes__dia-horario {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.admin-reunioes__corpo {
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.admin-reunioes__local {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.admin-reunioes__erro-card {
+  color: var(--color-danger);
+  font-size: 0.9rem;
+}
+
+.admin-reunioes__confirmacao {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+  align-self: center;
+}
+
+.admin-reunioes__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+}
+
+.admin-reunioes__botao {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.admin-reunioes__botao:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-reunioes__botao:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.admin-reunioes__botao--primario {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+}
+
+.admin-reunioes__botao--secundario {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.admin-reunioes__botao--perigo {
+  background: var(--color-danger);
+  color: var(--white);
+}
+
+.admin-reunioes__formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.admin-reunioes__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+}
+
+.admin-reunioes__campos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-width: 60ch;
+}
+
+.admin-reunioes__campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.admin-reunioes__campo-linha {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+}
+
+.admin-reunioes__campo-cep {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.admin-reunioes__campo-cep input {
+  flex: 1;
+}
+
+.admin-reunioes__campo label {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-reunioes__campo input[type='text'],
+.admin-reunioes__campo select,
+.admin-reunioes__campo textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-xs);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin-reunioes__campo textarea {
+  resize: vertical;
+}
+
+.admin-reunioes__campo input:focus-visible,
+.admin-reunioes__campo select:focus-visible,
+.admin-reunioes__campo textarea:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.admin-reunioes__ajuda {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.admin-reunioes__mapa-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.admin-reunioes__mapa-preview-titulo {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-reunioes__mapa-preview-wrapper {
+  position: relative;
+  z-index: 0;
+  min-height: 220px;
+  border: 1px solid var(--color-border);
+  background: var(--color-map-panel);
+  overflow: hidden;
+}
+
+.admin-reunioes__mapa-preview-leaflet {
+  position: absolute;
+  inset: 0;
+}
+
+.admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-control,
+.admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-bar,
+.admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-bar a {
+  border-radius: 0 !important;
+}
+
+@media (min-width: 900px) {
+  .admin-reunioes__grid {
+    grid-template-columns: minmax(0, 60ch) minmax(260px, 1fr);
+    align-items: start;
+  }
+
+  .admin-reunioes__mapa-preview-wrapper {
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-reunioes__cabecalho {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-reunioes__botao--primario {
+    width: 100%;
+  }
+
+  .admin-reunioes__campo-linha {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-reunioes__acoes {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-reunioes__acoes .admin-reunioes__botao {
+    width: 100%;
+  }
+}

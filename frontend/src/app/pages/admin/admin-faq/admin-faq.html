@@ -1,0 +1,137 @@
+<section class="admin-faq" *ngIf="modo === 'lista'">
+  <div class="admin-faq__cabecalho">
+    <div>
+      <h1 class="admin-faq__titulo">Perguntas e Respostas</h1>
+      <p class="admin-faq__descricao">
+        Gerencie as perguntas frequentes exibidas no site. Use as setas para reordenar a sequência de
+        exibição.
+      </p>
+    </div>
+    <button type="button" class="admin-faq__botao admin-faq__botao--primario" (click)="abrirNovo()">
+      + Adicionar nova
+    </button>
+  </div>
+
+  <p *ngIf="carregando" class="admin-faq__estado" role="status">Carregando perguntas…</p>
+
+  <p *ngIf="!carregando && erroCarregamento" class="admin-faq__estado admin-faq__estado--erro" role="alert">
+    {{ erroCarregamento }}
+  </p>
+
+  <p *ngIf="!carregando && !erroCarregamento && perguntas.length === 0" class="admin-faq__estado">
+    Nenhuma pergunta cadastrada ainda.
+  </p>
+
+  <ul *ngIf="!carregando && perguntas.length > 0" class="admin-faq__lista">
+    <li *ngFor="let faq of perguntas; let primeiro = first; let ultimo = last" class="admin-faq__card">
+      <div class="admin-faq__card-cabecalho">
+        <div class="admin-faq__card-titulo-linha">
+          <h2 class="admin-faq__card-titulo">{{ faq.pergunta }}</h2>
+        </div>
+      </div>
+
+      <p class="admin-faq__corpo">{{ faq.resposta }}</p>
+
+      <p *ngIf="erroExclusao && confirmandoExclusao === faq.id" class="admin-faq__erro-card" role="alert">
+        {{ erroExclusao }}
+      </p>
+
+      <p *ngIf="erroMover && movendoId === faq.id" class="admin-faq__erro-card" role="alert">
+        {{ erroMover }}
+      </p>
+
+      <div class="admin-faq__acoes">
+        <button
+          type="button"
+          class="admin-faq__botao admin-faq__botao--secundario admin-faq__botao--pequeno"
+          [disabled]="primeiro || movendoId === faq.id"
+          [attr.aria-label]="'Mover \'' + faq.pergunta + '\' para cima'"
+          (click)="moverParaCima(faq)"
+        >
+          ▲
+        </button>
+        <button
+          type="button"
+          class="admin-faq__botao admin-faq__botao--secundario admin-faq__botao--pequeno"
+          [disabled]="ultimo || movendoId === faq.id"
+          [attr.aria-label]="'Mover \'' + faq.pergunta + '\' para baixo'"
+          (click)="moverParaBaixo(faq)"
+        >
+          ▼
+        </button>
+
+        <ng-container *ngIf="confirmandoExclusao !== faq.id; else confirmacaoExclusao">
+          <button type="button" class="admin-faq__botao admin-faq__botao--secundario" (click)="abrirEdicao(faq)">
+            Editar
+          </button>
+          <button
+            type="button"
+            class="admin-faq__botao admin-faq__botao--perigo"
+            (click)="pedirConfirmacaoExclusao(faq)"
+          >
+            Excluir
+          </button>
+        </ng-container>
+
+        <ng-template #confirmacaoExclusao>
+          <p class="admin-faq__confirmacao">Excluir esta pergunta permanentemente?</p>
+          <button
+            type="button"
+            class="admin-faq__botao admin-faq__botao--perigo"
+            [disabled]="excluindo"
+            (click)="confirmarExclusao(faq)"
+          >
+            Confirmar exclusão
+          </button>
+          <button
+            type="button"
+            class="admin-faq__botao admin-faq__botao--secundario"
+            [disabled]="excluindo"
+            (click)="cancelarExclusao()"
+          >
+            Cancelar
+          </button>
+        </ng-template>
+      </div>
+    </li>
+  </ul>
+</section>
+
+<section class="admin-faq" *ngIf="modo === 'formulario'">
+  <h1 class="admin-faq__titulo">{{ faqEmEdicao ? 'Editar pergunta' : 'Nova pergunta' }}</h1>
+
+  <form class="admin-faq__formulario" (ngSubmit)="salvar()">
+    <div class="admin-faq__campo">
+      <label for="faq-pergunta">Pergunta</label>
+      <input
+        id="faq-pergunta"
+        type="text"
+        name="pergunta"
+        [(ngModel)]="formulario.pergunta"
+        required
+      />
+    </div>
+
+    <div class="admin-faq__campo">
+      <label for="faq-resposta">Resposta</label>
+      <textarea
+        id="faq-resposta"
+        name="resposta"
+        rows="6"
+        [(ngModel)]="formulario.resposta"
+        required
+      ></textarea>
+    </div>
+
+    <p *ngIf="erroFormulario" class="admin-faq__erro-card" role="alert">{{ erroFormulario }}</p>
+
+    <div class="admin-faq__acoes">
+      <button type="submit" class="admin-faq__botao admin-faq__botao--primario" [disabled]="salvando">
+        {{ salvando ? 'Salvando…' : 'Salvar' }}
+      </button>
+      <button type="button" class="admin-faq__botao admin-faq__botao--secundario" [disabled]="salvando" (click)="cancelar()">
+        Cancelar
+      </button>
+    </div>
+  </form>
+</section>

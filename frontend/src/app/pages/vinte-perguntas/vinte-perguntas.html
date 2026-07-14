@@ -7,9 +7,25 @@
       nas suas respostas.
     </p>
 
-    @if (!quizIniciado) {
+    @if (carregando) {
       <div class="quiz-card quiz-intro-card">
-        <button type="button" class="btn-cta" (click)="iniciarQuiz()">
+        <p class="quiz-estado" role="status">Carregando perguntas…</p>
+      </div>
+    } @else if (erro) {
+      <div class="quiz-card quiz-intro-card">
+        <p class="mensagem mensagem-erro" role="alert">{{ erro }}</p>
+        <button type="button" class="btn-cta" (click)="carregarPerguntas()">
+          Tentar novamente
+        </button>
+      </div>
+    } @else if (!quizIniciado) {
+      <div class="quiz-card quiz-intro-card">
+        <button
+          type="button"
+          class="btn-cta"
+          [disabled]="!perguntas.length"
+          (click)="iniciarQuiz()"
+        >
           Começar o questionário
         </button>
       </div>

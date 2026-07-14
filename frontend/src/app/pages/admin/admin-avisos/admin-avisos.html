@@ -1,0 +1,144 @@
+<section class="admin-avisos" *ngIf="modo === 'lista'">
+  <div class="admin-avisos__cabecalho">
+    <div>
+      <h1 class="admin-avisos__titulo">Avisos</h1>
+      <p class="admin-avisos__descricao">
+        Gerencie os avisos exibidos na Home. Avisos fixados aparecem primeiro; avisos com data de
+        expiração vencida deixam de ser exibidos publicamente.
+      </p>
+    </div>
+    <button type="button" class="admin-avisos__botao admin-avisos__botao--primario" (click)="abrirNovo()">
+      + Adicionar novo
+    </button>
+  </div>
+
+  <p *ngIf="carregando" class="admin-avisos__estado" role="status">Carregando avisos…</p>
+
+  <p *ngIf="!carregando && erroCarregamento" class="admin-avisos__estado admin-avisos__estado--erro" role="alert">
+    {{ erroCarregamento }}
+  </p>
+
+  <p *ngIf="!carregando && !erroCarregamento && avisos.length === 0" class="admin-avisos__estado">
+    Nenhum aviso cadastrado ainda.
+  </p>
+
+  <ul *ngIf="!carregando && avisos.length > 0" class="admin-avisos__lista">
+    <li *ngFor="let aviso of avisos" class="admin-avisos__card">
+      <div class="admin-avisos__card-cabecalho">
+        <div class="admin-avisos__card-titulo-linha">
+          <h2 class="admin-avisos__card-titulo">{{ aviso.titulo }}</h2>
+          <span *ngIf="aviso.fixado" class="admin-avisos__badge admin-avisos__badge--fixado">Fixado</span>
+          <span *ngIf="aviso.expirado" class="admin-avisos__badge admin-avisos__badge--expirado">Expirado</span>
+        </div>
+        <time class="admin-avisos__data" [attr.datetime]="aviso.dataPublicacao">
+          Publicado em {{ aviso.dataPublicacao | date: 'dd/MM/yyyy' }}
+        </time>
+      </div>
+
+      <p class="admin-avisos__corpo">{{ aviso.corpo }}</p>
+
+      <p *ngIf="aviso.dataExpiracao" class="admin-avisos__expiracao">
+        Expira em {{ aviso.dataExpiracao | date: 'dd/MM/yyyy' }}
+      </p>
+
+      <p *ngIf="erroExclusao && confirmandoExclusao === aviso.id" class="admin-avisos__erro-card" role="alert">
+        {{ erroExclusao }}
+      </p>
+
+      <div class="admin-avisos__acoes">
+        <ng-container *ngIf="confirmandoExclusao !== aviso.id; else confirmacaoExclusao">
+          <button type="button" class="admin-avisos__botao admin-avisos__botao--secundario" (click)="abrirEdicao(aviso)">
+            Editar
+          </button>
+          <button
+            type="button"
+            class="admin-avisos__botao admin-avisos__botao--perigo"
+            (click)="pedirConfirmacaoExclusao(aviso)"
+          >
+            Excluir
+          </button>
+        </ng-container>
+
+        <ng-template #confirmacaoExclusao>
+          <p class="admin-avisos__confirmacao">Excluir este aviso permanentemente?</p>
+          <button
+            type="button"
+            class="admin-avisos__botao admin-avisos__botao--perigo"
+            [disabled]="excluindo"
+            (click)="confirmarExclusao(aviso)"
+          >
+            Confirmar exclusão
+          </button>
+          <button
+            type="button"
+            class="admin-avisos__botao admin-avisos__botao--secundario"
+            [disabled]="excluindo"
+            (click)="cancelarExclusao()"
+          >
+            Cancelar
+          </button>
+        </ng-template>
+      </div>
+    </li>
+  </ul>
+</section>
+
+<section class="admin-avisos" *ngIf="modo === 'formulario'">
+  <h1 class="admin-avisos__titulo">{{ avisoEmEdicao ? 'Editar aviso' : 'Novo aviso' }}</h1>
+
+  <form class="admin-avisos__formulario" (ngSubmit)="salvar()">
+    <div class="admin-avisos__campo">
+      <label for="aviso-titulo">Título</label>
+      <input
+        id="aviso-titulo"
+        type="text"
+        name="titulo"
+        [(ngModel)]="formulario.titulo"
+        required
+      />
+    </div>
+
+    <div class="admin-avisos__campo">
+      <label for="aviso-corpo">Corpo</label>
+      <textarea
+        id="aviso-corpo"
+        name="corpo"
+        rows="6"
+        [(ngModel)]="formulario.corpo"
+        required
+      ></textarea>
+    </div>
+
+    <div class="admin-avisos__campo admin-avisos__campo--linha">
+      <label for="aviso-fixado" class="admin-avisos__label-toggle">
+        <input id="aviso-fixado" type="checkbox" name="fixado" [(ngModel)]="formulario.fixado" />
+        Fixar este aviso no topo
+      </label>
+    </div>
+
+    <div class="admin-avisos__campo">
+      <label for="aviso-expiracao">Data de expiração (opcional)</label>
+      <input
+        id="aviso-expiracao"
+        type="text"
+        inputmode="numeric"
+        placeholder="dd/mm/aaaa"
+        maxlength="10"
+        name="dataExpiracaoTexto"
+        [ngModel]="dataExpiracaoTexto"
+        (ngModelChange)="onDataExpiracaoTextoChange($event)"
+      />
+    </div>
+
+    <p *ngIf="erroFormulario" class="admin-avisos__erro-card" role="alert">{{ erroFormulario }}</p>
+
+    <div class="admin-avisos__acoes">
+      <button type="submit" class="admin-avisos__botao admin-avisos__botao--primario" [disabled]="salvando">
+        {{ salvando ? 'Salvando…' : 'Salvar' }}
+      </button>
+      <button type="button" class="admin-avisos__botao admin-avisos__botao--secundario" [disabled]="salvando" (click)="cancelar()">
+        Cancelar
+      </button>
+    </div>
+  </form>
+</section>

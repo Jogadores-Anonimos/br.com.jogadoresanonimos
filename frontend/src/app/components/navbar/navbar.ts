@@ -1,9 +1,10 @@
-import { Component, ElementRef, HostBinding, HostListener, OnDestroy } from '@angular/core';
+import { Component, ElementRef, HostBinding, HostListener, OnDestroy, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { Subscription } from 'rxjs';
-import { filter } from 'rxjs/operators';
+import { Subscription, fromEvent } from 'rxjs';
+import { auditTime, filter } from 'rxjs/operators';
 import { NAVBAR_SEARCH_INDEX, SearchIndexItem } from './navbar-search-index';
+import { Auth } from '../../services/auth';
 
 type DropdownKey = 'sobre' | 'recursos';
 
@@ -13,6 +14,9 @@ const MOBILE_LAYOUT_BREAKPOINT_PX = 1100;
 
 const MAX_RESULTADOS_BUSCA = 8;
 
+// auditTime evita recalcular a cada pixel rolado (menos trabalho na main thread)
+const SCROLL_AUDIT_MS = 100;
+
 @Component({
   selector: 'app-navbar',
   standalone: true,
@@ -21,6 +25,8 @@ const MAX_RESULTADOS_BUSCA = 8;
   styleUrl: './navbar.css'
 })
 export class Navbar implements OnDestroy {
+  readonly auth = inject(Auth);
+
   private readonly mobileLayoutMql = window.matchMedia(
     `(max-width: ${MOBILE_LAYOUT_BREAKPOINT_PX}px)`
   );
@@ -30,6 +36,7 @@ export class Navbar implements OnDestroy {
   };
 
   private readonly routerEventsSub: Subscription;
+  private readonly scrollSub: Subscription;
 
   constructor(
     private readonly el: ElementRef<HTMLElement>,
@@ -41,11 +48,17 @@ export class Navbar implements OnDestroy {
       .subscribe(() => {
         this.menuAberto = false;
       });
+    this.scrollSub = fromEvent(window, 'scroll', { passive: true })
+      .pipe(auditTime(SCROLL_AUDIT_MS))
+      .subscribe(() => {
+        this.scrolledSignal.set(window.scrollY > SCROLL_THRESHOLD_PX);
+      });
   }
 
   ngOnDestroy(): void {
     this.mobileLayoutMql.removeEventListener('change', this.aoMudarLayout);
     this.routerEventsSub.unsubscribe();
+    this.scrollSub.unsubscribe();
   }
 
   menuAberto = false;
@@ -62,8 +75,19 @@ export class Navbar implements OnDestroy {
    */
   termoBusca = '';
 
+  // Sinal em vez de campo comum: escrito fora do Angular (callback de
+  // scroll do RxJS) — em app zoneless, escrita em campo simples não
+  // agenda um novo ciclo de detecção de forma confiável e pode ficar
+  // dessincronizada de outros bindings no mesmo tick, disparando
+  // NG0100 (ExpressionChangedAfterItHasBeenCheckedError) que aborta a
+  // atualização do DOM daquele ciclo inteiro — inclusive de componentes
+  // não relacionados. Sinal resolve isso.
+  private readonly scrolledSignal = signal(false);
+
   @HostBinding('class.scrolled')
-  scrolled = false;
+  get scrolled(): boolean {
+    return this.scrolledSignal();
+  }
 
   dropdownsAbertos: Record<DropdownKey, boolean> = {
     sobre: false,
@@ -166,8 +190,4 @@ export class Navbar implements OnDestroy {
     }
   }
 
-  @HostListener('window:scroll')
-  aoRolarPagina(): void {
-    this.scrolled = window.scrollY > SCROLL_THRESHOLD_PX;
-  }
 }

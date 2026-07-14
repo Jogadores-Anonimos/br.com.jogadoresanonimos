@@ -1,0 +1,91 @@
+<section class="admin-reflexao">
+  <div class="admin-reflexao__cabecalho">
+    <div>
+      <h1 class="admin-reflexao__titulo">Reflexão do Dia</h1>
+      <p class="admin-reflexao__descricao">
+        Cadastre a reflexão exibida para cada dia do ano. A data é recorrente: o mesmo dia e mês
+        se repete todos os anos.
+      </p>
+    </div>
+  </div>
+
+  <div class="admin-reflexao__meses" role="tablist" aria-label="Selecionar mês">
+    <button
+      *ngFor="let mes of meses"
+      type="button"
+      role="tab"
+      [attr.aria-selected]="mes.numero === mesSelecionado"
+      class="admin-reflexao__mes-botao"
+      [class.admin-reflexao__mes-botao--ativo]="mes.numero === mesSelecionado"
+      (click)="selecionarMes(mes.numero)"
+    >
+      {{ mes.nome | slice: 0:3 }}
+    </button>
+  </div>
+
+  <p *ngIf="carregando" class="admin-reflexao__estado" role="status">Carregando calendário de {{ nomeMesSelecionado() }}…</p>
+
+  <p *ngIf="!carregando && erroCarregamento" class="admin-reflexao__estado admin-reflexao__estado--erro" role="alert">
+    {{ erroCarregamento }}
+  </p>
+
+  <ul *ngIf="!carregando && !erroCarregamento" class="admin-reflexao__grade">
+    <li *ngFor="let dia of dias" class="admin-reflexao__dia-item">
+      <button
+        type="button"
+        class="admin-reflexao__dia-botao"
+        [class.admin-reflexao__dia-botao--preenchido]="dia.texto"
+        (click)="abrirDia(dia)"
+      >
+        <span class="admin-reflexao__dia-numero">{{ dia.dia }}</span>
+        <span
+          class="admin-reflexao__dia-marcador"
+          [attr.aria-label]="dia.texto ? 'Reflexão cadastrada' : 'Sem reflexão cadastrada'"
+        ></span>
+      </button>
+    </li>
+  </ul>
+</section>
+
+<div class="admin-reflexao__overlay" *ngIf="diaEmEdicao" (click)="fecharFormulario()">
+  <section
+    class="admin-reflexao__painel"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="'Reflexão de ' + diaEmEdicao.dia + ' de ' + nomeMesSelecionado()"
+    (click)="$event.stopPropagation()"
+  >
+    <h2 class="admin-reflexao__painel-titulo">
+      {{ diaEmEdicao.dia }} de {{ nomeMesSelecionado() }}
+    </h2>
+
+    <form class="admin-reflexao__formulario" (ngSubmit)="salvar()">
+      <div class="admin-reflexao__campo">
+        <label for="reflexao-texto">Texto da reflexão</label>
+        <textarea
+          id="reflexao-texto"
+          name="texto"
+          rows="8"
+          [(ngModel)]="textoFormulario"
+          required
+        ></textarea>
+      </div>
+
+      <p *ngIf="erroFormulario" class="admin-reflexao__erro-card" role="alert">{{ erroFormulario }}</p>
+
+      <div class="admin-reflexao__acoes">
+        <button type="submit" class="admin-reflexao__botao admin-reflexao__botao--primario" [disabled]="salvando">
+          {{ salvando ? 'Salvando…' : 'Salvar' }}
+        </button>
+        <button
+          type="button"
+          class="admin-reflexao__botao admin-reflexao__botao--secundario"
+          [disabled]="salvando"
+          (click)="fecharFormulario()"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  </section>
+</div>

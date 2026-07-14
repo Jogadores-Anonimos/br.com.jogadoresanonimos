@@ -2,16 +2,8 @@
   <h1 class="pagina-legal__titulo">Política de Privacidade</h1>
 
   <section class="pagina-legal__conteudo">
-    <p>
-      A Jogadores Anônimos do Brasil está em processo de adequação à Lei Geral de Proteção de Dados
-      (LGPD). O anonimato dos usuários é a prioridade máxima do site: não coletamos nome real,
-      documento ou qualquer dado que permita identificar quem participa da irmandade ou busca
-      informações por aqui.
-    </p>
-    <p>
-      Em breve, esta página vai apresentar o texto completo da Política de Privacidade, detalhando
-      quais dados são tratados, com qual finalidade, por quanto tempo são mantidos e como qualquer
-      pessoa pode exercer seus direitos previstos na LGPD.
-    </p>
+    @for (bloco of blocosTexto; track bloco.ordem) {
+      <div [innerHTML]="bloco.conteudo"></div>
+    }
   </section>
 </main>

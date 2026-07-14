@@ -1,0 +1,201 @@
+<section class="admin-hotlines">
+  <div class="admin-hotlines__cabecalho">
+    <div>
+      <h1 class="admin-hotlines__titulo">Linhas de Ajuda</h1>
+      <p class="admin-hotlines__descricao">
+        Gerencie as regiões e os telefones de apoio exibidos na página pública de linhas de ajuda.
+      </p>
+    </div>
+    <button
+      *ngIf="!novaRegiaoAberta"
+      type="button"
+      class="admin-hotlines__botao admin-hotlines__botao--primario"
+      (click)="abrirNovaRegiao()"
+    >
+      + Nova região
+    </button>
+  </div>
+
+  <form *ngIf="novaRegiaoAberta" class="admin-hotlines__form-regiao" (ngSubmit)="criarRegiao()">
+    <div class="admin-hotlines__campo">
+      <label for="nova-regiao-nome">Nome da região</label>
+      <input
+        id="nova-regiao-nome"
+        type="text"
+        name="novaRegiaoNome"
+        placeholder="Ex: São Paulo"
+        [(ngModel)]="novaRegiaoNome"
+        required
+      />
+    </div>
+
+    <p *ngIf="erroNovaRegiao" class="admin-hotlines__erro-card" role="alert">{{ erroNovaRegiao }}</p>
+
+    <div class="admin-hotlines__acoes">
+      <button type="submit" class="admin-hotlines__botao admin-hotlines__botao--primario" [disabled]="criandoRegiao">
+        {{ criandoRegiao ? 'Criando…' : 'Criar região' }}
+      </button>
+      <button
+        type="button"
+        class="admin-hotlines__botao admin-hotlines__botao--secundario"
+        [disabled]="criandoRegiao"
+        (click)="cancelarNovaRegiao()"
+      >
+        Cancelar
+      </button>
+    </div>
+  </form>
+
+  <p *ngIf="carregando" class="admin-hotlines__estado" role="status">Carregando regiões…</p>
+
+  <p *ngIf="!carregando && erroCarregamento" class="admin-hotlines__estado admin-hotlines__estado--erro" role="alert">
+    {{ erroCarregamento }}
+  </p>
+
+  <p *ngIf="!carregando && !erroCarregamento && regioes.length === 0" class="admin-hotlines__estado">
+    Nenhuma região cadastrada ainda.
+  </p>
+
+  <ul *ngIf="!carregando && regioes.length > 0" class="admin-hotlines__lista">
+    <li *ngFor="let regiao of regioes" class="admin-hotlines__regiao">
+      <div class="admin-hotlines__regiao-cabecalho">
+        <div class="admin-hotlines__regiao-info">
+          <span class="admin-hotlines__regiao-nome">{{ regiao.nome }}</span>
+          <span class="admin-hotlines__regiao-contagem">
+            {{ totalTelefones(regiao) }} telefone{{ totalTelefones(regiao) === 1 ? '' : 's' }}
+          </span>
+        </div>
+
+        <ng-container *ngIf="confirmandoExclusaoRegiaoId !== regiao.id; else confirmacaoExclusaoRegiao">
+          <div class="admin-hotlines__acoes">
+            <button
+              type="button"
+              class="admin-hotlines__botao admin-hotlines__botao--secundario admin-hotlines__botao--pequeno"
+              *ngIf="regiaoEmEdicaoId !== regiao.id"
+              (click)="abrirFormularioTelefones(regiao)"
+            >
+              Gerenciar telefones
+            </button>
+            <button
+              type="button"
+              class="admin-hotlines__botao admin-hotlines__botao--perigo admin-hotlines__botao--pequeno"
+              (click)="pedirConfirmacaoExclusaoRegiao(regiao)"
+            >
+              Excluir região
+            </button>
+          </div>
+        </ng-container>
+
+        <ng-template #confirmacaoExclusaoRegiao>
+          <div class="admin-hotlines__confirmacao-regiao">
+            <p class="admin-hotlines__confirmacao" role="alert">
+              Isso vai remover {{ totalTelefones(regiao) }} telefone{{ totalTelefones(regiao) === 1 ? '' : 's' }}
+              cadastrado{{ totalTelefones(regiao) === 1 ? '' : 's' }} nesta região. Confirma?
+            </p>
+            <div class="admin-hotlines__acoes">
+              <button
+                type="button"
+                class="admin-hotlines__botao admin-hotlines__botao--perigo admin-hotlines__botao--pequeno"
+                [disabled]="excluindoRegiao"
+                (click)="confirmarExclusaoRegiao(regiao)"
+              >
+                Confirmar exclusão
+              </button>
+              <button
+                type="button"
+                class="admin-hotlines__botao admin-hotlines__botao--secundario admin-hotlines__botao--pequeno"
+                [disabled]="excluindoRegiao"
+                (click)="cancelarExclusaoRegiao()"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </ng-template>
+      </div>
+
+      <p *ngIf="erroExclusaoRegiao && confirmandoExclusaoRegiaoId === regiao.id" class="admin-hotlines__erro-card" role="alert">
+        {{ erroExclusaoRegiao }}
+      </p>
+
+      <p *ngIf="regiaoEmEdicaoId !== regiao.id && totalTelefones(regiao) > 0" class="admin-hotlines__resumo-telefones">
+        {{ regiao.telefones[0].label }}: {{ regiao.telefones[0].telefone
+        }}<ng-container *ngIf="totalTelefones(regiao) > 1"> (+{{ totalTelefones(regiao) - 1 }})</ng-container>
+      </p>
+
+      <form
+        *ngIf="regiaoEmEdicaoId === regiao.id"
+        class="admin-hotlines__form-telefones"
+        (ngSubmit)="salvarTelefones(regiao)"
+      >
+        <span class="admin-hotlines__campo-rotulo">Telefones</span>
+
+        <ul class="admin-hotlines__telefones-lista" *ngIf="telefonesFormulario.length > 0">
+          <li *ngFor="let telefone of telefonesFormulario" class="admin-hotlines__telefone-item">
+            <div class="admin-hotlines__campo-linha">
+              <div class="admin-hotlines__campo">
+                <label [attr.for]="'telefone-label-' + telefone.id">Descrição</label>
+                <input
+                  [id]="'telefone-label-' + telefone.id"
+                  type="text"
+                  placeholder="Ex: Central de atendimento"
+                  [(ngModel)]="telefone.label"
+                  [name]="'telefoneLabel-' + telefone.id"
+                  required
+                />
+              </div>
+              <div class="admin-hotlines__campo">
+                <label [attr.for]="'telefone-numero-' + telefone.id">Telefone</label>
+                <input
+                  [id]="'telefone-numero-' + telefone.id"
+                  type="text"
+                  placeholder="Ex: (11) 4321-0000"
+                  [(ngModel)]="telefone.telefone"
+                  [name]="'telefoneNumero-' + telefone.id"
+                  required
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              class="admin-hotlines__botao admin-hotlines__botao--perigo admin-hotlines__botao--pequeno"
+              (click)="removerTelefoneFormulario(telefone.id)"
+            >
+              Remover telefone
+            </button>
+          </li>
+        </ul>
+
+        <p *ngIf="telefonesFormulario.length === 0" class="admin-hotlines__estado">Nenhum telefone cadastrado nesta região.</p>
+
+        <button
+          type="button"
+          class="admin-hotlines__botao admin-hotlines__botao--secundario admin-hotlines__botao--pequeno"
+          (click)="adicionarTelefoneFormulario()"
+        >
+          + Adicionar telefone
+        </button>
+
+        <p *ngIf="erroFormularioTelefones" class="admin-hotlines__erro-card" role="alert">{{ erroFormularioTelefones }}</p>
+
+        <div class="admin-hotlines__acoes">
+          <button
+            type="submit"
+            class="admin-hotlines__botao admin-hotlines__botao--primario admin-hotlines__botao--pequeno"
+            [disabled]="salvandoTelefones"
+          >
+            {{ salvandoTelefones ? 'Salvando…' : 'Salvar' }}
+          </button>
+          <button
+            type="button"
+            class="admin-hotlines__botao admin-hotlines__botao--secundario admin-hotlines__botao--pequeno"
+            [disabled]="salvandoTelefones"
+            (click)="fecharFormularioTelefones()"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </li>
+  </ul>
+</section>

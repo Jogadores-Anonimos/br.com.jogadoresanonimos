@@ -5,6 +5,13 @@
       Selecione o tipo de reunião que você gostaria de ver.
     </p>
 
+    @if (carregandoReunioes) {
+      <p class="estado-info">Carregando reuniões…</p>
+    }
+    @if (!carregandoReunioes && erroCarregamentoReunioes) {
+      <p class="estado-info estado-info--erro">{{ erroCarregamentoReunioes }}</p>
+    }
+
     <div class="categorias-grid" role="group" aria-label="Filtrar reuniões por categoria">
       @for (cat of categorias; track cat.valor) {
         <button
@@ -28,7 +35,7 @@
           <div class="mapa-wrapper">
             <div class="mapa-leaflet" #mapaContainer></div>
 
-            @if (!localizacaoPermitida) {
+            @if (!localizacaoPermitida()) {
               <div class="mapa-overlay">
                 <p>
                   Permita o acesso à sua localização aproximada para ver as
@@ -38,11 +45,11 @@
                   type="button"
                   class="btn-cta"
                   (click)="solicitarLocalizacao()"
-                  [attr.aria-busy]="localizacaoCarregando"
+                  [attr.aria-busy]="localizacaoCarregando()"
                 >
-                  {{ localizacaoCarregando ? 'Obtendo localização…' : 'Permitir localização' }}
+                  {{ localizacaoCarregando() ? 'Obtendo localização…' : 'Permitir localização' }}
                 </button>
-                @if (localizacaoIndisponivel) {
+                @if (localizacaoIndisponivel()) {
                   <p class="mapa-erro" role="alert">
                     Não foi possível acessar sua localização. Você ainda pode
                     ver todas as reuniões presenciais abaixo, sem ordenação
@@ -53,7 +60,7 @@
             }
           </div>
 
-          @if (localizacaoPermitida) {
+          @if (localizacaoPermitida()) {
             <p class="mapa-status">
               Localização aproximada obtida, mostrando reuniões ordenadas
               por proximidade. Ela não é salva nem enviada a nenhum
@@ -101,8 +108,8 @@
                 name="filtroRaioKm"
                 [ngModel]="filtroRaioKm"
                 (ngModelChange)="filtroRaioKm = $event; atualizarMarcadores()"
-                [disabled]="!localizacaoPermitida"
-                [title]="localizacaoPermitida ? '' : 'Permita a localização para filtrar por distância'"
+                [disabled]="!localizacaoPermitida()"
+                [title]="localizacaoPermitida() ? '' : 'Permita a localização para filtrar por distância'"
               >
                 <option [ngValue]="'todos'">Qualquer distância</option>
                 @for (raio of raiosKm; track raio) {

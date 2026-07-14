@@ -5,15 +5,19 @@ import {
   HostListener,
   OnDestroy,
   OnInit,
+  PLATFORM_ID,
   ViewChild,
   inject,
+  signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { isPlatformBrowser } from '@angular/common';
 import * as L from 'leaflet';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
+import { ReuniaoService } from '../../services/reuniao';
+import { CategoriaReuniao, Reuniao } from '../../services/reuniao.model';
 
-type CategoriaReuniao = 'presencial' | 'virtual';
 type DiaSemana = 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo';
 type Periodo = 'Manhã' | 'Tarde' | 'Noite';
 type FiltroDia = DiaSemana | 'todos' | 'hoje';
@@ -24,39 +28,34 @@ interface FiltroCategoria {
   descricao: string;
 }
 
-interface Reuniao {
-  nome: string;
-  categoria: CategoriaReuniao;
-  descricao: string;
-  dia: string;
-  horario: string;
-  local: string;
-  whatsapp?: string;
-  diaSemana?: DiaSemana;
-  periodo?: Periodo;
-  latitude?: number;
-  longitude?: number;
-}
-
 const RAIO_TERRA_KM = 6371;
 
 const CENTRO_PADRAO: L.LatLngTuple = [-23.55, -46.62];
 
 const WHATSAPP_PLACEHOLDER = '5599999999999';
 
-const ICONE_GRUPO = L.divIcon({
-  className: 'mapa-marcador-grupo',
-  html: '<img src="/images/header/logo-jogadores-anonimos-monograma.png" alt="" />',
-  iconSize: [34, 34],
-  iconAnchor: [17, 34],
-});
+let ICONE_GRUPO: L.DivIcon;
+let ICONE_USUARIO: L.DivIcon;
 
-const ICONE_USUARIO = L.divIcon({
-  className: 'mapa-marcador-voce',
-  html: '',
-  iconSize: [16, 16],
-  iconAnchor: [8, 8],
-});
+function criarIcones(): void {
+  if (ICONE_GRUPO && ICONE_USUARIO) {
+    return;
+  }
+
+  ICONE_GRUPO = L.divIcon({
+    className: 'mapa-marcador-grupo',
+    html: '<img src="/images/header/logo-jogadores-anonimos-monograma.png" alt="" />',
+    iconSize: [34, 34],
+    iconAnchor: [17, 34],
+  });
+
+  ICONE_USUARIO = L.divIcon({
+    className: 'mapa-marcador-voce',
+    html: '',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  });
+}
 
 @Component({
   selector: 'app-reunioes',
@@ -67,6 +66,8 @@ const ICONE_USUARIO = L.divIcon({
 })
 export class Reunioes implements OnInit, OnDestroy {
   private readonly appRef = inject(ApplicationRef);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly reuniaoService = inject(ReuniaoService);
 
   readonly categorias: FiltroCategoria[] = [
     {
@@ -105,101 +106,9 @@ export class Reunioes implements OnInit, OnDestroy {
     'Sábado',
   ];
 
-  readonly reunioes: Reuniao[] = [
-    {
-      nome: 'Grupo [a definir] — Centro',
-      categoria: 'presencial',
-      descricao: 'Grupo aberto, ambiente acolhedor, para quem está começando a se recuperar.',
-      dia: 'Segunda-feira',
-      horario: '19h30',
-      local: '[endereço a definir], [cidade a definir]',
-      whatsapp: WHATSAPP_PLACEHOLDER,
-      diaSemana: 'Segunda',
-      periodo: 'Noite',
-      latitude: -23.5505,
-      longitude: -46.6333,
-    },
-    {
-      nome: 'Grupo [a definir] — Zona Norte',
-      categoria: 'presencial',
-      descricao: 'Reuniões mais curtas, focadas em quem tem pouca disponibilidade durante a semana.',
-      dia: 'Quarta-feira',
-      horario: '14h00',
-      local: '[endereço a definir], [cidade a definir]',
-      whatsapp: WHATSAPP_PLACEHOLDER,
-      diaSemana: 'Quarta',
-      periodo: 'Tarde',
-      latitude: -23.5089,
-      longitude: -46.6249,
-    },
-    {
-      nome: 'Grupo [a definir] — Zona Sul',
-      categoria: 'presencial',
-      descricao: 'Encontro de fim de semana, com espaço pra novos membros contarem sua história.',
-      dia: 'Sábado',
-      horario: '09h00',
-      local: '[endereço a definir], [cidade a definir]',
-      whatsapp: WHATSAPP_PLACEHOLDER,
-      diaSemana: 'Sábado',
-      periodo: 'Manhã',
-      latitude: -23.6206,
-      longitude: -46.6988,
-    },
-    {
-      nome: 'Grupo [a definir] — Zona Leste',
-      categoria: 'presencial',
-      descricao: 'Grupo tradicional da região, reuniões seguindo os 12 Passos da JA.',
-      dia: 'Quinta-feira',
-      horario: '19h00',
-      local: '[endereço a definir], [cidade a definir]',
-      whatsapp: WHATSAPP_PLACEHOLDER,
-      diaSemana: 'Quinta',
-      periodo: 'Noite',
-      latitude: -23.5445,
-      longitude: -46.4732,
-    },
-    {
-      nome: 'Grupo [a definir] — Campinas',
-      categoria: 'presencial',
-      descricao:
-        'Grupo da região de Campinas, mais distante dos demais mocks — bom exemplo pra conferir se o mapa ajusta o zoom certinho.',
-      dia: 'Terça-feira',
-      horario: '20h00',
-      local: '[endereço a definir], Campinas - SP',
-      whatsapp: WHATSAPP_PLACEHOLDER,
-      diaSemana: 'Terça',
-      periodo: 'Noite',
-      latitude: -22.9099,
-      longitude: -47.0626,
-    },
-    {
-      nome: 'Grupo [a definir] — Encontro da Noite',
-      categoria: 'virtual',
-      descricao: 'Reunião por videochamada, sem precisar sair de casa.',
-      dia: 'Segunda-feira',
-      horario: '20h00',
-      local: 'Link de acesso [a definir]',
-      whatsapp: WHATSAPP_PLACEHOLDER,
-    },
-    {
-      nome: 'Grupo [a definir] — Roda de Apoio',
-      categoria: 'virtual',
-      descricao: 'Encontro virtual voltado a quem está começando a jornada de recuperação.',
-      dia: 'Quarta-feira',
-      horario: '19h00',
-      local: 'Link de acesso [a definir]',
-      whatsapp: WHATSAPP_PLACEHOLDER,
-    },
-    {
-      nome: 'Grupo [a definir] — Fim de Semana',
-      categoria: 'virtual',
-      descricao: 'Reunião online de sábado, com espaço para novos membros compartilharem.',
-      dia: 'Sábado',
-      horario: '10h00',
-      local: 'Link de acesso [a definir]',
-      whatsapp: WHATSAPP_PLACEHOLDER,
-    },
-  ];
+  reunioes: Reuniao[] = [];
+  carregandoReunioes = true;
+  erroCarregamentoReunioes = '';
 
   categoriaSelecionada: CategoriaReuniao | null = null;
 
@@ -209,9 +118,15 @@ export class Reunioes implements OnInit, OnDestroy {
 
   private userCoords: { latitude: number; longitude: number } | null = null;
 
-  localizacaoPermitida = false;
-  localizacaoIndisponivel = false;
-  localizacaoCarregando = false;
+  // Sinais em vez de campos comuns: escritos dentro de callback nativo
+  // do navegador (geolocalização), fora do Angular — em app zoneless,
+  // campo simples mutado ali não agenda CD de forma confiável e pode
+  // ficar dessincronizado de outros bindings no mesmo tick, disparando
+  // NG0100 (ExpressionChangedAfterItHasBeenCheckedError) que aborta a
+  // atualização do DOM daquele ciclo inteiro. Mesma correção do Navbar.
+  localizacaoPermitida = signal(false);
+  localizacaoIndisponivel = signal(false);
+  localizacaoCarregando = signal(false);
 
   reuniaoDetalhe: Reuniao | null = null;
   reservaConfirmada = false;
@@ -222,6 +137,9 @@ export class Reunioes implements OnInit, OnDestroy {
 
   @ViewChild('mapaContainer')
   set mapaContainerRef(ref: ElementRef<HTMLDivElement> | undefined) {
+    if (!this.isBrowser) {
+      return;
+    }
     if (ref) {
       this.criarMapa(ref.nativeElement);
     } else {
@@ -230,7 +148,28 @@ export class Reunioes implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.carregarReunioes();
+
+    if (!this.isBrowser) {
+      return;
+    }
     this.solicitarLocalizacao();
+  }
+
+  private carregarReunioes(): void {
+    this.carregandoReunioes = true;
+    this.erroCarregamentoReunioes = '';
+
+    this.reuniaoService.listarReunioes().subscribe((envelope) => {
+      this.carregandoReunioes = false;
+
+      if (envelope.success && envelope.data) {
+        this.reunioes = envelope.data;
+        this.atualizarMarcadores();
+      } else {
+        this.erroCarregamentoReunioes = envelope.error?.message ?? 'Não foi possível carregar as reuniões agora.';
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -247,12 +186,12 @@ export class Reunioes implements OnInit, OnDestroy {
 
   solicitarLocalizacao(): void {
     if (!('geolocation' in navigator)) {
-      this.localizacaoIndisponivel = true;
+      this.localizacaoIndisponivel.set(true);
       return;
     }
 
-    this.localizacaoCarregando = true;
-    this.localizacaoIndisponivel = false;
+    this.localizacaoCarregando.set(true);
+    this.localizacaoIndisponivel.set(false);
 
     navigator.geolocation.getCurrentPosition(
       (posicao) => {
@@ -260,22 +199,20 @@ export class Reunioes implements OnInit, OnDestroy {
           latitude: posicao.coords.latitude,
           longitude: posicao.coords.longitude,
         };
-        this.localizacaoPermitida = true;
-        this.localizacaoCarregando = false;
+        this.localizacaoPermitida.set(true);
+        this.localizacaoCarregando.set(false);
         this.atualizarMapaComLocalizacao();
-        this.appRef.tick();
       },
       () => {
-        this.localizacaoIndisponivel = true;
-        this.localizacaoCarregando = false;
-        this.appRef.tick();
+        this.localizacaoIndisponivel.set(true);
+        this.localizacaoCarregando.set(false);
       },
       { enableHighAccuracy: false, timeout: 8000 },
     );
   }
 
   distanciaKm(reuniao: Reuniao): number | null {
-    if (!this.userCoords || reuniao.latitude === undefined || reuniao.longitude === undefined) {
+    if (!this.userCoords || reuniao.latitude === null || reuniao.longitude === null) {
       return null;
     }
 
@@ -343,7 +280,7 @@ export class Reunioes implements OnInit, OnDestroy {
     this.marcadoresGrupo = [];
 
     for (const reuniao of this.reunioesFiltradas) {
-      if (reuniao.latitude === undefined || reuniao.longitude === undefined) {
+      if (reuniao.latitude === null || reuniao.longitude === null) {
         continue;
       }
 
@@ -414,6 +351,7 @@ export class Reunioes implements OnInit, OnDestroy {
 
   private criarMapa(container: HTMLDivElement): void {
     this.destruirMapa();
+    criarIcones();
 
     this.mapa = L.map(container, {
       center: CENTRO_PADRAO,

@@ -134,6 +134,11 @@
   color: var(--color-danger);
 }
 
+.campo-erro {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+}
+
 /* Estado 2 */
 .conta-dashboard {
   display: grid;
@@ -290,6 +295,11 @@
   color: var(--color-success);
 }
 
+.conta-downloads-intro {
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-md);
+}
+
 .conta-downloads {
   list-style: none;
   display: flex;
@@ -300,12 +310,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--spacing-md);
   padding: var(--spacing-sm) 0;
   border-bottom: 1px solid var(--color-border);
 }
 
-.conta-downloads__item > div {
+.conta-downloads__item > div:first-child {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -316,17 +327,66 @@
   font-size: 0.85rem;
 }
 
+.conta-downloads__acoes {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
 .conta-downloads__btn {
   flex-shrink: 0;
+  display: inline-block;
   border: none;
   background: var(--yellow-btn);
-  color: var(--color-text);
+  color: var(--cor-padrao-ja);
   font-weight: var(--font-weight-bold);
+  font-size: 0.85rem;
+  text-decoration: none;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.conta-downloads__btn:hover {
+  background: var(--yellow-gold);
+  transform: translateY(-2px);
+}
+
+.conta-downloads__btn:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 3px;
+}
+
+.conta-downloads__btn-remover {
+  flex-shrink: 0;
+  display: inline-block;
+  background: transparent;
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  font-weight: var(--font-weight-semibold);
   font-size: 0.85rem;
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-sm);
-  opacity: 0.85;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.conta-downloads__btn-remover:hover:not(:disabled) {
+  background: var(--color-bg-section);
+  transform: translateY(-2px);
+}
+
+.conta-downloads__btn-remover:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
+}
+
+.conta-downloads__btn-remover:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 3px;
 }
 
 /* Aba Endereços */

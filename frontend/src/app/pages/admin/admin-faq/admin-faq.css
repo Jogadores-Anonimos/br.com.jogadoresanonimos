@@ -1,0 +1,211 @@
+:host {
+  display: block;
+}
+
+.admin-faq {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.admin-faq__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.admin-faq__titulo {
+  color: var(--color-text);
+  font-size: 1.4rem;
+  font-weight: var(--font-weight-heading);
+}
+
+.admin-faq__descricao {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 70ch;
+  margin-top: var(--spacing-xs);
+}
+
+.admin-faq__estado {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.admin-faq__estado--erro {
+  color: var(--color-danger);
+}
+
+.admin-faq__lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.admin-faq__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-faq__card-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+
+.admin-faq__card-titulo-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.admin-faq__card-titulo {
+  color: var(--color-text);
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-faq__corpo {
+  color: var(--color-text);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.admin-faq__erro-card {
+  color: var(--color-danger);
+  font-size: 0.9rem;
+}
+
+.admin-faq__confirmacao {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+  align-self: center;
+}
+
+.admin-faq__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+}
+
+.admin-faq__botao {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.admin-faq__botao:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-faq__botao:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.admin-faq__botao--primario {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+}
+
+.admin-faq__botao--secundario {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.admin-faq__botao--perigo {
+  background: var(--color-danger);
+  color: var(--white);
+}
+
+.admin-faq__botao--pequeno {
+  padding: 0.4em 0.8em;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.admin-faq__formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-width: 60ch;
+}
+
+.admin-faq__campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.admin-faq__campo label {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-faq__campo input[type='text'],
+.admin-faq__campo input[type='number'],
+.admin-faq__campo textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-xs);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin-faq__campo textarea {
+  resize: vertical;
+}
+
+.admin-faq__campo input:focus-visible,
+.admin-faq__campo textarea:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .admin-faq__cabecalho {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-faq__botao--primario {
+    width: 100%;
+  }
+
+  .admin-faq__acoes {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-faq__acoes .admin-faq__botao {
+    width: 100%;
+  }
+}

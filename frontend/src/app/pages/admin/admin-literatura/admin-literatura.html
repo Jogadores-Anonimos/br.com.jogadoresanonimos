@@ -1,0 +1,162 @@
+<section class="admin-literatura" *ngIf="modo === 'lista'">
+  <div class="admin-literatura__cabecalho">
+    <div>
+      <h1 class="admin-literatura__titulo">Literatura</h1>
+      <p class="admin-literatura__descricao">
+        Gerencie os PDFs disponíveis na página de Literatura. Edite título e descrição a qualquer
+        momento; para substituir o conteúdo de um PDF, exclua o item e envie um novo.
+      </p>
+    </div>
+    <button type="button" class="admin-literatura__botao admin-literatura__botao--primario" (click)="abrirNovoUpload()">
+      + Adicionar novo
+    </button>
+  </div>
+
+  <p *ngIf="carregando" class="admin-literatura__estado" role="status">Carregando arquivos…</p>
+
+  <p *ngIf="!carregando && erroCarregamento" class="admin-literatura__estado admin-literatura__estado--erro" role="alert">
+    {{ erroCarregamento }}
+  </p>
+
+  <p *ngIf="!carregando && !erroCarregamento && arquivos.length === 0" class="admin-literatura__estado">
+    Nenhum arquivo cadastrado ainda.
+  </p>
+
+  <ul *ngIf="!carregando && arquivos.length > 0" class="admin-literatura__lista">
+    <li *ngFor="let arquivo of arquivos" class="admin-literatura__card">
+      <div class="admin-literatura__card-cabecalho">
+        <img *ngIf="arquivo.thumbnailUrl" class="admin-literatura__capa" [src]="arquivo.thumbnailUrl" [alt]="'Capa: ' + arquivo.titulo" />
+        <div>
+          <h2 class="admin-literatura__card-titulo">{{ arquivo.titulo }}</h2>
+          <time class="admin-literatura__data" [attr.datetime]="arquivo.criadoEm">
+            Enviado em {{ arquivo.criadoEm | date: 'dd/MM/yyyy' }}
+          </time>
+        </div>
+      </div>
+
+      <p *ngIf="arquivo.descricao" class="admin-literatura__corpo">{{ arquivo.descricao }}</p>
+
+      <p class="admin-literatura__meta">
+        Arquivo original: {{ arquivo.nomeOriginal }} ({{ formatarTamanho(arquivo.tamanhoBytes) }})
+      </p>
+
+      <p *ngIf="erroExclusao && confirmandoExclusao === arquivo.id" class="admin-literatura__erro-card" role="alert">
+        {{ erroExclusao }}
+      </p>
+
+      <div class="admin-literatura__acoes">
+        <ng-container *ngIf="confirmandoExclusao !== arquivo.id; else confirmacaoExclusao">
+          <button type="button" class="admin-literatura__botao admin-literatura__botao--secundario" (click)="abrirEdicao(arquivo)">
+            Editar
+          </button>
+          <button
+            type="button"
+            class="admin-literatura__botao admin-literatura__botao--perigo"
+            (click)="pedirConfirmacaoExclusao(arquivo)"
+          >
+            Excluir
+          </button>
+        </ng-container>
+
+        <ng-template #confirmacaoExclusao>
+          <p class="admin-literatura__confirmacao">Excluir este arquivo permanentemente?</p>
+          <button
+            type="button"
+            class="admin-literatura__botao admin-literatura__botao--perigo"
+            [disabled]="excluindo"
+            (click)="confirmarExclusao(arquivo)"
+          >
+            Confirmar exclusão
+          </button>
+          <button
+            type="button"
+            class="admin-literatura__botao admin-literatura__botao--secundario"
+            [disabled]="excluindo"
+            (click)="cancelarExclusao()"
+          >
+            Cancelar
+          </button>
+        </ng-template>
+      </div>
+    </li>
+  </ul>
+</section>
+
+<section class="admin-literatura" *ngIf="modo === 'formulario'">
+  <h1 class="admin-literatura__titulo">Editar arquivo</h1>
+
+  <p class="admin-literatura__ajuda">
+    Para substituir o PDF, exclua este item e envie um novo.
+  </p>
+
+  <form class="admin-literatura__formulario" (ngSubmit)="salvar()">
+    <div class="admin-literatura__campo">
+      <label for="arquivo-titulo">Título</label>
+      <input id="arquivo-titulo" type="text" name="titulo" [(ngModel)]="formulario.titulo" required />
+    </div>
+
+    <div class="admin-literatura__campo">
+      <label for="arquivo-descricao">Descrição (opcional)</label>
+      <textarea
+        id="arquivo-descricao"
+        name="descricao"
+        rows="5"
+        [(ngModel)]="formulario.descricao"
+      ></textarea>
+    </div>
+
+    <p *ngIf="erroFormulario" class="admin-literatura__erro-card" role="alert">{{ erroFormulario }}</p>
+
+    <div class="admin-literatura__acoes">
+      <button type="submit" class="admin-literatura__botao admin-literatura__botao--primario" [disabled]="salvando">
+        {{ salvando ? 'Salvando…' : 'Salvar' }}
+      </button>
+      <button type="button" class="admin-literatura__botao admin-literatura__botao--secundario" [disabled]="salvando" (click)="cancelar()">
+        Cancelar
+      </button>
+    </div>
+  </form>
+</section>
+
+<section class="admin-literatura" *ngIf="modo === 'upload'">
+  <h1 class="admin-literatura__titulo">Novo arquivo</h1>
+
+  <form class="admin-literatura__formulario" (ngSubmit)="enviarUpload()">
+    <div class="admin-literatura__campo">
+      <label for="arquivo-upload">Arquivo PDF</label>
+      <input
+        id="arquivo-upload"
+        type="file"
+        accept="application/pdf"
+        [disabled]="enviando"
+        (change)="onArquivoSelecionado($event)"
+      />
+    </div>
+
+    <div class="admin-literatura__campo">
+      <label for="upload-titulo">Título</label>
+      <input id="upload-titulo" type="text" name="tituloUpload" [(ngModel)]="tituloUpload" required />
+    </div>
+
+    <div class="admin-literatura__campo">
+      <label for="upload-descricao">Descrição (opcional)</label>
+      <textarea
+        id="upload-descricao"
+        name="descricaoUpload"
+        rows="5"
+        [(ngModel)]="descricaoUpload"
+      ></textarea>
+    </div>
+
+    <p *ngIf="erroUpload" class="admin-literatura__erro-card" role="alert">{{ erroUpload }}</p>
+
+    <div class="admin-literatura__acoes">
+      <button type="submit" class="admin-literatura__botao admin-literatura__botao--primario" [disabled]="enviando">
+        {{ enviando ? 'Enviando…' : 'Enviar' }}
+      </button>
+      <button type="button" class="admin-literatura__botao admin-literatura__botao--secundario" [disabled]="enviando" (click)="cancelar()">
+        Cancelar
+      </button>
+    </div>
+  </form>
+</section>

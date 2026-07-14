@@ -1,0 +1,229 @@
+<section class="admin-reunioes" *ngIf="modo === 'lista'">
+  <div class="admin-reunioes__cabecalho">
+    <div>
+      <h1 class="admin-reunioes__titulo">Reuniões</h1>
+      <p class="admin-reunioes__descricao">
+        Gerencie os grupos de reunião presenciais e virtuais exibidos na página pública.
+      </p>
+    </div>
+    <button type="button" class="admin-reunioes__botao admin-reunioes__botao--primario" (click)="abrirNovo()">
+      + Adicionar nova
+    </button>
+  </div>
+
+  <p *ngIf="carregando" class="admin-reunioes__estado" role="status">Carregando reuniões…</p>
+
+  <p *ngIf="!carregando && erroCarregamento" class="admin-reunioes__estado admin-reunioes__estado--erro" role="alert">
+    {{ erroCarregamento }}
+  </p>
+
+  <p *ngIf="!carregando && !erroCarregamento && reunioes.length === 0" class="admin-reunioes__estado">
+    Nenhuma reunião cadastrada ainda.
+  </p>
+
+  <ul *ngIf="!carregando && reunioes.length > 0" class="admin-reunioes__lista">
+    <li *ngFor="let reuniao of reunioes" class="admin-reunioes__card">
+      <div class="admin-reunioes__card-cabecalho">
+        <div class="admin-reunioes__card-titulo-linha">
+          <h2 class="admin-reunioes__card-titulo">{{ reuniao.nome }}</h2>
+          <span class="admin-reunioes__badge" [class.admin-reunioes__badge--virtual]="reuniao.categoria === 'virtual'">
+            {{ reuniao.categoria === 'presencial' ? 'Presencial' : 'Virtual' }}
+          </span>
+        </div>
+        <span class="admin-reunioes__dia-horario">{{ reuniao.dia }} · {{ reuniao.horario }}</span>
+      </div>
+
+      <p class="admin-reunioes__corpo">{{ reuniao.descricao }}</p>
+      <p class="admin-reunioes__local">{{ reuniao.local }}</p>
+
+      <p *ngIf="erroExclusao && confirmandoExclusao === reuniao.id" class="admin-reunioes__erro-card" role="alert">
+        {{ erroExclusao }}
+      </p>
+
+      <div class="admin-reunioes__acoes">
+        <ng-container *ngIf="confirmandoExclusao !== reuniao.id; else confirmacaoExclusao">
+          <button type="button" class="admin-reunioes__botao admin-reunioes__botao--secundario" (click)="abrirEdicao(reuniao)">
+            Editar
+          </button>
+          <button
+            type="button"
+            class="admin-reunioes__botao admin-reunioes__botao--perigo"
+            (click)="pedirConfirmacaoExclusao(reuniao)"
+          >
+            Excluir
+          </button>
+        </ng-container>
+
+        <ng-template #confirmacaoExclusao>
+          <p class="admin-reunioes__confirmacao">Excluir esta reunião permanentemente?</p>
+          <button
+            type="button"
+            class="admin-reunioes__botao admin-reunioes__botao--perigo"
+            [disabled]="excluindo"
+            (click)="confirmarExclusao(reuniao)"
+          >
+            Confirmar exclusão
+          </button>
+          <button
+            type="button"
+            class="admin-reunioes__botao admin-reunioes__botao--secundario"
+            [disabled]="excluindo"
+            (click)="cancelarExclusao()"
+          >
+            Cancelar
+          </button>
+        </ng-template>
+      </div>
+    </li>
+  </ul>
+</section>
+
+<section class="admin-reunioes" *ngIf="modo === 'formulario'">
+  <h1 class="admin-reunioes__titulo">{{ reuniaoEmEdicao ? 'Editar reunião' : 'Nova reunião' }}</h1>
+
+  <form class="admin-reunioes__formulario" (ngSubmit)="salvar()">
+    <div class="admin-reunioes__grid">
+      <div class="admin-reunioes__campos">
+        <div class="admin-reunioes__campo">
+          <label for="reuniao-nome">Nome</label>
+          <input id="reuniao-nome" type="text" name="nome" [(ngModel)]="formulario.nome" required />
+        </div>
+
+        <div class="admin-reunioes__campo">
+          <label for="reuniao-categoria">Categoria</label>
+          <select id="reuniao-categoria" name="categoria" [(ngModel)]="formulario.categoria">
+            <option value="presencial">Presencial</option>
+            <option value="virtual">Virtual</option>
+          </select>
+        </div>
+
+        <div class="admin-reunioes__campo">
+          <label for="reuniao-descricao">Descrição</label>
+          <textarea
+            id="reuniao-descricao"
+            name="descricao"
+            rows="4"
+            [(ngModel)]="formulario.descricao"
+            required
+          ></textarea>
+        </div>
+
+        <div class="admin-reunioes__campo-linha">
+          <div class="admin-reunioes__campo">
+            <label for="reuniao-dia-semana">Dia da semana</label>
+            <select id="reuniao-dia-semana" name="diaSemana" [(ngModel)]="formulario.diaSemana" required>
+              <option value="" disabled>Selecione</option>
+              <option value="Segunda">Segunda</option>
+              <option value="Terça">Terça</option>
+              <option value="Quarta">Quarta</option>
+              <option value="Quinta">Quinta</option>
+              <option value="Sexta">Sexta</option>
+              <option value="Sábado">Sábado</option>
+              <option value="Domingo">Domingo</option>
+            </select>
+          </div>
+
+          <div class="admin-reunioes__campo">
+            <label for="reuniao-horario">Horário</label>
+            <select id="reuniao-horario" name="horario" [(ngModel)]="formulario.horario" required>
+              <option value="" disabled>Selecione</option>
+              <option *ngFor="let h of horarios" [value]="h">{{ h }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="admin-reunioes__campo-linha">
+          <div class="admin-reunioes__campo">
+            <label for="reuniao-cep">CEP</label>
+            <input
+              id="reuniao-cep"
+              type="text"
+              inputmode="numeric"
+              placeholder="00000-000"
+              maxlength="9"
+              [(ngModel)]="cep"
+              name="cep"
+            />
+          </div>
+
+          <div class="admin-reunioes__campo">
+            <label for="reuniao-numero">Número</label>
+            <input
+              id="reuniao-numero"
+              type="text"
+              placeholder="Ex: 123"
+              [(ngModel)]="numero"
+              name="numero"
+            />
+          </div>
+        </div>
+
+        <div class="admin-reunioes__campo">
+          <button type="button" class="admin-reunioes__botao admin-reunioes__botao--secundario" [disabled]="buscandoCep" (click)="buscarCep()">
+            {{ buscandoCep ? 'Buscando…' : 'Buscar endereço' }}
+          </button>
+          <p *ngIf="erroCep" class="admin-reunioes__erro-card" role="alert">{{ erroCep }}</p>
+          <p class="admin-reunioes__ajuda">
+            Preenche automaticamente o campo "Endereço" e a localização no mapa.
+          </p>
+        </div>
+
+        <div class="admin-reunioes__campo">
+          <label for="reuniao-local">Endereço</label>
+          <input id="reuniao-local" type="text" name="local" [(ngModel)]="formulario.local" required />
+        </div>
+
+        <div class="admin-reunioes__campo">
+          <label for="reuniao-whatsapp">WhatsApp (opcional)</label>
+          <input id="reuniao-whatsapp" type="text" name="whatsapp" placeholder="Ex: 5599999999999" [(ngModel)]="formulario.whatsapp" />
+        </div>
+
+        <div class="admin-reunioes__campo-linha">
+          <div class="admin-reunioes__campo">
+            <label for="reuniao-latitude">Latitude (opcional)</label>
+            <input
+              id="reuniao-latitude"
+              type="text"
+              name="latitude"
+              inputmode="decimal"
+              placeholder="Preenchido pela busca de CEP"
+              [(ngModel)]="formulario.latitude"
+              (ngModelChange)="atualizarMapaPreview()"
+            />
+          </div>
+
+          <div class="admin-reunioes__campo">
+            <label for="reuniao-longitude">Longitude (opcional)</label>
+            <input
+              id="reuniao-longitude"
+              type="text"
+              name="longitude"
+              inputmode="decimal"
+              placeholder="Preenchido pela busca de CEP"
+              [(ngModel)]="formulario.longitude"
+              (ngModelChange)="atualizarMapaPreview()"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-reunioes__mapa-preview">
+        <span class="admin-reunioes__mapa-preview-titulo">Pré-visualização</span>
+        <div class="admin-reunioes__mapa-preview-wrapper">
+          <div #mapaPreviewContainer class="admin-reunioes__mapa-preview-leaflet"></div>
+        </div>
+      </div>
+    </div>
+
+    <p *ngIf="erroFormulario" class="admin-reunioes__erro-card" role="alert">{{ erroFormulario }}</p>
+
+    <div class="admin-reunioes__acoes">
+      <button type="submit" class="admin-reunioes__botao admin-reunioes__botao--primario" [disabled]="salvando">
+        {{ salvando ? 'Salvando…' : 'Salvar' }}
+      </button>
+      <button type="button" class="admin-reunioes__botao admin-reunioes__botao--secundario" [disabled]="salvando" (click)="cancelar()">
+        Cancelar
+      </button>
+    </div>
+  </form>
+</section>

@@ -1,0 +1,223 @@
+:host {
+  display: block;
+}
+
+.admin-literatura {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.admin-literatura__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.admin-literatura__titulo {
+  color: var(--color-text);
+  font-size: 1.4rem;
+  font-weight: var(--font-weight-heading);
+}
+
+.admin-literatura__descricao {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 70ch;
+  margin-top: var(--spacing-xs);
+}
+
+.admin-literatura__ajuda {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.admin-literatura__estado {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.admin-literatura__estado--erro {
+  color: var(--color-danger);
+}
+
+.admin-literatura__lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.admin-literatura__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-literatura__card-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+
+.admin-literatura__capa {
+  flex-shrink: 0;
+  width: 48px;
+  height: 62px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.admin-literatura__card-titulo {
+  color: var(--color-text);
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-literatura__data {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.admin-literatura__corpo {
+  color: var(--color-text);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.admin-literatura__meta {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.admin-literatura__erro-card {
+  color: var(--color-danger);
+  font-size: 0.9rem;
+}
+
+.admin-literatura__confirmacao {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+  align-self: center;
+}
+
+.admin-literatura__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+}
+
+.admin-literatura__botao {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.admin-literatura__botao:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-literatura__botao:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.admin-literatura__botao--primario {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+}
+
+.admin-literatura__botao--secundario {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.admin-literatura__botao--perigo {
+  background: var(--color-danger);
+  color: var(--white);
+}
+
+.admin-literatura__formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-width: 60ch;
+}
+
+.admin-literatura__campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.admin-literatura__campo label {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-literatura__campo input[type='text'],
+.admin-literatura__campo input[type='file'],
+.admin-literatura__campo textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-xs);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin-literatura__campo textarea {
+  resize: vertical;
+}
+
+.admin-literatura__campo input:focus-visible,
+.admin-literatura__campo textarea:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .admin-literatura__cabecalho {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-literatura__botao--primario {
+    width: 100%;
+  }
+
+  .admin-literatura__acoes {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-literatura__acoes .admin-literatura__botao {
+    width: 100%;
+  }
+}

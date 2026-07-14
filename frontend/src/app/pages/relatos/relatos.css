@@ -53,6 +53,7 @@
   line-height: 1.8;
   font-size: 1rem;
   white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .relato-card__ler-mais {

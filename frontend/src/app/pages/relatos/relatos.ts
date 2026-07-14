@@ -1,7 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
+import { Auth } from '../../services/auth';
 import { Relato, RelatosService } from '../../services/relatos';
 
 const TEXTO_TRUNCADO_LIMITE = 320;
@@ -14,12 +16,13 @@ const NOME_EXIBICAO_MAX_LENGTH = 30;
 @Component({
   selector: 'app-relatos',
   standalone: true,
-  imports: [FormsModule, ResourceLayout],
+  imports: [FormsModule, RouterLink, ResourceLayout],
   templateUrl: './relatos.html',
   styleUrl: './relatos.css',
 })
 export class Relatos implements OnInit {
   private readonly relatosService = inject(RelatosService);
+  readonly auth = inject(Auth);
 
   readonly bannerSrc = '/images/home/reuniao-discussao.jpg';
   readonly textoTruncadoLimite = TEXTO_TRUNCADO_LIMITE;

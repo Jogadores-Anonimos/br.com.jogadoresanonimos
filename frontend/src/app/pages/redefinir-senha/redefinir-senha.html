@@ -1,0 +1,65 @@
+<app-resource-layout titulo="Redefinir Senha" [bannerSrc]="bannerSrc" [mostrarSidebar]="false">
+  <div class="redefinir-senha">
+    <div class="redefinir-senha__card">
+      @if (tokenAusente) {
+        <p class="mensagem mensagem-erro" role="alert">
+          Link inválido ou expirado. Solicite um novo link de redefinição.
+        </p>
+        <a routerLink="/esqueci-senha" class="link-secundario">Solicitar novo link</a>
+      } @else if (sucesso) {
+        <p class="mensagem mensagem-sucesso" role="status">{{ mensagem }}</p>
+        <a routerLink="/minha-conta" class="link-secundario">Ir para o login</a>
+      } @else {
+        <p class="redefinir-senha__intro">Escolha uma nova senha para sua conta.</p>
+
+        <form (ngSubmit)="onSubmit()" #redefinirForm="ngForm">
+          <div class="campo">
+            <label for="redefinir-nova-senha">Nova senha</label>
+            <input
+              id="redefinir-nova-senha"
+              name="novaSenha"
+              type="password"
+              autocomplete="new-password"
+              minlength="10"
+              [(ngModel)]="novaSenha"
+              #novaSenhaField="ngModel"
+              required
+            />
+            <small class="campo-ajuda">Mínimo de 10 caracteres.</small>
+            @if (novaSenhaField.invalid && novaSenhaField.touched) {
+              <span class="campo-erro">Senha deve ter no mínimo 10 caracteres.</span>
+            }
+          </div>
+
+          <div class="campo">
+            <label for="redefinir-confirmar-senha">Confirmar nova senha</label>
+            <input
+              id="redefinir-confirmar-senha"
+              name="confirmarNovaSenha"
+              type="password"
+              autocomplete="new-password"
+              [(ngModel)]="confirmarNovaSenha"
+              #confirmarField="ngModel"
+              required
+            />
+            @if (confirmarField.touched && confirmarNovaSenha !== novaSenha) {
+              <span class="campo-erro">As senhas informadas não coincidem.</span>
+            }
+          </div>
+
+          <button
+            type="submit"
+            class="btn-cta"
+            [disabled]="enviando || redefinirForm.invalid || confirmarNovaSenha !== novaSenha"
+          >
+            {{ enviando ? 'Salvando...' : 'Redefinir senha' }}
+          </button>
+
+          @if (mensagem && !sucesso) {
+            <p class="mensagem mensagem-erro">{{ mensagem }}</p>
+          }
+        </form>
+      }
+    </div>
+  </div>
+</app-resource-layout>

@@ -1,40 +1,9 @@
 <app-resource-layout titulo="Jogo Compulsivo">
 
   <section class="section">
-    <p>
-      O jogo compulsivo é reconhecido como uma doença progressiva: começa
-      muitas vezes de forma discreta, como uma distração ou uma tentativa
-      de resolver um problema financeiro, e vai ocupando cada vez mais
-      espaço na vida da pessoa até que jogar deixa de ser uma escolha e
-      passa a ser uma necessidade difícil de controlar. Não é falta de
-      força de vontade — é um padrão que se instala aos poucos, e que a
-      maioria de nós só reconheceu depois de já ter causado bastante
-      dano.
-    </p>
-    <p>
-      Alguns sinais comuns de que o jogo pode estar deixando de ser
-      apenas um hábito: pensar constantemente em jogar ou planejar a
-      próxima aposta, precisar apostar quantias cada vez maiores para
-      sentir a mesma emoção, tentar parar e não conseguir, usar o jogo
-      para escapar de problemas ou de sentimentos difíceis, mentir para
-      familiares e amigos sobre o quanto se joga ou se perde, e recorrer
-      a empréstimos ou outras formas de conseguir dinheiro para continuar
-      jogando ou para cobrir perdas anteriores.
-    </p>
-    <p>
-      Reconhecer esses sinais em si mesmo ou em alguém próximo não é
-      fácil, e é comum que venha acompanhado de vergonha ou negação —
-      muitos de nós levamos anos para admitir que o problema existia.
-      Mas reconhecer é também o primeiro passo possível.
-    </p>
-    <p>
-      A boa notícia é que existe recuperação, e ela acontece
-      principalmente através do apoio mútuo: pessoas que já passaram ou
-      estão passando pela mesma coisa, compartilhando experiências
-      honestas, sem julgamento. Ninguém precisa enfrentar isso sozinho, e
-      dar o primeiro passo — mesmo que seja só o de vir até aqui — já é
-      parte do caminho.
-    </p>
+    @for (bloco of blocosTexto; track bloco.ordem) {
+      <div [innerHTML]="bloco.conteudo"></div>
+    }
   </section>
 
 </app-resource-layout>

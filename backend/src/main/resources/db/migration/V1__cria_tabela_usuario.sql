@@ -1,0 +1,11 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE usuario (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  apelido VARCHAR(30) NOT NULL UNIQUE,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  senha_hash VARCHAR(255) NOT NULL,
+  role VARCHAR(20) NOT NULL CHECK (role IN ('PARTICIPANTE', 'ADMIN')),
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  senha_alterada_em TIMESTAMPTZ NOT NULL DEFAULT now()
+);

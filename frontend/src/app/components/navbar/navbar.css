@@ -160,6 +160,32 @@
   height: 17px;
 }
 
+.utility-account-link__coluna {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.utility-account-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-success);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.utility-account-status__ponto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+  flex-shrink: 0;
+}
+
 .navbar-mobile-actions {
   display: none;
   align-items: center;
@@ -606,6 +632,10 @@
   .utility-account-link {
     display: flex;
     flex: 2 1 0;
+  }
+
+  .utility-account-status {
+    display: flex;
   }
 
   .nav-menu {

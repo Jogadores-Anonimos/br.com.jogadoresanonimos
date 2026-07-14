@@ -59,6 +59,13 @@
               Detalhes da Conta
             </button>
           </li>
+          @if (usuario.role === 'ADMIN') {
+            <li>
+              <a routerLink="/admin" class="conta-dashboard__tab conta-dashboard__tab--admin">
+                Painel Administrativo
+              </a>
+            </li>
+          }
           <li>
             <button type="button" class="conta-dashboard__tab conta-dashboard__tab--sair" (click)="sair()">
               Sair
@@ -70,7 +77,7 @@
       <div class="conta-dashboard__content">
         @switch (abaAtiva) {
           @case ('dashboard') {
-            <h2>Olá, {{ usuario.identificador }}</h2>
+            <h2>Olá, {{ usuario.apelido }}</h2>
             <p class="conta-dashboard__lead">
               A partir do seu painel você acompanha seus pedidos, baixa a literatura
               disponível e atualiza os dados da sua conta anônima.
@@ -141,27 +148,53 @@
 
           @case ('downloads') {
             <h2>Downloads</h2>
-            @if (downloads.length) {
+            <p class="conta-downloads-intro">
+              PDFs que você salvou na sua biblioteca pessoal a partir da
+              página de Literatura.
+            </p>
+            @if (downloadsCarregando) {
+              <p>Carregando sua biblioteca…</p>
+            } @else if (downloads.length) {
               <ul class="conta-downloads">
-                @for (download of downloads; track download.titulo) {
+                @for (download of downloads; track download.id) {
                   <li class="conta-downloads__item">
                     <div>
                       <strong>{{ download.titulo }}</strong>
-                      <span class="conta-downloads__data">Disponibilizado em {{ download.disponibilizadoEm }}</span>
+                      @if (download.descricao) {
+                        <span class="conta-downloads__data">{{ download.descricao }}</span>
+                      }
                     </div>
-                    <button
-                      type="button"
-                      class="conta-downloads__btn"
-                      disabled
-                      title="Download ainda não disponível"
-                    >
-                      Baixar
-                    </button>
+                    <div class="conta-downloads__acoes">
+                      <a
+                        class="conta-downloads__btn"
+                        [href]="download.urlDownload"
+                        target="_blank"
+                        rel="noopener"
+                        [attr.aria-label]="'Baixar PDF: ' + download.titulo"
+                      >
+                        Baixar
+                      </a>
+                      <button
+                        type="button"
+                        class="conta-downloads__btn-remover"
+                        [disabled]="downloadsRemovendo.has(download.id)"
+                        title="O arquivo continua disponível no site — só é removido da sua lista pessoal."
+                        [attr.aria-label]="'Remover da minha biblioteca (não apaga o arquivo do site): ' + download.titulo"
+                        (click)="removerDownload(download.id)"
+                      >
+                        Remover da minha biblioteca
+                      </button>
+                    </div>
                   </li>
                 }
               </ul>
             } @else {
-              <p>Nenhum download disponível.</p>
+              <p>
+                Você ainda não salvou nenhum PDF na sua biblioteca. Visite a
+                página de
+                <a routerLink="/literatura">Literatura</a>
+                e adicione os materiais que quiser guardar aqui.
+              </p>
             }
           }
 
@@ -251,10 +284,14 @@
                 </div>
               </div>
 
-              <button type="submit" class="btn-cta">Salvar Alterações</button>
+              <button type="submit" class="btn-cta" [disabled]="detalhesEnviando">
+                {{ detalhesEnviando ? 'Salvando...' : 'Salvar Alterações' }}
+              </button>
 
               @if (detalhesMensagem) {
-                <p class="mensagem">{{ detalhesMensagem }}</p>
+                <p class="mensagem" [class.mensagem-sucesso]="detalhesSucesso" [class.mensagem-erro]="!detalhesSucesso">
+                  {{ detalhesMensagem }}
+                </p>
               }
             </form>
           }
@@ -271,12 +308,13 @@
         <div class="conta-card">
           <form (ngSubmit)="onLoginSubmit()" #loginForm="ngForm">
             <div class="campo">
-              <label for="login-usuario">Usuário ou e-mail</label>
+              <label for="login-usuario">Apelido ou e-mail</label>
               <input
                 id="login-usuario"
                 name="usuarioOuEmail"
                 type="text"
                 autocomplete="username"
+                placeholder="Seu apelido ou e-mail cadastrado"
                 [(ngModel)]="loginUsuarioOuEmail"
                 required
               />
@@ -310,7 +348,7 @@
               {{ loginEnviando ? 'Entrando...' : 'Entrar' }}
             </button>
 
-            <a href="#" class="link-secundario" (click)="$event.preventDefault()">Esqueci minha senha</a>
+            <a routerLink="/esqueci-senha" class="link-secundario">Esqueci minha senha</a>
 
             @if (loginMensagem) {
               <p class="mensagem" [class.mensagem-sucesso]="loginSucesso" [class.mensagem-erro]="!loginSucesso">
@@ -333,6 +371,31 @@
 
           <form (ngSubmit)="onRegistroSubmit()" #registroForm="ngForm">
             <div class="campo">
+              <label for="registro-apelido">Apelido</label>
+              <input
+                id="registro-apelido"
+                name="apelido"
+                type="text"
+                autocomplete="username"
+                minlength="3"
+                maxlength="30"
+                pattern="\S+"
+                [(ngModel)]="registroApelido"
+                #apelidoField="ngModel"
+                aria-describedby="registro-apelido-ajuda"
+                required
+              />
+              <small id="registro-apelido-ajuda" class="campo-ajuda">
+                3 a 30 caracteres, sem espaços. Não use seu nome real.
+              </small>
+              @if (registroErrosCampo['apelido']) {
+                <span class="campo-erro">{{ registroErrosCampo['apelido'] }}</span>
+              } @else if (apelidoField.invalid && apelidoField.touched) {
+                <span class="campo-erro">Apelido deve ter 3 a 30 caracteres, sem espaços.</span>
+              }
+            </div>
+
+            <div class="campo">
               <label for="registro-email">E-mail</label>
               <input
                 id="registro-email"
@@ -342,6 +405,9 @@
                 [(ngModel)]="registroEmail"
                 required
               />
+              @if (registroErrosCampo['email']) {
+                <span class="campo-erro">{{ registroErrosCampo['email'] }}</span>
+              }
             </div>
 
             <div class="campo">
@@ -351,14 +417,43 @@
                 name="senha"
                 type="password"
                 autocomplete="new-password"
+                minlength="10"
                 [(ngModel)]="registroSenha"
+                #senhaField="ngModel"
                 required
               />
+              @if (registroErrosCampo['senha']) {
+                <span class="campo-erro">{{ registroErrosCampo['senha'] }}</span>
+              } @else if (senhaField.invalid && senhaField.touched) {
+                <span class="campo-erro">Senha deve ter no mínimo 10 caracteres.</span>
+              }
+            </div>
+
+            <div class="campo">
+              <label for="registro-confirmar-senha">Confirmar senha</label>
+              <input
+                id="registro-confirmar-senha"
+                name="confirmarSenha"
+                type="password"
+                autocomplete="new-password"
+                [(ngModel)]="registroConfirmarSenha"
+                #confirmarSenhaField="ngModel"
+                required
+              />
+              @if (registroErrosCampo['confirmarSenha']) {
+                <span class="campo-erro">{{ registroErrosCampo['confirmarSenha'] }}</span>
+              } @else if (confirmarSenhaField.touched && registroConfirmarSenha !== registroSenha) {
+                <span class="campo-erro">As senhas informadas não coincidem.</span>
+              }
             </div>
 
             <div class="conta-captcha" #captchaRegistro></div>
 
-            <button type="submit" class="btn-cta" [disabled]="registroEnviando || registroForm.invalid">
+            <button
+              type="submit"
+              class="btn-cta"
+              [disabled]="registroEnviando || registroForm.invalid || registroConfirmarSenha !== registroSenha"
+            >
               {{ registroEnviando ? 'Criando...' : 'Criar conta' }}
             </button>
 

@@ -43,13 +43,31 @@
     <span>Encontrar Reunião</span>
   </a>
   <span class="utility-account-divider" aria-hidden="true"></span>
-  <a routerLink="/minha-conta" class="utility-account-link" routerLinkActive="active">
-    <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <circle cx="12" cy="8" r="4"/>
-      <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
-    </svg>
-    <span>Minha Conta</span>
-  </a>
+  @if (auth.usuarioAtual()?.role === 'ADMIN') {
+    <a routerLink="/admin" class="utility-account-link" routerLinkActive="active">
+      <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+      </svg>
+      <span>Painel Administrativo</span>
+    </a>
+  } @else {
+    <a routerLink="/minha-conta" class="utility-account-link" routerLinkActive="active">
+      <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+      </svg>
+      <span class="utility-account-link__coluna">
+        <span>Minha Conta</span>
+        @if (auth.usuarioAtual()) {
+          <span class="utility-account-status">
+            <span class="utility-account-status__ponto"></span>
+            logado
+          </span>
+        }
+      </span>
+    </a>
+  }
   <div class="utility-bar-actions">
     <a routerLink="/hotlines" class="utility-link">
       <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -230,13 +248,31 @@
 
     <div class="nav-account">
       <span class="nav-divider" aria-hidden="true"></span>
-      <a class="nav-account-link" routerLink="/minha-conta" routerLinkActive="active">
-        <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="8" r="4"/>
-          <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
-        </svg>
-        <span>Minha Conta</span>
-      </a>
+      @if (auth.usuarioAtual()?.role === 'ADMIN') {
+        <a class="nav-account-link" routerLink="/admin" routerLinkActive="active">
+          <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+          </svg>
+          <span>Painel Administrativo</span>
+        </a>
+      } @else {
+        <a class="nav-account-link" routerLink="/minha-conta" routerLinkActive="active">
+          <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+          </svg>
+          <span class="utility-account-link__coluna">
+            <span>Minha Conta</span>
+            @if (auth.usuarioAtual()) {
+              <span class="utility-account-status">
+                <span class="utility-account-status__ponto"></span>
+                logado
+              </span>
+            }
+          </span>
+        </a>
+      }
     </div>
   </div>
 </nav>

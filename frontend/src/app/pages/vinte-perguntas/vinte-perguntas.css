@@ -23,6 +23,21 @@
   box-shadow: var(--shadow-sm);
 }
 
+.quiz-estado {
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.mensagem {
+  margin: 0 0 var(--spacing-md);
+  font-size: 0.95rem;
+}
+
+.mensagem-erro {
+  color: var(--color-danger);
+}
+
 .quiz-resultado h2 {
   color: var(--cor-padrao-ja);
   font-size: clamp(1.4rem, 3vw, 1.8rem);
@@ -51,6 +66,13 @@
 .btn-cta:focus-visible {
   outline: 3px solid var(--cor-padrao-ja);
   outline-offset: 3px;
+}
+
+.btn-cta:disabled {
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  transform: none;
 }
 
 .btn-cta--outline {

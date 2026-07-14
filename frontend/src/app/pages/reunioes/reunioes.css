@@ -470,3 +470,12 @@
     text-align: center;
   }
 }
+
+.estado-info {
+  color: var(--color-text-muted);
+  padding: var(--spacing-sm) 0;
+}
+
+.estado-info--erro {
+  color: var(--color-danger);
+}

@@ -1,5 +1,20 @@
 # Conhecimento geral (cross-camada)
 
+## [2026-07-13] Nota removida por descrever código que nunca foi commitado
+- **O que foi decidido**: removido `.claude/knowledge/backend-modulo-doze-passos.md`.
+  O arquivo descrevia um módulo backend "Doze Passos" (entidade, repository,
+  service, controllers, migration `V21`) como se estivesse implementado.
+  Confirmado que esse código chegou a ser criado, depois foi totalmente
+  revertido/removido, e nunca foi commitado em nenhuma branch (`git log --all`
+  não mostra nada relacionado). A nota ficou obsoleta e podia levar sessões
+  futuras do time de agentes a assumir que esse módulo existe no código real.
+- **Trade-off ou motivo**: conhecimento desatualizado/factualmente incorreto
+  é pior que ausência de conhecimento — remoção em vez de manter como
+  histórico, já que não corresponde a nenhum estado real do repositório.
+- **Onde no código/infra**: nenhum — não existe `backend/src/main/java/br/com/jogadoresanonimos/dozepassos/`
+  nem `V21__cria_tabela_doze_passo.sql` no código atual.
+- **Ensinado por**: usuário (confirmação direta de que o código foi revertido e nunca commitado).
+
 ## [2026-07-09] Lição de processo: mocks que dependem de "data atual" nunca podem ser hardcoded
 
 - **O que foi decidido/corrigido**: durante a revisão da feature

@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
+import { VintePerguntasService } from '../../services/vinte-perguntas';
 
 type Resposta = 'sim' | 'nao';
 
@@ -16,29 +17,13 @@ interface ResultadoQuiz {
   templateUrl: './vinte-perguntas.html',
   styleUrl: './vinte-perguntas.css',
 })
-export class VintePerguntas {
-  readonly perguntas: string[] = [
-    'Você já perdeu tempo de trabalho ou de escola por causa do jogo?',
-    'O jogo já tornou sua vida familiar infeliz?',
-    'O jogo já afetou a sua reputação?',
-    'Você já sentiu remorso depois de jogar?',
-    'Você já jogou para conseguir dinheiro com o qual pagar dívidas ou resolver dificuldades financeiras?',
-    'O jogo já causou uma diminuição da sua ambição ou eficiência?',
-    'Depois de perder, você sentiu que precisava voltar o quanto antes para recuperar o prejuízo?',
-    'Depois de ganhar, você teve um forte impulso de voltar a jogar para ganhar mais?',
-    'Você costumava jogar até gastar o último centavo que tinha?',
-    'Você já pegou dinheiro emprestado para financiar o jogo?',
-    'Você já vendeu alguma coisa para financiar o jogo?',
-    'Você relutava em usar o "dinheiro do jogo" para despesas normais?',
-    'O jogo já fez você negligenciar o bem-estar seu ou da sua família?',
-    'Você já jogou por mais tempo do que havia planejado?',
-    'Você já jogou para escapar de preocupações ou problemas?',
-    'Você já cometeu, ou considerou cometer, algum ato ilegal para financiar o jogo?',
-    'O jogo já causou dificuldade para você dormir?',
-    'Discussões, decepções ou frustrações despertam em você o impulso de jogar?',
-    'Você já teve vontade de comemorar alguma boa notícia jogando por algumas horas?',
-    'Você já considerou se autodestruir ou cometer suicídio como resultado do jogo?',
-  ];
+export class VintePerguntas implements OnInit {
+  private readonly vintePerguntasService = inject(VintePerguntasService);
+
+  perguntas: string[] = [];
+
+  carregando = true;
+  erro: string | null = null;
 
   readonly limiarSinais = 7;
 
@@ -46,6 +31,31 @@ export class VintePerguntas {
   perguntaAtual = 0;
   respostas: Resposta[] = [];
   resultado: ResultadoQuiz | null = null;
+
+  ngOnInit(): void {
+    this.carregarPerguntas();
+  }
+
+  carregarPerguntas(): void {
+    this.carregando = true;
+    this.erro = null;
+
+    this.vintePerguntasService.listar().subscribe((resposta) => {
+      this.carregando = false;
+
+      if (resposta.success && resposta.data && resposta.data.length > 0) {
+        this.perguntas = [...resposta.data]
+          .sort((a, b) => a.numero - b.numero)
+          .map((questao) => questao.texto);
+        return;
+      }
+
+      this.perguntas = [];
+      this.erro = resposta.success
+        ? 'Ainda não há perguntas cadastradas para este questionário.'
+        : (resposta.error?.message ?? 'Não foi possível carregar as perguntas agora. Tente novamente mais tarde.');
+    });
+  }
 
   get progresso(): number {
     return Math.round((this.perguntaAtual / this.perguntas.length) * 100);

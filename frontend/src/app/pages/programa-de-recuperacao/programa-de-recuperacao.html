@@ -1,24 +1,14 @@
 <app-resource-layout titulo="Programa de Recuperação (Os 12 Passos)">
 
   <section class="section">
-    <p class="lead">
-      Os Doze Passos de Jogadores Anônimos são o caminho de recuperação
-      seguido por milhares de membros da irmandade em todo o mundo. Eles
-      representam uma jornada de honestidade, apoio mútuo e transformação
-      pessoal.
-    </p>
-
-    <p class="passos-intro">
-      Aqui estão os passos que compõem um Programa de Recuperação:
-    </p>
-
-    <ol class="passos-lista">
-      @for (passo of passos; track $index) {
-        <li class="passo-item">
-          <p><strong>{{ $index + 1 }}.</strong> {{ passo }}</p>
+    <ul class="passos-grid">
+      @for (passo of passos; track passo.numero) {
+        <li class="passo-card">
+          <span class="passo-card-numero">Passo {{ passo.numero }}</span>
+          <p class="passo-card-texto">{{ passo.texto }}</p>
         </li>
       }
-    </ol>
+    </ul>
   </section>
 
   <section class="cta-final">

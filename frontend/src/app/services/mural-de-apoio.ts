@@ -1,22 +1,22 @@
-import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { catchError, delay, map } from 'rxjs/operators';
 
-// TODO: substituir por chamada real (this.http.get<MuralDeApoioResponse>('/api/mural-de-apoio')) mantendo o contrato público
-//
-// Pendência: upload de imagem precisa remover metadados EXIF antes de salvar (ver CLAUDE.md); responsabilidade de backend/security, não deste service.
-//
-// Anonimato: cartazes trazem apenas dado institucional do grupo (endereço, telefone de contato), nunca de pessoa física.
+import { environment } from '../../environments/environment';
+import { ApiEnvelope, apiError, apiSuccess } from './api-envelope';
+import {
+  BannerMuralAdmin,
+  BannerMuralPublico,
+  CriarBannerMuralRequest,
+  EditarBannerMuralRequest,
+} from './mural-de-apoio.model';
+import { MURAL_DE_APOIO_MOCK } from './mural-de-apoio.mock';
 
-// sem campo de quem administra/publicou o banner — anonimato proposital
-export interface BannerMuralApoio {
-  id: string;
-  imagemUrl: string;
-  altText: string; // obrigatório — requisito de acessibilidade
-  // mantido como opcional para uso futuro não-visual; frontend não deve renderizar isso na UI (imagem já é autoexplicativa)
-  legenda?: string;
-  linkDestino?: string;
-  dataPublicacao: string; // ISO
+// Reexport para não quebrar consumidores existentes (pages/mural-de-apoio, pages/home).
+// `ativo` mantido no shape legado só por compatibilidade — o backend real
+// (GET público) já filtra e nunca retorna banners inativos.
+export interface BannerMuralApoio extends BannerMuralPublico {
   ativo: boolean;
 }
 
@@ -26,110 +26,137 @@ export interface MuralDeApoioResponse {
   error?: string;
 }
 
-// dados reais (não placeholder): imagens baixadas do site oficial jogadoresanonimos.com.br em 2026-07-09, versionadas em frontend/public/images/mural-de-apoio/
-const MURAL_DE_APOIO_MOCK: BannerMuralApoio[] = [
-  {
-    id: 'banner-grupo-cuiaba',
-    imagemUrl: '/images/mural-de-apoio/banner-grupo-cuiaba.jpg',
-    altText:
-      'Cartaz do Grupo Cuiabá de J.A. Problemas com o jogo? Já existe ajuda em Cuiabá. ' +
-      'Endereço: Av. Des. Antônio Quirino de Araújo, 1126 - Bairro Poções - Cuiabá - MT. ' +
-      'Reunião de abertura: quarta-feira, 29/07/2026, às 19h30. ' +
-      'Contato: (21) 99472-1933. jogadoresanonimos.com.br',
-    legenda: 'Grupo Cuiabá de J.A.',
-    dataPublicacao: '2026-07-01T09:00:00.000Z',
-    ativo: true,
-  },
-  {
-    id: 'banner-grupo-sao-luis',
-    imagemUrl: '/images/mural-de-apoio/banner-grupo-sao-luis.jpg',
-    altText:
-      'Cartaz do Grupo SLZ-Bequimão. Problemas com o jogo? Existe ajuda. ' +
-      'Endereço: Rua 32, nº 1 - Bairro Bequimão - São Luís, MA (Igreja do Sagrado Coração de Jesus - Matriz). ' +
-      'Reuniões: quintas-feiras, das 19h às 21h. ' +
-      'Contato: (21) 99472-1933. jogadoresanonimos.com.br',
-    legenda: 'Grupo SLZ-Bequimão',
-    dataPublicacao: '2026-06-20T09:00:00.000Z',
-    ativo: true,
-  },
-  {
-    id: 'banner-grupo-ipsep-recife',
-    imagemUrl: '/images/mural-de-apoio/banner-grupo-ipset-recife.jpg',
-    altText:
-      'Cartaz do Grupo IPSEP. Problemas com o jogo? Existe ajuda. ' +
-      'Endereço: R. Jean Emile Frave, s/nº - Eren Eleanor Roosevelt, IPSEP, Recife, PE. ' +
-      'Reuniões: terças-feiras, das 19h às 21h (a partir de 07/04/2026). ' +
-      'Contato: (81) 98697-3867. jogadoresanonimos.com.br',
-    legenda: 'Grupo IPSEP - Recife',
-    dataPublicacao: '2026-03-15T09:00:00.000Z',
-    ativo: true,
-  },
-  {
-    id: 'banner-grupo-taubate',
-    imagemUrl: '/images/mural-de-apoio/banner-grupo-taubate.jpg',
-    altText:
-      'Cartaz do Grupo Taubaté. Problemas com o jogo? Existe ajuda em Taubaté, SP. ' +
-      'Endereço: Rua Maria Teresa de Moura, 150 - Estiva (Lar Bom Samaritano), Taubaté, SP. ' +
-      'Inauguração: domingo, 25/01, às 9h30. Reuniões: quartas-feiras, das 19h às 21h. ' +
-      'Contato: (21) 99472-1933. jogadoresanonimos.com.br',
-    legenda: 'Grupo Taubaté',
-    dataPublicacao: '2026-01-10T09:00:00.000Z',
-    ativo: true,
-  },
-];
-
 const QUANTIDADE_DESTAQUE_HOME = 3;
+
+function paraLegado(banner: BannerMuralAdmin): BannerMuralApoio {
+  const { imagemId: _imagemId, dataAtualizacao: _dataAtualizacao, ...resto } = banner;
+  return resto;
+}
 
 @Injectable({ providedIn: 'root' })
 export class MuralDeApoioService {
+  private readonly http = inject(HttpClient);
+  private readonly publicaUrl = `${environment.apiBaseUrl}/mural-de-apoio`;
+  private readonly adminUrl = `${environment.apiBaseUrl}/admin/mural-de-apoio`;
+
+  private listarAtivos(): Observable<MuralDeApoioResponse> {
+    if (!environment.useMocks) {
+      return this.http.get<ApiEnvelope<BannerMuralPublico[]>>(this.publicaUrl).pipe(
+        map((envelope) =>
+          envelope.success && envelope.data
+            ? { success: true, data: envelope.data.map((b): BannerMuralApoio => ({ ...b, ativo: true })) }
+            : { success: false, error: envelope.error?.message ?? 'Não foi possível carregar o mural de apoio.' },
+        ),
+        catchError(() => of({ success: false, error: 'Não foi possível carregar o mural de apoio no momento.' })),
+      );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
+    const ativos = MURAL_DE_APOIO_MOCK.filter((b) => b.ativo)
+      .sort((a, b) => new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime())
+      .map(paraLegado);
+    return of<MuralDeApoioResponse>({ success: true, data: ativos }).pipe(delay(500));
+  }
+
   getBannersDestaque(): Observable<MuralDeApoioResponse> {
-    return of<MuralDeApoioResponse>({ success: true, data: MURAL_DE_APOIO_MOCK }).pipe(
-      delay(500),
-      map((resposta) => {
-        if (!resposta.data) {
-          return resposta;
-        }
-
-        const destaque = resposta.data
-          .filter((banner) => banner.ativo)
-          .sort(
-            (a, b) => new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime(),
-          )
-          .slice(0, QUANTIDADE_DESTAQUE_HOME);
-
-        return { ...resposta, data: destaque };
-      }),
-      catchError(() =>
-        of<MuralDeApoioResponse>({
-          success: false,
-          error: 'Não foi possível carregar o mural de apoio no momento.',
-        }),
+    return this.listarAtivos().pipe(
+      map((resposta) =>
+        resposta.success && resposta.data
+          ? { ...resposta, data: resposta.data.slice(0, QUANTIDADE_DESTAQUE_HOME) }
+          : resposta,
       ),
     );
   }
 
   getBannersCompleto(): Observable<MuralDeApoioResponse> {
-    return of<MuralDeApoioResponse>({ success: true, data: MURAL_DE_APOIO_MOCK }).pipe(
-      delay(500),
-      map((resposta) => {
-        if (!resposta.data) {
-          return resposta;
-        }
+    return this.listarAtivos();
+  }
 
-        const ativos = resposta.data
-          .filter((banner) => banner.ativo)
-          .sort(
-            (a, b) => new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime(),
-          );
+  // --- Admin ---
 
-        return { ...resposta, data: ativos };
-      }),
-      catchError(() =>
-        of<MuralDeApoioResponse>({
-          success: false,
-          error: 'Não foi possível carregar o mural de apoio no momento.',
-        }),
-      ),
+  listarTodosAdmin(): Observable<ApiEnvelope<BannerMuralAdmin[]>> {
+    if (!environment.useMocks) {
+      return this.http.get<ApiEnvelope<BannerMuralAdmin[]>>(this.adminUrl).pipe(
+        catchError(() => of(apiError<BannerMuralAdmin[]>('UPSTREAM_ERROR', 'Não foi possível carregar os banners.'))),
+      );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
+    const ordenados = [...MURAL_DE_APOIO_MOCK].sort(
+      (a, b) => new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime(),
     );
+    return of(apiSuccess(ordenados)).pipe(delay(400));
+  }
+
+  criarBannerAdmin(req: CriarBannerMuralRequest): Observable<ApiEnvelope<BannerMuralAdmin>> {
+    if (!environment.useMocks) {
+      return this.http.post<ApiEnvelope<BannerMuralAdmin>>(this.adminUrl, req).pipe(
+        catchError(() => of(apiError<BannerMuralAdmin>('UPSTREAM_ERROR', 'Não foi possível criar o banner agora.'))),
+      );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
+    if (!req.altText?.trim()) {
+      return of(apiError<BannerMuralAdmin>('VALIDATION_ERROR', 'Texto alternativo é obrigatório.', { altText: 'obrigatório' })).pipe(
+        delay(300),
+      );
+    }
+
+    const novo: BannerMuralAdmin = {
+      id: `mock-banner-${MURAL_DE_APOIO_MOCK.length + 1}`,
+      imagemId: req.imagemId,
+      imagemUrl: '/images/mural-de-apoio/placeholder.jpg',
+      altText: req.altText,
+      legenda: req.legenda ?? null,
+      linkDestino: req.linkDestino ?? null,
+      ativo: true,
+      dataPublicacao: new Date().toISOString(),
+      dataAtualizacao: new Date().toISOString(),
+    };
+    MURAL_DE_APOIO_MOCK.push(novo);
+    return of(apiSuccess(novo)).pipe(delay(500));
+  }
+
+  editarBannerAdmin(id: string, req: EditarBannerMuralRequest): Observable<ApiEnvelope<BannerMuralAdmin>> {
+    if (!environment.useMocks) {
+      return this.http.put<ApiEnvelope<BannerMuralAdmin>>(`${this.adminUrl}/${id}`, req).pipe(
+        catchError(() => of(apiError<BannerMuralAdmin>('UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+      );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
+    const banner = MURAL_DE_APOIO_MOCK.find((b) => b.id === id);
+    if (!banner) {
+      return of(apiError<BannerMuralAdmin>('NOT_FOUND', 'Banner não encontrado.')).pipe(delay(300));
+    }
+    if (!req.altText?.trim()) {
+      return of(apiError<BannerMuralAdmin>('VALIDATION_ERROR', 'Texto alternativo é obrigatório.', { altText: 'obrigatório' })).pipe(
+        delay(300),
+      );
+    }
+
+    banner.imagemId = req.imagemId;
+    banner.altText = req.altText;
+    banner.legenda = req.legenda ?? null;
+    banner.linkDestino = req.linkDestino ?? null;
+    banner.ativo = req.ativo;
+    banner.dataAtualizacao = new Date().toISOString();
+    return of(apiSuccess(banner)).pipe(delay(400));
+  }
+
+  excluirBannerAdmin(id: string): Observable<ApiEnvelope<{ mensagem: string }>> {
+    if (!environment.useMocks) {
+      return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/${id}`).pipe(
+        catchError(() => of(apiError<{ mensagem: string }>('UPSTREAM_ERROR', 'Não foi possível remover o banner agora.'))),
+      );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
+    const indice = MURAL_DE_APOIO_MOCK.findIndex((b) => b.id === id);
+    if (indice === -1) {
+      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Banner não encontrado.')).pipe(delay(300));
+    }
+    MURAL_DE_APOIO_MOCK.splice(indice, 1);
+    return of(apiSuccess({ mensagem: 'Banner removido.' })).pipe(delay(400));
   }
 }

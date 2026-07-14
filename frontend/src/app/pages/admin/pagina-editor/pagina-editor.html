@@ -1,0 +1,188 @@
+<section class="pagina-editor">
+  <header class="pagina-editor__topo">
+    <div>
+      <button type="button" class="pagina-editor__voltar" (click)="sair()">&larr; Voltar para páginas</button>
+      <h1>{{ titulo() || 'Editar página' }}</h1>
+    </div>
+
+    <div class="pagina-editor__acoes-topo">
+      @if (!ehVintePerguntas) {
+        @if (temAlteracoesPendentes()) {
+          <span class="pagina-editor__aviso-pendente" role="status">Você tem alterações não salvas</span>
+        }
+        <button type="button" class="btn-cta pagina-editor__salvar" [disabled]="salvando() || carregando()" (click)="salvar()">
+          {{ salvando() ? 'Salvando…' : 'Salvar alterações' }}
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (mensagemSucesso()) {
+    <p class="mensagem mensagem-sucesso" role="status">{{ mensagemSucesso() }}</p>
+  }
+  @if (erro()) {
+    <p class="mensagem mensagem-erro" role="alert">{{ erro() }}</p>
+  }
+
+  @if (carregando()) {
+    <p class="pagina-editor__estado" role="status">Carregando conteúdo…</p>
+  } @else {
+    @if (!ehVintePerguntas) {
+      <div class="pagina-editor__campo-titulo">
+        <label for="pagina-titulo">Título da página</label>
+        <input id="pagina-titulo" type="text" [(ngModel)]="titulo" name="titulo" (input)="marcarAlteracao()" />
+      </div>
+
+
+      <h2 class="pagina-editor__secao-titulo">Blocos de conteúdo</h2>
+      <p class="campo-ajuda">
+        Layout da página é fixo — só é possível editar o texto e a imagem de
+        cada bloco já existente, sem adicionar, remover ou reordenar.
+      </p>
+
+      <ol class="pagina-editor__blocos">
+        @for (bloco of blocos(); track $index; let indice = $index) {
+          <li class="bloco-card">
+            <div class="bloco-card__cabecalho">
+              <span class="bloco-card__tipo">{{ bloco.tipo === 'texto' ? 'Texto' : 'Imagem' }}</span>
+            </div>
+
+            @if (bloco.tipo === 'texto') {
+              <div class="campo">
+                <label [for]="'bloco-texto-' + indice">Conteúdo</label>
+                <textarea
+                  [id]="'bloco-texto-' + indice"
+                  rows="4"
+                  [ngModel]="bloco.conteudo"
+                  (ngModelChange)="atualizarTexto(indice, $event)"
+                  [name]="'bloco-texto-' + indice"
+                ></textarea>
+                <p class="campo-ajuda">Tags permitidas: negrito, itálico, parágrafo, quebra de linha e link.</p>
+              </div>
+            } @else if (bloco.tipo === 'imagem') {
+              <div class="bloco-card__imagem">
+                @if (bloco.url) {
+                  <img [src]="bloco.url" [alt]="bloco.alt" class="bloco-card__preview" />
+                } @else {
+                  <div class="bloco-card__preview bloco-card__preview--vazio" aria-hidden="true">Sem imagem</div>
+                }
+
+                <div class="campo">
+                  <label [for]="'bloco-alt-' + indice">Texto alternativo (obrigatório)</label>
+                  <input
+                    [id]="'bloco-alt-' + indice"
+                    type="text"
+                    [ngModel]="bloco.alt"
+                    (ngModelChange)="atualizarAltImagem(indice, $event)"
+                    [name]="'bloco-alt-' + indice"
+                  />
+                </div>
+
+                <div class="campo">
+                  <label [for]="'bloco-arquivo-' + indice">{{ bloco.url ? 'Trocar imagem' : 'Enviar imagem' }}</label>
+                  <input
+                    [id]="'bloco-arquivo-' + indice"
+                    type="file"
+                    accept="image/*"
+                    [disabled]="enviandoImagemIndice() === indice"
+                    (change)="onArquivoBlocoSelecionado(indice, $event)"
+                  />
+                  @if (enviandoImagemIndice() === indice) {
+                    <p class="campo-ajuda" role="status">Enviando imagem…</p>
+                  }
+                  @if (enviandoImagemIndice() !== indice && erroUploadImagem()) {
+                    <p class="mensagem mensagem-erro" role="alert">{{ erroUploadImagem() }}</p>
+                  }
+                </div>
+              </div>
+            }
+          </li>
+        } @empty {
+          <li class="pagina-editor__vazio">Esta página ainda não tem blocos de conteúdo.</li>
+        }
+      </ol>
+    }
+
+    @if (ehVintePerguntas) {
+      <h2 class="pagina-editor__secao-titulo">As perguntas</h2>
+      <p class="campo-ajuda pagina-editor__perguntas-ajuda">
+        Edite o texto de cada pergunta, adicione novas ao final da lista ou
+        remova as que não fizerem mais sentido. É preciso manter ao menos
+        uma pergunta.
+      </p>
+
+      @if (perguntasCarregando()) {
+        <p class="pagina-editor__estado" role="status">Carregando perguntas…</p>
+      } @else if (perguntasIndisponivel()) {
+        <p class="mensagem mensagem-erro" role="alert">
+          Não foi possível carregar as perguntas agora. Tente novamente mais tarde.
+        </p>
+      } @else {
+        @if (perguntasErro()) {
+          <p class="mensagem mensagem-erro" role="alert">{{ perguntasErro() }}</p>
+        }
+        <ol class="pagina-editor__perguntas">
+          @for (pergunta of perguntas(); track pergunta.id) {
+            <li class="pergunta-card">
+              <span class="pergunta-card__numero">{{ pergunta.numero }}</span>
+              <div class="pergunta-card__conteudo">
+                <textarea
+                  #perguntaTexto
+                  rows="2"
+                  [ngModel]="pergunta.texto"
+                  [name]="'pergunta-' + pergunta.id"
+                  [attr.aria-label]="'Pergunta ' + pergunta.numero"
+                ></textarea>
+                <div class="pergunta-card__acoes">
+                  <button
+                    type="button"
+                    class="btn-secundario pergunta-card__salvar"
+                    [disabled]="perguntasSalvandoId() === pergunta.id"
+                    (click)="salvarPergunta(pergunta.id, perguntaTexto.value)"
+                  >
+                    {{ perguntasSalvandoId() === pergunta.id ? 'Salvando…' : 'Salvar pergunta' }}
+                  </button>
+                  <button
+                    type="button"
+                    class="pergunta-card__remover"
+                    [disabled]="perguntas().length <= 1 || perguntasRemovendoId() === pergunta.id"
+                    [attr.aria-label]="'Remover pergunta ' + pergunta.numero"
+                    [title]="perguntas().length <= 1 ? 'É preciso manter ao menos uma pergunta' : 'Remover pergunta'"
+                    (click)="removerPergunta(pergunta.id)"
+                  >
+                    {{ perguntasRemovendoId() === pergunta.id ? 'Removendo…' : 'Remover' }}
+                  </button>
+                </div>
+                @if (perguntas().length <= 1) {
+                  <p class="campo-ajuda">É preciso manter ao menos uma pergunta.</p>
+                }
+              </div>
+            </li>
+          }
+        </ol>
+
+        <div class="pagina-editor__adicionar">
+          <button
+            type="button"
+            class="btn-secundario"
+            [disabled]="perguntasAdicionando()"
+            (click)="adicionarPergunta()"
+          >
+            {{ perguntasAdicionando() ? 'Adicionando…' : '+ Adicionar pergunta' }}
+          </button>
+        </div>
+      }
+    }
+
+    @if (!ehVintePerguntas) {
+      <div class="pagina-editor__acoes-rodape">
+        @if (temAlteracoesPendentes()) {
+          <span class="pagina-editor__aviso-pendente" role="status">Você tem alterações não salvas</span>
+        }
+        <button type="button" class="btn-cta pagina-editor__salvar" [disabled]="salvando() || carregando()" (click)="salvar()">
+          {{ salvando() ? 'Salvando…' : 'Salvar alterações' }}
+        </button>
+      </div>
+    }
+  }
+</section>

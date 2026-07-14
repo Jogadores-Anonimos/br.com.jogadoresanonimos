@@ -1,0 +1,246 @@
+:host {
+  display: block;
+}
+
+.admin-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.admin-avisos__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.admin-avisos__titulo {
+  color: var(--color-text);
+  font-size: 1.4rem;
+  font-weight: var(--font-weight-heading);
+}
+
+.admin-avisos__descricao {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 70ch;
+  margin-top: var(--spacing-xs);
+}
+
+.admin-avisos__estado {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.admin-avisos__estado--erro {
+  color: var(--color-danger);
+}
+
+.admin-avisos__lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.admin-avisos__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-avisos__card-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+
+.admin-avisos__card-titulo-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.admin-avisos__card-titulo {
+  color: var(--color-text);
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-avisos__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15em 0.6em;
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-md);
+}
+
+.admin-avisos__badge--fixado {
+  background: var(--yellow);
+  color: var(--color-text);
+}
+
+.admin-avisos__badge--expirado {
+  background: var(--color-bg-frame);
+  color: var(--color-text-muted);
+}
+
+.admin-avisos__data {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.admin-avisos__corpo {
+  color: var(--color-text);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.admin-avisos__expiracao {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.admin-avisos__erro-card {
+  color: var(--color-danger);
+  font-size: 0.9rem;
+}
+
+.admin-avisos__confirmacao {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+  align-self: center;
+}
+
+.admin-avisos__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+}
+
+.admin-avisos__botao {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.admin-avisos__botao:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-avisos__botao:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.admin-avisos__botao--primario {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+}
+
+.admin-avisos__botao--secundario {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.admin-avisos__botao--perigo {
+  background: var(--color-danger);
+  color: var(--white);
+}
+
+.admin-avisos__formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-width: 60ch;
+}
+
+.admin-avisos__campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.admin-avisos__campo label {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-avisos__campo input[type='text'],
+.admin-avisos__campo input[type='date'],
+.admin-avisos__campo textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-xs);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin-avisos__campo textarea {
+  resize: vertical;
+}
+
+.admin-avisos__campo input:focus-visible,
+.admin-avisos__campo textarea:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.admin-avisos__campo--linha {
+  flex-direction: row;
+  align-items: center;
+}
+
+.admin-avisos__label-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .admin-avisos__cabecalho {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-avisos__botao--primario {
+    width: 100%;
+  }
+
+  .admin-avisos__acoes {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-avisos__acoes .admin-avisos__botao {
+    width: 100%;
+  }
+}

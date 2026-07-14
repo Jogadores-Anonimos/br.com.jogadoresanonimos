@@ -50,6 +50,151 @@
   line-height: 1.6;
 }
 
+.literatura-publicacoes-pdf__titulo {
+  color: var(--cor-padrao-ja);
+  font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+  margin-bottom: var(--spacing-md);
+}
+
+.literatura-pdf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-md);
+}
+
+.literatura-pdf-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-bg-section);
+  border-radius: var(--radius-md);
+}
+
+.literatura-pdf-card__icone {
+  flex-shrink: 0;
+  color: var(--cor-padrao-ja);
+}
+
+.literatura-pdf-card__capa {
+  flex-shrink: 0;
+  width: 120px;
+  height: 156px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.literatura-pdf-card__texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.literatura-pdf-card__texto h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-xs);
+}
+
+.literatura-pdf-card__texto p {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.literatura-pdf-card__acoes {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-xs);
+}
+
+.literatura-pdf-card__btn {
+  flex-shrink: 0;
+  display: inline-block;
+  background: var(--yellow-btn);
+  color: var(--cor-padrao-ja);
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  text-align: center;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.literatura-pdf-card__btn:hover {
+  background: var(--yellow-gold);
+  transform: translateY(-2px);
+}
+
+.literatura-pdf-card__btn:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 3px;
+}
+
+.literatura-pdf-card__btn-secundario {
+  flex-shrink: 0;
+  display: inline-block;
+  background: transparent;
+  color: var(--cor-padrao-ja);
+  border: 1px solid var(--cor-padrao-ja);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 9px 20px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.literatura-pdf-card__btn-secundario:hover:not(:disabled) {
+  background: var(--color-bg-section);
+  transform: translateY(-2px);
+}
+
+.literatura-pdf-card__btn-secundario:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.literatura-pdf-card__btn-secundario:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 3px;
+}
+
+.literatura-pdf-card__salvo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--color-success);
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .literatura-pdf-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .literatura-pdf-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .literatura-pdf-card__acoes {
+    align-self: stretch;
+    width: 100%;
+  }
+}
+
 .cta-final {
   text-align: center;
   padding: var(--spacing-xl) var(--spacing-md);

@@ -3,24 +3,12 @@
   @if (respostaMembro === 'sim') {
     <header class="contribuir__header">
       <h1 class="contribuir__titulo">Contribua com a Jogadores Anônimos do Brasil</h1>
-      <p class="contribuir__texto">
-        A Jogadores Anônimos se mantém apenas com as contribuições voluntárias dos próprios membros e
-        apoiadores. Não aceitamos doações de fontes externas, essa é a nossa Sétima Tradição: "todo
-        grupo deve ser autossustentável, recusando contribuições de fora da irmandade".
-      </p>
-      <p class="contribuir__texto">
-        Sua contribuição ajuda a manter salas de reunião, materiais de recuperação e a estrutura que
-        permite que mais pessoas encontrem ajuda.
-      </p>
     </header>
 
     <section class="contribuir__metodos">
-      <h2 class="contribuir__subtitulo">Formas de contribuição</h2>
-      <ul class="contribuir__lista">
-        <li><strong>Pix:</strong> chave [a definir]</li>
-        <li><strong>Transferência bancária:</strong> dados bancários [a definir]</li>
-        <li><strong>Contribuição em reunião presencial:</strong> converse com o tesoureiro do seu grupo local</li>
-      </ul>
+      @for (bloco of blocosTexto; track bloco.ordem) {
+        <div class="contribuir__texto" [innerHTML]="bloco.conteudo"></div>
+      }
     </section>
   }
 

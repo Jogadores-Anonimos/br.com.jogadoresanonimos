@@ -1,95 +1,133 @@
-import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { delay, map } from 'rxjs/operators';
+import { catchError, delay, map } from 'rxjs/operators';
 
-// TODO: substituir por chamada real (this.http.get<AvisosResponse>('/api/avisos')) mantendo o mesmo contrato público
+import { environment } from '../../environments/environment';
+import { ApiEnvelope, apiError, apiSuccess } from './api-envelope';
+import { AvisoAdmin, AvisoPublico, CriarAvisoRequest, EditarAvisoRequest } from './aviso.model';
+import { AVISOS_MOCK } from './aviso.mock';
 
-export interface Aviso {
-  id: string;
-  titulo: string;
-  corpo: string;
-  dataPublicacao: string; // ISO
-  fixado: boolean; // deve aparecer primeiro na listagem
-  dataExpiracao?: string; // ISO, opcional
-}
+// Reexport para não quebrar consumidores existentes (pages/avisos, pages/home).
+export type Aviso = AvisoPublico;
 
+// Formato legado mantido só para não quebrar os componentes já existentes.
 export interface AvisosResponse {
   success: boolean;
   data?: Aviso[];
   error?: string;
 }
 
-const AVISOS_MOCK: Aviso[] = [
-  {
-    id: 'aviso-1',
-    titulo: 'Canal de apoio disponível 24 horas',
-    corpo:
-      'Lembramos que nosso canal de apoio por chat está disponível 24 horas por dia, todos os dias, para quem precisar conversar com alguém a qualquer momento.',
-    dataPublicacao: '2026-07-01T09:00:00.000Z',
-    fixado: true,
-  },
-  {
-    id: 'aviso-2',
-    titulo: 'Novo grupo de apoio na região Sul',
-    corpo:
-      'Um novo grupo de apoio presencial foi criado na região Sul do país. Entre em contato pelos nossos canais para saber o horário e o local das reuniões.',
-    dataPublicacao: '2026-06-28T14:30:00.000Z',
-    fixado: false,
-  },
-  {
-    id: 'aviso-3',
-    titulo: 'Mudança no horário das reuniões de quarta-feira',
-    corpo:
-      'As reuniões que aconteciam às 19h nas quartas-feiras passam a acontecer às 20h a partir da próxima semana, para facilitar a participação de mais pessoas.',
-    dataPublicacao: '2026-06-20T11:00:00.000Z',
-    fixado: false,
-  },
-  {
-    id: 'aviso-4',
-    titulo: 'Manutenção programada do site',
-    corpo:
-      'No próximo sábado, das 2h às 4h da manhã, o site passará por uma manutenção programada e poderá ficar indisponível por alguns minutos.',
-    dataPublicacao: '2026-06-15T08:00:00.000Z',
-    fixado: false,
-    dataExpiracao: '2026-07-15T00:00:00.000Z',
-  },
-  {
-    id: 'aviso-5',
-    titulo: 'Encontro regional de recuperação em setembro',
-    corpo:
-      'Estamos organizando um encontro regional de recuperação para o mês de setembro, reunindo diversos grupos de apoio. Mais informações em breve.',
-    dataPublicacao: '2026-06-10T16:45:00.000Z',
-    fixado: false,
-  },
-  {
-    id: 'aviso-6',
-    titulo: 'Reforço: seu anonimato é prioridade',
-    corpo:
-      'Reforçamos que nenhuma informação pessoal é solicitada ou compartilhada em nossos grupos e canais de apoio. Sua identidade está sempre protegida.',
-    dataPublicacao: '2026-05-30T10:15:00.000Z',
-    fixado: false,
-  },
-];
+function ordenar<T extends { fixado: boolean; dataPublicacao: string }>(itens: T[]): T[] {
+  return [...itens].sort((a, b) => {
+    if (a.fixado !== b.fixado) {
+      return a.fixado ? -1 : 1;
+    }
+    return new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime();
+  });
+}
 
 @Injectable({ providedIn: 'root' })
 export class AvisosService {
+  private readonly http = inject(HttpClient);
+  private readonly publicaUrl = `${environment.apiBaseUrl}/avisos`;
+  private readonly adminUrl = `${environment.apiBaseUrl}/admin/avisos`;
+
   listarAvisos(): Observable<AvisosResponse> {
-    return of<AvisosResponse>({ success: true, data: AVISOS_MOCK }).pipe(
-      delay(500),
-      map((resposta) => {
-        if (!resposta.data) {
-          return resposta;
-        }
+    if (!environment.useMocks) {
+      return this.http.get<ApiEnvelope<AvisoPublico[]>>(this.publicaUrl).pipe(
+        map((envelope) =>
+          envelope.success && envelope.data
+            ? { success: true, data: ordenar(envelope.data) }
+            : { success: false, error: envelope.error?.message ?? 'Não foi possível carregar os avisos.' },
+        ),
+        catchError(() => of({ success: false, error: 'Não foi possível carregar os avisos no momento.' })),
+      );
+    }
 
-        const avisosOrdenados = [...resposta.data].sort((a, b) => {
-          if (a.fixado !== b.fixado) {
-            return a.fixado ? -1 : 1;
-          }
-          return new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime();
-        });
-
-        return { ...resposta, data: avisosOrdenados };
-      }),
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
+    const ativos = AVISOS_MOCK.filter((a) => !a.expirado).map(
+      ({ id, titulo, corpo, dataPublicacao, fixado }): Aviso => ({ id, titulo, corpo, dataPublicacao, fixado }),
     );
+    return of<AvisosResponse>({ success: true, data: ordenar(ativos) }).pipe(delay(500));
+  }
+
+  // --- Admin ---
+
+  listarTodosAdmin(): Observable<ApiEnvelope<AvisoAdmin[]>> {
+    if (!environment.useMocks) {
+      return this.http.get<ApiEnvelope<AvisoAdmin[]>>(this.adminUrl).pipe(
+        catchError(() => of(apiError<AvisoAdmin[]>('UPSTREAM_ERROR', 'Não foi possível carregar os avisos.'))),
+      );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
+    return of(apiSuccess(ordenar(AVISOS_MOCK))).pipe(delay(400));
+  }
+
+  criarAvisoAdmin(req: CriarAvisoRequest): Observable<ApiEnvelope<AvisoAdmin>> {
+    if (!environment.useMocks) {
+      return this.http.post<ApiEnvelope<AvisoAdmin>>(this.adminUrl, req).pipe(
+        catchError(() => of(apiError<AvisoAdmin>('UPSTREAM_ERROR', 'Não foi possível criar o aviso agora.'))),
+      );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
+    if (!req.titulo?.trim() || !req.corpo?.trim()) {
+      return of(apiError<AvisoAdmin>('VALIDATION_ERROR', 'Título e corpo são obrigatórios.')).pipe(delay(300));
+    }
+
+    const expirado = !!req.dataExpiracao && new Date(req.dataExpiracao).getTime() < Date.now();
+    const novo: AvisoAdmin = {
+      id: `mock-aviso-${AVISOS_MOCK.length + 1}`,
+      titulo: req.titulo,
+      corpo: req.corpo,
+      fixado: req.fixado ?? false,
+      dataExpiracao: req.dataExpiracao ?? null,
+      dataPublicacao: new Date().toISOString(),
+      expirado,
+    };
+    AVISOS_MOCK.push(novo);
+    return of(apiSuccess(novo)).pipe(delay(500));
+  }
+
+  editarAvisoAdmin(id: string, req: EditarAvisoRequest): Observable<ApiEnvelope<AvisoAdmin>> {
+    if (!environment.useMocks) {
+      return this.http.put<ApiEnvelope<AvisoAdmin>>(`${this.adminUrl}/${id}`, req).pipe(
+        catchError(() => of(apiError<AvisoAdmin>('UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+      );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
+    const aviso = AVISOS_MOCK.find((a) => a.id === id);
+    if (!aviso) {
+      return of(apiError<AvisoAdmin>('NOT_FOUND', 'Aviso não encontrado.')).pipe(delay(300));
+    }
+    if (!req.titulo?.trim() || !req.corpo?.trim()) {
+      return of(apiError<AvisoAdmin>('VALIDATION_ERROR', 'Título e corpo são obrigatórios.')).pipe(delay(300));
+    }
+
+    aviso.titulo = req.titulo;
+    aviso.corpo = req.corpo;
+    aviso.fixado = req.fixado ?? false;
+    aviso.dataExpiracao = req.dataExpiracao ?? null;
+    aviso.expirado = !!aviso.dataExpiracao && new Date(aviso.dataExpiracao).getTime() < Date.now();
+    return of(apiSuccess(aviso)).pipe(delay(400));
+  }
+
+  excluirAvisoAdmin(id: string): Observable<ApiEnvelope<{ mensagem: string }>> {
+    if (!environment.useMocks) {
+      return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/${id}`).pipe(
+        catchError(() => of(apiError<{ mensagem: string }>('UPSTREAM_ERROR', 'Não foi possível remover o aviso agora.'))),
+      );
+    }
+
+    // TODO: substituir por chamada real quando o endpoint estiver disponível
+    const indice = AVISOS_MOCK.findIndex((a) => a.id === id);
+    if (indice === -1) {
+      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Aviso não encontrado.')).pipe(delay(300));
+    }
+    AVISOS_MOCK.splice(indice, 1);
+    return of(apiSuccess({ mensagem: 'Aviso removido.' })).pipe(delay(400));
   }
 }

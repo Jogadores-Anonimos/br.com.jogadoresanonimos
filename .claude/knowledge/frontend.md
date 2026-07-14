@@ -1,3 +1,64 @@
+## [2026-07-13] Camada Angular de services do módulo Escritório atualizada para telefones + bairro (frontend-services)
+- **O que foi feito/decidido**: `frontend-services` atualizou a camada de
+  services Angular de `EscritorioServico` para refletir a 2ª revisão do
+  contrato de API em `backend/docs/api/contrato-escritorios-regionais.md`
+  (novos campos `telefones: [{ label?, telefone }]` e `bairro?: string`
+  nos DTOs de request/response), replicando o padrão já existente de
+  telefones de Grupo (`GrupoIntergrupo`/`GrupoIntergrupoTelefone`) para
+  Escritório.
+  - `frontend/src/app/services/escritorio-regional.model.ts`: nova
+    interface `EscritorioTelefone` (`{ id, label: string|null, telefone
+    }`); `EscritorioServico` ganhou `bairro: string | null` e `telefones:
+    EscritorioTelefone[]`; nova interface `CriarEscritorioTelefoneRequest`
+    (`{ label?, telefone }`); `CriarEscritorioServicoRequest` ganhou
+    `bairro?: string` e `telefones: CriarEscritorioTelefoneRequest[]`.
+  - `frontend/src/app/services/escritorio-regional.mock.ts`: seeds mock
+    atualizados com `bairro` e `telefones`.
+  - `frontend/src/app/services/escritorio-regional.ts`:
+    `criarEscritorioServicoAdmin`/`editarEscritorioServicoAdmin` (branch
+    mock) passaram a montar/atualizar `bairro` e `telefones`. Confirmado
+    que o service já segue o padrão `environment.useMocks` para alternar
+    entre HTTP real (`environment.apiBaseUrl`) e mock, igual ao resto do
+    arquivo — nada de mock hardcoded substituindo a chamada real.
+- **Trade-off ou motivo**: reaproveitar 1:1 o padrão de modelagem já usado
+  para telefones de Grupo, em vez de criar uma abordagem nova só para
+  Escritório.
+- **Onde no código**: `frontend/src/app/services/escritorio-regional.model.ts`,
+  `frontend/src/app/services/escritorio-regional.mock.ts`,
+  `frontend/src/app/services/escritorio-regional.ts`.
+- **Testes**: validado com `tsc --noEmit`, sem erros. Nenhum commit feito.
+- **Ensinado por**: frontend-services
+
+## [2026-07-13] Form de "Escritório de Serviço" (admin-escritorios-regionais) alinhado ao form de Grupo: CEP + telefones
+- **O que foi feito/decidido**: no componente `admin-escritorios-regionais`
+  (`frontend/src/app/pages/admin/admin-escritorios-regionais/`), o form da
+  seção "Escritórios de Serviço" não tinha campo de CEP nem de telefones,
+  diferente do form de Grupo (mesmo componente) que já tinha os dois. O
+  backend já suportava `bairro` e `telefones` (lista) para
+  `EscritorioServico` (contrato: `backend/docs/api/contrato-escritorios-regionais.md`,
+  revisão 2026-07-13) e o `frontend-services` já tinha atualizado o model
+  `escritorio-regional.model.ts` em paralelo, então o `frontend` seguiu
+  direto sem esperar. Adicionado ao form de Escritório: campo CEP + botão
+  "Buscar endereço" (viacep) e campo Bairro, replicando a UX já usada no
+  form de Grupo; bloco de telefones (label opcional + telefone) também
+  adicionado, reaproveitando estrutura visual e o helper
+  `proximoIdTelefoneFormulario()` já existente — nenhuma classe CSS nova
+  precisou ser criada.
+- **Decisão de arquitetura pontual**: em vez de duplicar a chamada HTTP ao
+  viacep entre os dois forms (Grupo e Escritório) dentro do mesmo
+  componente, foi extraído um método privado compartilhado
+  `buscarEnderecoPorCep(cep, numero, setBuscando, setErro, aoEncontrar)`
+  na mesma classe do componente — sem criar service novo, por ser projeto
+  de baixa escala (~2.500 req/dia).
+- **Trade-off ou motivo**: **padrão a reaproveitar** — quando dois forms
+  no mesmo componente precisam da mesma integração externa simples,
+  extrair um método privado compartilhado em vez de duplicar lógica ou
+  criar uma abstração/service nova.
+- **Onde no código**: `frontend/src/app/pages/admin/admin-escritorios-regionais/admin-escritorios-regionais.ts`,
+  `admin-escritorios-regionais.html`. Form de Grupo e dropdown de UF não
+  foram tocados (restrição do usuário).
+- **Ensinado por**: frontend
+
 ## [2026-07-09] Busca funcional na navbar (client-side, sem persistência, sem histórico por decisão de anonimato)
 
 - **O que foi feito/decidido**: implementada busca funcional em tempo real

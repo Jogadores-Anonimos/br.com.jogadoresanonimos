@@ -1,0 +1,37 @@
+spring.application.name=jogadoresanonimos
+
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/jogadoresanonimos}
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD:}
+spring.datasource.hikari.maximum-pool-size=${DB_POOL_MAX:10}
+spring.datasource.hikari.minimum-idle=${DB_POOL_MIN:5}
+
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.open-in-view=false
+
+spring.flyway.enabled=true
+
+spring.servlet.multipart.max-file-size=20MB
+spring.servlet.multipart.max-request-size=21MB
+
+app.jwt.secret=${JWT_SECRET:}
+app.jwt.ttl-minutes=${JWT_TTL_MINUTES:60}
+app.log.hmac-secret=${LOG_HMAC_SECRET:}
+app.cors.allowed-origins=${CORS_ALLOWED_ORIGIN:http://localhost:4200}
+
+app.storage.stub-dir=${STORAGE_STUB_DIR:./data/imagens}
+app.storage.public-base-url=${STORAGE_PUBLIC_BASE_URL:http://localhost:8080/stub-storage}
+
+# Bootstrap do primeiro ADMIN - so roda se nao existir nenhum ADMIN ainda.
+# Deixe em branco fora do primeiro boot em producao.
+app.admin-bootstrap.apelido=${ADMIN_BOOTSTRAP_APELIDO:}
+app.admin-bootstrap.email=${ADMIN_BOOTSTRAP_EMAIL:}
+app.admin-bootstrap.senha=${ADMIN_BOOTSTRAP_SENHA:}
+
+server.error.include-stacktrace=never
+server.error.include-message=never
+server.error.include-exception=false
+server.error.include-binding-errors=never
+
+management.endpoints.web.exposure.include=health
+management.endpoint.health.show-details=never
