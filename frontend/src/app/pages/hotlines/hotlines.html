@@ -2,22 +2,32 @@
 
   <section class="section">
     <p class="lead">
-      Clique no estado desejado para ver a lista de linhas de ajuda.
+      Clique na cidade desejada para ver a lista de linhas de ajuda.
     </p>
 
-    <div class="hotlines-accordion">
-      @for (item of estados; track item.estado; let i = $index) {
+    <p *ngIf="carregando()" class="estado" role="status">Carregando linhas de ajuda…</p>
+
+    <p *ngIf="!carregando() && erro()" class="estado estado--erro" role="alert">
+      Não foi possível carregar as linhas de ajuda agora. Tente novamente mais tarde.
+    </p>
+
+    <p *ngIf="!carregando() && !erro() && regioes().length === 0" class="estado">
+      Nenhuma linha de ajuda cadastrada no momento.
+    </p>
+
+    <div class="hotlines-accordion" *ngIf="!carregando() && !erro() && regioes().length > 0">
+      @for (regiao of regioes(); track regiao.id; let i = $index) {
         <div class="hotlines-item">
           <h3 class="hotlines-item__heading">
             <button
               type="button"
               class="hotlines-item__trigger"
               [id]="'hotline-cabecalho-' + i"
-              [attr.aria-expanded]="estadoAberto === item.estado"
+              [attr.aria-expanded]="regiaoAbertaId === regiao.id"
               [attr.aria-controls]="'hotline-painel-' + i"
-              (click)="toggleEstado(item.estado)"
+              (click)="toggleRegiao(regiao.id)"
             >
-              <span>{{ item.estado }}</span>
+              <span>{{ regiao.cidade }} - {{ regiao.uf }}</span>
               <span class="hotlines-item__chevron" aria-hidden="true"></span>
             </button>
           </h3>
@@ -27,11 +37,11 @@
             [id]="'hotline-painel-' + i"
             role="region"
             [attr.aria-labelledby]="'hotline-cabecalho-' + i"
-            [hidden]="estadoAberto !== item.estado"
+            [hidden]="regiaoAbertaId !== regiao.id"
           >
             <ul class="hotlines-item__lista">
-              @for (linha of item.linhas; track linha.label) {
-                <li><strong>{{ linha.label }}:</strong> {{ linha.telefone }}</li>
+              @for (telefone of regiao.telefones; track telefone.id) {
+                <li>{{ telefone.telefone }}</li>
               }
             </ul>
           </div>

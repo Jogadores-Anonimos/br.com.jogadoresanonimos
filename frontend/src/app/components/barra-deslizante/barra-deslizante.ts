@@ -11,7 +11,6 @@ import { Component, Input, ViewEncapsulation } from '@angular/core';
 export class BarraDeslizante {
   @Input() messages: string[] = [];
   @Input() speed: number = 30;
-  // Cores do design system (styles.css) — nunca hardcode aqui.
   @Input() color: string = 'var(--cor-padrao-ja)';
   @Input() separator: string = '•';
   paused = false;

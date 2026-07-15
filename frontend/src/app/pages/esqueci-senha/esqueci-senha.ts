@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
-import { Auth } from '../../services/auth';
+import { Auth } from '../../services/auth/auth';
 
 @Component({
   selector: 'app-esqueci-senha',
@@ -32,7 +32,6 @@ export class EsqueciSenha {
 
     this.auth.esqueciSenha({ identificador: this.identificador }).subscribe((resposta) => {
       this.enviando = false;
-      // resposta é sempre genérica, exista ou não a conta — anti-enumeration (contrato 1.3)
       this.enviado = resposta.success;
       this.mensagem = resposta.success
         ? (resposta.data?.mensagem ?? 'Se o apelido ou e-mail existir em nossa base, enviaremos um link de redefinição.')

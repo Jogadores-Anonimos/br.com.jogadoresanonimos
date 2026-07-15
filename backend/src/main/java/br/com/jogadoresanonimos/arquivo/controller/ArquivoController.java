@@ -32,9 +32,6 @@ public class ArquivoController {
         this.storageClient = storageClient;
     }
 
-    // Pública — literatura é conteúdo institucional aberto, lista de PDFs
-    // é a mesma fonte que o admin gerencia em /admin/arquivos, sem
-    // indireção via CMS (mais simples, sem depender de CmsPagina/bloco).
     @GetMapping("/api/v1/arquivos")
     public ResponseEntity<ApiResponse<List<ArquivoResponse>>> listarPublico() {
         return ResponseEntity.ok(ApiResponse.ok(arquivoService.listarTodos()));
@@ -71,13 +68,10 @@ public class ArquivoController {
         return ResponseEntity.ok(ApiResponse.ok(new MensagemResponse("Arquivo removido.")));
     }
 
-    // Pública (mesmo padrão de leitura de /api/v1/cms/**) — literatura é
-    // conteúdo institucional aberto, não exige autenticação para download.
     @GetMapping("/api/v1/arquivos/{id}/download")
     public ResponseEntity<byte[]> download(@PathVariable UUID id) {
         Arquivo arquivo = arquivoService.buscarParaDownload(id);
         byte[] conteudo = storageClient.download(arquivo.getChaveArquivo());
-
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + nomeSeguro(arquivo.getNomeOriginal()) + "\"")

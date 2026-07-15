@@ -1,0 +1,127 @@
+<div class="admin-seguranca">
+  <header class="admin-seguranca__cabecalho">
+    <h1 class="admin-seguranca__titulo">Segurança da conta</h1>
+    <p class="admin-seguranca__descricao">
+      Ative a verificação em duas etapas (MFA) para proteger o acesso administrativo
+      com um código gerado pelo seu aplicativo autenticador.
+    </p>
+  </header>
+
+  <section class="admin-seguranca__card" aria-labelledby="admin-seguranca-mfa-titulo">
+    <h2 id="admin-seguranca-mfa-titulo" class="admin-seguranca__card-titulo">
+      Verificação em duas etapas (MFA)
+    </h2>
+
+    @if (carregandoEstadoInicial) {
+      <p class="admin-seguranca__estado">Carregando estado da verificação em duas etapas...</p>
+    }
+
+    @if (!carregandoEstadoInicial && !mfaAtivo && !otpauthUri) {
+      <p class="admin-seguranca__estado">A verificação em duas etapas está desativada.</p>
+      <button
+        type="button"
+        class="admin-seguranca__botao admin-seguranca__botao--primario"
+        [disabled]="enrollCarregando"
+        (click)="iniciarEnrollment()"
+      >
+        {{ enrollCarregando ? 'Gerando...' : 'Ativar MFA' }}
+      </button>
+      @if (enrollErro) {
+        <p class="admin-seguranca__erro" role="alert">{{ enrollErro }}</p>
+      }
+    }
+
+    @if (otpauthUri) {
+      <div class="admin-seguranca__enrollment">
+        <p class="admin-seguranca__instrucao">
+          Cole isso no seu app autenticador (Google Authenticator, Authy, etc.):
+        </p>
+        <label for="admin-seguranca-otpauth" class="admin-seguranca__campo-rotulo">
+          Chave de configuração
+        </label>
+        <input
+          #campoOtpauth
+          id="admin-seguranca-otpauth"
+          type="text"
+          class="admin-seguranca__otpauth"
+          [value]="otpauthUri"
+          readonly
+          (click)="selecionarChaveConfiguracao(campoOtpauth)"
+        />
+
+        <form (ngSubmit)="confirmarEnrollment()" #confirmarForm="ngForm" class="admin-seguranca__form">
+          <div class="admin-seguranca__campo">
+            <label for="admin-seguranca-codigo">Código de confirmação</label>
+            <input
+              id="admin-seguranca-codigo"
+              name="confirmarCodigoTotp"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              pattern="\d{6}"
+              maxlength="6"
+              [(ngModel)]="confirmarCodigoTotp"
+              required
+            />
+          </div>
+
+          <div class="admin-seguranca__acoes">
+            <button
+              type="submit"
+              class="admin-seguranca__botao admin-seguranca__botao--primario"
+              [disabled]="confirmarEnviando || confirmarForm.invalid"
+            >
+              {{ confirmarEnviando ? 'Confirmando...' : 'Confirmar e ativar' }}
+            </button>
+            <button
+              type="button"
+              class="admin-seguranca__botao admin-seguranca__botao--secundario"
+              (click)="cancelarEnrollment()"
+            >
+              Cancelar
+            </button>
+          </div>
+
+          @if (confirmarErro) {
+            <p class="admin-seguranca__erro" role="alert">{{ confirmarErro }}</p>
+          }
+        </form>
+      </div>
+    }
+
+    @if (!carregandoEstadoInicial && mfaAtivo) {
+      <p class="admin-seguranca__estado admin-seguranca__estado--ativo">
+        A verificação em duas etapas está ativa nesta conta.
+      </p>
+
+      <form (ngSubmit)="desativarMfa()" #desativarForm="ngForm" class="admin-seguranca__form">
+        <div class="admin-seguranca__campo">
+          <label for="admin-seguranca-senha">Senha atual</label>
+          <input
+            id="admin-seguranca-senha"
+            name="desativarSenha"
+            type="password"
+            autocomplete="current-password"
+            [(ngModel)]="desativarSenha"
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          class="admin-seguranca__botao admin-seguranca__botao--perigo"
+          [disabled]="desativarEnviando || desativarForm.invalid"
+        >
+          {{ desativarEnviando ? 'Desativando...' : 'Desativar MFA' }}
+        </button>
+
+        @if (desativarErro) {
+          <p class="admin-seguranca__erro" role="alert">{{ desativarErro }}</p>
+        }
+        @if (desativarMensagem) {
+          <p class="admin-seguranca__sucesso">{{ desativarMensagem }}</p>
+        }
+      </form>
+    }
+  </section>
+</div>

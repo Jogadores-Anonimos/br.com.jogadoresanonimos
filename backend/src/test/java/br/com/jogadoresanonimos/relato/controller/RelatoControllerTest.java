@@ -43,9 +43,7 @@ class RelatoControllerTest {
         EnviarRelatoRequest request = new EnviarRelatoRequest("x".repeat(60), "Anônimo");
         RelatoEnvioResponse esperado = new RelatoEnvioResponse(UUID.randomUUID(), "pending");
         when(relatoService.enviar(request, autorId)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<RelatoEnvioResponse>> resposta = relatoController.enviar(request, principal);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(resposta.getBody().success()).isTrue();
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
@@ -57,9 +55,7 @@ class RelatoControllerTest {
         RelatoPublicoResponse item = new RelatoPublicoResponse(UUID.randomUUID(), "texto".repeat(20), "Anônimo", Instant.now());
         PageResponse<RelatoPublicoResponse> pagina = new PageResponse<>(List.of(item), 0, 20, 1, 1);
         when(relatoService.listarAprovados(0, 20)).thenReturn(pagina);
-
         ResponseEntity<ApiResponse<PageResponse<RelatoPublicoResponse>>> resposta = relatoController.listarAprovados(0, 20);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(pagina);
     }

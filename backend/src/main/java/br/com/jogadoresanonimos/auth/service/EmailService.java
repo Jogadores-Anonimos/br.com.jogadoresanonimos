@@ -5,14 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-/**
- * Envio de e-mail de redefinição de senha, assíncrono e best-effort
- * (ver contrato 1.3 + decisão de infra D2 do devops): sem broker externo,
- * retry manual em memória (3 tentativas, backoff exponencial curto).
- * TODO(devops/security): plugar provedor SMTP/API real (variável de
- * ambiente com host/porta/credencial) — hoje só loga a tentativa de envio,
- * nunca o endereço em texto puro.
- */
 @Service
 public class EmailService {
 
@@ -41,7 +33,6 @@ public class EmailService {
     }
 
     private void enviarViaProvedor(String link) {
-        // TODO: integrar SMTP/API de e-mail real (variável de ambiente).
         log.info("email_enviado_simulado");
     }
 

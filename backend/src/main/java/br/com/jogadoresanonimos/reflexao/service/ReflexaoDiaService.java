@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 @Service
 public class ReflexaoDiaService {
 
-    // fevereiro fixado em 28 dias, mesma decisão do mock do frontend: chave é mes+dia recorrente, sem ano/bissexto
     private static final int[] DIAS_POR_MES = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
     private final ReflexaoDiaRepository reflexaoDiaRepository;
@@ -46,7 +45,6 @@ public class ReflexaoDiaService {
         validarMes(mes);
         Map<Integer, String> textosPorDia = reflexaoDiaRepository.findAllByMesOrderByDiaAsc(mes).stream()
                 .collect(Collectors.toMap(ReflexaoDia::getDia, ReflexaoDia::getTexto));
-
         int totalDias = DIAS_POR_MES[mes - 1];
         return java.util.stream.IntStream.rangeClosed(1, totalDias)
                 .mapToObj(dia -> new ReflexaoDiaDoMesResponse(dia, textosPorDia.get(dia)))
@@ -58,13 +56,11 @@ public class ReflexaoDiaService {
         validarMesEDia(mes, dia);
         ReflexaoDia reflexaoDia = reflexaoDiaRepository.findByMesAndDia(mes, dia)
                 .orElse(null);
-
         if (reflexaoDia == null) {
             reflexaoDia = new ReflexaoDia(mes, dia, request.texto().trim());
         } else {
             reflexaoDia.editar(request.texto().trim());
         }
-
         reflexaoDia = reflexaoDiaRepository.save(reflexaoDia);
         return ReflexaoDiaResponse.from(reflexaoDia);
     }

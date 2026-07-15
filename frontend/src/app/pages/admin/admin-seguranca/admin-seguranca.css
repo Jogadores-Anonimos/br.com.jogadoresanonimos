@@ -1,0 +1,191 @@
+:host {
+  display: block;
+}
+
+.admin-seguranca {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.admin-seguranca__titulo {
+  color: var(--color-text);
+  font-size: 1.4rem;
+  font-weight: var(--font-weight-heading);
+}
+
+.admin-seguranca__descricao {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 70ch;
+  margin-top: var(--spacing-xs);
+}
+
+.admin-seguranca__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  max-width: 60ch;
+}
+
+.admin-seguranca__card-titulo {
+  color: var(--color-text);
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-seguranca__estado {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.admin-seguranca__estado--ativo {
+  color: var(--color-success);
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-seguranca__enrollment {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.admin-seguranca__instrucao {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.admin-seguranca__campo-rotulo {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-seguranca__otpauth {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-xs);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  background: var(--color-bg-section);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin-seguranca__otpauth:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.admin-seguranca__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.admin-seguranca__campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.admin-seguranca__campo label {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-seguranca__campo input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-xs);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin-seguranca__campo input:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.admin-seguranca__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.admin-seguranca__botao {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.admin-seguranca__botao:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-seguranca__botao:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.admin-seguranca__botao--primario {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+}
+
+.admin-seguranca__botao--secundario {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.admin-seguranca__botao--perigo {
+  background: var(--color-danger);
+  color: var(--white);
+}
+
+.admin-seguranca__erro {
+  color: var(--color-danger);
+  font-size: 0.9rem;
+}
+
+.admin-seguranca__sucesso {
+  color: var(--color-success);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  .admin-seguranca__card {
+    max-width: 100%;
+  }
+
+  .admin-seguranca__acoes {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-seguranca__acoes .admin-seguranca__botao {
+    width: 100%;
+  }
+}

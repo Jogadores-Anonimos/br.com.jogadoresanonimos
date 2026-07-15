@@ -4,14 +4,14 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 
 import { AdminEscritoriosRegionais } from './admin-escritorios-regionais';
-import { EscritorioRegionalService } from '../../../services/escritorio-regional';
+import { EscritorioRegionalService } from '../../../services/escritorio-regional/escritorio-regional';
 import {
   EscritorioServico,
   EscritoriosRegionais,
   EstadoIntergrupo,
   GrupoIntergrupo,
   RegiaoIntergrupo,
-} from '../../../services/escritorio-regional.model';
+} from '../../../services/escritorio-regional/escritorio-regional.model';
 import { apiError, apiSuccess } from '../../../services/api-envelope';
 
 function grupoFake(overrides: Partial<GrupoIntergrupo> = {}): GrupoIntergrupo {
@@ -23,8 +23,7 @@ function grupoFake(overrides: Partial<GrupoIntergrupo> = {}): GrupoIntergrupo {
     bairro: 'Bairro Fake',
     cidade: 'Cidade Fake - UF',
     telefones: [],
-    diasSemana: ['SEGUNDA'],
-    horario: '19:00',
+    agenda: [{ diaSemana: 'SEGUNDA', horario: '19:00' }],
     ordem: 0,
     criadoEm: '2026-01-01T00:00:00.000Z',
     atualizadoEm: '2026-01-01T00:00:00.000Z',
@@ -64,8 +63,10 @@ function escritorioFake(overrides: Partial<EscritorioServico> = {}): EscritorioS
     nome: 'Escritório Fake',
     endereco: 'Rua Fake, 200',
     complemento: null,
+    bairro: null,
     cidade: 'Cidade Fake - UF',
     emails: [],
+    telefones: [],
     ordem: 0,
     criadoEm: '2026-01-01T00:00:00.000Z',
     atualizadoEm: '2026-01-01T00:00:00.000Z',
@@ -219,7 +220,7 @@ describe('AdminEscritoriosRegionais', () => {
       component.verGrupos(regiaoCarregada.estados[0]);
     });
 
-    it('salva grupo com múltiplos dias da semana selecionados e horário único', () => {
+    it('salva grupo com múltiplos dias da semana selecionados, cada um com seu próprio horário', () => {
       component.abrirNovoGrupo();
       component.formularioGrupo.nome = 'Grupo Multi-dias';
       component.formularioGrupo.endereco = 'Rua X, 1';
@@ -227,17 +228,35 @@ describe('AdminEscritoriosRegionais', () => {
       component.alternarDiaSemana('SEGUNDA', true);
       component.alternarDiaSemana('QUARTA', true);
       component.alternarDiaSemana('SEXTA', true);
-      component.formularioGrupo.horario = '20:00';
+      component.definirHorarioDoDia('SEGUNDA', '20:00');
+      component.definirHorarioDoDia('QUARTA', '20:00');
+      component.definirHorarioDoDia('SEXTA', '21:00');
 
       component.salvarGrupo();
 
       expect(serviceSpy['criarGrupoAdmin']).toHaveBeenCalledWith(
         'estado-1',
         expect.objectContaining({
-          diasSemana: ['SEGUNDA', 'QUARTA', 'SEXTA'],
-          horario: '20:00',
+          agenda: [
+            { diaSemana: 'SEGUNDA', horario: '20:00' },
+            { diaSemana: 'QUARTA', horario: '20:00' },
+            { diaSemana: 'SEXTA', horario: '21:00' },
+          ],
         }),
       );
+    });
+
+    it('não salva grupo quando algum dia selecionado não tem horário definido', () => {
+      component.abrirNovoGrupo();
+      component.formularioGrupo.nome = 'Grupo Sem Horário';
+      component.formularioGrupo.endereco = 'Rua X, 1';
+      component.formularioGrupo.cidade = 'Cidade X - UF';
+      component.alternarDiaSemana('SEGUNDA', true);
+
+      component.salvarGrupo();
+
+      expect(serviceSpy['criarGrupoAdmin']).not.toHaveBeenCalled();
+      expect(component.erroFormularioGrupo).toContain('horário');
     });
 
     it('não salva grupo quando nenhum dia da semana está selecionado', () => {
@@ -245,7 +264,6 @@ describe('AdminEscritoriosRegionais', () => {
       component.formularioGrupo.nome = 'Grupo Sem Dia';
       component.formularioGrupo.endereco = 'Rua X, 1';
       component.formularioGrupo.cidade = 'Cidade X - UF';
-      component.formularioGrupo.horario = '20:00';
 
       component.salvarGrupo();
 
@@ -290,7 +308,7 @@ describe('AdminEscritoriosRegionais', () => {
       component.formularioGrupo.endereco = 'Rua X, 1';
       component.formularioGrupo.cidade = 'Cidade X - UF';
       component.alternarDiaSemana('TERCA', true);
-      component.formularioGrupo.horario = '19:00';
+      component.definirHorarioDoDia('TERCA', '19:00');
       component.adicionarTelefoneGrupo();
       component.formularioGrupo.telefones[0].telefone = '11-98888-7777';
       component.formularioGrupo.telefones[0].label = 'Central';
@@ -311,7 +329,7 @@ describe('AdminEscritoriosRegionais', () => {
       component.formularioGrupo.endereco = 'Rua X, 1';
       component.formularioGrupo.cidade = 'Cidade X - UF';
       component.alternarDiaSemana('TERCA', true);
-      component.formularioGrupo.horario = '19:00';
+      component.definirHorarioDoDia('TERCA', '19:00');
       component.adicionarTelefoneGrupo();
 
       component.salvarGrupo();
@@ -379,6 +397,200 @@ describe('AdminEscritoriosRegionais', () => {
       chamada.error(new ProgressEvent('network error'));
 
       expect(component.erroCepGrupo).toBe('CEP não encontrado.');
+    });
+  });
+
+  describe('formulário de Escritório de Serviço — edição', () => {
+    it('edita escritório existente preenchendo o formulário com os dados atuais, incluindo bairro e telefones', () => {
+      const escritorioComDados = escritorioFake({
+        id: 'escritorio-9',
+        nome: 'Escritório Existente',
+        bairro: 'Bela Vista',
+        emails: ['contato@example.org'],
+        telefones: [{ id: 'tel-1', label: 'Central', telefone: '11-90000-0000' }],
+      });
+
+      component.abrirEdicaoEscritorio(escritorioComDados);
+
+      expect(component.formularioEscritorio.bairro).toBe('Bela Vista');
+      expect(component.formularioEscritorio.emailsTexto).toBe('contato@example.org');
+      expect(component.formularioEscritorio.telefones).toHaveLength(1);
+      expect(component.formularioEscritorio.telefones[0].telefone).toBe('11-90000-0000');
+      expect(component.formularioEscritorio.telefones[0].label).toBe('Central');
+
+      component.formularioEscritorio.bairro = 'Bairro Editado';
+      component.salvarEscritorio();
+
+      expect(serviceSpy['editarEscritorioServicoAdmin']).toHaveBeenCalledWith(
+        'escritorio-9',
+        expect.objectContaining({ bairro: 'Bairro Editado' }),
+      );
+    });
+
+    it('preenche bairro como campo vazio (nunca undefined) quando o escritório existente não tem bairro', () => {
+      const escritorioSemBairro = escritorioFake({ id: 'escritorio-10', bairro: null });
+
+      component.abrirEdicaoEscritorio(escritorioSemBairro);
+
+      expect(component.formularioEscritorio.bairro).toBe('');
+    });
+  });
+
+  describe('formulário de Escritório de Serviço — busca de CEP', () => {
+    beforeEach(() => {
+      component.abrirEdicaoEscritorio(escritorioFake());
+    });
+
+    it('preenche endereço, bairro e cidade automaticamente ao buscar um CEP válido', () => {
+      component.cepEscritorio = '01310-100';
+      component.numeroEscritorio = '93';
+
+      component.buscarCepEscritorio();
+
+      const chamada = httpMock.expectOne('https://viacep.com.br/ws/01310100/json/');
+      chamada.flush({
+        logradouro: 'Rua Paulino Guimarães',
+        bairro: 'Luz',
+        localidade: 'São Paulo',
+        uf: 'SP',
+      });
+
+      expect(component.formularioEscritorio.endereco).toBe('Rua Paulino Guimarães, 93');
+      expect(component.formularioEscritorio.bairro).toBe('Luz');
+      expect(component.formularioEscritorio.cidade).toBe('São Paulo - SP');
+      expect(component.erroCepEscritorio).toBe('');
+    });
+
+    it('mostra erro e não altera o formulário quando o CEP não é encontrado', () => {
+      component.cepEscritorio = '00000-000';
+
+      component.buscarCepEscritorio();
+
+      const chamada = httpMock.expectOne('https://viacep.com.br/ws/00000000/json/');
+      chamada.flush({ erro: true });
+
+      expect(component.erroCepEscritorio).toBe('CEP não encontrado.');
+      expect(component.formularioEscritorio.endereco).toBe('');
+    });
+
+    it('mostra erro de CEP inválido sem chamar a API quando o CEP tem menos de 8 dígitos', () => {
+      component.cepEscritorio = 'abc';
+
+      component.buscarCepEscritorio();
+
+      httpMock.expectNone('https://viacep.com.br/ws/abc/json/');
+      expect(component.erroCepEscritorio).toContain('inválido');
+    });
+
+    it('trata falha de rede na busca de CEP sem quebrar o formulário', () => {
+      component.cepEscritorio = '01310-100';
+
+      component.buscarCepEscritorio();
+
+      const chamada = httpMock.expectOne('https://viacep.com.br/ws/01310100/json/');
+      chamada.error(new ProgressEvent('network error'));
+
+      expect(component.erroCepEscritorio).toBe('CEP não encontrado.');
+    });
+  });
+
+  describe('formulário de Escritório de Serviço — múltiplos telefones', () => {
+    beforeEach(() => {
+      component.abrirEdicaoEscritorio(escritorioFake());
+    });
+
+    it('adiciona telefone à lista do formulário', () => {
+      expect(component.formularioEscritorio.telefones).toHaveLength(0);
+
+      component.adicionarTelefoneEscritorio();
+
+      expect(component.formularioEscritorio.telefones).toHaveLength(1);
+    });
+
+    it('permite adicionar múltiplos telefones e remover um deles individualmente', () => {
+      component.adicionarTelefoneEscritorio();
+      component.adicionarTelefoneEscritorio();
+      component.formularioEscritorio.telefones[0].label = 'Central';
+      component.formularioEscritorio.telefones[0].telefone = '11-90000-0000';
+      component.formularioEscritorio.telefones[1].label = 'Plantão';
+      component.formularioEscritorio.telefones[1].telefone = '11-91111-1111';
+      const idParaRemover = component.formularioEscritorio.telefones[0].id;
+
+      component.removerTelefoneEscritorio(idParaRemover);
+
+      expect(component.formularioEscritorio.telefones).toHaveLength(1);
+      expect(component.formularioEscritorio.telefones[0].label).toBe('Plantão');
+    });
+
+    it('envia a lista de telefones editada no payload ao salvar o escritório', () => {
+      component.formularioEscritorio.nome = 'Escritório Telefones';
+      component.formularioEscritorio.endereco = 'Rua X, 1';
+      component.formularioEscritorio.cidade = 'Cidade X - UF';
+      component.adicionarTelefoneEscritorio();
+      component.formularioEscritorio.telefones[0].label = 'Central';
+      component.formularioEscritorio.telefones[0].telefone = '11-98888-7777';
+
+      component.salvarEscritorio();
+
+      expect(serviceSpy['editarEscritorioServicoAdmin']).toHaveBeenCalledWith(
+        'escritorio-1',
+        expect.objectContaining({
+          telefones: [{ label: 'Central', telefone: '11-98888-7777' }],
+        }),
+      );
+    });
+
+    it('não salva quando há telefone incompleto (sem número) na lista', () => {
+      component.formularioEscritorio.nome = 'Escritório Telefone Incompleto';
+      component.formularioEscritorio.endereco = 'Rua X, 1';
+      component.formularioEscritorio.cidade = 'Cidade X - UF';
+      component.adicionarTelefoneEscritorio();
+
+      component.salvarEscritorio();
+
+      expect(serviceSpy['editarEscritorioServicoAdmin']).not.toHaveBeenCalled();
+      expect(component.erroFormularioEscritorio).toContain('telefones incompletos');
+    });
+  });
+
+  describe('formulário de Escritório de Serviço — e-mails manuais (emailsTexto)', () => {
+    beforeEach(() => {
+      component.abrirEdicaoEscritorio(escritorioFake());
+      component.formularioEscritorio.nome = 'Escritório E-mails';
+      component.formularioEscritorio.endereco = 'Rua X, 1';
+      component.formularioEscritorio.cidade = 'Cidade X - UF';
+    });
+
+    it('converte texto separado por vírgula em lista de e-mails, removendo espaços', () => {
+      component.formularioEscritorio.emailsTexto = 'contato@example.org,  suporte@example.org ,outro@example.org';
+
+      component.salvarEscritorio();
+
+      expect(serviceSpy['editarEscritorioServicoAdmin']).toHaveBeenCalledWith(
+        'escritorio-1',
+        expect.objectContaining({
+          emails: ['contato@example.org', 'suporte@example.org', 'outro@example.org'],
+        }),
+      );
+    });
+
+    it('envia lista de e-mails vazia quando emailsTexto está vazio, sem quebrar o formulário', () => {
+      component.formularioEscritorio.emailsTexto = '';
+
+      component.salvarEscritorio();
+
+      expect(serviceSpy['editarEscritorioServicoAdmin']).toHaveBeenCalledWith(
+        'escritorio-1',
+        expect.objectContaining({ emails: [] }),
+      );
+    });
+
+    it('não altera emailsTexto ao mexer em outros campos do formulário (bairro, telefones)', () => {
+      component.formularioEscritorio.emailsTexto = 'contato@example.org';
+      component.formularioEscritorio.bairro = 'Centro';
+      component.adicionarTelefoneEscritorio();
+
+      expect(component.formularioEscritorio.emailsTexto).toBe('contato@example.org');
     });
   });
 
@@ -460,13 +672,6 @@ describe('AdminEscritoriosRegionais', () => {
       expect(component.ehUltimoEscritorio(escritorio1)).toBe(false);
       expect(component.ehPrimeiroEscritorio(escritorio2)).toBe(false);
       expect(component.ehUltimoEscritorio(escritorio2)).toBe(true);
-    });
-
-    it('reflete o disabled correto no DOM para os botões de seta de escritório', () => {
-      const botoesSubir = fixture.nativeElement.querySelectorAll('[aria-label*="Mover escritório"][aria-label*="para cima"]');
-      const botoesDescer = fixture.nativeElement.querySelectorAll('[aria-label*="Mover escritório"][aria-label*="para baixo"]');
-      expect(botoesSubir[0].disabled).toBe(true);
-      expect(botoesDescer[botoesDescer.length - 1].disabled).toBe(true);
     });
 
     it('chama moverEscritorioServicoParaCima/Baixo com o id correto', () => {

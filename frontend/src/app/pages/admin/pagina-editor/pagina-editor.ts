@@ -3,11 +3,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { Cms } from '../../../services/cms';
-import { CmsBloco, CmsBlocoImagem, CmsBlocoTexto } from '../../../services/cms.model';
-import { Imagem } from '../../../services/imagem';
-import { VintePerguntasService } from '../../../services/vinte-perguntas';
-import { VinteQuestaoResponse } from '../../../services/vinte-perguntas.model';
+import { Cms } from '../../../services/cms/cms';
+import { CmsBloco, CmsBlocoImagem, CmsBlocoTexto } from '../../../services/cms/cms.model';
+import { Imagem } from '../../../services/imagem/imagem';
+import { VintePerguntasService } from '../../../services/vinte-perguntas/vinte-perguntas';
+import { VinteQuestaoResponse } from '../../../services/vinte-perguntas/vinte-perguntas.model';
 
 const SLUG_VINTE_PERGUNTAS = 'vinte-perguntas';
 
@@ -26,11 +26,6 @@ export class PaginaEditor implements OnInit {
   private readonly vintePerguntas = inject(VintePerguntasService);
   private readonly destroyRef = inject(DestroyRef);
 
-  // `paginas/:slug` é uma rota parametrizada — navegar entre páginas
-  // irmãs (ex: sobre → historia) reaproveita a mesma instância do
-  // componente em vez de recriá-la, então ler o slug só uma vez via
-  // `route.snapshot` (como era antes) travava a página no primeiro slug
-  // carregado. Reagir a `paramMap` resolve isso.
   slug = this.route.snapshot.paramMap.get('slug') ?? '';
   ehVintePerguntas = this.slug === SLUG_VINTE_PERGUNTAS;
 
@@ -46,7 +41,6 @@ export class PaginaEditor implements OnInit {
   readonly enviandoImagemIndice = signal<number | null>(null);
   readonly erroUploadImagem = signal<string | null>(null);
 
-  // Vinte Perguntas — seção fixa, edição de texto via service dedicado.
   readonly perguntas = signal<VinteQuestaoResponse[]>([]);
   readonly perguntasCarregando = signal(false);
   readonly perguntasIndisponivel = signal(false);
@@ -224,7 +218,7 @@ export class PaginaEditor implements OnInit {
     if (this.salvando()) return;
     this.salvando.set(true);
     this.erro.set(null);
-    this.cms.atualizarPagina(this.slug, { titulo: this.titulo(), blocos: this.blocos() }).subscribe((envelope) => {
+    this.cms.atualizarPagina(this.slug, { blocos: this.blocos() }).subscribe((envelope) => {
       this.salvando.set(false);
       if (envelope.success && envelope.data) {
         this.blocos.set(envelope.data.blocos.map((b) => ({ ...b })));

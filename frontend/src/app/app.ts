@@ -15,8 +15,7 @@ import { VoltarAoTopo } from './components/voltar-ao-topo/voltar-ao-topo';
   styleUrl: './app.css'
 })
 export class AppComponent {
-  // '/login' e '/dashboard' ainda não existem como rotas; deixados prontos para quando forem criadas.
-  private readonly PREFIXOS_SEM_BARRA_DESLIZANTE = ['/minha-conta', '/login', '/dashboard'];
+  private readonly PREFIXOS_SEM_BARRA_DESLIZANTE = ['/minha-conta', '/login', '/dashboard', '/admin'];
 
   mostrarBarraDeslizante = signal(true);
 

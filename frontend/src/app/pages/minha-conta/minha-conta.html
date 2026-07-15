@@ -1,78 +1,79 @@
 <app-resource-layout titulo="Minha Conta" [bannerSrc]="bannerSrc" [mostrarSidebar]="false">
   @if (auth.usuarioAtual(); as usuario) {
-    <!-- Estado 2 -->
     <div class="conta-dashboard">
-      <nav class="conta-dashboard__nav" aria-label="Navegação da conta">
-        <ul>
-          <li>
-            <button
-              type="button"
-              class="conta-dashboard__tab"
-              [class.active]="abaAtiva === 'dashboard'"
-              [attr.aria-current]="abaAtiva === 'dashboard' ? 'page' : null"
-              (click)="selecionarAba('dashboard')"
-            >
-              Dashboard
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              class="conta-dashboard__tab"
-              [class.active]="abaAtiva === 'pedidos'"
-              [attr.aria-current]="abaAtiva === 'pedidos' ? 'page' : null"
-              (click)="selecionarAba('pedidos')"
-            >
-              Pedidos
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              class="conta-dashboard__tab"
-              [class.active]="abaAtiva === 'downloads'"
-              [attr.aria-current]="abaAtiva === 'downloads' ? 'page' : null"
-              (click)="selecionarAba('downloads')"
-            >
-              Downloads
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              class="conta-dashboard__tab"
-              [class.active]="abaAtiva === 'enderecos'"
-              [attr.aria-current]="abaAtiva === 'enderecos' ? 'page' : null"
-              (click)="selecionarAba('enderecos')"
-            >
-              Endereços
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              class="conta-dashboard__tab"
-              [class.active]="abaAtiva === 'detalhes'"
-              [attr.aria-current]="abaAtiva === 'detalhes' ? 'page' : null"
-              (click)="selecionarAba('detalhes')"
-            >
-              Detalhes da Conta
-            </button>
-          </li>
-          @if (usuario.role === 'ADMIN') {
+      @if (!trocaSenhaObrigatoria) {
+        <nav class="conta-dashboard__nav" aria-label="Navegação da conta">
+          <ul>
             <li>
-              <a routerLink="/admin" class="conta-dashboard__tab conta-dashboard__tab--admin">
-                Painel Administrativo
-              </a>
+              <button
+                type="button"
+                class="conta-dashboard__tab"
+                [class.active]="abaAtiva === 'dashboard'"
+                [attr.aria-current]="abaAtiva === 'dashboard' ? 'page' : null"
+                (click)="selecionarAba('dashboard')"
+              >
+                Dashboard
+              </button>
             </li>
-          }
-          <li>
-            <button type="button" class="conta-dashboard__tab conta-dashboard__tab--sair" (click)="sair()">
-              Sair
-            </button>
-          </li>
-        </ul>
-      </nav>
+            <li>
+              <button
+                type="button"
+                class="conta-dashboard__tab"
+                [class.active]="abaAtiva === 'pedidos'"
+                [attr.aria-current]="abaAtiva === 'pedidos' ? 'page' : null"
+                (click)="selecionarAba('pedidos')"
+              >
+                Pedidos
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                class="conta-dashboard__tab"
+                [class.active]="abaAtiva === 'downloads'"
+                [attr.aria-current]="abaAtiva === 'downloads' ? 'page' : null"
+                (click)="selecionarAba('downloads')"
+              >
+                Downloads
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                class="conta-dashboard__tab"
+                [class.active]="abaAtiva === 'enderecos'"
+                [attr.aria-current]="abaAtiva === 'enderecos' ? 'page' : null"
+                (click)="selecionarAba('enderecos')"
+              >
+                Endereços
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                class="conta-dashboard__tab"
+                [class.active]="abaAtiva === 'detalhes'"
+                [attr.aria-current]="abaAtiva === 'detalhes' ? 'page' : null"
+                (click)="selecionarAba('detalhes')"
+              >
+                Detalhes da Conta
+              </button>
+            </li>
+            @if (usuario.role === 'ADMIN') {
+              <li>
+                <a routerLink="/admin" class="conta-dashboard__tab conta-dashboard__tab--admin">
+                  Painel Administrativo
+                </a>
+              </li>
+            }
+            <li>
+              <button type="button" class="conta-dashboard__tab conta-dashboard__tab--sair" (click)="sair()">
+                Sair
+              </button>
+            </li>
+          </ul>
+        </nav>
+      }
 
       <div class="conta-dashboard__content">
         @switch (abaAtiva) {
@@ -165,15 +166,15 @@
                       }
                     </div>
                     <div class="conta-downloads__acoes">
-                      <a
+                      <button
+                        type="button"
                         class="conta-downloads__btn"
-                        [href]="download.urlDownload"
-                        target="_blank"
-                        rel="noopener"
+                        [disabled]="downloadsBaixando.has(download.id)"
                         [attr.aria-label]="'Baixar PDF: ' + download.titulo"
+                        (click)="baixarPdf(download)"
                       >
-                        Baixar
-                      </a>
+                        {{ downloadsBaixando.has(download.id) ? 'Baixando…' : 'Baixar' }}
+                      </button>
                       <button
                         type="button"
                         class="conta-downloads__btn-remover"
@@ -185,6 +186,9 @@
                         Remover da minha biblioteca
                       </button>
                     </div>
+                    @if (erroDownloadPorId.get(download.id); as erroDownload) {
+                      <span class="conta-downloads__erro" role="alert">{{ erroDownload }}</span>
+                    }
                   </li>
                 }
               </ul>
@@ -224,31 +228,39 @@
           }
 
           @case ('detalhes') {
-            <h2>Detalhes da Conta</h2>
+            <h2>{{ trocaSenhaObrigatoria ? 'Defina uma nova senha' : 'Detalhes da Conta' }}</h2>
+
+            @if (trocaSenhaObrigatoria) {
+              <p class="conta-aviso-troca-senha" role="alert">
+                Por segurança, você precisa definir uma nova senha antes de continuar navegando pelo site.
+              </p>
+            }
 
             <form (ngSubmit)="onSalvarDetalhes()" #detalhesForm="ngForm" class="conta-form-detalhes">
               <div class="conta-form-detalhes__grid">
-                <div class="campo">
-                  <label for="detalhes-nome">Nome de exibição</label>
-                  <input
-                    id="detalhes-nome"
-                    name="nomeExibicao"
-                    type="text"
-                    [(ngModel)]="nomeExibicao"
-                  />
-                  <small class="campo-ajuda">Assim seu apelido aparece nesta seção da conta.</small>
-                </div>
+                @if (!trocaSenhaObrigatoria) {
+                  <div class="campo">
+                    <label for="detalhes-nome">Nome de exibição</label>
+                    <input
+                      id="detalhes-nome"
+                      name="nomeExibicao"
+                      type="text"
+                      [(ngModel)]="nomeExibicao"
+                    />
+                    <small class="campo-ajuda">Assim seu apelido aparece nesta seção da conta.</small>
+                  </div>
 
-                <div class="campo">
-                  <label for="detalhes-email">E-mail</label>
-                  <input
-                    id="detalhes-email"
-                    name="emailDetalhes"
-                    type="email"
-                    autocomplete="email"
-                    [(ngModel)]="emailDetalhes"
-                  />
-                </div>
+                  <div class="campo">
+                    <label for="detalhes-email">E-mail</label>
+                    <input
+                      id="detalhes-email"
+                      name="emailDetalhes"
+                      type="email"
+                      autocomplete="email"
+                      [(ngModel)]="emailDetalhes"
+                    />
+                  </div>
+                }
 
                 <div class="campo campo--full">
                   <label for="detalhes-senha-atual">Senha atual</label>
@@ -258,6 +270,7 @@
                     type="password"
                     autocomplete="current-password"
                     [(ngModel)]="senhaAtualDetalhes"
+                    [required]="trocaSenhaObrigatoria"
                   />
                 </div>
 
@@ -268,7 +281,9 @@
                     name="novaSenhaDetalhes"
                     type="password"
                     autocomplete="new-password"
+                    minlength="10"
                     [(ngModel)]="novaSenhaDetalhes"
+                    [required]="trocaSenhaObrigatoria"
                   />
                 </div>
 
@@ -280,12 +295,13 @@
                     type="password"
                     autocomplete="new-password"
                     [(ngModel)]="confirmarNovaSenhaDetalhes"
+                    [required]="trocaSenhaObrigatoria"
                   />
                 </div>
               </div>
 
-              <button type="submit" class="btn-cta" [disabled]="detalhesEnviando">
-                {{ detalhesEnviando ? 'Salvando...' : 'Salvar Alterações' }}
+              <button type="submit" class="btn-cta" [disabled]="detalhesEnviando || (trocaSenhaObrigatoria && detalhesForm.invalid)">
+                {{ detalhesEnviando ? 'Salvando...' : (trocaSenhaObrigatoria ? 'Definir nova senha' : 'Salvar Alterações') }}
               </button>
 
               @if (detalhesMensagem) {
@@ -299,67 +315,101 @@
       </div>
     </div>
   } @else {
-    <!-- Estado 1 -->
     <div class="conta-grid">
-      <!-- Bloco de login -->
       <div class="conta-secao">
         <h2 class="conta-secao__titulo">Já tenho conta</h2>
 
         <div class="conta-card">
-          <form (ngSubmit)="onLoginSubmit()" #loginForm="ngForm">
-            <div class="campo">
-              <label for="login-usuario">Apelido ou e-mail</label>
-              <input
-                id="login-usuario"
-                name="usuarioOuEmail"
-                type="text"
-                autocomplete="username"
-                placeholder="Seu apelido ou e-mail cadastrado"
-                [(ngModel)]="loginUsuarioOuEmail"
-                required
-              />
-            </div>
+          @if (!loginEtapaMfa) {
+            <form (ngSubmit)="onLoginSubmit()" #loginForm="ngForm">
+              <div class="campo">
+                <label for="login-usuario">Apelido ou e-mail</label>
+                <input
+                  id="login-usuario"
+                  name="usuarioOuEmail"
+                  type="text"
+                  autocomplete="username"
+                  placeholder="Seu apelido ou e-mail cadastrado"
+                  [(ngModel)]="loginUsuarioOuEmail"
+                  required
+                />
+              </div>
 
-            <div class="campo">
-              <label for="login-senha">Senha</label>
-              <input
-                id="login-senha"
-                name="senha"
-                type="password"
-                autocomplete="current-password"
-                [(ngModel)]="loginSenha"
-                required
-              />
-            </div>
+              <div class="campo">
+                <label for="login-senha">Senha</label>
+                <input
+                  id="login-senha"
+                  name="senha"
+                  type="password"
+                  autocomplete="current-password"
+                  [(ngModel)]="loginSenha"
+                  required
+                />
+              </div>
 
-            <div class="campo campo-checkbox">
-              <input
-                id="lembrar-de-mim"
-                name="lembrarDeMim"
-                type="checkbox"
-                [(ngModel)]="lembrarDeMim"
-              />
-              <label for="lembrar-de-mim">Lembrar de mim</label>
-            </div>
+              <div class="campo campo-checkbox">
+                <input
+                  id="lembrar-de-mim"
+                  name="lembrarDeMim"
+                  type="checkbox"
+                  [(ngModel)]="lembrarDeMim"
+                />
+                <label for="lembrar-de-mim">Lembrar de mim</label>
+              </div>
 
-            <div class="conta-captcha" #captchaLogin></div>
+              <div class="conta-captcha" #captchaLogin></div>
 
-            <button type="submit" class="btn-cta" [disabled]="loginEnviando || loginForm.invalid">
-              {{ loginEnviando ? 'Entrando...' : 'Entrar' }}
-            </button>
+              <button type="submit" class="btn-cta" [disabled]="loginEnviando || loginForm.invalid">
+                {{ loginEnviando ? 'Entrando...' : 'Entrar' }}
+              </button>
 
-            <a routerLink="/esqueci-senha" class="link-secundario">Esqueci minha senha</a>
+              <a routerLink="/esqueci-senha" class="link-secundario">Esqueci minha senha</a>
 
-            @if (loginMensagem) {
-              <p class="mensagem" [class.mensagem-sucesso]="loginSucesso" [class.mensagem-erro]="!loginSucesso">
-                {{ loginMensagem }}
+              @if (loginMensagem) {
+                <p class="mensagem" [class.mensagem-sucesso]="loginSucesso" [class.mensagem-erro]="!loginSucesso">
+                  {{ loginMensagem }}
+                </p>
+              }
+            </form>
+          } @else {
+            <form (ngSubmit)="onLoginMfaSubmit()" #loginMfaForm="ngForm">
+              <p class="conta-card-descricao">
+                Digite o código de 6 dígitos gerado pelo seu aplicativo autenticador.
               </p>
-            }
-          </form>
+
+              <div class="campo">
+                <label for="login-codigo-totp">Código de verificação</label>
+                <input
+                  id="login-codigo-totp"
+                  name="codigoTotp"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="one-time-code"
+                  pattern="\d{6}"
+                  maxlength="6"
+                  [(ngModel)]="loginCodigoTotp"
+                  required
+                />
+              </div>
+
+              <button type="submit" class="btn-cta" [disabled]="loginEnviando || loginMfaForm.invalid">
+                {{ loginEnviando ? 'Verificando...' : 'Confirmar código' }}
+              </button>
+
+              <button type="button" class="link-secundario link-secundario--botao" (click)="cancelarLoginMfa()">
+                Voltar
+              </button>
+
+              @if (loginMensagem) {
+                <p class="mensagem" [class.mensagem-sucesso]="loginSucesso" [class.mensagem-erro]="!loginSucesso">
+                  {{ loginMensagem }}
+                </p>
+              }
+            </form>
+          }
         </div>
       </div>
 
-      <!-- Bloco de registro -->
       <div class="conta-secao">
         <h2 class="conta-secao__titulo">Criar conta</h2>
 

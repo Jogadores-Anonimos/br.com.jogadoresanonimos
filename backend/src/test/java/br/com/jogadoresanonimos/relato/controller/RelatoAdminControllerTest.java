@@ -7,6 +7,7 @@ import br.com.jogadoresanonimos.relato.dto.EditarRelatoRequest;
 import br.com.jogadoresanonimos.relato.dto.RelatoAdminResponse;
 import br.com.jogadoresanonimos.relato.entity.StatusRelato;
 import br.com.jogadoresanonimos.relato.service.RelatoService;
+import br.com.jogadoresanonimos.security.AuthenticatedUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,10 +46,8 @@ class RelatoAdminControllerTest {
         RelatoAdminResponse item = relatoAdminResponse(UUID.randomUUID(), "pending");
         PageResponse<RelatoAdminResponse> pagina = new PageResponse<>(List.of(item), 0, 20, 1, 1);
         when(relatoService.listarPorStatus(StatusRelato.pending, 0, 20)).thenReturn(pagina);
-
         ResponseEntity<ApiResponse<PageResponse<RelatoAdminResponse>>> resposta =
                 relatoAdminController.listarPorStatus(StatusRelato.pending, 0, 20);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(pagina);
     }
@@ -56,25 +55,25 @@ class RelatoAdminControllerTest {
     @Test
     void editar_deveRetornarOkComRespostaDoService() {
         UUID id = UUID.randomUUID();
+        UUID adminId = UUID.randomUUID();
         EditarRelatoRequest request = new EditarRelatoRequest("texto editado".repeat(5));
         RelatoAdminResponse esperado = relatoAdminResponse(id, "pending");
-        when(relatoService.editar(id, request)).thenReturn(esperado);
-
-        ResponseEntity<ApiResponse<RelatoAdminResponse>> resposta = relatoAdminController.editar(id, request);
-
+        AuthenticatedUser principal = new AuthenticatedUser(adminId, "admin", "ADMIN");
+        when(relatoService.editar(id, request, adminId)).thenReturn(esperado);
+        ResponseEntity<ApiResponse<RelatoAdminResponse>> resposta = relatoAdminController.editar(id, request, principal);
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
-        verify(relatoService).editar(id, request);
+        verify(relatoService).editar(id, request, adminId);
     }
 
     @Test
     void aprovar_deveRetornarOkComRespostaDoService() {
         UUID id = UUID.randomUUID();
+        UUID adminId = UUID.randomUUID();
         RelatoAdminResponse esperado = relatoAdminResponse(id, "approved");
-        when(relatoService.aprovar(id)).thenReturn(esperado);
-
-        ResponseEntity<ApiResponse<RelatoAdminResponse>> resposta = relatoAdminController.aprovar(id);
-
+        AuthenticatedUser principal = new AuthenticatedUser(adminId, "admin", "ADMIN");
+        when(relatoService.aprovar(id, adminId)).thenReturn(esperado);
+        ResponseEntity<ApiResponse<RelatoAdminResponse>> resposta = relatoAdminController.aprovar(id, principal);
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data().status()).isEqualTo("approved");
     }
@@ -82,11 +81,11 @@ class RelatoAdminControllerTest {
     @Test
     void rejeitar_deveRetornarOkComRespostaDoService() {
         UUID id = UUID.randomUUID();
+        UUID adminId = UUID.randomUUID();
         RelatoAdminResponse esperado = relatoAdminResponse(id, "rejected");
-        when(relatoService.rejeitar(id)).thenReturn(esperado);
-
-        ResponseEntity<ApiResponse<RelatoAdminResponse>> resposta = relatoAdminController.rejeitar(id);
-
+        AuthenticatedUser principal = new AuthenticatedUser(adminId, "admin", "ADMIN");
+        when(relatoService.rejeitar(id, adminId)).thenReturn(esperado);
+        ResponseEntity<ApiResponse<RelatoAdminResponse>> resposta = relatoAdminController.rejeitar(id, principal);
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data().status()).isEqualTo("rejected");
     }
@@ -94,11 +93,11 @@ class RelatoAdminControllerTest {
     @Test
     void reverter_deveRetornarOkComRespostaDoService() {
         UUID id = UUID.randomUUID();
+        UUID adminId = UUID.randomUUID();
         RelatoAdminResponse esperado = relatoAdminResponse(id, "pending");
-        when(relatoService.reverter(id)).thenReturn(esperado);
-
-        ResponseEntity<ApiResponse<RelatoAdminResponse>> resposta = relatoAdminController.reverter(id);
-
+        AuthenticatedUser principal = new AuthenticatedUser(adminId, "admin", "ADMIN");
+        when(relatoService.reverter(id, adminId)).thenReturn(esperado);
+        ResponseEntity<ApiResponse<RelatoAdminResponse>> resposta = relatoAdminController.reverter(id, principal);
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data().status()).isEqualTo("pending");
     }
@@ -106,11 +105,11 @@ class RelatoAdminControllerTest {
     @Test
     void remover_deveRetornarOkEChamarServiceComId() {
         UUID id = UUID.randomUUID();
-
-        ResponseEntity<ApiResponse<MensagemResponse>> resposta = relatoAdminController.remover(id);
-
+        UUID adminId = UUID.randomUUID();
+        AuthenticatedUser principal = new AuthenticatedUser(adminId, "admin", "ADMIN");
+        ResponseEntity<ApiResponse<MensagemResponse>> resposta = relatoAdminController.remover(id, principal);
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
-        verify(relatoService).remover(id);
+        verify(relatoService).remover(id, adminId);
     }
 }

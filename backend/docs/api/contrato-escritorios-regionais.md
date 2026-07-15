@@ -35,6 +35,33 @@
 > nenhum client que hoje envia o payload antigo, mas o response ganha
 > dois campos novos que o `frontend-services` precisa passar a ler. Ver
 > seção "Revisão 2026-07-13 (2ª)" abaixo.
+>
+> **Revisão 2026-07-14 (mudança breaking de contrato, já consumido pelo
+> frontend)**: `diasSemana: string[]` + `horario: string` (único para
+> todos os dias) são substituídos por `agenda: { diaSemana, horario }[]`
+> — cada dia da semana marcado passa a ter seu próprio horário. Ver
+> seção "Revisão 2026-07-14" abaixo para o detalhe completo.
+>
+> **Revisão 2026-07-14 (2ª)** — seeds + novo endpoint de endereço
+> (não-breaking) + remoção de `POST`/`DELETE /regioes` (breaking, mas
+> sem consumidor real ainda em produção — ver detalhe abaixo):
+> 1. Seed dos 2 Escritórios de Serviço reais (ERSJAB, JAERJ) via
+>    migration `V2__seed_escritorios_servico_reais.sql`.
+> 2. Seed das 5 regiões fixas de intergrupo (Sudeste, Sul, Centro-Oeste,
+>    Nordeste, Norte) via migration
+>    `V3__seed_regioes_intergrupo_fixas.sql`.
+> 3. Novo endpoint `POST /api/v1/admin/escritorios-regionais/regioes/{regiaoId}/enderecos`
+>    — cria/reaproveita o `EstadoIntergrupo` automaticamente a partir da
+>    UF informada e cria o `GrupoIntergrupo` em uma única chamada, sem
+>    exigir que o admin crie o Estado manualmente antes.
+> 4. `POST /api/v1/admin/escritorios-regionais/regioes` e
+>    `DELETE /api/v1/admin/escritorios-regionais/regioes/{id}` são
+>    **removidos** — região agora é conjunto fixo de 5, seedado por
+>    migration (decisão do usuário/PO, mesmo padrão já usado para as
+>    27 UFs de `EstadoIntergrupo`). `PUT /regioes/{id}` (editar nome) e
+>    os endpoints de leitura/reordenação continuam existindo.
+>
+> Ver seção "Revisão 2026-07-14 (2ª)" abaixo para o detalhe completo.
 
 Convenções gerais (mesmas do restante do projeto, ver `contrato-avisos.md`):
 - Envelope de resposta sempre `{ success, data, error }`.
@@ -86,11 +113,11 @@ do mock. Três tabelas com FK em cascata:
   Brasil — ver "Revisão 2026-07-13"), único dentro da região, `ordem`.
 - `grupo_intergrupo`: FK `estado_id` (`ON DELETE CASCADE`), `nome`
   (obrigatório, até 200), `endereco` (obrigatório, até 300), `bairro`
-  (opcional, até 150), `cidade` (obrigatório, até 150), `dias_semana`
-  (obrigatório, lista de dias via tabela filha — ver "Revisão
-  2026-07-13"), `horario` (obrigatório, até 50), `ordem`. Telefones
-  vivem em tabela filha própria (`grupo_intergrupo_telefone`), mesmo
-  padrão de `hotline_telefone`.
+  (opcional, até 150), `cidade` (obrigatório, até 150), `agenda`
+  (obrigatório, lista de `{diaSemana, horario}` via tabela filha — ver
+  "Revisão 2026-07-14"), `ordem`. Telefones vivem em tabela filha
+  própria (`grupo_intergrupo_telefone`), mesmo padrão de
+  `hotline_telefone`.
 
 **Exclusão em cascata**: excluir uma região remove todos os estados e
 grupos filhos (FK `ON DELETE CASCADE` no banco); excluir um estado
@@ -169,8 +196,10 @@ rolável.
                 "endereco": "R. Santa Ifigênia nº 30",
                 "bairro": "Santa Ifigênia",
                 "cidade": "São Paulo - SP",
-                "telefone": null,
-                "horarios": "Dom 9h-11h",
+                "agenda": [
+                  { "diaSemana": "DOMINGO", "horario": "9h-11h" }
+                ],
+                "telefones": [],
                 "ordem": 0,
                 "criadoEm": "2026-07-12T14:30:00Z",
                 "atualizadoEm": "2026-07-12T14:30:00Z"
@@ -220,27 +249,23 @@ da lista (`MAX(ordem) + 1` dentro do escopo do nível, ou `0` se lista
 vazia); reordenar é feito só pelos endpoints dedicados da seção
 "Reordenação" mais abaixo.
 
-### 3. `POST /api/v1/admin/escritorios-regionais/regioes`
+### 3. ~~`POST /api/v1/admin/escritorios-regionais/regioes`~~ — **removido na Revisão 2026-07-14 (2ª)**
 
-**Request** (`CriarRegiaoRequest`): `{ "nome": "string, 1-100" }`
-
-**Response 201** (`RegiaoIntergrupoResponse`, `estados: []`).
-
-**Erros**: `400 VALIDATION_ERROR` (nome vazio/duplicado — nome é único
-globalmente, `409` não usado aqui pois é validação de negócio simples,
-mesmo padrão de outros módulos), `403 FORBIDDEN`.
+Região deixou de ser criável via API — conjunto fixo de 5, seedado por
+migration (`V3__seed_regioes_intergrupo_fixas.sql`). Ver seção "Revisão
+2026-07-14 (2ª)" para o detalhe.
 
 ### 4. `PUT /api/v1/admin/escritorios-regionais/regioes/{id}`
 
-**Request**: mesmo shape de `CriarRegiaoRequest`.
+**Request** (`EditarRegiaoRequest`): `{ "nome": "string, 1-100" }`
+(mantido — só edita o nome de uma das 5 regiões já seedadas).
 **Response 200**: `RegiaoIntergrupoResponse` com `estados` atual.
 **Erros**: `400 VALIDATION_ERROR`, `403 FORBIDDEN`, `404 NOT_FOUND`.
 
-### 5. `DELETE /api/v1/admin/escritorios-regionais/regioes/{id}`
+### 5. ~~`DELETE /api/v1/admin/escritorios-regionais/regioes/{id}`~~ — **removido na Revisão 2026-07-14 (2ª)**
 
-Exclusão em cascata (remove estados e grupos filhos via FK).
-**Response 200**: `{ "mensagem": "Região removida." }`.
-**Erros**: `403 FORBIDDEN`, `404 NOT_FOUND`.
+Exclusão de região deixou de ser possível via API — mesmo motivo do
+item 3. Ver seção "Revisão 2026-07-14 (2ª)".
 
 ### 6. `POST /api/v1/admin/escritorios-regionais/regioes/{regiaoId}/estados`
 
@@ -277,31 +302,34 @@ Exclusão em cascata (remove grupos filhos via FK).
 
 ### 9. `POST /api/v1/admin/escritorios-regionais/estados/{estadoId}/grupos`
 
-**Request** (`CriarGrupoRequest`, revisado):
+**Request** (`CriarGrupoRequest`, revisado na "Revisão 2026-07-14"):
 ```json
 {
   "nome": "string, 1-200",
   "endereco": "string, 1-300",
   "bairro": "string, opcional, até 150",
   "cidade": "string, 1-150",
-  "diasSemana": ["SEGUNDA", "QUINTA"],
-  "horario": "string, 1-50",
+  "agenda": [
+    { "diaSemana": "SEGUNDA", "horario": "19:00" },
+    { "diaSemana": "QUINTA", "horario": "20:30" }
+  ],
   "telefones": [
     { "label": "string, opcional, até 100", "telefone": "string, 1-30" }
   ]
 }
 ```
 
-`diasSemana`: lista não vazia de valores do enum `DiaSemana`
-(`DOMINGO, SEGUNDA, TERCA, QUARTA, QUINTA, SEXTA, SABADO`), sem
-duplicados. `horario` é um único horário textual (ex: `"18h"` ou
-`"12h30 e 18h"`) aplicado a todos os dias selecionados — não há
-horário por dia individual nesta entrega (o mock de origem nunca tinha
-horários diferentes por dia dentro do mesmo grupo, só dias diferentes
-com o mesmo horário ou textos livres já compostos; se essa necessidade
-aparecer, é uma migration aditiva futura trocando `horario` único por
-lista de `{dia, horario}`). `telefones` pode ser lista vazia — grupo
-sem telefone cadastrado é um caso real do mock atual (`null`).
+`agenda`: lista não vazia de itens `{ diaSemana, horario }`. `diaSemana`
+é um valor do enum `DiaSemana` (`DOMINGO, SEGUNDA, TERCA, QUARTA,
+QUINTA, SEXTA, SABADO`), **sem `diaSemana` repetido na lista** (ex: não
+pode haver duas entradas de `SEGUNDA` — retorna `400 VALIDATION_ERROR`).
+`horario` é obrigatório e próprio de cada item (até 50 caracteres, ex:
+`"18h"` ou `"12h30 e 18h"`) — dias diferentes podem repetir o mesmo
+texto de horário ou ter horários diferentes, sem restrição nesse
+sentido (ver "Revisão 2026-07-14" para o histórico da mudança de
+`diasSemana[] + horario` único para `agenda[]`). `telefones` pode ser
+lista vazia — grupo sem telefone cadastrado é um caso real do mock
+atual (`null`).
 
 **Response 201** (`GrupoIntergrupoResponse`).
 
@@ -682,6 +710,232 @@ JSON continuam funcionando). Sinalizado apenas como atenção para
 
 ---
 
+## Revisão 2026-07-14 — `diasSemana[] + horario` único → `agenda[]` com horário por dia
+
+**Motivação (regra de negócio definida pelo PO/cliente)**: cada dia da
+semana de um grupo pode ter um horário próprio (ex: segunda às 19h,
+quinta às 20h30) — o modelo anterior (`diasSemana: string[]` + um único
+`horario` aplicado a todos os dias) não permitia isso.
+
+**Modelagem escolhida — `@Embeddable` `AgendaItemGrupo` (`diaSemana` +
+`horario`) via `@ElementCollection`, não uma entidade JPA com identidade
+própria**: o padrão de acesso é sempre "toda a agenda de um grupo" (nunca
+busca de um item de agenda isolado por `id` próprio), o volume é
+baixíssimo (poucos itens por grupo, ~300 pedidos/dia no site inteiro), e
+a regra de não-duplicidade de dia é resolvida com uma `UNIQUE` composta
+na tabela — não há necessidade de identidade própria por linha,
+reaproveitando o mesmo raciocínio já usado para `grupo_intergrupo_dia_semana`
+(PK composta, sem UUID próprio).
+
+**Tabela nova**: `grupo_intergrupo_horario` substitui
+`grupo_intergrupo_dia_semana` e a coluna `grupo_intergrupo.horario`:
+```sql
+CREATE TABLE grupo_intergrupo_horario (
+  grupo_intergrupo_id UUID NOT NULL REFERENCES grupo_intergrupo(id) ON DELETE CASCADE,
+  dia_semana VARCHAR(10) NOT NULL,
+  horario VARCHAR(50) NOT NULL,
+  PRIMARY KEY (grupo_intergrupo_id, dia_semana)
+);
+```
+A PK composta `(grupo_intergrupo_id, dia_semana)` já garante, no
+próprio banco, a regra "não pode haver o mesmo dia da semana repetido
+na lista de um grupo" — não é só validação de aplicação.
+
+**Migration de dado**: para cada linha de `grupo_intergrupo`, para cada
+dia já marcado em `grupo_intergrupo_dia_semana`, insere uma linha em
+`grupo_intergrupo_horario` com aquele dia + o `horario` único que já
+existia na coluna antiga (`grupo_intergrupo.horario`) — nenhum dado é
+perdido, só reestruturado (1 horário por grupo → N horários por grupo,
+um por dia, todos iguais ao valor antigo até o admin editar
+individualmente cada dia).
+
+**Decisão sobre dropar a coluna/tabela antiga na mesma migration**: assim
+como em `V22` (mesmo módulo, revisão anterior) e diferente do padrão
+estrito de expand/contract, a coluna `grupo_intergrupo.horario` e a
+tabela `grupo_intergrupo_dia_semana` são **dropadas na mesma migration**
+(`V30`), não em uma `V31` futura. Motivo: não há consumidor externo do
+contrato antigo além do próprio frontend deste monorepo (que é
+atualizado na mesma entrega), o volume de dado real é baixo (poucas
+dezenas de grupos cadastrados), e o precedente já foi estabelecido pelo
+próprio módulo em `V22`. Não há janela de compatibilidade retroativa a
+proteger aqui — manter as colunas mortas só adicionaria dívida técnica
+sem benefício de rollback real (rollback de dado já é resolvido por
+backup de banco, não por coluna duplicada).
+
+### Migration — `V30__migra_agenda_grupo_intergrupo_para_dia_horario.sql`
+
+```sql
+CREATE TABLE grupo_intergrupo_horario (
+  grupo_intergrupo_id UUID NOT NULL REFERENCES grupo_intergrupo(id) ON DELETE CASCADE,
+  dia_semana VARCHAR(10) NOT NULL,
+  horario VARCHAR(50) NOT NULL,
+  PRIMARY KEY (grupo_intergrupo_id, dia_semana)
+);
+
+INSERT INTO grupo_intergrupo_horario (grupo_intergrupo_id, dia_semana, horario)
+SELECT d.grupo_id, d.dia_semana, g.horario
+FROM grupo_intergrupo_dia_semana d
+JOIN grupo_intergrupo g ON g.id = d.grupo_id;
+
+ALTER TABLE grupo_intergrupo DROP COLUMN horario;
+DROP TABLE grupo_intergrupo_dia_semana;
+```
+
+### Contrato revisado
+
+`GrupoIntergrupoResponse.diasSemana` e `.horario` deixam de existir —
+viram `agenda: { diaSemana: string, horario: string }[]`, ordenado pela
+ordem natural do enum `DiaSemana` (`DOMINGO` primeiro) para exibição
+estável no frontend.
+
+`CriarGrupoRequest`/`EditarGrupoRequest.diasSemana` + `.horario` deixam
+de existir — viram `agenda: AgendaItemRequest[]` (`@NotEmpty`, cada item
+com `diaSemana` e `horario` obrigatórios). Validação de negócio no
+service rejeita `diaSemana` duplicado na lista recebida com
+`400 VALIDATION_ERROR` antes mesmo de tentar persistir (a `UNIQUE` do
+banco é a rede de segurança final, não a validação primária — o erro de
+aplicação é mais claro para o client do que uma violação de constraint
+crua).
+
+### Mudança breaking desta revisão
+
+**Sim, é breaking** — remove campos (`diasSemana`, `horario`) do
+response e do request de `GrupoIntergrupoResponse`/`CriarGrupoRequest`/
+`EditarGrupoRequest`, substituindo por `agenda`. Pontos de atenção para
+`frontend-services`/`frontend`:
+- Trocar o seletor de múltiplos dias + campo único de horário por uma
+  lista editável de `{ diaSemana, horario }` (um input de horário por
+  dia selecionado).
+- Ler `agenda` no lugar de `diasSemana`/`horario` em qualquer lugar que
+  hoje exibe a agenda do grupo (ex: card de grupo na página pública de
+  escritórios regionais).
+- Validar no client que não há `diaSemana` repetido antes de enviar
+  (evita round-trip para descobrir o erro, mas a validação de servidor
+  continua sendo a fonte de verdade).
+
+---
+
+## Revisão 2026-07-14 (2ª) — seeds reais e endpoint de "Endereço" sem passo manual de Estado
+
+### 1. Seed dos 2 Escritórios Regionais de Serviço reais
+
+Migration `V2__seed_escritorios_servico_reais.sql` insere os 2
+escritórios reais da GA Brasil (ERSJAB em São Paulo, JAERJ no Rio de
+Janeiro), com dados tirados do site oficial da irmandade. Campos sem
+dado confirmado (telefone) ficam vazios — não inventados. `complemento`
+carrega o CEP (mesmo padrão já usado no exemplo deste documento), já que
+a entidade `EscritorioServico` não tem coluna própria de CEP.
+
+### 2. Seed das 5 regiões fixas de intergrupo
+
+Migration `V3__seed_regioes_intergrupo_fixas.sql` insere as 5 regiões
+fixas usadas pelo site de referência da GA (Sudeste, Sul, Centro-Oeste,
+Nordeste, Norte), na ordem `0..4`.
+
+**Decisão final sobre `POST`/`DELETE /regioes` (confirmada pelo
+usuário/PO)**: removidos do backend, não só ocultados na UI. Região
+passa a ser bloqueada em todas as camadas — mesmo padrão já usado para
+`EstadoIntergrupo` (as 27 UFs são um enum fixo, não uma tabela
+administrável por CRUD livre). `EscritorioRegionalAdminController`
+perde `criarRegiao`/`removerRegiao`, `EscritorioRegionalService` perde
+os métodos correspondentes, e o DTO `CriarRegiaoRequest` (do módulo
+`escritorio`, distinto do DTO homônimo do módulo `hotline`, que não foi
+tocado) foi removido por ficar sem consumidor. `PUT /regioes/{id}`
+(editar nome) e os endpoints de leitura/reordenação continuam intactos —
+a regra de negócio é sobre quantidade fixa de regiões, não sobre
+impedir correção de nome ou reordenação editorial.
+
+### 3. `POST /api/v1/admin/escritorios-regionais/regioes/{regiaoId}/enderecos` — novo endpoint
+
+- **Autenticação + autorização**: `ROLE_ADMIN`.
+- **Idempotente**: não (cria recurso novo a cada chamada, mesmo padrão
+  dos demais `POST` de criação deste módulo).
+- **Consistência**: forte, síncrona.
+
+Atalho de orquestração sobre o fluxo já existente
+(criar Estado → criar Grupo): recebe os campos de endereço já resolvidos
+pelo frontend via CEP (viacep) + `uf`, nome do grupo e agenda, e resolve
+internamente se precisa criar o `EstadoIntergrupo` ou reaproveitar um já
+existente — sem expor um endpoint de "criar Estado" separado para esse
+fluxo.
+
+**Request** (`CriarEnderecoGrupoRequest`):
+```json
+{
+  "uf": "SP",
+  "nome": "string, 1-200",
+  "endereco": "string, 1-300",
+  "bairro": "string, opcional, até 150",
+  "cidade": "string, 1-150",
+  "agenda": [
+    { "diaSemana": "SEGUNDA", "horario": "19:00" }
+  ],
+  "telefones": [
+    { "label": "string, opcional, até 100", "telefone": "string, 1-100" }
+  ]
+}
+```
+
+Mesma validação de `agenda`/`telefones` já documentada em
+`CriarGrupoRequest` (item 9 acima) — reaproveita literalmente o mesmo
+método de validação/persistência internamente, só muda quem resolve o
+`estadoId`.
+
+**Orquestração interna**:
+1. Busca `EstadoIntergrupo` por `(regiaoId, uf)` (`findByRegiaoIdAndUf`).
+2. Se não existir, cria automaticamente — mesma lógica de `criarEstado`
+   (próxima `ordem` dentro da região), sem checar duplicidade porque a
+   própria busca por `(regiaoId, uf)` já garante que não existe.
+3. Cria o `GrupoIntergrupo` dentro do estado resolvido, reaproveitando
+   o método privado `criarGrupoNoEstado` (o mesmo usado por
+   `POST /estados/{estadoId}/grupos`), sem duplicar validação de
+   agenda/telefones.
+
+**Sem checagem de duplicidade de endereço**: confirmado pelo
+usuário/PO — endereços físicos dificilmente colidem o suficiente para
+justificar uma regra de unicidade, e criar uma adicionaria fricção
+(falso positivo) sem benefício real medido.
+
+**Response 201** (`GrupoIntergrupoResponse`, já inclui `estadoId` do
+estado usado/criado — não precisa de DTO de resposta dedicado).
+
+**Erros**:
+| Código HTTP | `error.code` | Motivo |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | `uf` ausente/inválida, `agenda` vazia/com dia duplicado/dados obrigatórios ausentes |
+| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `NOT_FOUND` | `regiaoId` não existe |
+
+**Endpoints antigos preservados**: `POST /regioes/{regiaoId}/estados` e
+`POST /estados/{estadoId}/grupos` continuam funcionando exatamente como
+antes — o endpoint novo é um atalho adicional, não uma substituição.
+
+### Mudança breaking desta revisão
+
+**Parcialmente breaking**: seeds e o endpoint de endereço são aditivos
+(sem impacto em contrato existente); a remoção de
+`POST`/`DELETE /regioes` **é breaking** — remove 2 endpoints já
+documentados (ainda sem uso real confirmado em produção, dado o volume
+baixo e a idade recente do módulo). Pontos de atenção para
+`frontend-services`/`frontend`:
+- Remover qualquer chamada a `POST /regioes` e
+  `DELETE /regioes/{id}` do `EscritoriosRegionaisService` — os 2
+  endpoints não existem mais (retornam `404`/rota inexistente).
+- Remover da UI de admin a ação de criar/excluir região por completo
+  (não é mais uma questão de ocultar — a API não aceita mais essa
+  operação). Mantém edição de nome e os botões de mover
+  cima/baixo das 5 regiões seedadas.
+- Trocar o fluxo de cadastro de Grupo no admin (hoje: escolher Região →
+  criar/escolher Estado → criar Grupo) por: escolher Região (as 5 fixas)
+  + CEP autopreenchendo UF/cidade/bairro/endereço (reaproveitar o
+  componente já usado em Reuniões) + número + nome + agenda, chamando
+  o novo endpoint em uma única submissão.
+- O formulário de "criar Estado" continua existindo no código (endpoint
+  preservado) mas deixa de ser exposto no fluxo principal de cadastro de
+  endereço — decisão de UI cabe ao `ux-ui`/`frontend`.
+
+---
+
 ## Mudança breaking sinalizada
 
 **Sim — revisão 2026-07-13 altera contrato já consumido pelo
@@ -742,6 +996,9 @@ componente, com adição de `id`/`ordem`/timestamps em cada nível.
   Novo enum `br.com.jogadoresanonimos.escritorio.entity.UnidadeFederativa`
   (27 UFs, com nome por extenso) e
   `br.com.jogadoresanonimos.escritorio.entity.DiaSemana`.
+  `br.com.jogadoresanonimos.escritorio.entity.AgendaItemGrupo` (`@Embeddable`,
+  `diaSemana` + `horario`), usado em `GrupoIntergrupo.agenda`
+  (`@ElementCollection`, ver "Revisão 2026-07-14").
 - Repositories: `br.com.jogadoresanonimos.escritorio.repository.*`.
 - `br.com.jogadoresanonimos.escritorio.service.EscritorioRegionalService` —
   toda a lógica de CRUD por nível, leitura da estrutura completa e
@@ -749,7 +1006,21 @@ componente, com adição de `id`/`ordem`/timestamps em cada nível.
 - `br.com.jogadoresanonimos.escritorio.controller.EscritorioRegionalController` —
   `GET /api/v1/escritorios-regionais`.
 - `br.com.jogadoresanonimos.escritorio.controller.EscritorioRegionalAdminController` —
-  os 21 endpoints admin (1 leitura + CRUD por nível + 8 de reordenação).
+  20 endpoints admin (1 leitura + CRUD por nível, sem
+  criar/excluir região + 8 de reordenação +
+  `POST /regioes/{regiaoId}/enderecos`, ver "Revisão 2026-07-14 (2ª)").
+  `criarRegiao`/`removerRegiao` removidos do controller e do service;
+  `EscritorioRegionalService.criarRegiao`/`removerRegiao` não existem
+  mais; DTO `br.com.jogadoresanonimos.escritorio.dto.CriarRegiaoRequest`
+  removido (sem consumidor).
+- `CriarEnderecoGrupoRequest` (DTO novo) +
+  `EscritorioRegionalService.criarEnderecoGrupo`/`criarEstadoAutomaticamente`/
+  `criarGrupoNoEstado` (método privado compartilhado entre `criarGrupo` e
+  `criarEnderecoGrupo`).
+- `EstadoIntergrupoRepository.findByRegiaoIdAndUf` (novo, usado para
+  resolver/reaproveitar o Estado no endpoint de endereço).
+- Migrations `V2__seed_escritorios_servico_reais.sql` (2 escritórios
+  reais) e `V3__seed_regioes_intergrupo_fixas.sql` (5 regiões fixas).
 - `SecurityConfig`: `requestMatchers(HttpMethod.GET,
   "/api/v1/escritorios-regionais").permitAll()` (mantido da entrega
   anterior).

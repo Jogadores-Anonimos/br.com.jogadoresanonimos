@@ -9,20 +9,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-/**
- * Valida tipo real do arquivo por magic bytes (nunca por extensão/Content-Type
- * declarado) e remove metadados (EXIF) reencodando a imagem via ImageIO —
- * reencodar descarta os metadados originais, incluindo geolocalização/
- * dispositivo, sem depender de biblioteca externa de manipulação de EXIF.
- *
- * LIMITAÇÃO CONHECIDA: ImageIO puro do JDK não lê WebP nativamente (sem
- * plugin adicional) — hoje o magic-byte check aceita WebP no contrato, mas
- * o ImageIO.read() vai falhar e cair em UnsupportedMediaException. Antes de
- * liberar upload de WebP em produção é preciso decidir com o time: (a)
- * adicionar uma lib de imagem (ex. TwelveMonkeys ImageIO plugin — dependência
- * nova, precisa aprovação) ou (b) restringir upload a jpeg/png só nesta fase.
- * Documentado aqui para não ser surpresa depois — não decidido sozinho.
- */
 @Component
 public class ImagemProcessor {
 
@@ -40,7 +26,6 @@ public class ImagemProcessor {
         if (imagem == null) {
             throw new UnsupportedMediaException("Não foi possível processar o arquivo enviado");
         }
-
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             boolean escreveu = ImageIO.write(imagem, tipo.formatoImageIO(), out);
             if (!escreveu) {
@@ -67,20 +52,22 @@ public class ImagemProcessor {
     }
 
     private enum TipoImagem {
-        JPEG("jpg", "image/jpeg"),
-        PNG("png", "image/png"),
-        WEBP("png", "image/png");
+        JPEG("jpg", "image/jpeg", "jpg"),
+        PNG("png", "image/png", "png"),
+        WEBP("png", "image/png", "png");
 
         private final String extensao;
         private final String contentType;
+        private final String formatoImageIO;
 
-        TipoImagem(String extensao, String contentType) {
+        TipoImagem(String extensao, String contentType, String formatoImageIO) {
             this.extensao = extensao;
             this.contentType = contentType;
+            this.formatoImageIO = formatoImageIO;
         }
 
         String formatoImageIO() {
-            return extensao.equals("jpg") ? "jpg" : "png";
+            return formatoImageIO;
         }
 
         String extensao() {

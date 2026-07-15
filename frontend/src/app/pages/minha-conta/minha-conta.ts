@@ -13,12 +13,15 @@ import { of, timeout } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
-import { Auth } from '../../services/auth';
-import { LoginResponse, UsuarioResponse } from '../../services/auth.model';
-import { apiError } from '../../services/api-envelope';
-import { ArquivoResponse } from '../../services/arquivo.model';
-import { BibliotecaPessoalService } from '../../services/biblioteca-pessoal';
+import { Auth } from '../../services/auth/auth';
+import { LoginMfaRequest, LoginResponse, UsuarioResponse } from '../../services/auth/auth.model';
+import { apiError, mapearErrosCampo } from '../../services/api-envelope';
+import { Arquivo as ArquivoService } from '../../services/arquivo/arquivo';
+import { ArquivoResponse } from '../../services/arquivo/arquivo.model';
+import { disparaDownloadDeBlob } from '../../services/arquivo/download-blob.util';
+import { BibliotecaPessoalService } from '../../services/biblioteca-pessoal/biblioteca-pessoal';
 import { RecaptchaLoader } from '../../services/recaptcha-loader';
+import { environment } from '../../../environments/environment';
 
 declare const grecaptcha: any;
 
@@ -42,11 +45,10 @@ interface PedidoConta {
 export class MinhaConta implements OnDestroy {
   readonly bannerSrc = '/images/home/reuniao-discussao.jpg';
 
-  private readonly RECAPTCHA_SITE_KEY_TESTE = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
-
   private readonly appRef = inject(ApplicationRef);
   private readonly recaptchaLoader = inject(RecaptchaLoader);
   private readonly bibliotecaPessoal = inject(BibliotecaPessoalService);
+  private readonly arquivoService = inject(ArquivoService);
   private readonly router = inject(Router);
 
   constructor(
@@ -55,7 +57,13 @@ export class MinhaConta implements OnDestroy {
     effect(() => {
       const usuario = this.auth.usuarioAtual();
       if (usuario) {
-        // Admin não usa a área de cliente — cai direto no painel.
+        this.trocaSenhaObrigatoria = usuario.deveTrocarSenha;
+        if (usuario.deveTrocarSenha) {
+          this.abaAtiva = 'detalhes';
+          this.nomeExibicao = usuario.apelido;
+          this.carregarDetalhesConta();
+          return;
+        }
         if (usuario.role === 'ADMIN') {
           this.router.navigateByUrl('/admin');
           return;
@@ -101,10 +109,6 @@ export class MinhaConta implements OnDestroy {
     });
   }
 
-  // nomes de campo mantidos para não quebrar o template (minha-conta.html é
-  // domínio do agente frontend); "registroApelido" foi adicionado pois o
-  // contrato real de registro passou a exigir apelido — ver ux-ui/frontend
-  // para incluir o campo correspondente no formulário.
   loginUsuarioOuEmail = '';
   loginSenha = '';
   lembrarDeMim = false;
@@ -112,6 +116,10 @@ export class MinhaConta implements OnDestroy {
   loginMensagem = '';
   loginSucesso = false;
   captchaLoginOk = false;
+  private captchaLoginToken = '';
+
+  loginEtapaMfa = false;
+  loginCodigoTotp = '';
 
   registroApelido = '';
   registroEmail = '';
@@ -122,10 +130,8 @@ export class MinhaConta implements OnDestroy {
   registroSucesso = false;
   captchaRegistroOk = false;
   registroErrosCampo: Record<string, string> = {};
+  private captchaRegistroToken = '';
 
-  // Timeout de segurança: garante que o botão nunca fica preso em
-  // "Entrando..."/"Criando..." indefinidamente, mesmo se algo travar a
-  // requisição ou o observable nunca completar por um bug futuro.
   private static readonly TIMEOUT_SUBMIT_MS = 5_000;
 
   onLoginSubmit(): void {
@@ -133,7 +139,51 @@ export class MinhaConta implements OnDestroy {
     this.loginMensagem = '';
 
     this.auth
-      .login({ identificador: this.loginUsuarioOuEmail, senha: this.loginSenha })
+      .login({
+        identificador: this.loginUsuarioOuEmail,
+        senha: this.loginSenha,
+        recaptchaToken: this.captchaLoginToken,
+        lembrarDeMim: this.lembrarDeMim,
+      })
+      .pipe(
+        timeout(MinhaConta.TIMEOUT_SUBMIT_MS),
+        catchError(() =>
+          of(apiError<LoginResponse>('TIMEOUT', 'A requisição demorou demais. Tente novamente.')),
+        ),
+        finalize(() => {
+          this.loginEnviando = false;
+          if (!this.loginEtapaMfa) {
+            this.resetarCaptcha('login');
+          }
+        }),
+      )
+      .subscribe((resposta) => {
+        if (resposta.success && resposta.data?.mfaRequerido) {
+          this.loginEtapaMfa = true;
+          this.loginSucesso = false;
+          this.loginMensagem = '';
+          return;
+        }
+        this.loginSucesso = resposta.success;
+        this.loginMensagem = resposta.success
+          ? ''
+          : (resposta.error?.message ?? 'Não foi possível entrar. Tente novamente.');
+      });
+  }
+
+  onLoginMfaSubmit(): void {
+    this.loginEnviando = true;
+    this.loginMensagem = '';
+
+    const req: LoginMfaRequest = {
+      identificador: this.loginUsuarioOuEmail,
+      senha: this.loginSenha,
+      recaptchaToken: this.captchaLoginToken,
+      codigoTotp: this.loginCodigoTotp,
+    };
+
+    this.auth
+      .loginComMfa(req, this.lembrarDeMim)
       .pipe(
         timeout(MinhaConta.TIMEOUT_SUBMIT_MS),
         catchError(() =>
@@ -147,8 +197,18 @@ export class MinhaConta implements OnDestroy {
         this.loginSucesso = resposta.success;
         this.loginMensagem = resposta.success
           ? ''
-          : (resposta.error?.message ?? 'Não foi possível entrar. Tente novamente.');
+          : (resposta.error?.message ?? 'Código inválido. Tente novamente.');
+        if (!resposta.success) {
+          this.loginCodigoTotp = '';
+        }
       });
+  }
+
+  cancelarLoginMfa(): void {
+    this.loginEtapaMfa = false;
+    this.loginCodigoTotp = '';
+    this.loginMensagem = '';
+    this.resetarCaptcha('login');
   }
 
   onRegistroSubmit(): void {
@@ -162,6 +222,7 @@ export class MinhaConta implements OnDestroy {
         email: this.registroEmail,
         senha: this.registroSenha,
         confirmarSenha: this.registroConfirmarSenha,
+        recaptchaToken: this.captchaRegistroToken,
       })
       .pipe(
         timeout(MinhaConta.TIMEOUT_SUBMIT_MS),
@@ -170,14 +231,22 @@ export class MinhaConta implements OnDestroy {
         ),
         finalize(() => {
           this.registroEnviando = false;
+          this.resetarCaptcha('registro');
         }),
       )
       .subscribe((resposta) => {
         this.registroSucesso = resposta.success;
-        this.registroErrosCampo = resposta.error?.fields ?? {};
-        this.registroMensagem = resposta.success
-          ? ''
-          : (resposta.error?.message ?? 'Não foi possível criar a conta. Tente novamente.');
+        this.registroErrosCampo = mapearErrosCampo(resposta.error?.fields);
+        if (resposta.success) {
+          this.registroMensagem = 'Conta criada com sucesso! Faça login abaixo para continuar.';
+          this.loginUsuarioOuEmail = this.registroApelido;
+          this.registroApelido = '';
+          this.registroEmail = '';
+          this.registroSenha = '';
+          this.registroConfirmarSenha = '';
+        } else {
+          this.registroMensagem = resposta.error?.message ?? 'Não foi possível criar a conta. Tente novamente.';
+        }
       });
   }
 
@@ -214,7 +283,7 @@ export class MinhaConta implements OnDestroy {
       .carregar()
       .then(() => this.renderizarRecaptcha(container, formulario))
       .catch(() => {
-        this.definirCaptchaOk(formulario, false);
+        this.definirCaptchaToken(formulario, '');
       });
   }
 
@@ -240,15 +309,15 @@ export class MinhaConta implements OnDestroy {
     }
 
     const widgetId = grecaptcha.render(container, {
-      sitekey: this.RECAPTCHA_SITE_KEY_TESTE,
-      callback: () => {
-        this.definirCaptchaOk(formulario, true);
+      sitekey: environment.recaptchaSiteKey,
+      callback: (token: string) => {
+        this.definirCaptchaToken(formulario, token);
       },
       'expired-callback': () => {
-        this.definirCaptchaOk(formulario, false);
+        this.definirCaptchaToken(formulario, '');
       },
       'error-callback': () => {
-        this.definirCaptchaOk(formulario, false);
+        this.definirCaptchaToken(formulario, '');
       },
     });
 
@@ -259,16 +328,25 @@ export class MinhaConta implements OnDestroy {
     }
   }
 
-  private definirCaptchaOk(formulario: 'login' | 'registro', ok: boolean): void {
+  private definirCaptchaToken(formulario: 'login' | 'registro', token: string): void {
     if (formulario === 'login') {
-      this.captchaLoginOk = ok;
+      this.captchaLoginToken = token;
+      this.captchaLoginOk = token !== '';
     } else {
-      this.captchaRegistroOk = ok;
+      this.captchaRegistroToken = token;
+      this.captchaRegistroOk = token !== '';
     }
     this.appRef.tick();
   }
 
-  // evita retries do reCAPTCHA contra um container já removido do DOM
+  private resetarCaptcha(formulario: 'login' | 'registro'): void {
+    const widgetId = formulario === 'login' ? this.captchaLoginWidgetId : this.captchaRegistroWidgetId;
+    if (widgetId !== null && typeof grecaptcha !== 'undefined' && grecaptcha.reset) {
+      grecaptcha.reset(widgetId);
+    }
+    this.definirCaptchaToken(formulario, '');
+  }
+
   ngOnDestroy(): void {
     if (this.captchaLoginTimeoutId !== null) {
       clearTimeout(this.captchaLoginTimeoutId);
@@ -279,17 +357,40 @@ export class MinhaConta implements OnDestroy {
   }
 
   abaAtiva: AbaConta = 'dashboard';
+  trocaSenhaObrigatoria = false;
 
   selecionarAba(aba: AbaConta): void {
+    if (this.trocaSenhaObrigatoria) {
+      return;
+    }
     this.abaAtiva = aba;
   }
 
-  // Loja em standby — sem pedido real ainda, lista vazia até reativar.
   readonly pedidos: PedidoConta[] = [];
 
   downloads: ArquivoResponse[] = [];
   downloadsCarregando = false;
   downloadsRemovendo = new Set<string>();
+  downloadsBaixando = new Set<string>();
+  erroDownloadPorId = new Map<string, string>();
+
+  baixarPdf(arquivo: ArquivoResponse): void {
+    if (this.downloadsBaixando.has(arquivo.id)) {
+      return;
+    }
+    this.downloadsBaixando.add(arquivo.id);
+    this.erroDownloadPorId.delete(arquivo.id);
+    this.arquivoService.baixarArquivo(arquivo.id).subscribe({
+      next: (blob) => {
+        this.downloadsBaixando.delete(arquivo.id);
+        disparaDownloadDeBlob(blob, arquivo.nomeOriginal);
+      },
+      error: () => {
+        this.downloadsBaixando.delete(arquivo.id);
+        this.erroDownloadPorId.set(arquivo.id, 'Não foi possível baixar o arquivo agora. Tente novamente.');
+      },
+    });
+  }
 
   nomeExibicao = '';
   emailDetalhes = '';
@@ -304,6 +405,11 @@ export class MinhaConta implements OnDestroy {
     this.detalhesEnviando = true;
     this.detalhesMensagem = '';
     this.detalhesSucesso = false;
+
+    if (this.trocaSenhaObrigatoria) {
+      this.salvarSenhaSeInformada();
+      return;
+    }
 
     this.auth
       .atualizarConta({ apelido: this.nomeExibicao, email: this.emailDetalhes })
@@ -322,6 +428,11 @@ export class MinhaConta implements OnDestroy {
     const querTrocarSenha = this.senhaAtualDetalhes || this.novaSenhaDetalhes || this.confirmarNovaSenhaDetalhes;
     if (!querTrocarSenha) {
       this.detalhesEnviando = false;
+      if (this.trocaSenhaObrigatoria) {
+        this.detalhesSucesso = false;
+        this.detalhesMensagem = 'Por segurança, defina uma nova senha antes de continuar.';
+        return;
+      }
       this.detalhesSucesso = true;
       this.detalhesMensagem = 'Dados da conta atualizados com sucesso.';
       return;
@@ -340,10 +451,14 @@ export class MinhaConta implements OnDestroy {
           this.senhaAtualDetalhes = '';
           this.novaSenhaDetalhes = '';
           this.confirmarNovaSenhaDetalhes = '';
-          this.detalhesMensagem = 'Dados salvos e senha alterada com sucesso. Faça login novamente.';
+          this.detalhesMensagem = this.trocaSenhaObrigatoria
+            ? 'Senha alterada com sucesso. Faça login novamente com a nova senha.'
+            : 'Dados salvos e senha alterada com sucesso. Faça login novamente.';
           this.auth.logout();
         } else {
-          this.detalhesMensagem = resposta.error?.message ?? 'Dados salvos, mas não foi possível alterar a senha.';
+          this.detalhesMensagem = this.trocaSenhaObrigatoria
+            ? (resposta.error?.message ?? 'Não foi possível alterar a senha.')
+            : (resposta.error?.message ?? 'Dados salvos, mas não foi possível alterar a senha.');
         }
       });
   }

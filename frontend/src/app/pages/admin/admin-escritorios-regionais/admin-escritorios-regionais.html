@@ -1,11 +1,34 @@
 <section class="admin-escritorios">
   <div class="admin-escritorios__cabecalho">
     <div>
-      <h1 class="admin-escritorios__titulo">Intergrupos / Escritórios Regionais</h1>
+      <h1 class="admin-escritorios__titulo">Endereços</h1>
       <p class="admin-escritorios__descricao">
-        Gerencie a hierarquia de regiões, estados e grupos, e os escritórios de serviço exibidos no site.
+        Gerencie os escritórios regionais de serviço e a hierarquia de regiões, estados e grupos exibidos no site.
       </p>
     </div>
+  </div>
+
+  <div class="admin-escritorios__abas" role="tablist" aria-label="Seções de endereços">
+    <button
+      type="button"
+      role="tab"
+      class="admin-escritorios__aba"
+      [class.admin-escritorios__aba--ativa]="aba === 'escritorios'"
+      [attr.aria-selected]="aba === 'escritorios'"
+      (click)="selecionarAba('escritorios')"
+    >
+      Escritórios Regionais de Serviço
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="admin-escritorios__aba"
+      [class.admin-escritorios__aba--ativa]="aba === 'enderecos'"
+      [attr.aria-selected]="aba === 'enderecos'"
+      (click)="selecionarAba('enderecos')"
+    >
+      Endereços por Região
+    </button>
   </div>
 
   <p *ngIf="carregando" class="admin-escritorios__estado" role="status">Carregando…</p>
@@ -14,13 +37,12 @@
     {{ erroCarregamento }}
   </p>
 
-  <ng-container *ngIf="!carregando && !erroCarregamento">
-    <!-- Nível: Regiões -->
+  <ng-container *ngIf="!carregando && !erroCarregamento && aba === 'enderecos'">
     <section class="admin-escritorios__bloco" *ngIf="nivel === 'regioes'">
       <div class="admin-escritorios__bloco-cabecalho">
         <h2 class="admin-escritorios__subtitulo">Regiões</h2>
-        <button type="button" class="admin-escritorios__botao admin-escritorios__botao--primario" (click)="abrirNovaRegiao()">
-          + Adicionar região
+        <button type="button" class="admin-escritorios__botao admin-escritorios__botao--primario" (click)="abrirFormularioEndereco()">
+          + Cadastrar endereço
         </button>
       </div>
 
@@ -29,13 +51,19 @@
         class="admin-escritorios__formulario"
         (ngSubmit)="salvarRegiao()"
       >
-        <h3 class="admin-escritorios__formulario-titulo">
-          {{ modoFormularioRegiao === 'edicao' ? 'Editar região' : 'Nova região' }}
-        </h3>
+        <h3 class="admin-escritorios__formulario-titulo">Editar região</h3>
 
         <div class="admin-escritorios__campo">
           <label for="regiao-nome">Nome</label>
-          <input id="regiao-nome" type="text" name="nome" [(ngModel)]="formularioRegiao.nome" required />
+          <input
+            id="regiao-nome"
+            type="text"
+            name="nome"
+            [(ngModel)]="formularioRegiao.nome"
+            [class.campo-invalido]="errosCampoRegiao['nome']"
+            [attr.aria-invalid]="errosCampoRegiao['nome'] ? 'true' : null"
+            required
+          />
         </div>
 
         <p *ngIf="erroFormularioRegiao" class="admin-escritorios__erro-card" role="alert">{{ erroFormularioRegiao }}</p>
@@ -55,6 +83,216 @@
         </div>
       </form>
 
+      <form
+        *ngIf="formularioEnderecoAberto"
+        class="admin-escritorios__formulario"
+        (ngSubmit)="salvarEndereco()"
+      >
+        <h3 class="admin-escritorios__formulario-titulo">Cadastrar endereço</h3>
+
+        <div class="admin-escritorios__campo">
+          <label for="endereco-regiao">Região</label>
+          <select
+            id="endereco-regiao"
+            name="regiaoId"
+            [(ngModel)]="formularioEndereco.regiaoId"
+            [class.campo-invalido]="errosCampoEndereco['regiaoId']"
+            [attr.aria-invalid]="errosCampoEndereco['regiaoId'] ? 'true' : null"
+            required
+          >
+            <option value="" disabled>Selecione</option>
+            <option *ngFor="let regiao of regioesOrdenadas" [value]="regiao.id">{{ regiao.nome }}</option>
+          </select>
+        </div>
+
+        <div class="admin-escritorios__campo-linha">
+          <div class="admin-escritorios__campo">
+            <label for="endereco-cep">CEP</label>
+            <input
+              id="endereco-cep"
+              type="text"
+              inputmode="numeric"
+              placeholder="00000-000"
+              maxlength="9"
+              name="cepEndereco"
+              [(ngModel)]="cepEndereco"
+            />
+          </div>
+
+          <div class="admin-escritorios__campo">
+            <label for="endereco-numero">Número</label>
+            <input id="endereco-numero" type="text" placeholder="Ex: 123" name="numeroEndereco" [(ngModel)]="numeroEndereco" />
+          </div>
+        </div>
+
+        <div class="admin-escritorios__campo">
+          <button
+            type="button"
+            class="admin-escritorios__botao admin-escritorios__botao--secundario"
+            [disabled]="buscandoCepEndereco"
+            (click)="buscarCepEndereco()"
+          >
+            {{ buscandoCepEndereco ? 'Buscando…' : 'Buscar endereço' }}
+          </button>
+          <p *ngIf="erroCepEndereco" class="admin-escritorios__erro-card" role="alert">{{ erroCepEndereco }}</p>
+          <p class="admin-escritorios__ajuda">Preenche automaticamente UF, cidade, bairro e endereço. Os campos continuam editáveis.</p>
+        </div>
+
+        <div class="admin-escritorios__campo">
+          <label for="endereco-uf">UF</label>
+          <select
+            id="endereco-uf"
+            name="uf"
+            [(ngModel)]="formularioEndereco.uf"
+            [class.campo-invalido]="errosCampoEndereco['uf']"
+            [attr.aria-invalid]="errosCampoEndereco['uf'] ? 'true' : null"
+            required
+          >
+            <option value="" disabled>Selecione</option>
+            <option *ngFor="let uf of unidadesFederativas" [value]="uf.sigla">{{ uf.nome }} ({{ uf.sigla }})</option>
+          </select>
+        </div>
+
+        <div class="admin-escritorios__campo">
+          <label for="endereco-endereco">Endereço</label>
+          <input
+            id="endereco-endereco"
+            type="text"
+            name="endereco"
+            [(ngModel)]="formularioEndereco.endereco"
+            [class.campo-invalido]="errosCampoEndereco['endereco']"
+            [attr.aria-invalid]="errosCampoEndereco['endereco'] ? 'true' : null"
+            required
+          />
+        </div>
+
+        <div class="admin-escritorios__campo">
+          <label for="endereco-bairro">Bairro (opcional)</label>
+          <input id="endereco-bairro" type="text" name="bairro" [(ngModel)]="formularioEndereco.bairro" />
+        </div>
+
+        <div class="admin-escritorios__campo">
+          <label for="endereco-cidade">Cidade</label>
+          <input
+            id="endereco-cidade"
+            type="text"
+            name="cidade"
+            [(ngModel)]="formularioEndereco.cidade"
+            [class.campo-invalido]="errosCampoEndereco['cidade']"
+            [attr.aria-invalid]="errosCampoEndereco['cidade'] ? 'true' : null"
+            required
+          />
+        </div>
+
+        <div class="admin-escritorios__campo">
+          <label for="endereco-nome">Nome do grupo</label>
+          <input
+            id="endereco-nome"
+            type="text"
+            name="nomeGrupo"
+            [(ngModel)]="formularioEndereco.nome"
+            [class.campo-invalido]="errosCampoEndereco['nome']"
+            [attr.aria-invalid]="errosCampoEndereco['nome'] ? 'true' : null"
+            required
+          />
+        </div>
+
+        <fieldset class="admin-escritorios__campo admin-escritorios__dias-semana">
+          <legend>Dias da semana e horários</legend>
+          <p *ngIf="errosCampoEndereco['agenda']" class="admin-escritorios__erro-card" role="alert">
+            {{ errosCampoEndereco['agenda'] }}
+          </p>
+          <div class="admin-escritorios__dias-semana-grade">
+            <div *ngFor="let dia of diasSemana" class="admin-escritorios__dia-opcao">
+              <label>
+                <input
+                  type="checkbox"
+                  [checked]="diaSelecionadoEndereco(dia.valor)"
+                  (change)="alternarDiaSemanaEndereco(dia.valor, $any($event.target).checked)"
+                />
+                {{ dia.rotulo }}
+              </label>
+              <select
+                *ngIf="diaSelecionadoEndereco(dia.valor)"
+                [attr.aria-label]="'Horário de ' + dia.rotulo"
+                [ngModel]="horarioDoDiaEndereco(dia.valor)"
+                (ngModelChange)="definirHorarioDoDiaEndereco(dia.valor, $event)"
+                [name]="'endereco-horario-' + dia.valor"
+                required
+              >
+                <option value="" disabled>Selecione</option>
+                <option *ngFor="let h of horarios" [value]="h">{{ h }}</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="admin-escritorios__campo admin-escritorios__telefones">
+          <span class="admin-escritorios__campo-rotulo">Telefones (opcional)</span>
+
+          <ul class="admin-escritorios__telefones-lista" *ngIf="formularioEndereco.telefones.length > 0">
+            <li *ngFor="let telefone of formularioEndereco.telefones" class="admin-escritorios__telefone-item">
+              <div class="admin-escritorios__campo-linha">
+                <div class="admin-escritorios__campo">
+                  <label [attr.for]="'endereco-telefone-label-' + telefone.id">Descrição (opcional)</label>
+                  <input
+                    [id]="'endereco-telefone-label-' + telefone.id"
+                    type="text"
+                    placeholder="Ex: Central"
+                    [(ngModel)]="telefone.label"
+                    [name]="'enderecoTelefoneLabel-' + telefone.id"
+                  />
+                </div>
+                <div class="admin-escritorios__campo">
+                  <label [attr.for]="'endereco-telefone-numero-' + telefone.id">Telefone</label>
+                  <input
+                    [id]="'endereco-telefone-numero-' + telefone.id"
+                    type="text"
+                    placeholder="Ex: (11) 4321-0000"
+                    [(ngModel)]="telefone.telefone"
+                    [name]="'enderecoTelefoneNumero-' + telefone.id"
+                    [class.campo-invalido]="errosCampoEndereco['telefones'] && !telefone.telefone.trim()"
+                    [attr.aria-invalid]="errosCampoEndereco['telefones'] && !telefone.telefone.trim() ? 'true' : null"
+                    required
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                class="admin-escritorios__botao admin-escritorios__botao--perigo admin-escritorios__botao--pequeno"
+                (click)="removerTelefoneEndereco(telefone.id)"
+              >
+                Remover telefone
+              </button>
+            </li>
+          </ul>
+
+          <button
+            type="button"
+            class="admin-escritorios__botao admin-escritorios__botao--secundario admin-escritorios__botao--pequeno"
+            (click)="adicionarTelefoneEndereco()"
+          >
+            + Adicionar telefone
+          </button>
+        </div>
+
+        <p *ngIf="erroFormularioEndereco" class="admin-escritorios__erro-card" role="alert">{{ erroFormularioEndereco }}</p>
+
+        <div class="admin-escritorios__acoes">
+          <button type="submit" class="admin-escritorios__botao admin-escritorios__botao--primario" [disabled]="salvandoEndereco">
+            {{ salvandoEndereco ? 'Salvando…' : 'Salvar' }}
+          </button>
+          <button
+            type="button"
+            class="admin-escritorios__botao admin-escritorios__botao--secundario"
+            [disabled]="salvandoEndereco"
+            (click)="cancelarFormularioEndereco()"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+
       <p *ngIf="regioesOrdenadas.length === 0" class="admin-escritorios__estado">Nenhuma região cadastrada ainda.</p>
 
       <ul class="admin-escritorios__lista" *ngIf="regioesOrdenadas.length > 0">
@@ -64,76 +302,36 @@
             <p class="admin-escritorios__item-meta">{{ regiao.estados.length }} estado(s)</p>
           </div>
 
-          <p
-            *ngIf="erroExclusao && exclusaoAlvo?.tipo === 'regiao' && alvoRegiao?.id === regiao.id"
-            class="admin-escritorios__erro-card"
-            role="alert"
-          >
-            {{ erroExclusao }}
-          </p>
-
           <div class="admin-escritorios__acoes">
-            <ng-container
-              *ngIf="!(exclusaoAlvo?.tipo === 'regiao' && alvoRegiao?.id === regiao.id); else confirmacaoRegiao"
+            <button
+              type="button"
+              class="admin-escritorios__botao admin-escritorios__botao--seta"
+              [disabled]="ehPrimeiraRegiao(regiao)"
+              (click)="moverRegiao(regiao, 'cima')"
+              [attr.aria-label]="'Mover região ' + regiao.nome + ' para cima'"
             >
-              <button
-                type="button"
-                class="admin-escritorios__botao admin-escritorios__botao--seta"
-                [disabled]="ehPrimeiraRegiao(regiao)"
-                (click)="moverRegiao(regiao, 'cima')"
-                [attr.aria-label]="'Mover região ' + regiao.nome + ' para cima'"
-              >
-                ▲
-              </button>
-              <button
-                type="button"
-                class="admin-escritorios__botao admin-escritorios__botao--seta"
-                [disabled]="ehUltimaRegiao(regiao)"
-                (click)="moverRegiao(regiao, 'baixo')"
-                [attr.aria-label]="'Mover região ' + regiao.nome + ' para baixo'"
-              >
-                ▼
-              </button>
-              <button type="button" class="admin-escritorios__botao admin-escritorios__botao--secundario" (click)="verEstados(regiao)">
-                Ver estados
-              </button>
-              <button type="button" class="admin-escritorios__botao admin-escritorios__botao--secundario" (click)="abrirEdicaoRegiao(regiao)">
-                Editar
-              </button>
-              <button
-                type="button"
-                class="admin-escritorios__botao admin-escritorios__botao--perigo"
-                (click)="pedirConfirmacaoExclusaoRegiao(regiao)"
-              >
-                Excluir
-              </button>
-            </ng-container>
-
-            <ng-template #confirmacaoRegiao>
-              <p class="admin-escritorios__confirmacao">{{ mensagemConfirmacaoExclusao() }}</p>
-              <button
-                type="button"
-                class="admin-escritorios__botao admin-escritorios__botao--perigo"
-                [disabled]="excluindo"
-                (click)="confirmarExclusao()"
-              >
-                Confirmar exclusão
-              </button>
-              <button
-                type="button"
-                class="admin-escritorios__botao admin-escritorios__botao--secundario"
-                [disabled]="excluindo"
-                (click)="cancelarExclusao()"
-              >
-                Cancelar
-              </button>
-            </ng-template>
+              ▲
+            </button>
+            <button
+              type="button"
+              class="admin-escritorios__botao admin-escritorios__botao--seta"
+              [disabled]="ehUltimaRegiao(regiao)"
+              (click)="moverRegiao(regiao, 'baixo')"
+              [attr.aria-label]="'Mover região ' + regiao.nome + ' para baixo'"
+            >
+              ▼
+            </button>
+            <button type="button" class="admin-escritorios__botao admin-escritorios__botao--secundario" (click)="verEstados(regiao)">
+              Ver estados
+            </button>
+            <button type="button" class="admin-escritorios__botao admin-escritorios__botao--secundario" (click)="abrirEdicaoRegiao(regiao)">
+              Editar
+            </button>
           </div>
         </li>
       </ul>
     </section>
 
-    <!-- Nível: Estados -->
     <section class="admin-escritorios__bloco" *ngIf="nivel === 'estados' && regiaoAtual as regiao">
       <nav class="admin-escritorios__breadcrumb" aria-label="Navegação de hierarquia">
         <button type="button" class="admin-escritorios__breadcrumb-link" (click)="irParaRegioes()">Regiões</button>
@@ -159,7 +357,14 @@
 
         <div class="admin-escritorios__campo">
           <label for="estado-uf">UF</label>
-          <select id="estado-uf" name="uf" [(ngModel)]="formularioEstado.uf" required>
+          <select
+            id="estado-uf"
+            name="uf"
+            [(ngModel)]="formularioEstado.uf"
+            [class.campo-invalido]="errosCampoEstado['uf']"
+            [attr.aria-invalid]="errosCampoEstado['uf'] ? 'true' : null"
+            required
+          >
             <option value="" disabled>Selecione</option>
             <option *ngFor="let uf of unidadesFederativas" [value]="uf.sigla">{{ uf.nome }} ({{ uf.sigla }})</option>
           </select>
@@ -260,7 +465,6 @@
       </ul>
     </section>
 
-    <!-- Nível: Grupos -->
     <section class="admin-escritorios__bloco" *ngIf="nivel === 'grupos' && regiaoAtual as regiao">
       <nav class="admin-escritorios__breadcrumb" aria-label="Navegação de hierarquia" *ngIf="estadoAtual as estado">
         <button type="button" class="admin-escritorios__breadcrumb-link" (click)="irParaRegioes()">Regiões</button>
@@ -289,7 +493,15 @@
 
           <div class="admin-escritorios__campo">
             <label for="grupo-nome">Nome</label>
-            <input id="grupo-nome" type="text" name="nome" [(ngModel)]="formularioGrupo.nome" required />
+            <input
+              id="grupo-nome"
+              type="text"
+              name="nome"
+              [(ngModel)]="formularioGrupo.nome"
+              [class.campo-invalido]="errosCampoGrupo['nome']"
+              [attr.aria-invalid]="errosCampoGrupo['nome'] ? 'true' : null"
+              required
+            />
           </div>
 
           <div class="admin-escritorios__campo-linha">
@@ -327,7 +539,15 @@
 
           <div class="admin-escritorios__campo">
             <label for="grupo-endereco">Endereço</label>
-            <input id="grupo-endereco" type="text" name="endereco" [(ngModel)]="formularioGrupo.endereco" required />
+            <input
+              id="grupo-endereco"
+              type="text"
+              name="endereco"
+              [(ngModel)]="formularioGrupo.endereco"
+              [class.campo-invalido]="errosCampoGrupo['endereco']"
+              [attr.aria-invalid]="errosCampoGrupo['endereco'] ? 'true' : null"
+              required
+            />
           </div>
 
           <div class="admin-escritorios__campo">
@@ -337,30 +557,46 @@
 
           <div class="admin-escritorios__campo">
             <label for="grupo-cidade">Cidade</label>
-            <input id="grupo-cidade" type="text" name="cidade" [(ngModel)]="formularioGrupo.cidade" required />
+            <input
+              id="grupo-cidade"
+              type="text"
+              name="cidade"
+              [(ngModel)]="formularioGrupo.cidade"
+              [class.campo-invalido]="errosCampoGrupo['cidade']"
+              [attr.aria-invalid]="errosCampoGrupo['cidade'] ? 'true' : null"
+              required
+            />
           </div>
 
           <fieldset class="admin-escritorios__campo admin-escritorios__dias-semana">
-            <legend>Dias da semana</legend>
+            <legend>Dias da semana e horários</legend>
+            <p *ngIf="errosCampoGrupo['agenda']" class="admin-escritorios__erro-card" role="alert">
+              {{ errosCampoGrupo['agenda'] }}
+            </p>
             <div class="admin-escritorios__dias-semana-grade">
-              <label *ngFor="let dia of diasSemana" class="admin-escritorios__dia-opcao">
-                <input
-                  type="checkbox"
-                  [checked]="diaSelecionado(dia.valor)"
-                  (change)="alternarDiaSemana(dia.valor, $any($event.target).checked)"
-                />
-                {{ dia.rotulo }}
-              </label>
+              <div *ngFor="let dia of diasSemana" class="admin-escritorios__dia-opcao">
+                <label>
+                  <input
+                    type="checkbox"
+                    [checked]="diaSelecionado(dia.valor)"
+                    (change)="alternarDiaSemana(dia.valor, $any($event.target).checked)"
+                  />
+                  {{ dia.rotulo }}
+                </label>
+                <select
+                  *ngIf="diaSelecionado(dia.valor)"
+                  [attr.aria-label]="'Horário de ' + dia.rotulo"
+                  [ngModel]="horarioDoDia(dia.valor)"
+                  (ngModelChange)="definirHorarioDoDia(dia.valor, $event)"
+                  [name]="'horario-' + dia.valor"
+                  required
+                >
+                  <option value="" disabled>Selecione</option>
+                  <option *ngFor="let h of horarios" [value]="h">{{ h }}</option>
+                </select>
+              </div>
             </div>
           </fieldset>
-
-          <div class="admin-escritorios__campo">
-            <label for="grupo-horario">Horário</label>
-            <select id="grupo-horario" name="horario" [(ngModel)]="formularioGrupo.horario" required>
-              <option value="" disabled>Selecione</option>
-              <option *ngFor="let h of horarios" [value]="h">{{ h }}</option>
-            </select>
-          </div>
 
           <div class="admin-escritorios__campo admin-escritorios__telefones">
             <span class="admin-escritorios__campo-rotulo">Telefones (opcional)</span>
@@ -386,6 +622,8 @@
                       placeholder="Ex: (11) 4321-0000"
                       [(ngModel)]="telefone.telefone"
                       [name]="'telefoneNumero-' + telefone.id"
+                      [class.campo-invalido]="errosCampoGrupo['telefones'] && !telefone.telefone.trim()"
+                      [attr.aria-invalid]="errosCampoGrupo['telefones'] && !telefone.telefone.trim() ? 'true' : null"
                       required
                     />
                   </div>
@@ -436,7 +674,7 @@
                 {{ grupo.endereco }}<ng-container *ngIf="grupo.bairro">, {{ grupo.bairro }}</ng-container> — {{ grupo.cidade }}
               </p>
               <p class="admin-escritorios__item-meta">
-                {{ rotuloDiasSemana(grupo) }} · {{ grupo.horario }}
+                {{ rotuloAgenda(grupo) }}
                 <ng-container *ngIf="grupo.telefones.length > 0">
                   · {{ grupo.telefones[0].label ? grupo.telefones[0].label + ': ' : '' }}{{ grupo.telefones[0].telefone
                   }}<ng-container *ngIf="grupo.telefones.length > 1"> (+{{ grupo.telefones.length - 1 }})</ng-container>
@@ -512,18 +750,14 @@
     </section>
   </ng-container>
 
-  <!-- Escritórios de Serviço — seção separada, CRUD próprio -->
-  <section class="admin-escritorios__bloco admin-escritorios__bloco--escritorios" *ngIf="!carregando && !erroCarregamento">
+  <section class="admin-escritorios__bloco admin-escritorios__bloco--escritorios" *ngIf="!carregando && !erroCarregamento && aba === 'escritorios'">
     <div class="admin-escritorios__bloco-cabecalho">
       <div>
-        <h2 class="admin-escritorios__subtitulo">Escritórios de Serviço</h2>
+        <h2 class="admin-escritorios__subtitulo">Escritórios Regionais de Serviço</h2>
         <p class="admin-escritorios__descricao">
-          Endereços administrativos de apoio, sem relação com a hierarquia de regiões/estados/grupos.
+          Endereços institucionais de contato, sem relação com a hierarquia de regiões/estados/grupos. Apenas edição.
         </p>
       </div>
-      <button type="button" class="admin-escritorios__botao admin-escritorios__botao--primario" (click)="abrirNovoEscritorio()">
-        + Adicionar escritório
-      </button>
     </div>
 
     <form
@@ -537,7 +771,15 @@
 
       <div class="admin-escritorios__campo">
         <label for="escritorio-nome">Nome</label>
-        <input id="escritorio-nome" type="text" name="nome" [(ngModel)]="formularioEscritorio.nome" required />
+        <input
+          id="escritorio-nome"
+          type="text"
+          name="nome"
+          [(ngModel)]="formularioEscritorio.nome"
+          [class.campo-invalido]="errosCampoEscritorio['nome']"
+          [attr.aria-invalid]="errosCampoEscritorio['nome'] ? 'true' : null"
+          required
+        />
       </div>
 
       <div class="admin-escritorios__campo-linha">
@@ -575,7 +817,15 @@
 
       <div class="admin-escritorios__campo">
         <label for="escritorio-endereco">Endereço</label>
-        <input id="escritorio-endereco" type="text" name="endereco" [(ngModel)]="formularioEscritorio.endereco" required />
+        <input
+          id="escritorio-endereco"
+          type="text"
+          name="endereco"
+          [(ngModel)]="formularioEscritorio.endereco"
+          [class.campo-invalido]="errosCampoEscritorio['endereco']"
+          [attr.aria-invalid]="errosCampoEscritorio['endereco'] ? 'true' : null"
+          required
+        />
       </div>
 
       <div class="admin-escritorios__campo">
@@ -590,7 +840,15 @@
 
       <div class="admin-escritorios__campo">
         <label for="escritorio-cidade">Cidade</label>
-        <input id="escritorio-cidade" type="text" name="cidade" [(ngModel)]="formularioEscritorio.cidade" required />
+        <input
+          id="escritorio-cidade"
+          type="text"
+          name="cidade"
+          [(ngModel)]="formularioEscritorio.cidade"
+          [class.campo-invalido]="errosCampoEscritorio['cidade']"
+          [attr.aria-invalid]="errosCampoEscritorio['cidade'] ? 'true' : null"
+          required
+        />
       </div>
 
       <div class="admin-escritorios__campo">
@@ -622,6 +880,8 @@
                   placeholder="Ex: (11) 4321-0000"
                   [(ngModel)]="telefone.telefone"
                   [name]="'escritorioTelefoneNumero-' + telefone.id"
+                  [class.campo-invalido]="errosCampoEscritorio['telefones'] && !telefone.telefone.trim()"
+                  [attr.aria-invalid]="errosCampoEscritorio['telefones'] && !telefone.telefone.trim() ? 'true' : null"
                   required
                 />
               </div>
@@ -681,71 +941,14 @@
           </p>
         </div>
 
-        <p
-          *ngIf="erroExclusao && exclusaoAlvo?.tipo === 'escritorio' && alvoEscritorio?.id === escritorio.id"
-          class="admin-escritorios__erro-card"
-          role="alert"
-        >
-          {{ erroExclusao }}
-        </p>
-
         <div class="admin-escritorios__acoes">
-          <ng-container
-            *ngIf="!(exclusaoAlvo?.tipo === 'escritorio' && alvoEscritorio?.id === escritorio.id); else confirmacaoEscritorio"
+          <button
+            type="button"
+            class="admin-escritorios__botao admin-escritorios__botao--secundario"
+            (click)="abrirEdicaoEscritorio(escritorio)"
           >
-            <button
-              type="button"
-              class="admin-escritorios__botao admin-escritorios__botao--seta"
-              [disabled]="ehPrimeiroEscritorio(escritorio)"
-              (click)="moverEscritorio(escritorio, 'cima')"
-              [attr.aria-label]="'Mover escritório ' + escritorio.nome + ' para cima'"
-            >
-              ▲
-            </button>
-            <button
-              type="button"
-              class="admin-escritorios__botao admin-escritorios__botao--seta"
-              [disabled]="ehUltimoEscritorio(escritorio)"
-              (click)="moverEscritorio(escritorio, 'baixo')"
-              [attr.aria-label]="'Mover escritório ' + escritorio.nome + ' para baixo'"
-            >
-              ▼
-            </button>
-            <button
-              type="button"
-              class="admin-escritorios__botao admin-escritorios__botao--secundario"
-              (click)="abrirEdicaoEscritorio(escritorio)"
-            >
-              Editar
-            </button>
-            <button
-              type="button"
-              class="admin-escritorios__botao admin-escritorios__botao--perigo"
-              (click)="pedirConfirmacaoExclusaoEscritorio(escritorio)"
-            >
-              Excluir
-            </button>
-          </ng-container>
-
-          <ng-template #confirmacaoEscritorio>
-            <p class="admin-escritorios__confirmacao">{{ mensagemConfirmacaoExclusao() }}</p>
-            <button
-              type="button"
-              class="admin-escritorios__botao admin-escritorios__botao--perigo"
-              [disabled]="excluindo"
-              (click)="confirmarExclusao()"
-            >
-              Confirmar exclusão
-            </button>
-            <button
-              type="button"
-              class="admin-escritorios__botao admin-escritorios__botao--secundario"
-              [disabled]="excluindo"
-              (click)="cancelarExclusao()"
-            >
-              Cancelar
-            </button>
-          </ng-template>
+            Editar
+          </button>
         </div>
       </li>
     </ul>

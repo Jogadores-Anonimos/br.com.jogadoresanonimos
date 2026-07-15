@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
-import { BannerMuralApoio, MuralDeApoioService } from '../../services/mural-de-apoio';
+import { BannerMuralApoio, MuralDeApoioService } from '../../services/mural-de-apoio/mural-de-apoio';
 
 @Component({
   selector: 'app-mural-de-apoio',

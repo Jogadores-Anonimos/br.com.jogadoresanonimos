@@ -4,10 +4,10 @@ import { NOMES_MESES } from '../../config/meses.config';
 import {
   ReflexaoDoDia as ReflexaoDoDiaModel,
   ReflexaoDoDiaService,
-} from '../../services/reflexao-do-dia';
+} from '../../services/reflexao-do-dia/reflexao-do-dia';
 
 interface OpcaoMes {
-  numero: number; // 1-12
+  numero: number;
   nome: string;
 }
 
@@ -54,7 +54,6 @@ export class ReflexaoDoDiaPage implements OnInit {
     }
 
     this.montarDiasDoMes(mes);
-    // ajusta o dia caso o mês novo tenha menos dias que o dia atualmente escolhido
     const diaAjustado = Math.min(this.diaSelecionado || 1, this.diasDoMesSelecionado.length);
     this.selecionarDia(mes, diaAjustado);
   }

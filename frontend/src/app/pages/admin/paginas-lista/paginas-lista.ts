@@ -2,8 +2,8 @@ import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { Cms } from '../../../services/cms';
-import { CmsPaginaAdminResumo } from '../../../services/cms.model';
+import { Cms } from '../../../services/cms/cms';
+import { CmsPaginaAdminResumo } from '../../../services/cms/cms.model';
 
 @Component({
   selector: 'app-paginas-lista',

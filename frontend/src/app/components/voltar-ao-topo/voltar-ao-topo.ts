@@ -4,7 +4,6 @@ import { auditTime } from 'rxjs/operators';
 
 const SCROLL_THRESHOLD_PX = 300;
 
-// auditTime para não recalcular a cada pixel rolado (menos trabalho na main thread)
 const SCROLL_AUDIT_MS = 100;
 
 @Component({

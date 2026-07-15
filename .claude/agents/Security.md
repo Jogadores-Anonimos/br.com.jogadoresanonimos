@@ -120,4 +120,5 @@ Ao concluir uma tarefa relevante, repasse um resumo curto ao agente
 que a base de conhecimento do time (`.claude/knowledge/`) se mantenha
 atualizada entre sessões. Isso também alimenta o trabalho do agente
 `professor` de traduzir o progresso do sistema em conteúdo de estudo
-para o usuário.
+para o usuário. Resumo enxuto: telegráfico, sem prosa, sem repetir o
+óbvio (mesma regra de escrita enxuta do CLAUDE.md).

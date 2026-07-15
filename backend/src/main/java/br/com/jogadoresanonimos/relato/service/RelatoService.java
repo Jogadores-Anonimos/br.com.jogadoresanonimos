@@ -1,5 +1,7 @@
 package br.com.jogadoresanonimos.relato.service;
 
+import br.com.jogadoresanonimos.auditoria.entity.AcaoAuditoria;
+import br.com.jogadoresanonimos.auditoria.service.AdminAuditoriaService;
 import br.com.jogadoresanonimos.common.dto.PageResponse;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
@@ -21,23 +23,25 @@ import java.util.UUID;
 public class RelatoService {
 
     public static final int TAMANHO_PAGINA_MAXIMO = 50;
+    private static final String ENTIDADE_RELATO = "relato";
 
     private final RelatoRepository relatoRepository;
     private final RateLimiterService rateLimiterService;
+    private final AdminAuditoriaService adminAuditoriaService;
 
-    public RelatoService(RelatoRepository relatoRepository, RateLimiterService rateLimiterService) {
+    public RelatoService(RelatoRepository relatoRepository, RateLimiterService rateLimiterService,
+                          AdminAuditoriaService adminAuditoriaService) {
         this.relatoRepository = relatoRepository;
         this.rateLimiterService = rateLimiterService;
+        this.adminAuditoriaService = adminAuditoriaService;
     }
 
     @Transactional
     public RelatoEnvioResponse enviar(EnviarRelatoRequest request, UUID autorId) {
         rateLimiterService.check("enviar-relato:" + autorId, 5, Duration.ofMinutes(10));
-
         String nomeExibicao = normalizarNomeExibicao(request.nomeExibicao());
         Relato relato = new Relato(request.texto().trim(), nomeExibicao, autorId);
         relato = relatoRepository.save(relato);
-
         return RelatoEnvioResponse.from(relato);
     }
 
@@ -59,37 +63,52 @@ public class RelatoService {
     }
 
     @Transactional
-    public RelatoAdminResponse editar(UUID id, EditarRelatoRequest request) {
+    public RelatoAdminResponse editar(UUID id, EditarRelatoRequest request, UUID adminId) {
         Relato relato = buscarOuFalhar(id);
+        String statusAnterior = relato.getStatus().name();
         relato.editarTexto(request.texto().trim());
+        adminAuditoriaService.registrar(adminId, ENTIDADE_RELATO, id, AcaoAuditoria.EDITAR,
+                statusAnterior, relato.getStatus().name());
         return RelatoAdminResponse.from(relato);
     }
 
     @Transactional
-    public RelatoAdminResponse aprovar(UUID id) {
+    public RelatoAdminResponse aprovar(UUID id, UUID adminId) {
         Relato relato = buscarOuFalhar(id);
+        String statusAnterior = relato.getStatus().name();
         relato.aprovar();
+        adminAuditoriaService.registrar(adminId, ENTIDADE_RELATO, id, AcaoAuditoria.APROVAR,
+                statusAnterior, relato.getStatus().name());
         return RelatoAdminResponse.from(relato);
     }
 
     @Transactional
-    public RelatoAdminResponse rejeitar(UUID id) {
+    public RelatoAdminResponse rejeitar(UUID id, UUID adminId) {
         Relato relato = buscarOuFalhar(id);
+        String statusAnterior = relato.getStatus().name();
         relato.rejeitar();
+        adminAuditoriaService.registrar(adminId, ENTIDADE_RELATO, id, AcaoAuditoria.REJEITAR,
+                statusAnterior, relato.getStatus().name());
         return RelatoAdminResponse.from(relato);
     }
 
     @Transactional
-    public RelatoAdminResponse reverter(UUID id) {
+    public RelatoAdminResponse reverter(UUID id, UUID adminId) {
         Relato relato = buscarOuFalhar(id);
+        String statusAnterior = relato.getStatus().name();
         relato.reverterParaPendente();
+        adminAuditoriaService.registrar(adminId, ENTIDADE_RELATO, id, AcaoAuditoria.REVERTER,
+                statusAnterior, relato.getStatus().name());
         return RelatoAdminResponse.from(relato);
     }
 
     @Transactional
-    public void remover(UUID id) {
+    public void remover(UUID id, UUID adminId) {
         Relato relato = buscarOuFalhar(id);
+        String statusAnterior = relato.getStatus().name();
         relatoRepository.delete(relato);
+        adminAuditoriaService.registrar(adminId, ENTIDADE_RELATO, id, AcaoAuditoria.REMOVER,
+                statusAnterior, statusAnterior);
     }
 
     private Relato buscarOuFalhar(UUID id) {

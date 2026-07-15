@@ -30,6 +30,11 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok(authService.login(request)));
     }
 
+    @PostMapping("/login/mfa")
+    public ResponseEntity<ApiResponse<LoginResponse>> loginComMfa(@Valid @RequestBody MfaLoginRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.loginComMfa(request)));
+    }
+
     @PostMapping("/esqueci-senha")
     public ResponseEntity<ApiResponse<MensagemResponse>> esqueciSenha(@Valid @RequestBody EsqueciSenhaRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(authService.esqueciSenha(request)));

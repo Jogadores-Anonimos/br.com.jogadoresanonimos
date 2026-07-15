@@ -6,7 +6,6 @@
   position: fixed;
   right: var(--spacing-md);
   bottom: var(--spacing-md);
-  /* abaixo da navbar (z-index até 1000) */
   z-index: 900;
 
   display: flex;
@@ -16,7 +15,6 @@
   height: 56px;
   min-width: 56px;
   min-height: 56px;
-  /* exceção ao design system: fab circular é convenção de mercado, var(--radius-lg) é 0 */
   border-radius: 50%;
   border: none;
   background: var(--color-whatsapp);

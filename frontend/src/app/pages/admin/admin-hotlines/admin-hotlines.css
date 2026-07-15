@@ -119,6 +119,11 @@
   font-weight: var(--font-weight-semibold);
 }
 
+.admin-hotlines__ajuda {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
 .admin-hotlines__telefones-lista {
   list-style: none;
   display: flex;
@@ -208,13 +213,18 @@
   gap: var(--spacing-sm);
 }
 
+.admin-hotlines__campo-linha--unica {
+  grid-template-columns: 1fr;
+}
+
 .admin-hotlines__campo label {
   color: var(--color-text);
   font-size: 0.9rem;
   font-weight: var(--font-weight-semibold);
 }
 
-.admin-hotlines__campo input[type='text'] {
+.admin-hotlines__campo input[type='text'],
+.admin-hotlines__campo select {
   width: 100%;
   box-sizing: border-box;
   padding: var(--spacing-xs);
@@ -227,7 +237,8 @@
   border-radius: var(--radius-md);
 }
 
-.admin-hotlines__campo input:focus-visible {
+.admin-hotlines__campo input:focus-visible,
+.admin-hotlines__campo select:focus-visible {
   outline: 2px solid var(--cor-padrao-ja);
   outline-offset: 2px;
 }
@@ -251,7 +262,8 @@
     align-items: stretch;
   }
 
-  .admin-hotlines__campo-linha {
+  .admin-hotlines__campo-linha,
+  .admin-hotlines__campo-linha--unica {
     grid-template-columns: 1fr;
   }
 

@@ -42,9 +42,7 @@ class ReflexaoDiaServiceTest {
         ReflexaoDia reflexaoDia = new ReflexaoDia(hoje.getMonthValue(), hoje.getDayOfMonth(), "texto de hoje");
         when(reflexaoDiaRepository.findByMesAndDia(hoje.getMonthValue(), hoje.getDayOfMonth()))
                 .thenReturn(Optional.of(reflexaoDia));
-
         ReflexaoDiaResponse resultado = reflexaoDiaService.buscarDeHoje();
-
         assertThat(resultado.mes()).isEqualTo(hoje.getMonthValue());
         assertThat(resultado.dia()).isEqualTo(hoje.getDayOfMonth());
         assertThat(resultado.texto()).isEqualTo("texto de hoje");
@@ -54,16 +52,13 @@ class ReflexaoDiaServiceTest {
     void buscarPorData_deveRetornarReflexaoQuandoExiste() {
         ReflexaoDia reflexaoDia = new ReflexaoDia(7, 12, "texto do dia");
         when(reflexaoDiaRepository.findByMesAndDia(7, 12)).thenReturn(Optional.of(reflexaoDia));
-
         ReflexaoDiaResponse resultado = reflexaoDiaService.buscarPorData(7, 12);
-
         assertThat(resultado.texto()).isEqualTo("texto do dia");
     }
 
     @Test
     void buscarPorData_deveLancarNotFoundQuandoNaoCadastrada() {
         when(reflexaoDiaRepository.findByMesAndDia(7, 12)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> reflexaoDiaService.buscarPorData(7, 12))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -72,7 +67,6 @@ class ReflexaoDiaServiceTest {
     void buscarPorData_deveLancarValidationExceptionParaMesInvalido() {
         assertThatThrownBy(() -> reflexaoDiaService.buscarPorData(13, 1))
                 .isInstanceOf(ValidationException.class);
-
         verifyNoInteractions(reflexaoDiaRepository);
     }
 
@@ -80,7 +74,6 @@ class ReflexaoDiaServiceTest {
     void buscarPorData_deveLancarValidationExceptionParaDiaInvalidoNoMes() {
         assertThatThrownBy(() -> reflexaoDiaService.buscarPorData(2, 30))
                 .isInstanceOf(ValidationException.class);
-
         verifyNoInteractions(reflexaoDiaRepository);
     }
 
@@ -88,9 +81,7 @@ class ReflexaoDiaServiceTest {
     void listarMes_deveRetornarTodosOsDiasDoMesComNullParaNaoCadastrados() {
         ReflexaoDia reflexaoDia = new ReflexaoDia(2, 5, "texto do dia 5");
         when(reflexaoDiaRepository.findAllByMesOrderByDiaAsc(2)).thenReturn(List.of(reflexaoDia));
-
         List<ReflexaoDiaDoMesResponse> resultado = reflexaoDiaService.listarMes(2);
-
         assertThat(resultado).hasSize(28);
         assertThat(resultado.get(4).dia()).isEqualTo(5);
         assertThat(resultado.get(4).texto()).isEqualTo("texto do dia 5");
@@ -101,7 +92,6 @@ class ReflexaoDiaServiceTest {
     void listarMes_deveLancarValidationExceptionParaMesInvalido() {
         assertThatThrownBy(() -> reflexaoDiaService.listarMes(0))
                 .isInstanceOf(ValidationException.class);
-
         verifyNoInteractions(reflexaoDiaRepository);
     }
 
@@ -110,9 +100,7 @@ class ReflexaoDiaServiceTest {
         when(reflexaoDiaRepository.findByMesAndDia(7, 12)).thenReturn(Optional.empty());
         when(reflexaoDiaRepository.save(any(ReflexaoDia.class))).thenAnswer(invocation -> invocation.getArgument(0));
         SalvarReflexaoDiaRequest request = new SalvarReflexaoDiaRequest("  texto novo  ");
-
         ReflexaoDiaResponse resultado = reflexaoDiaService.salvar(7, 12, request);
-
         ArgumentCaptor<ReflexaoDia> captor = ArgumentCaptor.forClass(ReflexaoDia.class);
         verify(reflexaoDiaRepository).save(captor.capture());
         assertThat(captor.getValue().getMes()).isEqualTo(7);
@@ -127,9 +115,7 @@ class ReflexaoDiaServiceTest {
         when(reflexaoDiaRepository.findByMesAndDia(7, 12)).thenReturn(Optional.of(existente));
         when(reflexaoDiaRepository.save(any(ReflexaoDia.class))).thenAnswer(invocation -> invocation.getArgument(0));
         SalvarReflexaoDiaRequest request = new SalvarReflexaoDiaRequest("texto editado");
-
         ReflexaoDiaResponse resultado = reflexaoDiaService.salvar(7, 12, request);
-
         assertThat(resultado.texto()).isEqualTo("texto editado");
         verify(reflexaoDiaRepository).save(existente);
     }
@@ -137,10 +123,8 @@ class ReflexaoDiaServiceTest {
     @Test
     void salvar_deveLancarValidationExceptionParaDataInvalida() {
         SalvarReflexaoDiaRequest request = new SalvarReflexaoDiaRequest("texto");
-
         assertThatThrownBy(() -> reflexaoDiaService.salvar(4, 31, request))
                 .isInstanceOf(ValidationException.class);
-
         verifyNoInteractions(reflexaoDiaRepository);
     }
 }

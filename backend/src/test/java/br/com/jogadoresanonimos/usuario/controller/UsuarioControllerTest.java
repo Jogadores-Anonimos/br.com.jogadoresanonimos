@@ -49,11 +49,9 @@ class UsuarioControllerTest {
         UUID id = UUID.randomUUID();
         AuthenticatedUser principal = new AuthenticatedUser(id, "apelido", "PARTICIPANTE");
         AtualizarContaRequest request = new AtualizarContaRequest("novoApelido", "novo@exemplo.com");
-        UsuarioMeResponse esperado = new UsuarioMeResponse(id, "novoApelido", "novo@exemplo.com", Role.PARTICIPANTE, Instant.now());
+        UsuarioMeResponse esperado = new UsuarioMeResponse(id, "novoApelido", "novo@exemplo.com", Role.PARTICIPANTE, Instant.now(), false, false);
         when(usuarioService.atualizarConta(id, request)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<UsuarioMeResponse>> resposta = usuarioController.atualizarConta(request, principal);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(usuarioService).atualizarConta(id, request);
@@ -62,7 +60,6 @@ class UsuarioControllerTest {
     @Test
     void atualizarConta_deveLancarUnauthenticatedQuandoPrincipalNulo() {
         AtualizarContaRequest request = new AtualizarContaRequest("apelido", "email@exemplo.com");
-
         assertThatThrownBy(() -> usuarioController.atualizarConta(request, null))
                 .isInstanceOf(UnauthenticatedException.class);
     }
@@ -74,9 +71,7 @@ class UsuarioControllerTest {
         AlterarSenhaRequest request = new AlterarSenhaRequest("senhaAtual123", "senhaNova12345", "senhaNova12345");
         MensagemResponse esperado = new MensagemResponse("Senha alterada com sucesso.");
         when(usuarioService.alterarSenha(id, request)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<MensagemResponse>> resposta = usuarioController.alterarSenha(request, principal);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(usuarioService).alterarSenha(id, request);
@@ -85,7 +80,6 @@ class UsuarioControllerTest {
     @Test
     void alterarSenha_deveLancarUnauthenticatedQuandoPrincipalNulo() {
         AlterarSenhaRequest request = new AlterarSenhaRequest("senhaAtual123", "senhaNova12345", "senhaNova12345");
-
         assertThatThrownBy(() -> usuarioController.alterarSenha(request, null))
                 .isInstanceOf(UnauthenticatedException.class);
     }

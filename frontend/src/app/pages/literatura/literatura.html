@@ -23,15 +23,24 @@
               }
             </div>
             <div class="literatura-pdf-card__acoes">
-              <a
-                class="literatura-pdf-card__btn"
-                [href]="arquivo.urlDownload"
-                target="_blank"
-                rel="noopener"
-                [attr.aria-label]="'Baixar PDF: ' + arquivo.titulo"
-              >
-                Baixar PDF
-              </a>
+              @if (auth.usuarioAtual()) {
+                <button
+                  type="button"
+                  class="literatura-pdf-card__btn"
+                  [disabled]="idsBaixando.has(arquivo.id)"
+                  [attr.aria-label]="'Baixar PDF: ' + arquivo.titulo"
+                  (click)="baixarPdf(arquivo)"
+                >
+                  {{ idsBaixando.has(arquivo.id) ? 'Baixando…' : 'Baixar PDF' }}
+                </button>
+                @if (erroDownloadPorId.get(arquivo.id); as erroDownload) {
+                  <span class="literatura-pdf-card__erro" role="alert">{{ erroDownload }}</span>
+                }
+              } @else {
+                <a class="literatura-pdf-card__login-dica" routerLink="/minha-conta">
+                  Faça login para baixar
+                </a>
+              }
               @if (auth.usuarioAtual()) {
                 @if (idsNaBiblioteca.has(arquivo.id)) {
                   <span class="literatura-pdf-card__salvo">

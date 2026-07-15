@@ -4,7 +4,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/ro
 import { Subscription, fromEvent } from 'rxjs';
 import { auditTime, filter } from 'rxjs/operators';
 import { NAVBAR_SEARCH_INDEX, SearchIndexItem } from './navbar-search-index';
-import { Auth } from '../../services/auth';
+import { Auth } from '../../services/auth/auth';
 
 type DropdownKey = 'sobre' | 'recursos';
 
@@ -14,8 +14,23 @@ const MOBILE_LAYOUT_BREAKPOINT_PX = 1100;
 
 const MAX_RESULTADOS_BUSCA = 8;
 
-// auditTime evita recalcular a cada pixel rolado (menos trabalho na main thread)
 const SCROLL_AUDIT_MS = 100;
+
+function criarMobileLayoutMql(): MediaQueryList {
+  if (typeof window.matchMedia === 'function') {
+    return window.matchMedia(`(max-width: ${MOBILE_LAYOUT_BREAKPOINT_PX}px)`);
+  }
+  return {
+    matches: false,
+    media: '',
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false
+  } as unknown as MediaQueryList;
+}
 
 @Component({
   selector: 'app-navbar',
@@ -27,9 +42,7 @@ const SCROLL_AUDIT_MS = 100;
 export class Navbar implements OnDestroy {
   readonly auth = inject(Auth);
 
-  private readonly mobileLayoutMql = window.matchMedia(
-    `(max-width: ${MOBILE_LAYOUT_BREAKPOINT_PX}px)`
-  );
+  private readonly mobileLayoutMql = criarMobileLayoutMql();
 
   private readonly aoMudarLayout = (event: MediaQueryListEvent): void => {
     this.isMobileLayout = event.matches;
@@ -67,21 +80,8 @@ export class Navbar implements OnDestroy {
 
   buscaAberta = false;
 
-  /**
-   * Termo de busca: vive só em memória do componente. Nunca é logado,
-   * persistido (localStorage/sessionStorage/cookie) ou colocado na URL,
-   * por requisito de anonimato do projeto. É sempre limpo quando o
-   * painel de busca fecha.
-   */
   termoBusca = '';
 
-  // Sinal em vez de campo comum: escrito fora do Angular (callback de
-  // scroll do RxJS) — em app zoneless, escrita em campo simples não
-  // agenda um novo ciclo de detecção de forma confiável e pode ficar
-  // dessincronizada de outros bindings no mesmo tick, disparando
-  // NG0100 (ExpressionChangedAfterItHasBeenCheckedError) que aborta a
-  // atualização do DOM daquele ciclo inteiro — inclusive de componentes
-  // não relacionados. Sinal resolve isso.
   private readonly scrolledSignal = signal(false);
 
   @HostBinding('class.scrolled')
@@ -133,7 +133,6 @@ export class Navbar implements OnDestroy {
     }
   }
 
-  /** Resultados filtrados em tempo real a partir do termo atual. */
   get resultadosBusca(): SearchIndexItem[] {
     const termo = this.normalizarTermo(this.termoBusca);
     if (!termo) {
@@ -189,5 +188,4 @@ export class Navbar implements OnDestroy {
       this.limparBusca();
     }
   }
-
 }

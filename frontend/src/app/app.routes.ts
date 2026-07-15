@@ -10,15 +10,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/admin/admin-layout/admin-layout').then((m) => m.AdminLayout),
     children: [
-      // Checa fila de relatos pendentes e decide pra onde ir: relatos
-      // se houver algo aguardando moderação, senão Avisos.
       {
         path: '',
         loadComponent: () =>
           import('./pages/admin/admin-entrada/admin-entrada').then((m) => m.AdminEntrada),
       },
-
-      // Grupo 1 — Conteúdo do dia a dia
       {
         path: 'avisos',
         loadComponent: () =>
@@ -47,10 +43,6 @@ export const routes: Routes = [
           import('./pages/admin/admin-relatos/admin-relatos').then((m) => m.AdminRelatos),
         data: { titulo: 'Relatos' },
       },
-
-      // Grupo 2 — Páginas do site (13 páginas institucionais). Rota
-      // dinâmica única: o menu já aponta pra 'paginas/{slug}' de cada
-      // página, que casa direto com este path parametrizado.
       {
         path: 'paginas',
         loadComponent: () =>
@@ -63,8 +55,6 @@ export const routes: Routes = [
           import('./pages/admin/pagina-editor/pagina-editor').then((m) => m.PaginaEditor),
         data: { titulo: 'Editar página' },
       },
-
-      // Grupo 3 — Estrutura de apoio
       {
         path: 'reunioes',
         loadComponent: () =>
@@ -77,7 +67,7 @@ export const routes: Routes = [
           import('./pages/admin/admin-escritorios-regionais/admin-escritorios-regionais').then(
             (m) => m.AdminEscritoriosRegionais,
           ),
-        data: { titulo: 'Escritórios Regionais' },
+        data: { titulo: 'Endereços' },
       },
       {
         path: 'hotlines',
@@ -91,8 +81,6 @@ export const routes: Routes = [
           import('./pages/admin/admin-faq/admin-faq').then((m) => m.AdminFaq),
         data: { titulo: 'Perguntas e Respostas' },
       },
-
-      // Grupo 4 — Conta e biblioteca
       {
         path: 'literatura',
         loadComponent: () =>
@@ -106,6 +94,12 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/admin/admin-usuarios/admin-usuarios').then((m) => m.AdminUsuarios),
         data: { titulo: 'Usuários' },
+      },
+      {
+        path: 'seguranca',
+        loadComponent: () =>
+          import('./pages/admin/admin-seguranca/admin-seguranca').then((m) => m.AdminSeguranca),
+        data: { titulo: 'Segurança' },
       },
     ],
   },
@@ -171,12 +165,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/avisos/avisos').then((m) => m.Avisos),
   },
   {
-    path: 'escritorios-regionais',
+    path: 'enderecos',
     loadComponent: () =>
-      import('./pages/escritorios-regionais/escritorios-regionais').then(
-        (m) => m.EscritoriosRegionais,
-      ),
+      import('./pages/enderecos/enderecos').then((m) => m.Enderecos),
   },
+  { path: 'escritorios-regionais', redirectTo: 'enderecos', pathMatch: 'full' },
   {
     path: 'reflexao-do-dia',
     loadComponent: () =>

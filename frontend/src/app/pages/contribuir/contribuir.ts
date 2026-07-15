@@ -1,8 +1,8 @@
 import { AfterViewInit, Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
-import { Cms } from '../../services/cms';
-import { CmsBlocoTexto } from '../../services/cms.model';
+import { Cms } from '../../services/cms/cms';
+import { CmsBlocoTexto } from '../../services/cms/cms.model';
 
 type RespostaMembro = 'pendente' | 'nao' | 'sim';
 

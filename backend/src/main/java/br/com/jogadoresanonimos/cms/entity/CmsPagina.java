@@ -44,8 +44,7 @@ public class CmsPagina {
         this.atualizadoEm = Instant.now();
     }
 
-    public void atualizar(String titulo, UUID atualizadoPor) {
-        this.titulo = titulo;
+    public void atualizar(UUID atualizadoPor) {
         this.atualizadoPor = atualizadoPor;
         this.atualizadoEm = Instant.now();
     }

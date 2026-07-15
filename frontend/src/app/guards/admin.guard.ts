@@ -1,17 +1,29 @@
 import { inject } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { CanActivateFn, Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+import { filter, take } from 'rxjs/operators';
 
-import { Auth } from '../services/auth';
+import { Auth } from '../services/auth/auth';
 
-// Guard só cuida de UX (esconder/redirecionar no client). A fonte de
-// verdade de permissão é @PreAuthorize no backend — ver `security`.
-export const adminGuard: CanActivateFn = () => {
+export const adminGuard: CanActivateFn = async () => {
   const auth = inject(Auth);
   const router = inject(Router);
+
+  await firstValueFrom(
+    toObservable(auth.rehidratacaoConcluida).pipe(
+      filter((concluida) => concluida),
+      take(1)
+    )
+  );
 
   const usuario = auth.usuarioAtual();
 
   if (!usuario) {
+    return router.createUrlTree(['/minha-conta']);
+  }
+
+  if (usuario.deveTrocarSenha) {
     return router.createUrlTree(['/minha-conta']);
   }
 

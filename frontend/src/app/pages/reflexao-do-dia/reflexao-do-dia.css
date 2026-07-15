@@ -1,4 +1,3 @@
-/* Sem token de fonte decorativa no design system; --font-brand itálico/negrito é usado como aproximação no mês em destaque */
 .reflexao {
   background: var(--color-bg-section);
   color: var(--color-text);

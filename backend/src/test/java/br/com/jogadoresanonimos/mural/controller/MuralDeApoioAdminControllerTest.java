@@ -44,9 +44,7 @@ class MuralDeApoioAdminControllerTest {
     void listarTodos_deveRetornarOkComListaDoService() {
         BannerMuralAdminResponse item = bannerAdminResponse(UUID.randomUUID(), false);
         when(bannerMuralService.listarTodos()).thenReturn(List.of(item));
-
         ResponseEntity<ApiResponse<List<BannerMuralAdminResponse>>> resposta = muralDeApoioAdminController.listarTodos();
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).containsExactly(item);
     }
@@ -56,9 +54,7 @@ class MuralDeApoioAdminControllerTest {
         CriarBannerMuralRequest request = new CriarBannerMuralRequest(UUID.randomUUID(), "alt", "legenda", "https://link");
         BannerMuralAdminResponse esperado = bannerAdminResponse(UUID.randomUUID(), true);
         when(bannerMuralService.criar(request)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<BannerMuralAdminResponse>> resposta = muralDeApoioAdminController.criar(request);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(bannerMuralService).criar(request);
@@ -70,9 +66,7 @@ class MuralDeApoioAdminControllerTest {
         EditarBannerMuralRequest request = new EditarBannerMuralRequest(UUID.randomUUID(), "alt", "legenda", "https://link", false);
         BannerMuralAdminResponse esperado = bannerAdminResponse(id, false);
         when(bannerMuralService.editar(id, request)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<BannerMuralAdminResponse>> resposta = muralDeApoioAdminController.editar(id, request);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(bannerMuralService).editar(id, request);
@@ -81,9 +75,7 @@ class MuralDeApoioAdminControllerTest {
     @Test
     void remover_deveRetornarOkEChamarServiceComId() {
         UUID id = UUID.randomUUID();
-
         ResponseEntity<ApiResponse<MensagemResponse>> resposta = muralDeApoioAdminController.remover(id);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         verify(bannerMuralService).remover(id);

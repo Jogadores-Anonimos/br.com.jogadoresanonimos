@@ -3,12 +3,11 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
-import { Auth } from '../../services/auth';
-import { Relato, RelatosService } from '../../services/relatos';
+import { Auth } from '../../services/auth/auth';
+import { Relato, RelatosService } from '../../services/relatos/relatos';
 
 const TEXTO_TRUNCADO_LIMITE = 320;
 
-// espelha os limites do RelatosService só para feedback imediato no contador; validação real é no service/servidor
 const TEXTO_MIN_LENGTH = 50;
 const TEXTO_MAX_LENGTH = 4000;
 const NOME_EXIBICAO_MAX_LENGTH = 30;

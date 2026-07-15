@@ -2,8 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 
 import { AdminFaq } from './admin-faq';
-import { FaqService } from '../../../services/faq';
-import { Faq } from '../../../services/faq.model';
+import { FaqService } from '../../../services/faq/faq';
+import { Faq } from '../../../services/faq/faq.model';
 import { apiError, apiSuccess } from '../../../services/api-envelope';
 
 function faqFake(overrides: Partial<Faq> = {}): Faq {

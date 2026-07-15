@@ -43,9 +43,7 @@ class VinteQuestaoServiceTest {
         VinteQuestao q1 = new VinteQuestao(0, "primeira", adminId);
         VinteQuestao q2 = new VinteQuestao(1, "segunda", adminId);
         when(vinteQuestaoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(q1, q2));
-
         List<VinteQuestaoResponse> resultado = vinteQuestaoService.listar();
-
         assertThat(resultado).hasSize(2);
         assertThat(resultado.get(0).numero()).isEqualTo(1);
         assertThat(resultado.get(1).numero()).isEqualTo(2);
@@ -59,9 +57,7 @@ class VinteQuestaoServiceTest {
                 .thenReturn(List.of(existente))
                 .thenReturn(List.of(existente, new VinteQuestao(1, "pergunta nova", adminId)));
         when(vinteQuestaoRepository.save(any(VinteQuestao.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
         VinteQuestaoResponse resultado = vinteQuestaoService.criar(request, adminId);
-
         ArgumentCaptor<VinteQuestao> captor = ArgumentCaptor.forClass(VinteQuestao.class);
         verify(vinteQuestaoRepository).save(captor.capture());
         assertThat(captor.getValue().getTexto()).isEqualTo("pergunta nova");
@@ -74,9 +70,7 @@ class VinteQuestaoServiceTest {
         VinteQuestaoCriarRequest request = new VinteQuestaoCriarRequest("primeira pergunta");
         when(vinteQuestaoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of());
         when(vinteQuestaoRepository.save(any(VinteQuestao.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
         VinteQuestaoResponse resultado = vinteQuestaoService.criar(request, adminId);
-
         assertThat(resultado.ordem()).isEqualTo(0);
     }
 
@@ -85,7 +79,6 @@ class VinteQuestaoServiceTest {
         UUID id = UUID.randomUUID();
         when(vinteQuestaoRepository.findById(id)).thenReturn(Optional.empty());
         VinteQuestaoUpdateRequest request = new VinteQuestaoUpdateRequest("novo texto");
-
         assertThatThrownBy(() -> vinteQuestaoService.atualizar(id, request, adminId))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -96,9 +89,7 @@ class VinteQuestaoServiceTest {
         VinteQuestao questao = new VinteQuestao(0, "pergunta", adminId);
         when(vinteQuestaoRepository.findById(id)).thenReturn(Optional.of(questao));
         when(vinteQuestaoRepository.count()).thenReturn(2L);
-
         vinteQuestaoService.remover(id);
-
         verify(vinteQuestaoRepository).delete(questao);
     }
 
@@ -108,10 +99,8 @@ class VinteQuestaoServiceTest {
         VinteQuestao questao = new VinteQuestao(0, "pergunta", adminId);
         when(vinteQuestaoRepository.findById(id)).thenReturn(Optional.of(questao));
         when(vinteQuestaoRepository.count()).thenReturn(1L);
-
         assertThatThrownBy(() -> vinteQuestaoService.remover(id))
                 .isInstanceOf(ValidationException.class);
-
         verify(vinteQuestaoRepository, never()).delete(any());
     }
 
@@ -119,10 +108,8 @@ class VinteQuestaoServiceTest {
     void remover_deveLancarExcecaoQuandoNaoExiste() {
         UUID id = UUID.randomUUID();
         when(vinteQuestaoRepository.findById(id)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> vinteQuestaoService.remover(id))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
-
         verify(vinteQuestaoRepository, never()).delete(any());
     }
 
@@ -135,9 +122,7 @@ class VinteQuestaoServiceTest {
         setId(segunda, id);
         when(vinteQuestaoRepository.findById(id)).thenReturn(Optional.of(segunda));
         when(vinteQuestaoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
-
         VinteQuestaoResponse resultado = vinteQuestaoService.moverParaCima(id);
-
         assertThat(resultado.ordem()).isEqualTo(0);
         assertThat(primeira.getOrdem()).isEqualTo(1);
     }
@@ -151,9 +136,7 @@ class VinteQuestaoServiceTest {
         setId(segunda, UUID.randomUUID());
         when(vinteQuestaoRepository.findById(id)).thenReturn(Optional.of(primeira));
         when(vinteQuestaoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
-
         VinteQuestaoResponse resultado = vinteQuestaoService.moverParaBaixo(id);
-
         assertThat(resultado.ordem()).isEqualTo(1);
         assertThat(segunda.getOrdem()).isEqualTo(0);
     }

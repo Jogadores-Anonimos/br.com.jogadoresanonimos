@@ -16,14 +16,6 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.util.EnumSet;
 import java.util.Set;
 
-/**
- * Implementação de produção de StorageClient: disco local persistente
- * (decisão 2026-07-12, substitui o plano anterior de bucket S3-compatible
- * externo — ver contrato-auth-cms-upload.md). `chave` sempre é gerada
- * internamente (UUID, ver ImagemService/ArquivoService), nunca vem de
- * input do usuário — por isso não há risco de path traversal na escrita;
- * na leitura ainda validamos o path resolvido por defesa em profundidade.
- */
 @Component
 public class LocalDiskStorageClient implements StorageClient {
 

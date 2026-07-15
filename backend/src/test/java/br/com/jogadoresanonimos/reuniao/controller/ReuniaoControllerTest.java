@@ -37,9 +37,7 @@ class ReuniaoControllerTest {
                 "descricao", "Segunda-feira", "19h30", "endereco", "5599999999999", "Segunda", "Noite",
                 -23.5505, -46.6333);
         when(reuniaoService.listarTodas()).thenReturn(List.of(item));
-
         ResponseEntity<ApiResponse<List<ReuniaoResponse>>> resposta = reuniaoController.listarTodas();
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         assertThat(resposta.getBody().data()).containsExactly(item);

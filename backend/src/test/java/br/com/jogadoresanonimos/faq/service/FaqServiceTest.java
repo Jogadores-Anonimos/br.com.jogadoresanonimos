@@ -39,9 +39,7 @@ class FaqServiceTest {
     void listarTodos_deveDelegarParaRepositoryOrdenadoEMapear() {
         Faq faq = new Faq("pergunta", "resposta", 1);
         when(faqRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(faq));
-
         List<FaqResponse> resultado = faqService.listarTodos();
-
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).pergunta()).isEqualTo("pergunta");
         assertThat(resultado.get(0).ordem()).isEqualTo(1);
@@ -52,9 +50,7 @@ class FaqServiceTest {
         CriarFaqRequest request = new CriarFaqRequest("  pergunta  ", "  resposta  ");
         when(faqRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(new Faq("existente", "resp", 0)));
         when(faqRepository.save(any(Faq.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
         FaqResponse resultado = faqService.criar(request);
-
         ArgumentCaptor<Faq> captor = ArgumentCaptor.forClass(Faq.class);
         verify(faqRepository).save(captor.capture());
         assertThat(captor.getValue().getPergunta()).isEqualTo("pergunta");
@@ -67,9 +63,7 @@ class FaqServiceTest {
         CriarFaqRequest request = new CriarFaqRequest("pergunta", "resposta");
         when(faqRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of());
         when(faqRepository.save(any(Faq.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
         FaqResponse resultado = faqService.criar(request);
-
         assertThat(resultado.ordem()).isEqualTo(0);
     }
 
@@ -79,9 +73,7 @@ class FaqServiceTest {
         Faq faq = new Faq("antiga", "resposta antiga", 1);
         when(faqRepository.findById(id)).thenReturn(Optional.of(faq));
         EditarFaqRequest request = new EditarFaqRequest("nova", "resposta nova");
-
         FaqResponse resultado = faqService.editar(id, request);
-
         assertThat(resultado.pergunta()).isEqualTo("nova");
         assertThat(resultado.ordem()).isEqualTo(1);
     }
@@ -91,7 +83,6 @@ class FaqServiceTest {
         UUID id = UUID.randomUUID();
         when(faqRepository.findById(id)).thenReturn(Optional.empty());
         EditarFaqRequest request = new EditarFaqRequest("nova", "resposta nova");
-
         assertThatThrownBy(() -> faqService.editar(id, request))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -101,9 +92,7 @@ class FaqServiceTest {
         UUID id = UUID.randomUUID();
         Faq faq = new Faq("pergunta", "resposta", 1);
         when(faqRepository.findById(id)).thenReturn(Optional.of(faq));
-
         faqService.remover(id);
-
         verify(faqRepository).delete(faq);
     }
 
@@ -111,14 +100,10 @@ class FaqServiceTest {
     void remover_deveLancarExcecaoQuandoNaoExiste() {
         UUID id = UUID.randomUUID();
         when(faqRepository.findById(id)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> faqService.remover(id))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
-
         verify(faqRepository, never()).delete(any());
     }
-
-    // ---- Reordenação ----
 
     @Test
     void moverParaCima_deveTrocarOrdemComVizinhoAnterior() {
@@ -129,9 +114,7 @@ class FaqServiceTest {
         setId(segunda, id);
         when(faqRepository.findById(id)).thenReturn(Optional.of(segunda));
         when(faqRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
-
         FaqResponse resultado = faqService.moverParaCima(id);
-
         assertThat(resultado.ordem()).isEqualTo(0);
         assertThat(primeira.getOrdem()).isEqualTo(1);
     }
@@ -144,9 +127,7 @@ class FaqServiceTest {
         Faq segunda = new Faq("segunda", "r2", 1);
         when(faqRepository.findById(id)).thenReturn(Optional.of(primeira));
         when(faqRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
-
         FaqResponse resultado = faqService.moverParaCima(id);
-
         assertThat(resultado.ordem()).isEqualTo(0);
         assertThat(segunda.getOrdem()).isEqualTo(1);
     }
@@ -160,9 +141,7 @@ class FaqServiceTest {
         setId(segunda, UUID.randomUUID());
         when(faqRepository.findById(id)).thenReturn(Optional.of(primeira));
         when(faqRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
-
         FaqResponse resultado = faqService.moverParaBaixo(id);
-
         assertThat(resultado.ordem()).isEqualTo(1);
         assertThat(segunda.getOrdem()).isEqualTo(0);
     }
@@ -175,9 +154,7 @@ class FaqServiceTest {
         setId(segunda, id);
         when(faqRepository.findById(id)).thenReturn(Optional.of(segunda));
         when(faqRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
-
         FaqResponse resultado = faqService.moverParaBaixo(id);
-
         assertThat(resultado.ordem()).isEqualTo(1);
         assertThat(primeira.getOrdem()).isEqualTo(0);
     }

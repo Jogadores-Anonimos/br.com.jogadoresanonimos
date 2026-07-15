@@ -43,9 +43,7 @@ class ReuniaoServiceTest {
     @Test
     void listarTodas_deveDelegarParaRepositoryEMapear() {
         when(reuniaoRepository.findAllByOrderByNomeAsc()).thenReturn(List.of(reuniao()));
-
         List<ReuniaoResponse> resultado = reuniaoService.listarTodas();
-
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).nome()).isEqualTo("Grupo Centro");
     }
@@ -56,9 +54,7 @@ class ReuniaoServiceTest {
                 "  descricao  ", "Segunda-feira", "19h30", "  endereco  ", "5599999999999", "Segunda", "Noite",
                 -23.5505, -46.6333);
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
         ReuniaoResponse resultado = reuniaoService.criar(request);
-
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
         verify(reuniaoRepository).save(captor.capture());
         assertThat(captor.getValue().getNome()).isEqualTo("Grupo Centro");
@@ -72,13 +68,21 @@ class ReuniaoServiceTest {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Virtual", CategoriaReuniao.virtual,
                 "descricao", "Segunda-feira", "20h00", "link", "  ", "", null, null, null);
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
         reuniaoService.criar(request);
-
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
         verify(reuniaoRepository).save(captor.capture());
-        assertThat(captor.getValue().getWhatsapp()).isNull();
         assertThat(captor.getValue().getDiaSemana()).isNull();
+    }
+
+    @Test
+    void criar_deveAplicarWhatsappPadraoQuandoNaoInformado() {
+        CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Virtual", CategoriaReuniao.virtual,
+                "descricao", "Segunda-feira", "20h00", "link", "  ", "", null, null, null);
+        when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        reuniaoService.criar(request);
+        ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
+        verify(reuniaoRepository).save(captor.capture());
+        assertThat(captor.getValue().getWhatsapp()).isEqualTo("11 99571-6942");
     }
 
     @Test
@@ -88,9 +92,7 @@ class ReuniaoServiceTest {
         when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Novo", CategoriaReuniao.virtual,
                 "nova descricao", "Terça-feira", "20h00", "link", null, null, null, null, null);
-
         ReuniaoResponse resultado = reuniaoService.editar(id, request);
-
         assertThat(resultado.nome()).isEqualTo("Grupo Novo");
         assertThat(resultado.categoria()).isEqualTo(CategoriaReuniao.virtual);
     }
@@ -101,7 +103,6 @@ class ReuniaoServiceTest {
         when(reuniaoRepository.findById(id)).thenReturn(Optional.empty());
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Novo", CategoriaReuniao.virtual,
                 "nova descricao", "Terça-feira", "20h00", "link", null, null, null, null, null);
-
         assertThatThrownBy(() -> reuniaoService.editar(id, request))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -111,9 +112,7 @@ class ReuniaoServiceTest {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniao();
         when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
-
         reuniaoService.remover(id);
-
         verify(reuniaoRepository).delete(reuniao);
     }
 
@@ -121,10 +120,8 @@ class ReuniaoServiceTest {
     void remover_deveLancarExcecaoQuandoNaoExiste() {
         UUID id = UUID.randomUUID();
         when(reuniaoRepository.findById(id)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> reuniaoService.remover(id))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
-
         verify(reuniaoRepository, never()).delete(any());
     }
 }

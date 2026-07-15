@@ -274,29 +274,13 @@
   }
 
   .resource-layout {
-    grid-template-columns: 260px 1fr;
+    grid-template-columns: 1fr;
     padding: var(--spacing-md) var(--spacing-sm) var(--spacing-xl);
-    gap: var(--spacing-md);
+    gap: var(--spacing-lg);
   }
 
   .resource-sidebar {
     position: static;
-  }
-
-  .resource-sidebar-cta {
-    padding: var(--spacing-md);
-    min-height: 280px;
-  }
-
-  .resource-sidebar-cta h2 {
-    font-size: 1.3rem;
-  }
-}
-
-@media (max-width: 600px) {
-  .resource-layout {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-lg);
   }
 
   .resource-sidebar-cta {
@@ -311,7 +295,9 @@
   .resource-sidebar-cta__btn {
     font-size: 0.9rem;
   }
+}
 
+@media (max-width: 600px) {
   .resource-banner {
     min-height: 160px;
     border-radius: var(--radius-sm);

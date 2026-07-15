@@ -28,12 +28,6 @@
     <p class="pagina-editor__estado" role="status">Carregando conteúdo…</p>
   } @else {
     @if (!ehVintePerguntas) {
-      <div class="pagina-editor__campo-titulo">
-        <label for="pagina-titulo">Título da página</label>
-        <input id="pagina-titulo" type="text" [(ngModel)]="titulo" name="titulo" (input)="marcarAlteracao()" />
-      </div>
-
-
       <h2 class="pagina-editor__secao-titulo">Blocos de conteúdo</h2>
       <p class="campo-ajuda">
         Layout da página é fixo — só é possível editar o texto e a imagem de

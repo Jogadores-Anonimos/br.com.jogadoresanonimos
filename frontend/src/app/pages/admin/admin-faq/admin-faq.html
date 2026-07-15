@@ -108,6 +108,8 @@
         type="text"
         name="pergunta"
         [(ngModel)]="formulario.pergunta"
+        [class.campo-invalido]="errosCampo['pergunta']"
+        [attr.aria-invalid]="errosCampo['pergunta'] ? 'true' : null"
         required
       />
     </div>
@@ -119,6 +121,8 @@
         name="resposta"
         rows="6"
         [(ngModel)]="formulario.resposta"
+        [class.campo-invalido]="errosCampo['resposta']"
+        [attr.aria-invalid]="errosCampo['resposta'] ? 'true' : null"
         required
       ></textarea>
     </div>

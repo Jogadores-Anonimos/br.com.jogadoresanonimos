@@ -33,40 +33,46 @@ class HotlineAdminControllerTest {
     }
 
     private HotlineRegiaoResponse regiaoResponse(UUID id) {
-        return new HotlineRegiaoResponse(id, "Bahia",
-                List.of(new HotlineTelefoneResponse(UUID.randomUUID(), "Linha de apoio", "(71) 0000-0000")));
+        return new HotlineRegiaoResponse(id, "BA", "Salvador",
+                List.of(new HotlineTelefoneResponse(UUID.randomUUID(), "(71) 0000-0000")));
     }
 
     @Test
     void listarTodas_deveRetornarOkComListaDoService() {
         HotlineRegiaoResponse item = regiaoResponse(UUID.randomUUID());
         when(hotlineService.listarTodas()).thenReturn(List.of(item));
-
         ResponseEntity<ApiResponse<List<HotlineRegiaoResponse>>> resposta = hotlineAdminController.listarTodas();
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).containsExactly(item);
     }
 
     @Test
     void criarRegiao_deveRetornarCreatedComRespostaDoService() {
-        CriarRegiaoRequest request = new CriarRegiaoRequest("Bahia");
+        CriarRegiaoRequest request = new CriarRegiaoRequest("BA", "Salvador");
         HotlineRegiaoResponse esperado = regiaoResponse(UUID.randomUUID());
         when(hotlineService.criarRegiao(request)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<HotlineRegiaoResponse>> resposta = hotlineAdminController.criarRegiao(request);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(hotlineService).criarRegiao(request);
     }
 
     @Test
+    void editarRegiao_deveRetornarOkComRespostaDoService() {
+        UUID id = UUID.randomUUID();
+        EditarRegiaoRequest request = new EditarRegiaoRequest("RJ", "Niterói");
+        HotlineRegiaoResponse esperado = regiaoResponse(id);
+        when(hotlineService.editarRegiao(id, request)).thenReturn(esperado);
+        ResponseEntity<ApiResponse<HotlineRegiaoResponse>> resposta = hotlineAdminController.editarRegiao(id, request);
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resposta.getBody().data()).isEqualTo(esperado);
+        verify(hotlineService).editarRegiao(id, request);
+    }
+
+    @Test
     void removerRegiao_deveRetornarOkEChamarServiceComId() {
         UUID id = UUID.randomUUID();
-
         ResponseEntity<ApiResponse<MensagemResponse>> resposta = hotlineAdminController.removerRegiao(id);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         verify(hotlineService).removerRegiao(id);
@@ -75,13 +81,11 @@ class HotlineAdminControllerTest {
     @Test
     void adicionarTelefone_deveRetornarCreatedComRespostaDoService() {
         UUID regiaoId = UUID.randomUUID();
-        CriarTelefoneRequest request = new CriarTelefoneRequest("Linha de apoio", "(71) 0000-0000");
+        CriarTelefoneRequest request = new CriarTelefoneRequest("(71) 0000-0000");
         HotlineRegiaoResponse esperado = regiaoResponse(regiaoId);
         when(hotlineService.adicionarTelefone(regiaoId, request)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<HotlineRegiaoResponse>> resposta =
                 hotlineAdminController.adicionarTelefone(regiaoId, request);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(hotlineService).adicionarTelefone(regiaoId, request);
@@ -90,13 +94,11 @@ class HotlineAdminControllerTest {
     @Test
     void editarTelefone_deveRetornarOkComRespostaDoService() {
         UUID id = UUID.randomUUID();
-        EditarTelefoneRequest request = new EditarTelefoneRequest("Linha editada", "(71) 1111-1111");
-        HotlineTelefoneResponse esperado = new HotlineTelefoneResponse(id, "Linha editada", "(71) 1111-1111");
+        EditarTelefoneRequest request = new EditarTelefoneRequest("(71) 1111-1111");
+        HotlineTelefoneResponse esperado = new HotlineTelefoneResponse(id, "(71) 1111-1111");
         when(hotlineService.editarTelefone(id, request)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<HotlineTelefoneResponse>> resposta =
                 hotlineAdminController.editarTelefone(id, request);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(hotlineService).editarTelefone(id, request);
@@ -105,9 +107,7 @@ class HotlineAdminControllerTest {
     @Test
     void removerTelefone_deveRetornarOkEChamarServiceComId() {
         UUID id = UUID.randomUUID();
-
         ResponseEntity<ApiResponse<MensagemResponse>> resposta = hotlineAdminController.removerTelefone(id);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         verify(hotlineService).removerTelefone(id);

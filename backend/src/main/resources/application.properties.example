@@ -19,6 +19,11 @@ app.jwt.ttl-minutes=${JWT_TTL_MINUTES:60}
 app.log.hmac-secret=${LOG_HMAC_SECRET:}
 app.cors.allowed-origins=${CORS_ALLOWED_ORIGIN:http://localhost:4200}
 
+# Chave secreta do reCAPTCHA v2. Valor padrao abaixo e a chave publica de
+# teste do Google (sempre aprova, nunca usar em producao) - trocar por
+# RECAPTCHA_SECRET_KEY com a chave real antes de qualquer deploy publico.
+app.recaptcha.secret-key=${RECAPTCHA_SECRET_KEY:6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe}
+
 app.storage.stub-dir=${STORAGE_STUB_DIR:./data/imagens}
 app.storage.public-base-url=${STORAGE_PUBLIC_BASE_URL:http://localhost:8080/stub-storage}
 

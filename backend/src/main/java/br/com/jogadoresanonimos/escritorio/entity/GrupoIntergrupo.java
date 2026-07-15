@@ -4,9 +4,7 @@ import jakarta.persistence.*;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -34,13 +32,8 @@ public class GrupoIntergrupo {
     private String cidade;
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "grupo_intergrupo_dia_semana", joinColumns = @JoinColumn(name = "grupo_id"))
-    @Column(name = "dia_semana", nullable = false, length = 10)
-    @Enumerated(EnumType.STRING)
-    private Set<DiaSemana> diasSemana = EnumSet.noneOf(DiaSemana.class);
-
-    @Column(nullable = false, length = 50)
-    private String horario;
+    @CollectionTable(name = "grupo_intergrupo_horario", joinColumns = @JoinColumn(name = "grupo_intergrupo_id"))
+    private List<AgendaItemGrupo> agenda = new ArrayList<>();
 
     @OneToMany(mappedBy = "grupo", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("criadoEm ASC")
@@ -59,27 +52,26 @@ public class GrupoIntergrupo {
     }
 
     public GrupoIntergrupo(EstadoIntergrupo estado, String nome, String endereco, String bairro,
-                            String cidade, Set<DiaSemana> diasSemana, String horario, int ordem) {
+                            String cidade, List<AgendaItemGrupo> agenda, int ordem) {
         this.estado = estado;
         this.nome = nome;
         this.endereco = endereco;
         this.bairro = bairro;
         this.cidade = cidade;
-        this.diasSemana = EnumSet.copyOf(diasSemana);
-        this.horario = horario;
+        this.agenda.addAll(agenda);
         this.ordem = ordem;
         this.criadoEm = Instant.now();
         this.atualizadoEm = Instant.now();
     }
 
     public void editar(String nome, String endereco, String bairro, String cidade,
-                        Set<DiaSemana> diasSemana, String horario) {
+                        List<AgendaItemGrupo> agenda) {
         this.nome = nome;
         this.endereco = endereco;
         this.bairro = bairro;
         this.cidade = cidade;
-        this.diasSemana = EnumSet.copyOf(diasSemana);
-        this.horario = horario;
+        this.agenda.clear();
+        this.agenda.addAll(agenda);
         this.atualizadoEm = Instant.now();
     }
 
@@ -118,12 +110,8 @@ public class GrupoIntergrupo {
         return cidade;
     }
 
-    public Set<DiaSemana> getDiasSemana() {
-        return diasSemana;
-    }
-
-    public String getHorario() {
-        return horario;
+    public List<AgendaItemGrupo> getAgenda() {
+        return agenda;
     }
 
     public List<GrupoIntergrupoTelefone> getTelefones() {

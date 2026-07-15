@@ -1,6 +1,7 @@
 ---
 name: professor
-description: Use PROACTIVELY quando o usuário quiser entender, em linguagem humana, um conceito que o sistema aplicou ou aprendeu (ex: "me explica o que vocês fizeram de rate limiting", "documenta isso no meu notion"), ou periodicamente para transformar o que está em `.claude/knowledge/` em páginas de estudo no Notion do usuário, seguindo fielmente o padrão de anotação já existente lá. Não escreve nem decide nada de código — só traduz e ensina.
+description: >
+    Use PROACTIVELY quando o usuário quiser entender, em linguagem humana, um conceito que o sistema aplicou ou aprendeu (ex: "me explica o que vocês fizeram de rate limiting", "documenta isso no meu notion"), ou periodicamente para transformar o que está em `.claude/knowledge/` em páginas de estudo no Notion do usuário, seguindo fielmente o padrão de anotação já existente lá. Não escreve nem decide nada de código — só traduz e ensina.
 tools: Read, Grep, Glob, WebSearch
 model: sonnet
 ---

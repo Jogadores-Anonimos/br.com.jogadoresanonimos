@@ -4,7 +4,7 @@ import { NOMES_MESES } from '../../config/meses.config';
 import {
   ReflexaoDoDia,
   ReflexaoDoDiaService,
-} from '../../services/reflexao-do-dia';
+} from '../../services/reflexao-do-dia/reflexao-do-dia';
 
 const TAMANHO_MAX_TRUNCADO = 220;
 

@@ -64,6 +64,7 @@
 
 .literatura-pdf-card {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
@@ -87,7 +88,7 @@
 }
 
 .literatura-pdf-card__texto {
-  flex: 1;
+  flex: 1 1 180px;
   min-width: 0;
 }
 
@@ -96,16 +97,19 @@
   font-weight: 700;
   color: var(--color-text);
   margin-bottom: var(--spacing-xs);
+  overflow-wrap: break-word;
 }
 
 .literatura-pdf-card__texto p {
   font-size: 0.9rem;
   color: var(--color-text-muted);
   line-height: 1.6;
+  overflow-wrap: break-word;
 }
 
 .literatura-pdf-card__acoes {
   flex-shrink: 0;
+  flex-basis: 100%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -119,22 +123,37 @@
   color: var(--cor-padrao-ja);
   font-weight: 700;
   font-size: 0.9rem;
+  font-family: inherit;
+  border: none;
   text-decoration: none;
   text-align: center;
   padding: 10px 20px;
   border-radius: var(--radius-sm);
-  white-space: nowrap;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
-.literatura-pdf-card__btn:hover {
+.literatura-pdf-card__btn:hover:not(:disabled) {
   background: var(--yellow-gold);
   transform: translateY(-2px);
+}
+
+.literatura-pdf-card__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .literatura-pdf-card__btn:focus-visible {
   outline: 3px solid var(--cor-padrao-ja);
   outline-offset: 3px;
+}
+
+.literatura-pdf-card__erro {
+  color: var(--color-danger);
+  font-size: 0.8rem;
+  text-align: center;
 }
 
 .literatura-pdf-card__btn-secundario {
@@ -148,7 +167,8 @@
   text-align: center;
   padding: 9px 20px;
   border-radius: var(--radius-sm);
-  white-space: nowrap;
+  max-width: 100%;
+  overflow-wrap: break-word;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
 }
@@ -168,6 +188,21 @@
   outline-offset: 3px;
 }
 
+.literatura-pdf-card__login-dica {
+  display: inline-block;
+  text-align: center;
+  color: var(--cor-padrao-ja);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  padding: 10px 20px;
+}
+
+.literatura-pdf-card__login-dica:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 3px;
+}
+
 .literatura-pdf-card__salvo {
   display: flex;
   align-items: center;
@@ -176,14 +211,16 @@
   color: var(--color-success);
   font-weight: 600;
   font-size: 0.85rem;
-  white-space: nowrap;
+  text-align: center;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .literatura-pdf-grid {
     grid-template-columns: 1fr;
   }
+}
 
+@media (max-width: 768px) {
   .literatura-pdf-card {
     flex-direction: column;
     align-items: flex-start;

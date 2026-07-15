@@ -1,5 +1,6 @@
 package br.com.jogadoresanonimos.hotline.entity;
 
+import br.com.jogadoresanonimos.escritorio.entity.UnidadeFederativa;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -15,8 +16,12 @@ public class HotlineRegiao {
     @GeneratedValue
     private UUID id;
 
-    @Column(nullable = false, length = 100, unique = true)
-    private String nome;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 2)
+    private UnidadeFederativa uf;
+
+    @Column(nullable = false, length = 150)
+    private String cidade;
 
     @OneToMany(mappedBy = "regiao", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("criadoEm ASC")
@@ -31,14 +36,16 @@ public class HotlineRegiao {
     protected HotlineRegiao() {
     }
 
-    public HotlineRegiao(String nome) {
-        this.nome = nome;
+    public HotlineRegiao(UnidadeFederativa uf, String cidade) {
+        this.uf = uf;
+        this.cidade = cidade;
         this.criadoEm = Instant.now();
         this.atualizadoEm = Instant.now();
     }
 
-    public void renomear(String nome) {
-        this.nome = nome;
+    public void editar(UnidadeFederativa uf, String cidade) {
+        this.uf = uf;
+        this.cidade = cidade;
         this.atualizadoEm = Instant.now();
     }
 
@@ -46,8 +53,12 @@ public class HotlineRegiao {
         return id;
     }
 
-    public String getNome() {
-        return nome;
+    public UnidadeFederativa getUf() {
+        return uf;
+    }
+
+    public String getCidade() {
+        return cidade;
     }
 
     public List<HotlineTelefone> getTelefones() {

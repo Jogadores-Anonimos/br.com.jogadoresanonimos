@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { Cms } from '../../services/cms';
-import { CmsBlocoTexto } from '../../services/cms.model';
+import { Cms } from '../../services/cms/cms';
+import { CmsBlocoTexto } from '../../services/cms/cms.model';
 
 @Component({
   selector: 'app-termos',

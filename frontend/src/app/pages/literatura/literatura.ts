@@ -1,10 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
-import { Auth } from '../../services/auth';
-import { BibliotecaPessoalService } from '../../services/biblioteca-pessoal';
-import { Arquivo as ArquivoService } from '../../services/arquivo';
-import { ArquivoResponse } from '../../services/arquivo.model';
+import { Auth } from '../../services/auth/auth';
+import { BibliotecaPessoalService } from '../../services/biblioteca-pessoal/biblioteca-pessoal';
+import { Arquivo as ArquivoService } from '../../services/arquivo/arquivo';
+import { ArquivoResponse } from '../../services/arquivo/arquivo.model';
+import { disparaDownloadDeBlob } from '../../services/arquivo/download-blob.util';
 
 @Component({
   selector: 'app-literatura',
@@ -21,6 +22,8 @@ export class Literatura implements OnInit {
   arquivos: ArquivoResponse[] = [];
   idsNaBiblioteca = new Set<string>();
   idsSalvando = new Set<string>();
+  idsBaixando = new Set<string>();
+  erroDownloadPorId = new Map<string, string>();
 
   ngOnInit(): void {
     this.arquivoService.listarArquivos().subscribe((resposta) => {
@@ -36,6 +39,24 @@ export class Literatura implements OnInit {
         }
       });
     }
+  }
+
+  baixarPdf(arquivo: ArquivoResponse): void {
+    if (this.idsBaixando.has(arquivo.id)) {
+      return;
+    }
+    this.idsBaixando.add(arquivo.id);
+    this.erroDownloadPorId.delete(arquivo.id);
+    this.arquivoService.baixarArquivo(arquivo.id).subscribe({
+      next: (blob) => {
+        this.idsBaixando.delete(arquivo.id);
+        disparaDownloadDeBlob(blob, arquivo.nomeOriginal);
+      },
+      error: () => {
+        this.idsBaixando.delete(arquivo.id);
+        this.erroDownloadPorId.set(arquivo.id, 'Não foi possível baixar o arquivo agora. Tente novamente.');
+      },
+    });
   }
 
   adicionarABiblioteca(arquivoId: string): void {

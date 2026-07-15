@@ -35,9 +35,7 @@ class AvisoControllerTest {
     void listarAtivos_deveRetornarOkComListaDoService() {
         AvisoPublicoResponse item = new AvisoPublicoResponse(UUID.randomUUID(), "titulo", "corpo", Instant.now(), true);
         when(avisoService.listarAtivos()).thenReturn(List.of(item));
-
         ResponseEntity<ApiResponse<List<AvisoPublicoResponse>>> resposta = avisoController.listarAtivos();
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         assertThat(resposta.getBody().data()).containsExactly(item);

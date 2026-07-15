@@ -86,7 +86,15 @@
       <div class="admin-reunioes__campos">
         <div class="admin-reunioes__campo">
           <label for="reuniao-nome">Nome</label>
-          <input id="reuniao-nome" type="text" name="nome" [(ngModel)]="formulario.nome" required />
+          <input
+            id="reuniao-nome"
+            type="text"
+            name="nome"
+            [(ngModel)]="formulario.nome"
+            [class.campo-invalido]="errosCampo['nome']"
+            [attr.aria-invalid]="errosCampo['nome'] ? 'true' : null"
+            required
+          />
         </div>
 
         <div class="admin-reunioes__campo">
@@ -104,6 +112,8 @@
             name="descricao"
             rows="4"
             [(ngModel)]="formulario.descricao"
+            [class.campo-invalido]="errosCampo['descricao']"
+            [attr.aria-invalid]="errosCampo['descricao'] ? 'true' : null"
             required
           ></textarea>
         </div>
@@ -111,7 +121,14 @@
         <div class="admin-reunioes__campo-linha">
           <div class="admin-reunioes__campo">
             <label for="reuniao-dia-semana">Dia da semana</label>
-            <select id="reuniao-dia-semana" name="diaSemana" [(ngModel)]="formulario.diaSemana" required>
+            <select
+              id="reuniao-dia-semana"
+              name="diaSemana"
+              [(ngModel)]="formulario.diaSemana"
+              [class.campo-invalido]="errosCampo['diaSemana']"
+              [attr.aria-invalid]="errosCampo['diaSemana'] ? 'true' : null"
+              required
+            >
               <option value="" disabled>Selecione</option>
               <option value="Segunda">Segunda</option>
               <option value="Terça">Terça</option>
@@ -125,7 +142,14 @@
 
           <div class="admin-reunioes__campo">
             <label for="reuniao-horario">Horário</label>
-            <select id="reuniao-horario" name="horario" [(ngModel)]="formulario.horario" required>
+            <select
+              id="reuniao-horario"
+              name="horario"
+              [(ngModel)]="formulario.horario"
+              [class.campo-invalido]="errosCampo['horario']"
+              [attr.aria-invalid]="errosCampo['horario'] ? 'true' : null"
+              required
+            >
               <option value="" disabled>Selecione</option>
               <option *ngFor="let h of horarios" [value]="h">{{ h }}</option>
             </select>
@@ -170,7 +194,15 @@
 
         <div class="admin-reunioes__campo">
           <label for="reuniao-local">Endereço</label>
-          <input id="reuniao-local" type="text" name="local" [(ngModel)]="formulario.local" required />
+          <input
+            id="reuniao-local"
+            type="text"
+            name="local"
+            [(ngModel)]="formulario.local"
+            [class.campo-invalido]="errosCampo['local']"
+            [attr.aria-invalid]="errosCampo['local'] ? 'true' : null"
+            required
+          />
         </div>
 
         <div class="admin-reunioes__campo">
@@ -189,6 +221,8 @@
               placeholder="Preenchido pela busca de CEP"
               [(ngModel)]="formulario.latitude"
               (ngModelChange)="atualizarMapaPreview()"
+              [class.campo-invalido]="errosCampo['latitude']"
+              [attr.aria-invalid]="errosCampo['latitude'] ? 'true' : null"
             />
           </div>
 
@@ -202,6 +236,8 @@
               placeholder="Preenchido pela busca de CEP"
               [(ngModel)]="formulario.longitude"
               (ngModelChange)="atualizarMapaPreview()"
+              [class.campo-invalido]="errosCampo['longitude']"
+              [attr.aria-invalid]="errosCampo['longitude'] ? 'true' : null"
             />
           </div>
         </div>

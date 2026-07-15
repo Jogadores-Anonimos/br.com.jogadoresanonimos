@@ -42,9 +42,7 @@ class FaqAdminControllerTest {
     void listarTodos_deveRetornarOkComListaDoService() {
         FaqResponse item = faqResponse(UUID.randomUUID());
         when(faqService.listarTodos()).thenReturn(List.of(item));
-
         ResponseEntity<ApiResponse<List<FaqResponse>>> resposta = faqAdminController.listarTodos();
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).containsExactly(item);
     }
@@ -54,9 +52,7 @@ class FaqAdminControllerTest {
         CriarFaqRequest request = new CriarFaqRequest("pergunta", "resposta");
         FaqResponse esperado = faqResponse(UUID.randomUUID());
         when(faqService.criar(request)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<FaqResponse>> resposta = faqAdminController.criar(request);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(faqService).criar(request);
@@ -68,9 +64,7 @@ class FaqAdminControllerTest {
         EditarFaqRequest request = new EditarFaqRequest("pergunta editada", "resposta editada");
         FaqResponse esperado = faqResponse(id);
         when(faqService.editar(id, request)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<FaqResponse>> resposta = faqAdminController.editar(id, request);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(faqService).editar(id, request);
@@ -79,9 +73,7 @@ class FaqAdminControllerTest {
     @Test
     void remover_deveRetornarOkEChamarServiceComId() {
         UUID id = UUID.randomUUID();
-
         ResponseEntity<ApiResponse<MensagemResponse>> resposta = faqAdminController.remover(id);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         verify(faqService).remover(id);
@@ -92,9 +84,7 @@ class FaqAdminControllerTest {
         UUID id = UUID.randomUUID();
         FaqResponse esperado = faqResponse(id);
         when(faqService.moverParaCima(id)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<FaqResponse>> resposta = faqAdminController.moverParaCima(id);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(faqService).moverParaCima(id);
@@ -105,9 +95,7 @@ class FaqAdminControllerTest {
         UUID id = UUID.randomUUID();
         FaqResponse esperado = faqResponse(id);
         when(faqService.moverParaBaixo(id)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<FaqResponse>> resposta = faqAdminController.moverParaBaixo(id);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(faqService).moverParaBaixo(id);

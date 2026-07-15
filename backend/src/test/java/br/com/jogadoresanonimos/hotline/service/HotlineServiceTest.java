@@ -1,7 +1,9 @@
 package br.com.jogadoresanonimos.hotline.service;
 
-import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
+import br.com.jogadoresanonimos.common.exception.ConflitoDeRegiaoHotlineException;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
+import br.com.jogadoresanonimos.common.exception.ValidationException;
+import br.com.jogadoresanonimos.escritorio.entity.UnidadeFederativa;
 import br.com.jogadoresanonimos.hotline.dto.*;
 import br.com.jogadoresanonimos.hotline.entity.HotlineRegiao;
 import br.com.jogadoresanonimos.hotline.entity.HotlineTelefone;
@@ -41,48 +43,93 @@ class HotlineServiceTest {
 
     @Test
     void listarTodas_deveDelegarParaRepositoryEMapear() {
-        HotlineRegiao regiao = new HotlineRegiao("Bahia");
-        when(hotlineRegiaoRepository.findAllByOrderByNomeAsc()).thenReturn(List.of(regiao));
-
+        HotlineRegiao regiao = new HotlineRegiao(UnidadeFederativa.BA, "Salvador");
+        when(hotlineRegiaoRepository.findAllByOrderByUfAscCidadeAsc()).thenReturn(List.of(regiao));
         List<HotlineRegiaoResponse> resultado = hotlineService.listarTodas();
-
         assertThat(resultado).hasSize(1);
-        assertThat(resultado.get(0).nome()).isEqualTo("Bahia");
+        assertThat(resultado.get(0).uf()).isEqualTo("BA");
+        assertThat(resultado.get(0).cidade()).isEqualTo("Salvador");
     }
 
     @Test
-    void criarRegiao_deveSalvarComNomeTrimadoQuandoNaoExiste() {
-        CriarRegiaoRequest request = new CriarRegiaoRequest("  Bahia  ");
-        when(hotlineRegiaoRepository.existsByNomeIgnoreCase("Bahia")).thenReturn(false);
+    void listarPublicas_deveRetornarApenasRegioesComTelefone() {
+        HotlineRegiao regiao = new HotlineRegiao(UnidadeFederativa.BA, "Salvador");
+        when(hotlineRegiaoRepository.findAllComPeloMenosUmTelefoneOrderByUfAscCidadeAsc()).thenReturn(List.of(regiao));
+        List<HotlineRegiaoResponse> resultado = hotlineService.listarPublicas();
+        assertThat(resultado).hasSize(1);
+        verify(hotlineRegiaoRepository).findAllComPeloMenosUmTelefoneOrderByUfAscCidadeAsc();
+    }
+
+    @Test
+    void criarRegiao_deveSalvarComUfECidadeTrimadaQuandoNaoExiste() {
+        CriarRegiaoRequest request = new CriarRegiaoRequest("ba", "  Salvador  ");
+        when(hotlineRegiaoRepository.existsByUfAndCidadeIgnoreCase(UnidadeFederativa.BA, "Salvador")).thenReturn(false);
         when(hotlineRegiaoRepository.save(any(HotlineRegiao.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
         HotlineRegiaoResponse resultado = hotlineService.criarRegiao(request);
-
         ArgumentCaptor<HotlineRegiao> captor = ArgumentCaptor.forClass(HotlineRegiao.class);
         verify(hotlineRegiaoRepository).save(captor.capture());
-        assertThat(captor.getValue().getNome()).isEqualTo("Bahia");
-        assertThat(resultado.nome()).isEqualTo("Bahia");
+        assertThat(captor.getValue().getUf()).isEqualTo(UnidadeFederativa.BA);
+        assertThat(captor.getValue().getCidade()).isEqualTo("Salvador");
+        assertThat(resultado.uf()).isEqualTo("BA");
+        assertThat(resultado.cidade()).isEqualTo("Salvador");
     }
 
     @Test
-    void criarRegiao_deveLancarConflitoQuandoNomeJaExiste() {
-        CriarRegiaoRequest request = new CriarRegiaoRequest("Bahia");
-        when(hotlineRegiaoRepository.existsByNomeIgnoreCase("Bahia")).thenReturn(true);
-
+    void criarRegiao_deveLancarConflitoQuandoUfECidadeJaExistem() {
+        CriarRegiaoRequest request = new CriarRegiaoRequest("BA", "Salvador");
+        when(hotlineRegiaoRepository.existsByUfAndCidadeIgnoreCase(UnidadeFederativa.BA, "Salvador")).thenReturn(true);
         assertThatThrownBy(() -> hotlineService.criarRegiao(request))
-                .isInstanceOf(ConflitoDeEstadoException.class);
-
+                .isInstanceOf(ConflitoDeRegiaoHotlineException.class);
         verify(hotlineRegiaoRepository, never()).save(any());
+    }
+
+    @Test
+    void criarRegiao_deveLancarValidationExceptionQuandoUfInvalida() {
+        CriarRegiaoRequest request = new CriarRegiaoRequest("XX", "Salvador");
+        assertThatThrownBy(() -> hotlineService.criarRegiao(request))
+                .isInstanceOf(ValidationException.class);
+        verify(hotlineRegiaoRepository, never()).save(any());
+    }
+
+    @Test
+    void editarRegiao_deveAtualizarQuandoNaoHaConflito() {
+        UUID id = UUID.randomUUID();
+        HotlineRegiao regiao = new HotlineRegiao(UnidadeFederativa.BA, "Salvador");
+        when(hotlineRegiaoRepository.findById(id)).thenReturn(Optional.of(regiao));
+        when(hotlineRegiaoRepository.existsByUfAndCidadeIgnoreCase(UnidadeFederativa.RJ, "Niterói")).thenReturn(false);
+        EditarRegiaoRequest request = new EditarRegiaoRequest("RJ", "Niterói");
+        HotlineRegiaoResponse resultado = hotlineService.editarRegiao(id, request);
+        assertThat(resultado.uf()).isEqualTo("RJ");
+        assertThat(resultado.cidade()).isEqualTo("Niterói");
+    }
+
+    @Test
+    void editarRegiao_deveLancarConflitoQuandoNovaChaveJaExisteEmOutraRegiao() {
+        UUID id = UUID.randomUUID();
+        HotlineRegiao regiao = new HotlineRegiao(UnidadeFederativa.BA, "Salvador");
+        when(hotlineRegiaoRepository.findById(id)).thenReturn(Optional.of(regiao));
+        when(hotlineRegiaoRepository.existsByUfAndCidadeIgnoreCase(UnidadeFederativa.RJ, "Niterói")).thenReturn(true);
+        EditarRegiaoRequest request = new EditarRegiaoRequest("RJ", "Niterói");
+        assertThatThrownBy(() -> hotlineService.editarRegiao(id, request))
+                .isInstanceOf(ConflitoDeRegiaoHotlineException.class);
+    }
+
+    @Test
+    void editarRegiao_naoDeveValidarConflitoQuandoChaveNaoMuda() {
+        UUID id = UUID.randomUUID();
+        HotlineRegiao regiao = new HotlineRegiao(UnidadeFederativa.BA, "Salvador");
+        when(hotlineRegiaoRepository.findById(id)).thenReturn(Optional.of(regiao));
+        EditarRegiaoRequest request = new EditarRegiaoRequest("BA", "Salvador");
+        hotlineService.editarRegiao(id, request);
+        verify(hotlineRegiaoRepository, never()).existsByUfAndCidadeIgnoreCase(any(), any());
     }
 
     @Test
     void removerRegiao_deveDeletarQuandoExiste() {
         UUID id = UUID.randomUUID();
-        HotlineRegiao regiao = new HotlineRegiao("Bahia");
+        HotlineRegiao regiao = new HotlineRegiao(UnidadeFederativa.BA, "Salvador");
         when(hotlineRegiaoRepository.findById(id)).thenReturn(Optional.of(regiao));
-
         hotlineService.removerRegiao(id);
-
         verify(hotlineRegiaoRepository).delete(regiao);
     }
 
@@ -90,25 +137,20 @@ class HotlineServiceTest {
     void removerRegiao_deveLancarExcecaoQuandoNaoExiste() {
         UUID id = UUID.randomUUID();
         when(hotlineRegiaoRepository.findById(id)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> hotlineService.removerRegiao(id))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
-
         verify(hotlineRegiaoRepository, never()).delete(any());
     }
 
     @Test
     void adicionarTelefone_deveAdicionarNaRegiaoExistente() {
         UUID regiaoId = UUID.randomUUID();
-        HotlineRegiao regiao = new HotlineRegiao("Bahia");
+        HotlineRegiao regiao = new HotlineRegiao(UnidadeFederativa.BA, "Salvador");
         when(hotlineRegiaoRepository.findById(regiaoId)).thenReturn(Optional.of(regiao));
         when(hotlineTelefoneRepository.save(any(HotlineTelefone.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        CriarTelefoneRequest request = new CriarTelefoneRequest("  Linha de apoio  ", "  (71) 0000-0000  ");
-
+        CriarTelefoneRequest request = new CriarTelefoneRequest("  (71) 0000-0000  ");
         HotlineRegiaoResponse resultado = hotlineService.adicionarTelefone(regiaoId, request);
-
         assertThat(regiao.getTelefones()).hasSize(1);
-        assertThat(regiao.getTelefones().get(0).getLabel()).isEqualTo("Linha de apoio");
         assertThat(regiao.getTelefones().get(0).getTelefone()).isEqualTo("(71) 0000-0000");
         assertThat(resultado.telefones()).hasSize(1);
     }
@@ -117,25 +159,20 @@ class HotlineServiceTest {
     void adicionarTelefone_deveLancarExcecaoQuandoRegiaoNaoExiste() {
         UUID regiaoId = UUID.randomUUID();
         when(hotlineRegiaoRepository.findById(regiaoId)).thenReturn(Optional.empty());
-        CriarTelefoneRequest request = new CriarTelefoneRequest("Linha de apoio", "(71) 0000-0000");
-
+        CriarTelefoneRequest request = new CriarTelefoneRequest("(71) 0000-0000");
         assertThatThrownBy(() -> hotlineService.adicionarTelefone(regiaoId, request))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
-
         verify(hotlineTelefoneRepository, never()).save(any());
     }
 
     @Test
     void editarTelefone_deveAtualizarTelefoneExistente() {
         UUID id = UUID.randomUUID();
-        HotlineRegiao regiao = new HotlineRegiao("Bahia");
-        HotlineTelefone telefone = new HotlineTelefone(regiao, "antigo", "(71) 0000-0000");
+        HotlineRegiao regiao = new HotlineRegiao(UnidadeFederativa.BA, "Salvador");
+        HotlineTelefone telefone = new HotlineTelefone(regiao, "(71) 0000-0000");
         when(hotlineTelefoneRepository.findById(id)).thenReturn(Optional.of(telefone));
-        EditarTelefoneRequest request = new EditarTelefoneRequest("novo", "(71) 1111-1111");
-
+        EditarTelefoneRequest request = new EditarTelefoneRequest("(71) 1111-1111");
         HotlineTelefoneResponse resultado = hotlineService.editarTelefone(id, request);
-
-        assertThat(resultado.label()).isEqualTo("novo");
         assertThat(resultado.telefone()).isEqualTo("(71) 1111-1111");
     }
 
@@ -143,8 +180,7 @@ class HotlineServiceTest {
     void editarTelefone_deveLancarExcecaoQuandoNaoExiste() {
         UUID id = UUID.randomUUID();
         when(hotlineTelefoneRepository.findById(id)).thenReturn(Optional.empty());
-        EditarTelefoneRequest request = new EditarTelefoneRequest("novo", "(71) 1111-1111");
-
+        EditarTelefoneRequest request = new EditarTelefoneRequest("(71) 1111-1111");
         assertThatThrownBy(() -> hotlineService.editarTelefone(id, request))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -152,12 +188,10 @@ class HotlineServiceTest {
     @Test
     void removerTelefone_deveDeletarQuandoExiste() {
         UUID id = UUID.randomUUID();
-        HotlineRegiao regiao = new HotlineRegiao("Bahia");
-        HotlineTelefone telefone = new HotlineTelefone(regiao, "Linha de apoio", "(71) 0000-0000");
+        HotlineRegiao regiao = new HotlineRegiao(UnidadeFederativa.BA, "Salvador");
+        HotlineTelefone telefone = new HotlineTelefone(regiao, "(71) 0000-0000");
         when(hotlineTelefoneRepository.findById(id)).thenReturn(Optional.of(telefone));
-
         hotlineService.removerTelefone(id);
-
         verify(hotlineTelefoneRepository).delete(telefone);
     }
 
@@ -165,10 +199,8 @@ class HotlineServiceTest {
     void removerTelefone_deveLancarExcecaoQuandoNaoExiste() {
         UUID id = UUID.randomUUID();
         when(hotlineTelefoneRepository.findById(id)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> hotlineService.removerTelefone(id))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
-
         verify(hotlineTelefoneRepository, never()).delete(any());
     }
 }

@@ -20,6 +20,9 @@ public record RegistroRequest(
         String senha,
 
         @NotBlank(message = "Confirmação de senha é obrigatória")
-        String confirmarSenha
+        String confirmarSenha,
+
+        @NotBlank(message = "Verificação do reCAPTCHA é obrigatória")
+        String recaptchaToken
 ) {
 }

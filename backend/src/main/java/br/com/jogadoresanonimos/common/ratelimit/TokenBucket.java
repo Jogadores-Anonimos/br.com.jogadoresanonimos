@@ -24,7 +24,10 @@ public class TokenBucket {
             State current = state.get();
             State refilled = refill(current);
             if (refilled.tokens <= 0) {
-                return state.compareAndSet(current, refilled) || tryConsume();
+                if (refilled == current || state.compareAndSet(current, refilled)) {
+                    return false;
+                }
+                continue;
             }
             State next = new State(refilled.tokens - 1, refilled.windowStart);
             if (state.compareAndSet(current, next)) {

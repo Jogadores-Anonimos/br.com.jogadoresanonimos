@@ -21,17 +21,18 @@ interface AdminMenuGrupo {
 })
 export class AdminLayout {
   menuAberto = false;
+  fechandoPorNavegacao = false;
 
   toggleMenu(): void {
+    this.fechandoPorNavegacao = false;
     this.menuAberto = !this.menuAberto;
   }
 
   fecharMenu(): void {
+    this.fechandoPorNavegacao = true;
     this.menuAberto = false;
   }
 
-  // Ordem e agrupamento vêm da spec aprovada (`Pendencias Admin
-  // Dashboard.md`) — grupo 1 é o mais usado, por isso fica no topo.
   readonly grupos: AdminMenuGrupo[] = [
     {
       titulo: 'Conteúdo do dia a dia',
@@ -61,7 +62,7 @@ export class AdminLayout {
       titulo: 'Estrutura de apoio',
       itens: [
         { label: 'Reuniões', rota: 'reunioes' },
-        { label: 'Escritórios Regionais', rota: 'escritorios-regionais' },
+        { label: 'Endereços', rota: 'escritorios-regionais' },
         { label: 'Linhas de Ajuda', rota: 'hotlines' },
         { label: 'Perguntas e Respostas', rota: 'perguntas-e-respostas' },
       ],
@@ -71,6 +72,7 @@ export class AdminLayout {
       itens: [
         { label: 'Literatura', rota: 'literatura' },
         { label: 'Usuários', rota: 'usuarios' },
+        { label: 'Segurança', rota: 'seguranca' },
       ],
     },
   ];

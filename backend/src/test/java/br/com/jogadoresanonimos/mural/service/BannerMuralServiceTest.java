@@ -53,10 +53,8 @@ class BannerMuralServiceTest {
         UUID imagemId = UUID.randomUUID();
         CriarBannerMuralRequest request = new CriarBannerMuralRequest(imagemId, "alt", "legenda", "https://link");
         when(imagemRepository.existsById(imagemId)).thenReturn(false);
-
         assertThatThrownBy(() -> bannerMuralService.criar(request))
                 .isInstanceOf(ValidationException.class);
-
         verify(bannerMuralRepository, never()).save(any());
     }
 
@@ -67,9 +65,7 @@ class BannerMuralServiceTest {
         when(imagemRepository.existsById(imagemId)).thenReturn(true);
         when(bannerMuralRepository.save(any(BannerMural.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(imagemRepository.findById(imagemId)).thenReturn(Optional.empty());
-
         BannerMuralAdminResponse resposta = bannerMuralService.criar(request);
-
         ArgumentCaptor<BannerMural> captor = ArgumentCaptor.forClass(BannerMural.class);
         verify(bannerMuralRepository).save(captor.capture());
         assertThat(captor.getValue().isAtivo()).isTrue();
@@ -82,7 +78,6 @@ class BannerMuralServiceTest {
         UUID id = UUID.randomUUID();
         EditarBannerMuralRequest request = new EditarBannerMuralRequest(UUID.randomUUID(), "alt", "legenda", "https://link", false);
         when(bannerMuralRepository.findById(id)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> bannerMuralService.editar(id, request))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -96,9 +91,7 @@ class BannerMuralServiceTest {
         when(bannerMuralRepository.findById(id)).thenReturn(Optional.of(banner));
         when(imagemRepository.existsById(imagemId)).thenReturn(true);
         when(imagemRepository.findById(imagemId)).thenReturn(Optional.empty());
-
         BannerMuralAdminResponse resposta = bannerMuralService.editar(id, request);
-
         assertThat(resposta.ativo()).isFalse();
         assertThat(resposta.altText()).isEqualTo("alt novo");
     }
@@ -111,9 +104,7 @@ class BannerMuralServiceTest {
         when(bannerMuralRepository.findByAtivoTrue(any())).thenReturn(List.of(banner));
         when(imagemRepository.findById(imagemId)).thenReturn(Optional.of(imagem));
         when(storageClient.urlPublicaPara(imagem.getChaveArquivo())).thenReturn("https://storage/publica.jpg");
-
         var resultado = bannerMuralService.listarAtivos();
-
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).imagemUrl()).isEqualTo("https://storage/publica.jpg");
     }
@@ -122,10 +113,8 @@ class BannerMuralServiceTest {
     void remover_deveLancarNotFoundQuandoIdNaoExiste() {
         UUID id = UUID.randomUUID();
         when(bannerMuralRepository.findById(id)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> bannerMuralService.remover(id))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
-
         verify(bannerMuralRepository, never()).delete(any());
     }
 }

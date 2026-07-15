@@ -1,59 +1,44 @@
-import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
-
-interface HotlineContato {
-  label: string;
-  telefone: string;
-}
-
-interface HotlineEstado {
-  estado: string;
-  linhas: HotlineContato[];
-}
+import { HotlineService } from '../../services/hotline/hotline';
+import { HotlineRegiao } from '../../services/hotline/hotline.model';
 
 @Component({
   selector: 'app-hotlines',
   standalone: true,
-  imports: [RouterLink, ResourceLayout],
+  imports: [CommonModule, RouterLink, ResourceLayout],
   templateUrl: './hotlines.html',
   styleUrl: './hotlines.css',
 })
-export class Hotlines {
-  readonly estados: HotlineEstado[] = [
-    { estado: 'Bahia', linhas: [{ label: 'Linha de apoio', telefone: '(a definir)' }] },
-    {
-      estado: 'Distrito Federal',
-      linhas: [{ label: 'Linha de apoio', telefone: '(a definir)' }],
-    },
-    { estado: 'Goiás', linhas: [{ label: 'Linha de apoio', telefone: '(a definir)' }] },
-    {
-      estado: 'Minas Gerais',
-      linhas: [{ label: 'Linha de apoio', telefone: '(a definir)' }],
-    },
-    { estado: 'Paraná', linhas: [{ label: 'Linha de apoio', telefone: '(a definir)' }] },
-    {
-      estado: 'Pernambuco',
-      linhas: [{ label: 'Linha de apoio', telefone: '(a definir)' }],
-    },
-    {
-      estado: 'Rio de Janeiro',
-      linhas: [{ label: 'Linha de apoio', telefone: '(a definir)' }],
-    },
-    {
-      estado: 'Rio Grande do Sul',
-      linhas: [{ label: 'Linha de apoio', telefone: '(a definir)' }],
-    },
-    {
-      estado: 'Santa Catarina',
-      linhas: [{ label: 'Linha de apoio', telefone: '(a definir)' }],
-    },
-    { estado: 'São Paulo', linhas: [{ label: 'Linha de apoio', telefone: '(a definir)' }] },
-  ];
+export class Hotlines implements OnInit {
+  private readonly hotlineService = inject(HotlineService);
 
-  estadoAberto: string | null = null;
+  readonly regioes = signal<HotlineRegiao[]>([]);
+  readonly carregando = signal(true);
+  readonly erro = signal(false);
 
-  toggleEstado(estado: string): void {
-    this.estadoAberto = this.estadoAberto === estado ? null : estado;
+  regiaoAbertaId: string | null = null;
+
+  ngOnInit(): void {
+    this.hotlineService.listarHotlines().subscribe({
+      next: (resposta) => {
+        this.carregando.set(false);
+        if (resposta.success && resposta.data) {
+          this.regioes.set(resposta.data);
+        } else {
+          this.erro.set(true);
+        }
+      },
+      error: () => {
+        this.carregando.set(false);
+        this.erro.set(true);
+      },
+    });
+  }
+
+  toggleRegiao(regiaoId: string): void {
+    this.regiaoAbertaId = this.regiaoAbertaId === regiaoId ? null : regiaoId;
   }
 }

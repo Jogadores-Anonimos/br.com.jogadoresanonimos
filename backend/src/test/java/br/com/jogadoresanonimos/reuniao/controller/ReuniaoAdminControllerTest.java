@@ -54,9 +54,7 @@ class ReuniaoAdminControllerTest {
     void listarTodas_deveRetornarOkComListaDoService() {
         ReuniaoResponse item = reuniaoResponse(UUID.randomUUID());
         when(reuniaoService.listarTodas()).thenReturn(List.of(item));
-
         ResponseEntity<ApiResponse<List<ReuniaoResponse>>> resposta = reuniaoAdminController.listarTodas();
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).containsExactly(item);
     }
@@ -66,9 +64,7 @@ class ReuniaoAdminControllerTest {
         CriarReuniaoRequest request = criarRequest();
         ReuniaoResponse esperado = reuniaoResponse(UUID.randomUUID());
         when(reuniaoService.criar(request)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<ReuniaoResponse>> resposta = reuniaoAdminController.criar(request);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(reuniaoService).criar(request);
@@ -80,9 +76,7 @@ class ReuniaoAdminControllerTest {
         EditarReuniaoRequest request = editarRequest();
         ReuniaoResponse esperado = reuniaoResponse(id);
         when(reuniaoService.editar(id, request)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<ReuniaoResponse>> resposta = reuniaoAdminController.editar(id, request);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(reuniaoService).editar(id, request);
@@ -91,9 +85,7 @@ class ReuniaoAdminControllerTest {
     @Test
     void remover_deveRetornarOkEChamarServiceComId() {
         UUID id = UUID.randomUUID();
-
         ResponseEntity<ApiResponse<MensagemResponse>> resposta = reuniaoAdminController.remover(id);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         verify(reuniaoService).remover(id);

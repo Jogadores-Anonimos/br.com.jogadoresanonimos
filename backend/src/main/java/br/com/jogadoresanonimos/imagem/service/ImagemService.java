@@ -19,10 +19,6 @@ import java.util.UUID;
 @Service
 public class ImagemService {
 
-    // Limite de negócio da imagem (5MB, ver contrato D1 devops) é menor que
-    // o teto global do multipart (20MB, elevado para caber upload de PDF na
-    // feature de literatura) — por isso a checagem explícita aqui, não dá
-    // mais para confiar só no limite do Spring pra imagem.
     private static final long LIMITE_BYTES = 5L * 1024 * 1024;
 
     private final ImagemRepository imagemRepository;
@@ -45,7 +41,6 @@ public class ImagemService {
     public ImagemResponse upload(MultipartFile arquivo, String alt, UUID adminId) {
         rateLimiterService.check("upload-imagem:" + adminId, 10, Duration.ofMinutes(1));
         rateLimiterService.check("upload-imagem:global", 60, Duration.ofMinutes(1));
-
         if (alt == null || alt.isBlank()) {
             throw new ValidationException("Texto alternativo (alt) é obrigatório");
         }
@@ -55,22 +50,17 @@ public class ImagemService {
         if (arquivo.getSize() > LIMITE_BYTES) {
             throw new ValidationException("Arquivo excede o tamanho máximo permitido (5MB)");
         }
-
         byte[] original;
         try {
             original = arquivo.getBytes();
         } catch (IOException e) {
             throw new ValidationException("Não foi possível ler o arquivo enviado");
         }
-
         ImagemProcessor.ImagemProcessada processada = imagemProcessor.processar(original);
         String chave = UUID.randomUUID() + "." + processada.extensao();
-
         storageClient.upload(chave, processada.bytes(), processada.contentType());
-
         Imagem imagem = new Imagem(arquivo.getOriginalFilename(), chave, processada.bytes().length, alt, adminId);
         imagem = imagemRepository.save(imagem);
-
         return ImagemResponse.from(imagem, storageClient.urlPublicaPara(chave));
     }
 
@@ -78,12 +68,10 @@ public class ImagemService {
     public void remover(UUID id) {
         Imagem imagem = imagemRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Imagem não encontrada"));
-
         boolean referenciada = cmsBlocoRepository.existsByImagemId(id);
         if (referenciada) {
             throw new ConflitoDeEstadoException("Imagem ainda está em uso em uma página e não pode ser removida");
         }
-
         storageClient.delete(imagem.getChaveArquivo());
         imagemRepository.delete(imagem);
     }

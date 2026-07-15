@@ -9,6 +9,7 @@ import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
 import br.com.jogadoresanonimos.imagem.service.StorageClient;
+import br.com.jogadoresanonimos.usuario.biblioteca.repository.UsuarioArquivoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +33,9 @@ class ArquivoServiceTest {
     CmsBlocoRepository cmsBlocoRepository;
 
     @Mock
+    UsuarioArquivoRepository usuarioArquivoRepository;
+
+    @Mock
     ArquivoProcessor arquivoProcessor;
 
     @Mock
@@ -44,8 +48,8 @@ class ArquivoServiceTest {
 
     @BeforeEach
     void setUp() {
-        arquivoService = new ArquivoService(arquivoRepository, cmsBlocoRepository, arquivoProcessor, storageClient,
-                rateLimiterService);
+        arquivoService = new ArquivoService(arquivoRepository, cmsBlocoRepository, usuarioArquivoRepository,
+                arquivoProcessor, storageClient, rateLimiterService);
     }
 
     @Test
@@ -54,9 +58,7 @@ class ArquivoServiceTest {
         Arquivo arquivo = new Arquivo("livro.pdf", "chave.pdf", 1024L, "antigo", "descricao antiga", UUID.randomUUID());
         when(arquivoRepository.findById(id)).thenReturn(Optional.of(arquivo));
         EditarArquivoRequest request = new EditarArquivoRequest("  novo titulo  ", "  nova descricao  ");
-
         ArquivoResponse resultado = arquivoService.editar(id, request);
-
         assertThat(resultado.titulo()).isEqualTo("novo titulo");
         assertThat(resultado.descricao()).isEqualTo("nova descricao");
         assertThat(arquivo.getChaveArquivo()).isEqualTo("chave.pdf");
@@ -67,7 +69,6 @@ class ArquivoServiceTest {
         UUID id = UUID.randomUUID();
         when(arquivoRepository.findById(id)).thenReturn(Optional.empty());
         EditarArquivoRequest request = new EditarArquivoRequest("titulo", "descricao");
-
         assertThatThrownBy(() -> arquivoService.editar(id, request))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -78,7 +79,6 @@ class ArquivoServiceTest {
         Arquivo arquivo = new Arquivo("livro.pdf", "chave.pdf", 1024L, "antigo", "descricao antiga", UUID.randomUUID());
         when(arquivoRepository.findById(id)).thenReturn(Optional.of(arquivo));
         EditarArquivoRequest request = new EditarArquivoRequest("   ", "descricao");
-
         assertThatThrownBy(() -> arquivoService.editar(id, request))
                 .isInstanceOf(ValidationException.class);
     }

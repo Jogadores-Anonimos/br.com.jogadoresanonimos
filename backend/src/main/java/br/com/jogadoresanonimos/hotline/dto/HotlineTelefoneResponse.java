@@ -4,9 +4,9 @@ import br.com.jogadoresanonimos.hotline.entity.HotlineTelefone;
 
 import java.util.UUID;
 
-public record HotlineTelefoneResponse(UUID id, String label, String telefone) {
+public record HotlineTelefoneResponse(UUID id, String telefone) {
 
     public static HotlineTelefoneResponse from(HotlineTelefone telefone) {
-        return new HotlineTelefoneResponse(telefone.getId(), telefone.getLabel(), telefone.getTelefone());
+        return new HotlineTelefoneResponse(telefone.getId(), telefone.getTelefone());
     }
 }

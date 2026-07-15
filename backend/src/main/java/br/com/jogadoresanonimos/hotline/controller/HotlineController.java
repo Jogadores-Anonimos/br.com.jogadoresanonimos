@@ -22,6 +22,6 @@ public class HotlineController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<HotlineRegiaoResponse>>> listarTodas() {
-        return ResponseEntity.ok(ApiResponse.ok(hotlineService.listarTodas()));
+        return ResponseEntity.ok(ApiResponse.ok(hotlineService.listarPublicas()));
     }
 }

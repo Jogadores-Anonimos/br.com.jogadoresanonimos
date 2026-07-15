@@ -44,9 +44,7 @@ class AvisoAdminControllerTest {
     void listarTodos_deveRetornarOkComListaDoService() {
         AvisoAdminResponse item = avisoAdminResponse(UUID.randomUUID());
         when(avisoService.listarTodos()).thenReturn(List.of(item));
-
         ResponseEntity<ApiResponse<List<AvisoAdminResponse>>> resposta = avisoAdminController.listarTodos();
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).containsExactly(item);
     }
@@ -56,9 +54,7 @@ class AvisoAdminControllerTest {
         CriarAvisoRequest request = new CriarAvisoRequest("titulo", "corpo", true, Instant.now().plus(1, ChronoUnit.DAYS));
         AvisoAdminResponse esperado = avisoAdminResponse(UUID.randomUUID());
         when(avisoService.criar(request)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<AvisoAdminResponse>> resposta = avisoAdminController.criar(request);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(avisoService).criar(request);
@@ -70,9 +66,7 @@ class AvisoAdminControllerTest {
         EditarAvisoRequest request = new EditarAvisoRequest("titulo editado", "corpo editado", false, null);
         AvisoAdminResponse esperado = avisoAdminResponse(id);
         when(avisoService.editar(id, request)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<AvisoAdminResponse>> resposta = avisoAdminController.editar(id, request);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(avisoService).editar(id, request);
@@ -81,9 +75,7 @@ class AvisoAdminControllerTest {
     @Test
     void remover_deveRetornarOkEChamarServiceComId() {
         UUID id = UUID.randomUUID();
-
         ResponseEntity<ApiResponse<MensagemResponse>> resposta = avisoAdminController.remover(id);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         verify(avisoService).remover(id);

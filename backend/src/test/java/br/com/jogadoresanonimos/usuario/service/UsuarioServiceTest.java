@@ -4,6 +4,7 @@ import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
+import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
 import br.com.jogadoresanonimos.usuario.dto.AlterarSenhaRequest;
 import br.com.jogadoresanonimos.usuario.dto.AtualizarContaRequest;
 import br.com.jogadoresanonimos.usuario.dto.UsuarioAdminResponse;
@@ -37,11 +38,14 @@ class UsuarioServiceTest {
     @Mock
     PasswordEncoder passwordEncoder;
 
+    @Mock
+    RateLimiterService rateLimiterService;
+
     UsuarioService usuarioService;
 
     @BeforeEach
     void setUp() {
-        usuarioService = new UsuarioService(usuarioRepository, passwordEncoder);
+        usuarioService = new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService);
     }
 
     private Usuario usuarioComId(UUID id, String apelido, Role role) throws Exception {
@@ -56,9 +60,7 @@ class UsuarioServiceTest {
     void listarTodos_deveMapearTodosOsUsuarios() throws Exception {
         Usuario usuario = usuarioComId(UUID.randomUUID(), "fulano", Role.PARTICIPANTE);
         when(usuarioRepository.findAllByOrderByCriadoEmDesc()).thenReturn(List.of(usuario));
-
         List<UsuarioAdminResponse> resultado = usuarioService.listarTodos();
-
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).apelido()).isEqualTo("fulano");
         assertThat(resultado.get(0).email()).isEqualTo("fulano@exemplo.com");
@@ -69,9 +71,7 @@ class UsuarioServiceTest {
         UUID id = UUID.randomUUID();
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
-
         UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.ADMIN, UUID.randomUUID());
-
         assertThat(resultado.role()).isEqualTo(Role.ADMIN);
     }
 
@@ -79,7 +79,6 @@ class UsuarioServiceTest {
     void editarRole_deveLancarExcecaoQuandoUsuarioNaoExiste() {
         UUID id = UUID.randomUUID();
         when(usuarioRepository.findById(id)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> usuarioService.editarRole(id, Role.ADMIN, UUID.randomUUID()))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -89,7 +88,6 @@ class UsuarioServiceTest {
         UUID id = UUID.randomUUID();
         Usuario admin = usuarioComId(id, "admin", Role.ADMIN);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(admin));
-
         assertThatThrownBy(() -> usuarioService.editarRole(id, Role.PARTICIPANTE, id))
                 .isInstanceOf(ConflitoDeEstadoException.class);
     }
@@ -101,9 +99,7 @@ class UsuarioServiceTest {
         Usuario admin = usuarioComId(id, "admin", Role.ADMIN);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(admin));
         lenient().when(usuarioRepository.countByRole(Role.ADMIN)).thenReturn(2L);
-
         UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.PARTICIPANTE, solicitanteId);
-
         assertThat(resultado.role()).isEqualTo(Role.PARTICIPANTE);
     }
 
@@ -114,7 +110,6 @@ class UsuarioServiceTest {
         Usuario admin = usuarioComId(id, "admin", Role.ADMIN);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(admin));
         when(usuarioRepository.countByRole(Role.ADMIN)).thenReturn(1L);
-
         assertThatThrownBy(() -> usuarioService.editarRole(id, Role.PARTICIPANTE, solicitanteId))
                 .isInstanceOf(ConflitoDeEstadoException.class);
     }
@@ -124,9 +119,7 @@ class UsuarioServiceTest {
         UUID id = UUID.randomUUID();
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
-
         UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.PARTICIPANTE, UUID.randomUUID());
-
         assertThat(resultado.role()).isEqualTo(Role.PARTICIPANTE);
     }
 
@@ -137,10 +130,8 @@ class UsuarioServiceTest {
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
         when(usuarioRepository.existsByApelidoIgnoreCase("novoApelido")).thenReturn(false);
         when(usuarioRepository.existsByEmailIgnoreCase("novo@exemplo.com")).thenReturn(false);
-
         UsuarioMeResponse resultado = usuarioService.atualizarConta(id,
                 new AtualizarContaRequest("novoApelido", "novo@exemplo.com"));
-
         assertThat(resultado.apelido()).isEqualTo("novoApelido");
         assertThat(resultado.email()).isEqualTo("novo@exemplo.com");
     }
@@ -150,10 +141,8 @@ class UsuarioServiceTest {
         UUID id = UUID.randomUUID();
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
-
         UsuarioMeResponse resultado = usuarioService.atualizarConta(id,
                 new AtualizarContaRequest("fulano", "fulano@exemplo.com"));
-
         assertThat(resultado.apelido()).isEqualTo("fulano");
     }
 
@@ -163,7 +152,6 @@ class UsuarioServiceTest {
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
         when(usuarioRepository.existsByApelidoIgnoreCase("ocupado")).thenReturn(true);
-
         assertThatThrownBy(() -> usuarioService.atualizarConta(id,
                 new AtualizarContaRequest("ocupado", "fulano@exemplo.com")))
                 .isInstanceOf(ConflitoDeEstadoException.class);
@@ -176,7 +164,6 @@ class UsuarioServiceTest {
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
         lenient().when(usuarioRepository.existsByApelidoIgnoreCase("fulano")).thenReturn(false);
         when(usuarioRepository.existsByEmailIgnoreCase("ocupado@exemplo.com")).thenReturn(true);
-
         assertThatThrownBy(() -> usuarioService.atualizarConta(id,
                 new AtualizarContaRequest("fulano", "ocupado@exemplo.com")))
                 .isInstanceOf(ConflitoDeEstadoException.class);
@@ -186,7 +173,6 @@ class UsuarioServiceTest {
     void atualizarConta_deveLancarUnauthenticatedQuandoUsuarioNaoExiste() {
         UUID id = UUID.randomUUID();
         when(usuarioRepository.findById(id)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> usuarioService.atualizarConta(id,
                 new AtualizarContaRequest("fulano", "fulano@exemplo.com")))
                 .isInstanceOf(UnauthenticatedException.class);
@@ -199,16 +185,13 @@ class UsuarioServiceTest {
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("senhaAtual123", "hash")).thenReturn(true);
         when(passwordEncoder.encode("senhaNova12345")).thenReturn("novoHash");
-
         usuarioService.alterarSenha(id, new AlterarSenhaRequest("senhaAtual123", "senhaNova12345", "senhaNova12345"));
-
         assertThat(usuario.getSenhaHash()).isEqualTo("novoHash");
     }
 
     @Test
     void alterarSenha_deveLancarValidationExceptionQuandoConfirmacaoNaoBate() {
         UUID id = UUID.randomUUID();
-
         assertThatThrownBy(() -> usuarioService.alterarSenha(id,
                 new AlterarSenhaRequest("senhaAtual123", "senhaNova12345", "outraSenha123")))
                 .isInstanceOf(ValidationException.class);
@@ -220,7 +203,6 @@ class UsuarioServiceTest {
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("senhaErrada12", "hash")).thenReturn(false);
-
         assertThatThrownBy(() -> usuarioService.alterarSenha(id,
                 new AlterarSenhaRequest("senhaErrada12", "senhaNova12345", "senhaNova12345")))
                 .isInstanceOf(UnauthenticatedException.class);
@@ -230,7 +212,6 @@ class UsuarioServiceTest {
     void alterarSenha_deveLancarUnauthenticatedQuandoUsuarioNaoExiste() {
         UUID id = UUID.randomUUID();
         when(usuarioRepository.findById(id)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> usuarioService.alterarSenha(id,
                 new AlterarSenhaRequest("senhaAtual123", "senhaNova12345", "senhaNova12345")))
                 .isInstanceOf(UnauthenticatedException.class);

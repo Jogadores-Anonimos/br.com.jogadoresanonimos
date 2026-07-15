@@ -9,16 +9,6 @@ import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-/**
- * Rate limit em memória (token bucket por chave lógica).
- * MVP proporcional ao volume do projeto (~2.500 req/dia) — sem Redis/infra
- * distribuída; se o backend escalar horizontalmente isso precisa migrar
- * para um store compartilhado (decisão futura com devops/system-design).
- * Limites exatos (capacidade/janela) ainda a confirmar com o agente security;
- * valores abaixo são placeholders documentados no contrato de API.
- * Entradas ociosas são removidas periodicamente (ver {@link #limparBucketsExpirados()})
- * para não crescer indefinidamente em memória.
- */
 @Service
 public class RateLimiterService {
 

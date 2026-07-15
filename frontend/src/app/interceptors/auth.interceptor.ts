@@ -3,11 +3,8 @@ import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
 
 import { environment } from '../../environments/environment';
-import { Auth } from '../services/auth';
+import { Auth } from '../services/auth/auth';
 
-// Anexa Authorization: Bearer <token> só em chamadas pra própria API.
-// Em 401, limpa a sessão local mas não redireciona daqui — cada tela
-// decide o que fazer com o erro no seu próprio catchError.
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(Auth);
 

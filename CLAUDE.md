@@ -65,7 +65,8 @@ que delega.
 | `devops` | Ambientes, CI/CD, Docker/Kubernetes, nuvem, deploy/rollback, observabilidade de infra (uso vai crescer quando o deploy real começar) |
 | `system-design` | Trade-offs de arquitetura (bancos, particionamento, filas, cache/CDN, gateway, serverless) — e freio contra overengineering |
 | `qa-frontend` | Testes unitários e E2E do frontend Angular |
-| `qa-backend` | Testes unitários e de integração do backend (com banco real em container) |
+| `qa-backend-unit` | Testes unitários de backend (JUnit + Mockito, mock de dependência) |
+| `qa-backend-integration` | Testes de integração/contrato de backend (Testcontainers, banco real, MockMvc) |
 | `qa-system` | Testes de integração full-stack, carga, stress e resiliência do sistema completo |
 | `code-reviewer` | Revisa (não edita) o trabalho dos demais agentes, cobrindo frontend/backend/security/infra |
 | `aprendiz` | Registra em `.claude/knowledge/` o que o time fez/decidiu, para não perder contexto entre sessões |
@@ -80,15 +81,49 @@ Ver `.claude/agents/*.md` para a definição completa de cada um.
   com a API; e, caso essa página tenha muita complexidade própria, criar
   um componente adicional para isso — tudo para ajudar na manutenção e
   legibilidade do código.
-- **Sem comentários grandes/excessivos no código** (frontend e backend):
-  nada de docstrings gigantes, blocos explicativos longos ou comentários
-  que só descrevem o óbvio. Comentário curto e pontual é aceitável quando
-  explica um porquê não-óbvio (ex: uma decisão de negócio ou uma
-  contornação de bug); o resto deve ser removido. Preferir código legível
-  por si só a comentário — inclusive se isso deixar o código estilisticamente
-  "mais feio", isso é aceitável.
+- **Comentário no código é proibido, sem exceção nenhuma** (frontend,
+  backend e migrations SQL). Isso inclui o caso de decisão de segurança
+  ou trade-off técnico crítico e não-óbvio (ex: por que uma allowlist de
+  sanitização é assim, por que um path de storage é seguro contra path
+  traversal) — essa justificativa não vai mais no código-fonte, e sim em
+  commit message/PR/documentação externa. Comentário só deve existir se o
+  usuário pedir explicitamente naquela tarefa pontual. Preferir código
+  legível por si só a comentário — inclusive se isso deixar o código
+  estilisticamente "mais feio", isso é aceitável. Comentário estilo
+  log/changelog (com data no formato AAAA-MM-DD, ou que narra status
+  temporal, tipo "validado em", "disponível desde", "desligado em", "ver X
+  se precisar voltar") permanece proibido pelo mesmo motivo: não é
+  porquê técnico atemporal, é diário de bordo e pertence a commit
+  message/PR, não ao código-fonte.
+- **Sem linha em branco decorativa no código** (frontend TS/HTML/CSS e
+  backend Java): só quebra de linha onde é sintaticamente necessária (fim
+  de statement) ou dentro de string/stream de dados multi-linha. Nada de
+  linha em branco só para separar blocos ou "organizar visualmente".
+
+## Relato de tarefa dos agentes
+- Resumo final de tarefa deve ser curto e direto (estilo telegráfico),
+  sem prosa explicando passo a passo o que foi feito. O `aprendiz` já
+  registra o conhecimento técnico em `.claude/knowledge/` — o resumo ao
+  usuário/`po` só confirma o que foi entregue e aponta bloqueios/decisões
+  pendentes, para reduzir gasto de token.
 
 ## Padrões de arquitetura
+- Antes de criar uma nova migration Flyway, sempre conferir qual é a
+  última versão (V-número) já existente em
+  `backend/src/main/resources/db/migration/`, para evitar colisão de
+  número quando agentes trabalham em paralelo (já aconteceu no projeto).
+- Reservar explicitamente o próximo número de migration assim que a
+  tarefa começar (ex: criar o arquivo vazio com o nome final logo no
+  início do trabalho), não só conferir o último V-número — colisão entre
+  agentes trabalhando em paralelo já aconteceu ~3 vezes neste projeto.
+- Teste de integração de backend pode usar `@DataJpaTest`/configuração de
+  teste padrão do Spring; Testcontainers (PostgreSQL efêmero, porta
+  dinâmica) não é mais obrigatório — considerar quando fizer sentido
+  (ex: comportamento que dependa de Postgres real), evitando
+  overengineering dado o volume baixo do projeto (ver "Contexto de
+  escala"). Se usar Postgres externo, nunca depender de porta fixa (ex:
+  5432), que colide com o Postgres de desenvolvimento do
+  `docker-compose.yml`.
 - Sempre delegue as tarefas de frontend, frontend-services, backend,
   security e devops para o agente correspondente — não misture
   responsabilidades entre eles.

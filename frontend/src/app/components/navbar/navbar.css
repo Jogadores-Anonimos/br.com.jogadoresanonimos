@@ -1,11 +1,8 @@
 :host {
   display: block;
-  /* sticky vive no wrapper pai .app-header-sticky (app.css), não aqui, para evitar sticky duplicado */
   position: relative;
-  --utility-bar-height: 48px;
 }
 
-/* Barra utilitária */
 .utility-bar {
   display: flex;
   align-items: center;
@@ -202,7 +199,6 @@
   color: var(--cor-padrao-ja);
 }
 
-/* Nav principal */
 #navbar {
   position: relative;
   display: grid;
@@ -641,7 +637,6 @@
   .nav-menu {
     display: none;
     position: fixed;
-    /* --ticker-height vem de .app-header-sticky (app.css); fallback 0px para contexto sem o wrapper */
     top: calc(var(--nav-height) + var(--utility-bar-height) + var(--ticker-height, 0px));
     left: 0;
     right: 0;

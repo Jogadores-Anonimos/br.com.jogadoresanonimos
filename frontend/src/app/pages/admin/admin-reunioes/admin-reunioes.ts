@@ -5,8 +5,9 @@ import { FormsModule } from '@angular/forms';
 import { catchError, of } from 'rxjs';
 import * as L from 'leaflet';
 
-import { ReuniaoService } from '../../../services/reuniao';
-import { CategoriaReuniao, CriarReuniaoRequest, Reuniao } from '../../../services/reuniao.model';
+import { mapearErrosCampo } from '../../../services/api-envelope';
+import { ReuniaoService } from '../../../services/reuniao/reuniao';
+import { CategoriaReuniao, CriarReuniaoRequest, Reuniao } from '../../../services/reuniao/reuniao.model';
 
 interface FormularioReuniao {
   nome: string;
@@ -34,7 +35,6 @@ function formularioVazio(): FormularioReuniao {
   };
 }
 
-// Dropdown de horário de 30 em 30 min, 00:00–23:30.
 function gerarHorarios(): string[] {
   const horarios: string[] = [];
   for (let h = 0; h < 24; h++) {
@@ -45,9 +45,6 @@ function gerarHorarios(): string[] {
   return horarios;
 }
 
-// Mesmas 3 faixas que a página pública usa pra filtrar (sem "Madrugada" —
-// horários de madrugada caem em "Noite", já que só existem essas 3 opções
-// no filtro público hoje).
 function periodoParaHorario(horario: string): 'Manhã' | 'Tarde' | 'Noite' {
   const hora = Number(horario.split(':')[0]);
   if (hora >= 5 && hora < 12) return 'Manhã';
@@ -93,6 +90,7 @@ export class AdminReunioes implements OnInit {
   formulario: FormularioReuniao = formularioVazio();
   salvando = false;
   erroFormulario = '';
+  errosCampo: Record<string, string> = {};
 
   cep = '';
   numero = '';
@@ -145,6 +143,7 @@ export class AdminReunioes implements OnInit {
     this.numero = '';
     this.erroCep = '';
     this.erroFormulario = '';
+    this.errosCampo = {};
     this.modo = 'formulario';
   }
 
@@ -165,6 +164,7 @@ export class AdminReunioes implements OnInit {
     this.numero = '';
     this.erroCep = '';
     this.erroFormulario = '';
+    this.errosCampo = {};
     this.modo = 'formulario';
   }
 
@@ -172,11 +172,9 @@ export class AdminReunioes implements OnInit {
     this.modo = 'lista';
     this.reuniaoEmEdicao = null;
     this.erroFormulario = '';
+    this.errosCampo = {};
   }
 
-  // ViaCEP preenche o endereço, Nominatim (OpenStreetMap) resolve a
-  // coordenada a partir do endereço completo — CEP sozinho não dá
-  // precisão suficiente pro pino no mapa, só serve pra achar rua/bairro.
   buscarCep(): void {
     const cepLimpo = this.cep.replace(/\D/g, '');
     if (cepLimpo.length !== 8) {
@@ -254,13 +252,24 @@ export class AdminReunioes implements OnInit {
   }
 
   salvar(): void {
-    if (
-      !this.formulario.nome.trim() ||
-      !this.formulario.descricao.trim() ||
-      !this.formulario.diaSemana.trim() ||
-      !this.formulario.horario.trim() ||
-      !this.formulario.local.trim()
-    ) {
+    this.errosCampo = {};
+
+    if (!this.formulario.nome.trim()) {
+      this.errosCampo['nome'] = 'Nome é obrigatório.';
+    }
+    if (!this.formulario.descricao.trim()) {
+      this.errosCampo['descricao'] = 'Descrição é obrigatória.';
+    }
+    if (!this.formulario.diaSemana.trim()) {
+      this.errosCampo['diaSemana'] = 'Dia da semana é obrigatório.';
+    }
+    if (!this.formulario.horario.trim()) {
+      this.errosCampo['horario'] = 'Horário é obrigatório.';
+    }
+    if (!this.formulario.local.trim()) {
+      this.errosCampo['local'] = 'Local é obrigatório.';
+    }
+    if (Object.keys(this.errosCampo).length > 0) {
       this.erroFormulario = 'Nome, descrição, dia da semana, horário e local são obrigatórios.';
       return;
     }
@@ -268,10 +277,13 @@ export class AdminReunioes implements OnInit {
     const latitude = this.formulario.latitude.trim() ? Number(this.formulario.latitude) : undefined;
     const longitude = this.formulario.longitude.trim() ? Number(this.formulario.longitude) : undefined;
 
-    if (
-      (latitude !== undefined && Number.isNaN(latitude)) ||
-      (longitude !== undefined && Number.isNaN(longitude))
-    ) {
+    if (latitude !== undefined && Number.isNaN(latitude)) {
+      this.errosCampo['latitude'] = 'Latitude precisa ser um número válido.';
+    }
+    if (longitude !== undefined && Number.isNaN(longitude)) {
+      this.errosCampo['longitude'] = 'Longitude precisa ser um número válido.';
+    }
+    if (Object.keys(this.errosCampo).length > 0) {
       this.erroFormulario = 'Latitude e longitude precisam ser números válidos.';
       return;
     }
@@ -286,9 +298,6 @@ export class AdminReunioes implements OnInit {
       nome: this.formulario.nome.trim(),
       categoria: this.formulario.categoria,
       descricao: this.formulario.descricao.trim(),
-      // "Dia" (texto de exibição) e "Período" não são mais digitados à
-      // parte — derivados de diaSemana/horario pra eliminar duplicidade
-      // de campo que confundia no formulário.
       dia: diaSemana,
       horario,
       local: this.formulario.local.trim(),
@@ -306,12 +315,18 @@ export class AdminReunioes implements OnInit {
     acao.subscribe((envelope) => {
       this.salvando = false;
 
-      if (envelope.success) {
+      if (envelope.success && envelope.data) {
+        const salva = envelope.data;
+        const reunioes = this.reuniaoEmEdicao
+          ? this.reunioes.map((r) => (r.id === salva.id ? salva : r))
+          : [...this.reunioes, salva];
+        reunioes.sort((a, b) => a.nome.localeCompare(b.nome));
+        this.reunioes = reunioes;
         this.modo = 'lista';
         this.reuniaoEmEdicao = null;
-        this.carregarReunioes();
       } else {
         this.erroFormulario = envelope.error?.message ?? 'Não foi possível salvar a reunião.';
+        this.errosCampo = mapearErrosCampo(envelope.error?.fields);
       }
     });
   }

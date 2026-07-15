@@ -6,10 +6,11 @@ import br.com.jogadoresanonimos.usuario.entity.Usuario;
 import java.time.Instant;
 import java.util.UUID;
 
-public record UsuarioMeResponse(UUID id, String apelido, String email, Role role, Instant criadoEm) {
+public record UsuarioMeResponse(UUID id, String apelido, String email, Role role, Instant criadoEm,
+                                 boolean deveTrocarSenha, boolean mfaAtivo) {
 
     public static UsuarioMeResponse from(Usuario usuario) {
         return new UsuarioMeResponse(usuario.getId(), usuario.getApelido(), usuario.getEmail(),
-                usuario.getRole(), usuario.getCriadoEm());
+                usuario.getRole(), usuario.getCriadoEm(), usuario.isDeveTrocarSenha(), usuario.isMfaAtivo());
     }
 }

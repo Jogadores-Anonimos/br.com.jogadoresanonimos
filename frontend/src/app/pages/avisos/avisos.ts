@@ -1,7 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
-import { Aviso, AvisosService } from '../../services/avisos';
+import { Aviso, AvisosService } from '../../services/avisos/avisos';
 
 @Component({
   selector: 'app-avisos',
@@ -11,7 +11,6 @@ import { Aviso, AvisosService } from '../../services/avisos';
   styleUrl: './avisos.css',
 })
 export class Avisos implements OnInit {
-  // já vem ordenada do service (fixado primeiro, depois data decrescente) — não reordenar aqui
   readonly avisos = signal<Aviso[]>([]);
   readonly carregando = signal(true);
   readonly erro = signal(false);

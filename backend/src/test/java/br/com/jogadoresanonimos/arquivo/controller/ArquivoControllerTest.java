@@ -48,9 +48,7 @@ class ArquivoControllerTest {
         EditarArquivoRequest request = new EditarArquivoRequest("novo titulo", "nova descricao");
         ArquivoResponse esperado = arquivoResponse(id);
         when(arquivoService.editar(id, request)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<ArquivoResponse>> resposta = arquivoController.editar(id, request);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(arquivoService).editar(id, request);
@@ -59,9 +57,7 @@ class ArquivoControllerTest {
     @Test
     void remover_deveRetornarOkEChamarServiceComId() {
         UUID id = UUID.randomUUID();
-
         ResponseEntity<ApiResponse<MensagemResponse>> resposta = arquivoController.remover(id);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         verify(arquivoService).remover(id);

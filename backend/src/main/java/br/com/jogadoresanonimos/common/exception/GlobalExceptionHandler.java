@@ -3,6 +3,7 @@ package br.com.jogadoresanonimos.common.exception;
 import br.com.jogadoresanonimos.common.dto.ApiError;
 import br.com.jogadoresanonimos.common.dto.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.catalina.connector.ClientAbortException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,12 +30,10 @@ public class GlobalExceptionHandler {
         String traceId = traceId();
         List<ApiError.FieldError> fields = ex instanceof ValidationException ve ? ve.getFields() : null;
         ApiError error = ApiError.of(ex.getCode().name(), ex.getMessage(), fields, traceId);
-
         HttpHeaders headers = new HttpHeaders();
         if (ex instanceof RateLimitedException rle) {
             headers.add(HttpHeaders.RETRY_AFTER, String.valueOf(rle.getRetryAfterSeconds()));
         }
-
         logOperational(ex.getStatus(), request, traceId, null);
         return ResponseEntity.status(ex.getStatus()).headers(headers).body(ApiResponse.fail(error));
     }
@@ -73,12 +73,41 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(error));
     }
 
+    @ExceptionHandler(ClientAbortException.class)
+    public ResponseEntity<Void> handleClientAbort(ClientAbortException ex, HttpServletRequest request) {
+        if (log.isDebugEnabled()) {
+            log.debug("method={} path={} clientDisconnected=true", request.getMethod(), request.getRequestURI());
+        }
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleUnexpected(Exception ex, HttpServletRequest request) {
+        if (isBrokenPipe(ex)) {
+            if (log.isDebugEnabled()) {
+                log.debug("method={} path={} clientDisconnected=true", request.getMethod(), request.getRequestURI());
+            }
+            return ResponseEntity.status(HttpStatus.OK).build();
+        }
         String traceId = traceId();
         ApiError error = ApiError.of(ErrorCode.INTERNAL_ERROR.name(), "Ocorreu um erro, tente novamente", traceId);
         logOperational(HttpStatus.INTERNAL_SERVER_ERROR, request, traceId, ex);
         return ResponseEntity.internalServerError().body(ApiResponse.fail(error));
+    }
+
+    private boolean isBrokenPipe(Throwable ex) {
+        Throwable current = ex;
+        while (current != null) {
+            if (current instanceof ClientAbortException) {
+                return true;
+            }
+            if (current instanceof IOException && current.getMessage() != null
+                    && current.getMessage().toLowerCase().contains("broken pipe")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private String traceId() {

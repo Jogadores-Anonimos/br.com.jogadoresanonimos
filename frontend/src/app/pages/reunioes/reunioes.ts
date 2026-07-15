@@ -15,8 +15,8 @@ import { FormsModule } from '@angular/forms';
 import { isPlatformBrowser } from '@angular/common';
 import * as L from 'leaflet';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
-import { ReuniaoService } from '../../services/reuniao';
-import { CategoriaReuniao, Reuniao } from '../../services/reuniao.model';
+import { ReuniaoService } from '../../services/reuniao/reuniao';
+import { CategoriaReuniao, Reuniao } from '../../services/reuniao/reuniao.model';
 
 type DiaSemana = 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo';
 type Periodo = 'Manhã' | 'Tarde' | 'Noite';
@@ -118,12 +118,6 @@ export class Reunioes implements OnInit, OnDestroy {
 
   private userCoords: { latitude: number; longitude: number } | null = null;
 
-  // Sinais em vez de campos comuns: escritos dentro de callback nativo
-  // do navegador (geolocalização), fora do Angular — em app zoneless,
-  // campo simples mutado ali não agenda CD de forma confiável e pode
-  // ficar dessincronizado de outros bindings no mesmo tick, disparando
-  // NG0100 (ExpressionChangedAfterItHasBeenCheckedError) que aborta a
-  // atualização do DOM daquele ciclo inteiro. Mesma correção do Navbar.
   localizacaoPermitida = signal(false);
   localizacaoIndisponivel = signal(false);
   localizacaoCarregando = signal(false);

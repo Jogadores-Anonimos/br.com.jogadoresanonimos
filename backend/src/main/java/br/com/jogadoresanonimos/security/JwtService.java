@@ -13,12 +13,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.UUID;
 
-/**
- * Emissão/validação de JWT. Segredo e TTL exatos (rotação, algoritmo,
- * estratégia de revogação pós-troca-de-senha) a confirmar em detalhe com o
- * agente security — implementação aqui é a estrutura mínima para os
- * endpoints do contrato funcionarem.
- */
 @Service
 public class JwtService {
 

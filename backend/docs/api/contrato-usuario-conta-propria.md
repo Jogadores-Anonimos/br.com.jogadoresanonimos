@@ -55,7 +55,9 @@ Reaproveita a entidade `Usuario` já existente (`V1`). Sem migration nova.
     "apelido": "novoApelido",
     "email": "novo@exemplo.com",
     "role": "PARTICIPANTE",
-    "criadoEm": "2026-07-01T10:00:00Z"
+    "criadoEm": "2026-07-01T10:00:00Z",
+    "deveTrocarSenha": false,
+    "mfaAtivo": false
   },
   "error": null
 }
@@ -180,3 +182,21 @@ contrato já consumido pelo frontend.
 ## Sem migration
 
 Nenhuma coluna nova — reaproveita `usuario` (`V1`) integralmente.
+
+> **Atualização 2026-07-15 (`backend`)**: `usuario` ganhou coluna
+> `deve_trocar_senha` (migration `V5`, ver `contrato-auth-cms-upload.md`).
+> Não é parte do escopo original deste contrato, mas
+> `PUT /api/v1/usuarios/me/senha` (endpoint 2 acima) passou a limpar essa
+> flag como efeito colateral de qualquer troca de senha bem-sucedida
+> (`Usuario.setSenhaHash`) — nenhuma mudança de shape de request/response
+> deste endpoint, só efeito colateral novo no banco.
+
+> **Atualização 2026-07-15 (`backend`)**: `UsuarioMeResponse` (usado tanto
+> em `GET /api/v1/usuarios/me` quanto na resposta do `PUT /me` acima)
+> ganhou o campo `mfaAtivo` (boolean), refletindo `usuario.mfa_ativo`
+> (coluna já existente desde a migration `V6`, ver
+> `contrato-mfa-admin.md`). Corrige gap: o frontend admin não tinha como
+> saber se o MFA do próprio admin logado já estava ativo sem esse campo
+> na sessão/perfil. Mudança aditiva (novo campo em objeto JSON existente)
+> — não é breaking, mas o `frontend-services` deve atualizar a
+> interface/model TypeScript correspondente para consumir o campo.

@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
-import { Cms } from '../../services/cms';
-import { CmsBlocoTexto } from '../../services/cms.model';
+import { Cms } from '../../services/cms/cms';
+import { CmsBlocoTexto } from '../../services/cms/cms.model';
 
 @Component({
   selector: 'app-sobre',

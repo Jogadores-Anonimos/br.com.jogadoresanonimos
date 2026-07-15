@@ -103,4 +103,5 @@ Ao concluir uma análise relevante, repasse um resumo curto ao agente
 `aprendiz` (o que foi decidido manter/cortar/criar e por quê) para manter
 `.claude/knowledge/frontend.md` atualizado — isso também ajuda a explicar
 ao usuário, via `professor`, por que a interface evoluiu de um jeito e
-não de outro.
+não de outro. Resumo enxuto: telegráfico, sem prosa (mesma regra de
+escrita enxuta do CLAUDE.md).

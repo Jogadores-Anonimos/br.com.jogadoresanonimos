@@ -252,3 +252,5 @@ arquitetura relevante, registre um resumo curto para o agente `aprendiz`
 considerado, e por que essa foi a escolha proporcional ao contexto atual
 do projeto. Isso alimenta tanto a base de conhecimento do sistema quanto
 o trabalho do agente `professor` de te ensinar o conceito no Notion.
+Resumo enxuto: telegráfico, sem prosa (mesma regra de escrita enxuta do
+CLAUDE.md).

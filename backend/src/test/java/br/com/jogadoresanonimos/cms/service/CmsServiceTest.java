@@ -52,9 +52,7 @@ class CmsServiceTest {
     void listarAdmin_deveExcluirPaginasOcultasDaListagem() {
         when(cmsPaginaRepository.findByOcultaNaListagemAdminFalse())
                 .thenReturn(List.of(new CmsPagina("sobre", "Sobre", UUID.randomUUID())));
-
         List<CmsPaginaListItemResponse> resultado = cmsService.listarAdmin();
-
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).slug()).isEqualTo("sobre");
         verify(cmsPaginaRepository, never()).findAll();
@@ -63,7 +61,6 @@ class CmsServiceTest {
     @Test
     void buscarPublica_deveLancarNotFoundQuandoSlugNaoExiste() {
         when(cmsPaginaRepository.findBySlug("inexistente")).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> cmsService.buscarPublica("inexistente"))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -73,7 +70,6 @@ class CmsServiceTest {
         CmsPaginaCreateRequest request = new CmsPaginaCreateRequest("sobre-nos", "Sobre Nós",
                 List.of(new BlocoRequest(1, "texto", "<p>oi</p>", null, null, null)));
         when(cmsPaginaRepository.existsBySlug("sobre-nos")).thenReturn(true);
-
         assertThatThrownBy(() -> cmsService.criar(request, UUID.randomUUID()))
                 .isInstanceOf(ConflitoDeEstadoException.class);
     }
@@ -86,7 +82,6 @@ class CmsServiceTest {
                         new BlocoRequest(1, "texto", "<p>b</p>", null, null, null)
                 ));
         when(cmsPaginaRepository.existsBySlug("sobre-nos")).thenReturn(false);
-
         assertThatThrownBy(() -> cmsService.criar(request, UUID.randomUUID()))
                 .isInstanceOf(ValidationException.class);
     }
@@ -98,7 +93,6 @@ class CmsServiceTest {
                 List.of(new BlocoRequest(1, "imagem", null, imagemIdInexistente, "descrição", null)));
         when(cmsPaginaRepository.existsBySlug("sobre-nos")).thenReturn(false);
         when(imagemRepository.existsById(imagemIdInexistente)).thenReturn(false);
-
         assertThatThrownBy(() -> cmsService.criar(request, UUID.randomUUID()))
                 .isInstanceOf(ValidationException.class);
     }
@@ -108,7 +102,6 @@ class CmsServiceTest {
         CmsPaginaCreateRequest request = new CmsPaginaCreateRequest("sobre-nos", "Sobre Nós",
                 List.of(new BlocoRequest(1, "texto", "<script>alert(1)</script>", null, null, null)));
         when(cmsPaginaRepository.existsBySlug("sobre-nos")).thenReturn(false);
-
         assertThatThrownBy(() -> cmsService.criar(request, UUID.randomUUID()))
                 .isInstanceOf(ValidationException.class);
     }
@@ -118,17 +111,13 @@ class CmsServiceTest {
         CmsPaginaCreateRequest request = new CmsPaginaCreateRequest("sobre-nos", "Sobre Nós",
                 List.of(new BlocoRequest(1, "texto", "<p>conteúdo válido</p>", null, null, null)));
         when(cmsPaginaRepository.existsBySlug("sobre-nos")).thenReturn(false);
-
-        // após save, buscarAdmin faz um novo findBySlug — simulamos retornando a página criada
         CmsPagina[] capturada = new CmsPagina[1];
         when(cmsPaginaRepository.save(any(CmsPagina.class))).thenAnswer(inv -> {
             capturada[0] = inv.getArgument(0);
             return capturada[0];
         });
         when(cmsPaginaRepository.findBySlug("sobre-nos")).thenAnswer(inv -> Optional.ofNullable(capturada[0]));
-
         CmsPaginaAdminResponse response = cmsService.criar(request, UUID.randomUUID());
-
         assertThat(response.slug()).isEqualTo("sobre-nos");
         assertThat(response.blocos()).hasSize(1);
         assertThat(response.blocos().get(0).conteudo()).isEqualTo("<p>conteúdo válido</p>");

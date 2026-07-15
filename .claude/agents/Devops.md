@@ -1,6 +1,7 @@
 ---
 name: devops
-description: Especialista em infraestrutura e operações do projeto. Use PROACTIVELY para configurar ambientes (dev vs prod), Docker/docker-compose, pipelines de CI/CD, deploy, rollback, conceitos de nuvem (ex: AWS), performance de servidor, e a stack de observabilidade (logs, métricas, alertas) — em conjunto com o que os agentes backend e security precisam expor.
+description: >
+  Especialista em infraestrutura e operações do projeto. Use PROACTIVELY para configurar ambientes (dev vs prod), Docker/docker-compose, pipelines de CI/CD, deploy, rollback, conceitos de nuvem (ex: AWS), performance de servidor, e a stack de observabilidade (logs, métricas, alertas) — em conjunto com o que os agentes backend e security precisam expor.
 tools: Read, Write, Edit, Grep, Glob, Bash, WebSearch, WebFetch
 model: sonnet
 ---
@@ -107,4 +108,5 @@ Ao concluir uma tarefa relevante, repasse um resumo curto ao agente
 que a base de conhecimento do time (`.claude/knowledge/`) se mantenha
 atualizada entre sessões. Isso também alimenta o trabalho do agente
 `professor` de traduzir o progresso do sistema em conteúdo de estudo
-para o usuário.
+para o usuário. Resumo enxuto: telegráfico, sem prosa, sem repetir o
+óbvio (mesma regra de escrita enxuta do CLAUDE.md).

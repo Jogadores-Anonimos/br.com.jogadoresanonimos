@@ -41,9 +41,7 @@ class AvisoServiceTest {
     void listarAtivos_deveDelegarParaRepositoryComInstanteAtualEMapear() {
         Aviso aviso = new Aviso("titulo", "corpo", true, null);
         when(avisoRepository.findAtivosOrdenados(any(Instant.class))).thenReturn(List.of(aviso));
-
         var resultado = avisoService.listarAtivos();
-
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).titulo()).isEqualTo("titulo");
         assertThat(resultado.get(0).fixado()).isTrue();
@@ -53,9 +51,7 @@ class AvisoServiceTest {
     void listarTodos_deveRetornarTodosOrdenadosIncluindoExpirado() {
         Aviso expirado = new Aviso("expirado", "corpo", false, Instant.now().minus(1, ChronoUnit.DAYS));
         when(avisoRepository.findAllByOrderByFixadoDescCriadoEmDesc()).thenReturn(List.of(expirado));
-
         List<AvisoAdminResponse> resultado = avisoService.listarTodos();
-
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).expirado()).isTrue();
     }
@@ -64,9 +60,7 @@ class AvisoServiceTest {
     void criar_deveSalvarComTextoTrimadoERetornarResponse() {
         CriarAvisoRequest request = new CriarAvisoRequest("  titulo  ", "  corpo  ", false, null);
         when(avisoRepository.save(any(Aviso.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
         AvisoAdminResponse resultado = avisoService.criar(request);
-
         ArgumentCaptor<Aviso> captor = ArgumentCaptor.forClass(Aviso.class);
         verify(avisoRepository).save(captor.capture());
         assertThat(captor.getValue().getTitulo()).isEqualTo("titulo");
@@ -80,9 +74,7 @@ class AvisoServiceTest {
         Aviso aviso = new Aviso("antigo", "corpo antigo", false, null);
         when(avisoRepository.findById(id)).thenReturn(Optional.of(aviso));
         EditarAvisoRequest request = new EditarAvisoRequest("novo", "corpo novo", true, null);
-
         AvisoAdminResponse resultado = avisoService.editar(id, request);
-
         assertThat(resultado.titulo()).isEqualTo("novo");
         assertThat(resultado.fixado()).isTrue();
     }
@@ -92,7 +84,6 @@ class AvisoServiceTest {
         UUID id = UUID.randomUUID();
         when(avisoRepository.findById(id)).thenReturn(Optional.empty());
         EditarAvisoRequest request = new EditarAvisoRequest("novo", "corpo novo", true, null);
-
         assertThatThrownBy(() -> avisoService.editar(id, request))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -102,9 +93,7 @@ class AvisoServiceTest {
         UUID id = UUID.randomUUID();
         Aviso aviso = new Aviso("titulo", "corpo", false, null);
         when(avisoRepository.findById(id)).thenReturn(Optional.of(aviso));
-
         avisoService.remover(id);
-
         verify(avisoRepository).delete(aviso);
     }
 
@@ -112,10 +101,8 @@ class AvisoServiceTest {
     void remover_deveLancarExcecaoQuandoNaoExiste() {
         UUID id = UUID.randomUUID();
         when(avisoRepository.findById(id)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> avisoService.remover(id))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
-
         verify(avisoRepository, never()).delete(any());
     }
 }

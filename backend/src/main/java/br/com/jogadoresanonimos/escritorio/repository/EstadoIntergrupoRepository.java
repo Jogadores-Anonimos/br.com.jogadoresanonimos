@@ -5,6 +5,7 @@ import br.com.jogadoresanonimos.escritorio.entity.UnidadeFederativa;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface EstadoIntergrupoRepository extends JpaRepository<EstadoIntergrupo, UUID> {
@@ -12,4 +13,6 @@ public interface EstadoIntergrupoRepository extends JpaRepository<EstadoIntergru
     List<EstadoIntergrupo> findAllByRegiaoIdOrderByOrdemAsc(UUID regiaoId);
 
     boolean existsByRegiaoIdAndUf(UUID regiaoId, UnidadeFederativa uf);
+
+    Optional<EstadoIntergrupo> findByRegiaoIdAndUf(UUID regiaoId, UnidadeFederativa uf);
 }

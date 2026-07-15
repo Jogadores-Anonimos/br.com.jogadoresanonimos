@@ -31,16 +31,30 @@ public class Usuario {
     @Column(name = "senha_alterada_em", nullable = false)
     private Instant senhaAlteradaEm;
 
+    @Column(name = "deve_trocar_senha", nullable = false)
+    private boolean deveTrocarSenha;
+
+    @Column(name = "mfa_secret_cifrado")
+    private String mfaSecretCifrado;
+
+    @Column(name = "mfa_ativo", nullable = false)
+    private boolean mfaAtivo;
+
     protected Usuario() {
     }
 
     public Usuario(String apelido, String email, String senhaHash, Role role) {
+        this(apelido, email, senhaHash, role, false);
+    }
+
+    public Usuario(String apelido, String email, String senhaHash, Role role, boolean deveTrocarSenha) {
         this.apelido = apelido;
         this.email = email;
         this.senhaHash = senhaHash;
         this.role = role;
         this.criadoEm = Instant.now();
         this.senhaAlteradaEm = Instant.now();
+        this.deveTrocarSenha = deveTrocarSenha;
     }
 
     public UUID getId() {
@@ -62,6 +76,11 @@ public class Usuario {
     public void setSenhaHash(String senhaHash) {
         this.senhaHash = senhaHash;
         this.senhaAlteradaEm = Instant.now();
+        this.deveTrocarSenha = false;
+    }
+
+    public boolean isDeveTrocarSenha() {
+        return deveTrocarSenha;
     }
 
     public Role getRole() {
@@ -83,5 +102,27 @@ public class Usuario {
     public void editarConta(String novoApelido, String novoEmail) {
         this.apelido = novoApelido;
         this.email = novoEmail;
+    }
+
+    public String getMfaSecretCifrado() {
+        return mfaSecretCifrado;
+    }
+
+    public boolean isMfaAtivo() {
+        return mfaAtivo;
+    }
+
+    public void iniciarEnrollmentMfa(String secretCifrado) {
+        this.mfaSecretCifrado = secretCifrado;
+        this.mfaAtivo = false;
+    }
+
+    public void confirmarMfa() {
+        this.mfaAtivo = true;
+    }
+
+    public void desativarMfa() {
+        this.mfaAtivo = false;
+        this.mfaSecretCifrado = null;
     }
 }

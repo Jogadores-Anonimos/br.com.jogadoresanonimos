@@ -2,8 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { ReflexaoDoDiaService } from '../../../services/reflexao-do-dia';
-import { ReflexaoDiaDoMes } from '../../../services/reflexao-dia.model';
+import { mapearErrosCampo } from '../../../services/api-envelope';
+import { ReflexaoDoDiaService } from '../../../services/reflexao-do-dia/reflexao-do-dia';
+import { ReflexaoDiaDoMes } from '../../../services/reflexao-do-dia/reflexao-do-dia.model';
 
 interface MesOpcao {
   numero: number;
@@ -37,6 +38,7 @@ export class AdminReflexaoDoDia implements OnInit {
   textoFormulario = '';
   salvando = false;
   erroFormulario = '';
+  errosCampo: Record<string, string> = {};
 
   ngOnInit(): void {
     this.carregarMes();
@@ -71,21 +73,25 @@ export class AdminReflexaoDoDia implements OnInit {
     this.diaEmEdicao = dia;
     this.textoFormulario = dia.texto ?? '';
     this.erroFormulario = '';
+    this.errosCampo = {};
   }
 
   fecharFormulario(): void {
     this.diaEmEdicao = null;
     this.textoFormulario = '';
     this.erroFormulario = '';
+    this.errosCampo = {};
   }
 
   salvar(): void {
     if (!this.diaEmEdicao) {
       return;
     }
+    this.errosCampo = {};
     const texto = this.textoFormulario.trim();
     if (!texto) {
       this.erroFormulario = 'O texto da reflexão é obrigatório.';
+      this.errosCampo['texto'] = this.erroFormulario;
       return;
     }
 
@@ -104,6 +110,7 @@ export class AdminReflexaoDoDia implements OnInit {
         this.fecharFormulario();
       } else {
         this.erroFormulario = envelope.error?.message ?? 'Não foi possível salvar a reflexão.';
+        this.errosCampo = mapearErrosCampo(envelope.error?.fields);
       }
     });
   }

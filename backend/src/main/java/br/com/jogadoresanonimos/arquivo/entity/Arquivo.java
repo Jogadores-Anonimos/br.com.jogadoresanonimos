@@ -34,9 +34,6 @@ public class Arquivo {
     @Column(name = "criado_por", nullable = false)
     private UUID criadoPor;
 
-    // Nullable — nem todo upload gera thumbnail (falha de renderização
-    // não derruba o upload, ver ArquivoProcessor) e arquivos enviados
-    // antes desta coluna existir nunca vão ter uma.
     @Column(name = "thumbnail_chave")
     private String thumbnailChave;
 

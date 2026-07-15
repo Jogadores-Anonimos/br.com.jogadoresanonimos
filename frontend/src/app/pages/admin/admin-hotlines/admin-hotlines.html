@@ -7,7 +7,7 @@
       </p>
     </div>
     <button
-      *ngIf="!novaRegiaoAberta"
+      *ngIf="modoFormularioRegiao === 'fechado'"
       type="button"
       class="admin-hotlines__botao admin-hotlines__botao--primario"
       (click)="abrirNovaRegiao()"
@@ -16,30 +16,110 @@
     </button>
   </div>
 
-  <form *ngIf="novaRegiaoAberta" class="admin-hotlines__form-regiao" (ngSubmit)="criarRegiao()">
-    <div class="admin-hotlines__campo">
-      <label for="nova-regiao-nome">Nome da região</label>
-      <input
-        id="nova-regiao-nome"
-        type="text"
-        name="novaRegiaoNome"
-        placeholder="Ex: São Paulo"
-        [(ngModel)]="novaRegiaoNome"
-        required
-      />
+  <form *ngIf="modoFormularioRegiao !== 'fechado'" class="admin-hotlines__form-regiao" (ngSubmit)="salvarRegiao()">
+    <h3 class="admin-hotlines__campo-rotulo">
+      {{ modoFormularioRegiao === 'edicao' ? 'Editar região' : 'Nova região' }}
+    </h3>
+
+    <div class="admin-hotlines__campo-linha">
+      <div class="admin-hotlines__campo">
+        <label for="regiao-uf">UF</label>
+        <select
+          id="regiao-uf"
+          name="regiaoUf"
+          [(ngModel)]="formularioRegiao.uf"
+          (ngModelChange)="onUfSelecionada($event)"
+          [class.campo-invalido]="errosCampoRegiao['uf']"
+          [attr.aria-invalid]="errosCampoRegiao['uf'] ? 'true' : null"
+          required
+        >
+          <option value="" disabled>Selecione</option>
+          <option *ngFor="let uf of unidadesFederativas" [value]="uf.sigla">{{ uf.nome }} ({{ uf.sigla }})</option>
+        </select>
+      </div>
+      <div class="admin-hotlines__campo">
+        <label for="regiao-cidade">Cidade</label>
+        <select
+          *ngIf="!erroCarregamentoCidades"
+          id="regiao-cidade"
+          name="regiaoCidade"
+          [(ngModel)]="formularioRegiao.cidade"
+          [disabled]="!formularioRegiao.uf || carregandoCidades"
+          [class.campo-invalido]="errosCampoRegiao['cidade']"
+          [attr.aria-invalid]="errosCampoRegiao['cidade'] ? 'true' : null"
+          required
+        >
+          <option value="" disabled>
+            {{ carregandoCidades ? 'Carregando cidades…' : 'Selecione' }}
+          </option>
+          <option *ngFor="let cidade of cidadesDaUf" [value]="cidade">{{ cidade }}</option>
+        </select>
+        <input
+          *ngIf="erroCarregamentoCidades"
+          id="regiao-cidade"
+          type="text"
+          name="regiaoCidade"
+          placeholder="Digite a cidade"
+          maxlength="150"
+          autocomplete="off"
+          [(ngModel)]="formularioRegiao.cidade"
+          [class.campo-invalido]="errosCampoRegiao['cidade']"
+          [attr.aria-invalid]="errosCampoRegiao['cidade'] ? 'true' : null"
+          required
+        />
+      </div>
     </div>
 
-    <p *ngIf="erroNovaRegiao" class="admin-hotlines__erro-card" role="alert">{{ erroNovaRegiao }}</p>
+    <p *ngIf="erroCarregamentoCidades" class="admin-hotlines__ajuda" role="alert">
+      {{ erroCarregamentoCidades }}
+    </p>
+
+    <ng-container *ngIf="modoFormularioRegiao === 'novo'">
+      <ul class="admin-hotlines__telefones-lista" *ngIf="telefonesNovaRegiao.length > 0">
+        <li *ngFor="let telefone of telefonesNovaRegiao" class="admin-hotlines__telefone-item">
+          <div class="admin-hotlines__campo-linha admin-hotlines__campo-linha--unica">
+            <div class="admin-hotlines__campo">
+              <label [attr.for]="'nova-regiao-telefone-numero-' + telefone.id">Telefone</label>
+              <input
+                [id]="'nova-regiao-telefone-numero-' + telefone.id"
+                type="text"
+                placeholder="Ex: (11) 4321-0000"
+                [(ngModel)]="telefone.telefone"
+                [name]="'novaRegiaoTelefoneNumero-' + telefone.id"
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            class="admin-hotlines__botao admin-hotlines__botao--perigo admin-hotlines__botao--pequeno"
+            *ngIf="telefonesNovaRegiao.length > 1"
+            (click)="removerTelefoneNovaRegiao(telefone.id)"
+          >
+            Remover telefone
+          </button>
+        </li>
+      </ul>
+
+      <button
+        type="button"
+        class="admin-hotlines__botao admin-hotlines__botao--secundario admin-hotlines__botao--pequeno"
+        (click)="adicionarTelefoneNovaRegiao()"
+      >
+        + Adicionar telefone
+      </button>
+    </ng-container>
+
+    <p *ngIf="erroFormularioRegiao" class="admin-hotlines__erro-card" role="alert">{{ erroFormularioRegiao }}</p>
 
     <div class="admin-hotlines__acoes">
-      <button type="submit" class="admin-hotlines__botao admin-hotlines__botao--primario" [disabled]="criandoRegiao">
-        {{ criandoRegiao ? 'Criando…' : 'Criar região' }}
+      <button type="submit" class="admin-hotlines__botao admin-hotlines__botao--primario" [disabled]="salvandoRegiao">
+        {{ salvandoRegiao ? 'Salvando…' : 'Salvar' }}
       </button>
       <button
         type="button"
         class="admin-hotlines__botao admin-hotlines__botao--secundario"
-        [disabled]="criandoRegiao"
-        (click)="cancelarNovaRegiao()"
+        [disabled]="salvandoRegiao"
+        (click)="cancelarFormularioRegiao()"
       >
         Cancelar
       </button>
@@ -60,7 +140,7 @@
     <li *ngFor="let regiao of regioes" class="admin-hotlines__regiao">
       <div class="admin-hotlines__regiao-cabecalho">
         <div class="admin-hotlines__regiao-info">
-          <span class="admin-hotlines__regiao-nome">{{ regiao.nome }}</span>
+          <span class="admin-hotlines__regiao-nome">{{ regiao.cidade }} - {{ regiao.uf }}</span>
           <span class="admin-hotlines__regiao-contagem">
             {{ totalTelefones(regiao) }} telefone{{ totalTelefones(regiao) === 1 ? '' : 's' }}
           </span>
@@ -68,6 +148,14 @@
 
         <ng-container *ngIf="confirmandoExclusaoRegiaoId !== regiao.id; else confirmacaoExclusaoRegiao">
           <div class="admin-hotlines__acoes">
+            <button
+              type="button"
+              class="admin-hotlines__botao admin-hotlines__botao--secundario admin-hotlines__botao--pequeno"
+              *ngIf="regiaoEmEdicaoId !== regiao.id"
+              (click)="abrirEdicaoRegiao(regiao)"
+            >
+              Editar região
+            </button>
             <button
               type="button"
               class="admin-hotlines__botao admin-hotlines__botao--secundario admin-hotlines__botao--pequeno"
@@ -119,7 +207,7 @@
       </p>
 
       <p *ngIf="regiaoEmEdicaoId !== regiao.id && totalTelefones(regiao) > 0" class="admin-hotlines__resumo-telefones">
-        {{ regiao.telefones[0].label }}: {{ regiao.telefones[0].telefone
+        {{ regiao.telefones[0].telefone
         }}<ng-container *ngIf="totalTelefones(regiao) > 1"> (+{{ totalTelefones(regiao) - 1 }})</ng-container>
       </p>
 
@@ -128,22 +216,9 @@
         class="admin-hotlines__form-telefones"
         (ngSubmit)="salvarTelefones(regiao)"
       >
-        <span class="admin-hotlines__campo-rotulo">Telefones</span>
-
         <ul class="admin-hotlines__telefones-lista" *ngIf="telefonesFormulario.length > 0">
           <li *ngFor="let telefone of telefonesFormulario" class="admin-hotlines__telefone-item">
-            <div class="admin-hotlines__campo-linha">
-              <div class="admin-hotlines__campo">
-                <label [attr.for]="'telefone-label-' + telefone.id">Descrição</label>
-                <input
-                  [id]="'telefone-label-' + telefone.id"
-                  type="text"
-                  placeholder="Ex: Central de atendimento"
-                  [(ngModel)]="telefone.label"
-                  [name]="'telefoneLabel-' + telefone.id"
-                  required
-                />
-              </div>
+            <div class="admin-hotlines__campo-linha admin-hotlines__campo-linha--unica">
               <div class="admin-hotlines__campo">
                 <label [attr.for]="'telefone-numero-' + telefone.id">Telefone</label>
                 <input
@@ -152,6 +227,8 @@
                   placeholder="Ex: (11) 4321-0000"
                   [(ngModel)]="telefone.telefone"
                   [name]="'telefoneNumero-' + telefone.id"
+                  [class.campo-invalido]="idsTelefoneInvalido.has(telefone.id)"
+                  [attr.aria-invalid]="idsTelefoneInvalido.has(telefone.id) ? 'true' : null"
                   required
                 />
               </div>

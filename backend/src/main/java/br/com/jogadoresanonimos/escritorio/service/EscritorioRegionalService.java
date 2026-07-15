@@ -13,7 +13,8 @@ import br.com.jogadoresanonimos.escritorio.repository.RegiaoIntergrupoRepository
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.EnumSet;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -45,20 +46,6 @@ public class EscritorioRegionalService {
         return new EscritoriosRegionaisResponse(escritorios, regioes);
     }
 
-    // ---- Região ----
-
-    @Transactional
-    public RegiaoIntergrupoResponse criarRegiao(CriarRegiaoRequest request) {
-        String nome = request.nome().trim();
-        if (regiaoRepository.existsByNomeIgnoreCase(nome)) {
-            throw new ValidationException("Já existe uma região com esse nome.");
-        }
-        int ordem = proximaOrdem(regiaoRepository.findAllByOrderByOrdemAsc(), RegiaoIntergrupo::getOrdem);
-        RegiaoIntergrupo regiao = new RegiaoIntergrupo(nome, ordem);
-        regiao = regiaoRepository.save(regiao);
-        return RegiaoIntergrupoResponse.semEstados(regiao);
-    }
-
     @Transactional
     public RegiaoIntergrupoResponse editarRegiao(UUID id, EditarRegiaoRequest request) {
         RegiaoIntergrupo regiao = buscarRegiaoOuFalhar(id);
@@ -68,12 +55,6 @@ public class EscritorioRegionalService {
         }
         regiao.editar(nome);
         return RegiaoIntergrupoResponse.from(regiao);
-    }
-
-    @Transactional
-    public void removerRegiao(UUID id) {
-        RegiaoIntergrupo regiao = buscarRegiaoOuFalhar(id);
-        regiaoRepository.delete(regiao);
     }
 
     @Transactional
@@ -96,8 +77,6 @@ public class EscritorioRegionalService {
         }
         return RegiaoIntergrupoResponse.semEstados(regiao);
     }
-
-    // ---- Estado ----
 
     @Transactional
     public EstadoIntergrupoResponse criarEstado(UUID regiaoId, CriarEstadoRequest request) {
@@ -152,26 +131,47 @@ public class EscritorioRegionalService {
         return EstadoIntergrupoResponse.from(estado);
     }
 
-    // ---- Grupo ----
-
     @Transactional
     public GrupoIntergrupoResponse criarGrupo(UUID estadoId, CriarGrupoRequest request) {
         EstadoIntergrupo estado = buscarEstadoOuFalhar(estadoId);
-        Set<DiaSemana> dias = resolverDiasSemana(request.diasSemana());
+        return criarGrupoNoEstado(estado, estadoId, request.nome(), request.endereco(), request.bairro(),
+                request.cidade(), request.agenda(), request.telefones());
+    }
+
+    @Transactional
+    public GrupoIntergrupoResponse criarEnderecoGrupo(UUID regiaoId, CriarEnderecoGrupoRequest request) {
+        RegiaoIntergrupo regiao = buscarRegiaoOuFalhar(regiaoId);
+        UnidadeFederativa uf = resolverUf(request.uf());
+        EstadoIntergrupo estado = estadoRepository.findByRegiaoIdAndUf(regiaoId, uf)
+                .orElseGet(() -> criarEstadoAutomaticamente(regiao, uf));
+        return criarGrupoNoEstado(estado, estado.getId(), request.nome(), request.endereco(), request.bairro(),
+                request.cidade(), request.agenda(), request.telefones());
+    }
+
+    private EstadoIntergrupo criarEstadoAutomaticamente(RegiaoIntergrupo regiao, UnidadeFederativa uf) {
+        int ordem = proximaOrdem(estadoRepository.findAllByRegiaoIdOrderByOrdemAsc(regiao.getId()), EstadoIntergrupo::getOrdem);
+        return estadoRepository.save(new EstadoIntergrupo(regiao, uf, ordem));
+    }
+
+    private GrupoIntergrupoResponse criarGrupoNoEstado(EstadoIntergrupo estado, UUID estadoId, String nome,
+                                                         String endereco, String bairro, String cidade,
+                                                         List<AgendaItemRequest> agendaRequest,
+                                                         List<GrupoTelefoneRequest> telefonesRequest) {
+        List<AgendaItemGrupo> agenda = resolverAgenda(agendaRequest);
         int ordem = proximaOrdem(grupoRepository.findAllByEstadoIdOrderByOrdemAsc(estadoId), GrupoIntergrupo::getOrdem);
-        GrupoIntergrupo grupo = new GrupoIntergrupo(estado, request.nome().trim(), request.endereco().trim(),
-                normalizar(request.bairro()), request.cidade().trim(), dias, request.horario().trim(), ordem);
+        GrupoIntergrupo grupo = new GrupoIntergrupo(estado, nome.trim(), endereco.trim(),
+                normalizar(bairro), cidade.trim(), agenda, ordem);
         grupo = grupoRepository.save(grupo);
-        grupo.substituirTelefones(criarTelefones(grupo, request.telefones()));
+        grupo.substituirTelefones(criarTelefones(grupo, telefonesRequest));
         return GrupoIntergrupoResponse.from(grupo);
     }
 
     @Transactional
     public GrupoIntergrupoResponse editarGrupo(UUID estadoId, UUID id, EditarGrupoRequest request) {
         GrupoIntergrupo grupo = buscarGrupoOuFalhar(estadoId, id);
-        Set<DiaSemana> dias = resolverDiasSemana(request.diasSemana());
+        List<AgendaItemGrupo> agenda = resolverAgenda(request.agenda());
         grupo.editar(request.nome().trim(), request.endereco().trim(), normalizar(request.bairro()),
-                request.cidade().trim(), dias, request.horario().trim());
+                request.cidade().trim(), agenda);
         grupo.substituirTelefones(criarTelefones(grupo, request.telefones()));
         return GrupoIntergrupoResponse.from(grupo);
     }
@@ -222,8 +222,6 @@ public class EscritorioRegionalService {
                 .toList();
     }
 
-    // ---- Escritório de Serviço ----
-
     @Transactional
     public EscritorioServicoResponse criarEscritorioServico(CriarEscritorioServicoRequest request) {
         int ordem = proximaOrdem(escritorioServicoRepository.findAllByOrderByOrdemAsc(), EscritorioServico::getOrdem);
@@ -271,8 +269,6 @@ public class EscritorioRegionalService {
         return EscritorioServicoResponse.from(escritorio);
     }
 
-    // ---- helpers ----
-
     private RegiaoIntergrupo buscarRegiaoOuFalhar(UUID id) {
         return regiaoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Região não encontrada"));
@@ -310,16 +306,22 @@ public class EscritorioRegionalService {
                 .orElseThrow(() -> new ValidationException("UF inválida: informe uma das 27 UFs do Brasil."));
     }
 
-    private static Set<DiaSemana> resolverDiasSemana(List<String> diasSemana) {
-        Set<DiaSemana> dias = EnumSet.noneOf(DiaSemana.class);
-        for (String dia : diasSemana) {
+    private static List<AgendaItemGrupo> resolverAgenda(List<AgendaItemRequest> agenda) {
+        Set<DiaSemana> diasJaVistos = new HashSet<>();
+        List<AgendaItemGrupo> itens = new ArrayList<>();
+        for (AgendaItemRequest item : agenda) {
+            DiaSemana dia;
             try {
-                dias.add(DiaSemana.valueOf(dia.trim().toUpperCase()));
+                dia = DiaSemana.valueOf(item.diaSemana().trim().toUpperCase());
             } catch (IllegalArgumentException ex) {
-                throw new ValidationException("Dia da semana inválido: " + dia);
+                throw new ValidationException("Dia da semana inválido: " + item.diaSemana());
             }
+            if (!diasJaVistos.add(dia)) {
+                throw new ValidationException("Dia da semana duplicado na agenda: " + dia.name());
+            }
+            itens.add(new AgendaItemGrupo(dia, item.horario().trim()));
         }
-        return dias;
+        return itens;
     }
 
     private static <T> int proximaOrdem(List<T> itensOrdenados, java.util.function.ToIntFunction<T> getOrdem) {

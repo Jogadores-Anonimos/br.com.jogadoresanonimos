@@ -17,9 +17,6 @@ public class HotlineTelefone {
     @JoinColumn(name = "regiao_id", nullable = false)
     private HotlineRegiao regiao;
 
-    @Column(nullable = false, length = 100)
-    private String label;
-
     @Column(nullable = false, length = 30)
     private String telefone;
 
@@ -32,16 +29,14 @@ public class HotlineTelefone {
     protected HotlineTelefone() {
     }
 
-    public HotlineTelefone(HotlineRegiao regiao, String label, String telefone) {
+    public HotlineTelefone(HotlineRegiao regiao, String telefone) {
         this.regiao = regiao;
-        this.label = label;
         this.telefone = telefone;
         this.criadoEm = Instant.now();
         this.atualizadoEm = Instant.now();
     }
 
-    public void editar(String label, String telefone) {
-        this.label = label;
+    public void editar(String telefone) {
         this.telefone = telefone;
         this.atualizadoEm = Instant.now();
     }
@@ -52,10 +47,6 @@ public class HotlineTelefone {
 
     public HotlineRegiao getRegiao() {
         return regiao;
-    }
-
-    public String getLabel() {
-        return label;
     }
 
     public String getTelefone() {

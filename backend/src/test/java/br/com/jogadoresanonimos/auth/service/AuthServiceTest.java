@@ -9,6 +9,8 @@ import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
 import br.com.jogadoresanonimos.security.JwtService;
+import br.com.jogadoresanonimos.security.MfaSecretCipher;
+import br.com.jogadoresanonimos.security.TotpService;
 import br.com.jogadoresanonimos.usuario.entity.Role;
 import br.com.jogadoresanonimos.usuario.entity.Usuario;
 import br.com.jogadoresanonimos.usuario.repository.UsuarioRepository;
@@ -46,6 +48,12 @@ class AuthServiceTest {
     EmailService emailService;
     @Mock
     HmacHasher hmacHasher;
+    @Mock
+    RecaptchaService recaptchaService;
+    @Mock
+    TotpService totpService;
+    @Mock
+    MfaSecretCipher mfaSecretCipher;
 
     RateLimiterService rateLimiterService;
 
@@ -56,7 +64,7 @@ class AuthServiceTest {
     void setUp() {
         rateLimiterService = new RateLimiterService();
         authService = new AuthService(usuarioRepository, resetTokenRepository, passwordEncoder, jwtService,
-                emailService, rateLimiterService, hmacHasher);
+                emailService, rateLimiterService, hmacHasher, recaptchaService, totpService, mfaSecretCipher);
         lenientHmac();
     }
 
@@ -65,15 +73,33 @@ class AuthServiceTest {
     }
 
     @Test
+    void registrar_deveFalharQuandoRecaptchaInvalido() {
+        RegistroRequest request = new RegistroRequest("novato", "novato@example.com", "senhaForte123", "senhaForte123", "captcha-token");
+        doThrow(new ValidationException("Falha na verificação do reCAPTCHA"))
+                .when(recaptchaService).validar("captcha-token");
+        assertThatThrownBy(() -> authService.registrar(request))
+                .isInstanceOf(ValidationException.class);
+        verifyNoInteractions(usuarioRepository);
+    }
+
+    @Test
+    void login_deveFalharQuandoRecaptchaInvalido() {
+        LoginRequest request = new LoginRequest("apelido", "senhaCorreta123", "captcha-token");
+        doThrow(new ValidationException("Falha na verificação do reCAPTCHA"))
+                .when(recaptchaService).validar("captcha-token");
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(ValidationException.class);
+        verifyNoInteractions(usuarioRepository);
+    }
+
+    @Test
     void registrar_deveCriarUsuarioComSenhaHasheada() {
-        RegistroRequest request = new RegistroRequest("novato", "novato@example.com", "senhaForte123", "senhaForte123");
+        RegistroRequest request = new RegistroRequest("novato", "novato@example.com", "senhaForte123", "senhaForte123", "captcha-token");
         when(usuarioRepository.existsByApelidoIgnoreCase("novato")).thenReturn(false);
         when(usuarioRepository.existsByEmailIgnoreCase("novato@example.com")).thenReturn(false);
         when(passwordEncoder.encode("senhaForte123")).thenReturn("hash-da-senha");
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
-
         UsuarioResponse response = authService.registrar(request);
-
         assertThat(response.apelido()).isEqualTo("novato");
         assertThat(response.role()).isEqualTo(Role.PARTICIPANTE);
         verify(usuarioRepository).save(any(Usuario.class));
@@ -81,8 +107,7 @@ class AuthServiceTest {
 
     @Test
     void registrar_deveFalharQuandoSenhasNaoCoincidem() {
-        RegistroRequest request = new RegistroRequest("novato", "novato@example.com", "senhaForte123", "outraSenha123");
-
+        RegistroRequest request = new RegistroRequest("novato", "novato@example.com", "senhaForte123", "outraSenha123", "captcha-token");
         assertThatThrownBy(() -> authService.registrar(request))
                 .isInstanceOf(ValidationException.class);
         verifyNoInteractions(usuarioRepository);
@@ -90,9 +115,8 @@ class AuthServiceTest {
 
     @Test
     void registrar_deveFalharComConflitoGenericoQuandoApelidoOuEmailJaExiste() {
-        RegistroRequest request = new RegistroRequest("existente", "novo@example.com", "senhaForte123", "senhaForte123");
+        RegistroRequest request = new RegistroRequest("existente", "novo@example.com", "senhaForte123", "senhaForte123", "captcha-token");
         when(usuarioRepository.existsByApelidoIgnoreCase("existente")).thenReturn(true);
-
         assertThatThrownBy(() -> authService.registrar(request))
                 .isInstanceOf(ConflitoDeEstadoException.class)
                 .hasMessage("Não foi possível concluir o cadastro com os dados informados");
@@ -100,10 +124,9 @@ class AuthServiceTest {
 
     @Test
     void login_deveFalharComMensagemGenericaQuandoUsuarioNaoExiste() {
-        LoginRequest request = new LoginRequest("desconhecido", "qualquerSenha");
+        LoginRequest request = new LoginRequest("desconhecido", "qualquerSenha", "captcha-token");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase("desconhecido", "desconhecido"))
                 .thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(UnauthenticatedException.class)
                 .hasMessage("Identificador ou senha inválidos");
@@ -112,11 +135,10 @@ class AuthServiceTest {
     @Test
     void login_deveFalharComMensagemGenericaQuandoSenhaIncorreta() {
         Usuario usuario = new Usuario("apelido", "email@example.com", "hash-real", Role.PARTICIPANTE);
-        LoginRequest request = new LoginRequest("apelido", "senhaErrada");
+        LoginRequest request = new LoginRequest("apelido", "senhaErrada", "captcha-token");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase("apelido", "apelido"))
                 .thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("senhaErrada", "hash-real")).thenReturn(false);
-
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(UnauthenticatedException.class);
     }
@@ -125,15 +147,13 @@ class AuthServiceTest {
     void login_deveEmitirTokenQuandoCredenciaisCorretas() {
         Usuario usuario = new Usuario("apelido", "email@example.com", "hash-real", Role.PARTICIPANTE);
         setId(usuario, UUID.randomUUID());
-        LoginRequest request = new LoginRequest("apelido", "senhaCorreta123");
+        LoginRequest request = new LoginRequest("apelido", "senhaCorreta123", "captcha-token");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase("apelido", "apelido"))
                 .thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("senhaCorreta123", "hash-real")).thenReturn(true);
         when(jwtService.gerarToken(any(), anyString(), any())).thenReturn("jwt-token");
         when(jwtService.expiracaoDe("jwt-token")).thenReturn(Instant.now().plusSeconds(3600));
-
         LoginResponse response = authService.login(request);
-
         assertThat(response.token()).isEqualTo("jwt-token");
         assertThat(response.usuario().apelido()).isEqualTo("apelido");
     }
@@ -143,9 +163,7 @@ class AuthServiceTest {
         EsqueciSenhaRequest request = new EsqueciSenhaRequest("naoexiste@example.com");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
                 .thenReturn(Optional.empty());
-
         MensagemResponse response = authService.esqueciSenha(request);
-
         assertThat(response.mensagem()).contains("Se o apelido ou e-mail existir");
         verifyNoInteractions(emailService);
         verify(resetTokenRepository, never()).save(any());
@@ -159,9 +177,7 @@ class AuthServiceTest {
         EsqueciSenhaRequest request = new EsqueciSenhaRequest("apelido");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
                 .thenReturn(Optional.of(usuario));
-
         authService.esqueciSenha(request);
-
         verify(resetTokenRepository).save(any(PasswordResetToken.class));
         verify(emailService).enviarLinkRedefinicaoSenha(anyString(), anyString());
     }
@@ -169,7 +185,6 @@ class AuthServiceTest {
     @Test
     void redefinirSenha_deveFalharQuandoConfirmacaoNaoCoincide() {
         RedefinirSenhaRequest request = new RedefinirSenhaRequest("token", "novaSenha1234", "outraSenha1234");
-
         assertThatThrownBy(() -> authService.redefinirSenha(request))
                 .isInstanceOf(ValidationException.class);
     }
@@ -178,7 +193,6 @@ class AuthServiceTest {
     void redefinirSenha_deveFalharComMensagemGenericaQuandoTokenInvalido() {
         RedefinirSenhaRequest request = new RedefinirSenhaRequest("token-invalido", "novaSenha1234", "novaSenha1234");
         when(resetTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> authService.redefinirSenha(request))
                 .isInstanceOf(UnauthenticatedException.class)
                 .hasMessage("Link inválido ou expirado");
@@ -190,17 +204,96 @@ class AuthServiceTest {
         Usuario usuario = new Usuario("apelido", "email@example.com", "hash-antigo", Role.PARTICIPANTE);
         setId(usuario, usuarioId);
         PasswordResetToken resetToken = new PasswordResetToken(usuarioId, "hash:token-valido", Instant.now().plusSeconds(600));
-
         RedefinirSenhaRequest request = new RedefinirSenhaRequest("token-valido", "novaSenha1234", "novaSenha1234");
         when(resetTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(resetToken));
         when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
         when(passwordEncoder.encode("novaSenha1234")).thenReturn("hash-nova");
-
         MensagemResponse response = authService.redefinirSenha(request);
-
         assertThat(response.mensagem()).isEqualTo("Senha redefinida com sucesso.");
         assertThat(usuario.getSenhaHash()).isEqualTo("hash-nova");
         assertThat(resetToken.getUsadoEm()).isNotNull();
+    }
+
+    @Test
+    void login_deveRetornarDesafioMfaQuandoAdminComMfaAtivo() {
+        Usuario usuario = new Usuario("admin", "admin@example.com", "hash-real", Role.ADMIN);
+        setId(usuario, UUID.randomUUID());
+        usuario.iniciarEnrollmentMfa("secret-cifrado");
+        usuario.confirmarMfa();
+        LoginRequest request = new LoginRequest("admin", "senhaCorreta123", "captcha-token");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase("admin", "admin"))
+                .thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("senhaCorreta123", "hash-real")).thenReturn(true);
+        LoginResponse response = authService.login(request);
+        assertThat(response.mfaRequerido()).isTrue();
+        assertThat(response.token()).isNull();
+        verifyNoInteractions(jwtService);
+    }
+
+    @Test
+    void loginComMfa_deveFalharQuandoUsuarioNaoEAdmin() {
+        Usuario usuario = new Usuario("participante", "p@example.com", "hash-real", Role.PARTICIPANTE);
+        setId(usuario, UUID.randomUUID());
+        MfaLoginRequest request = new MfaLoginRequest("participante", "senhaCorreta123", "captcha-token", "123456");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase("participante", "participante"))
+                .thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("senhaCorreta123", "hash-real")).thenReturn(true);
+        assertThatThrownBy(() -> authService.loginComMfa(request))
+                .isInstanceOf(UnauthenticatedException.class)
+                .hasMessage("Identificador ou senha inválidos");
+        verifyNoInteractions(mfaSecretCipher, totpService);
+    }
+
+    @Test
+    void loginComMfa_deveFalharQuandoAdminComMfaInativo() {
+        Usuario usuario = new Usuario("admin", "admin@example.com", "hash-real", Role.ADMIN);
+        setId(usuario, UUID.randomUUID());
+        MfaLoginRequest request = new MfaLoginRequest("admin", "senhaCorreta123", "captcha-token", "123456");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase("admin", "admin"))
+                .thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("senhaCorreta123", "hash-real")).thenReturn(true);
+        assertThatThrownBy(() -> authService.loginComMfa(request))
+                .isInstanceOf(UnauthenticatedException.class)
+                .hasMessage("Identificador ou senha inválidos");
+        verifyNoInteractions(mfaSecretCipher, totpService);
+    }
+
+    @Test
+    void loginComMfa_deveFalharQuandoCodigoTotpInvalido() {
+        Usuario usuario = new Usuario("admin", "admin@example.com", "hash-real", Role.ADMIN);
+        setId(usuario, UUID.randomUUID());
+        usuario.iniciarEnrollmentMfa("secret-cifrado");
+        usuario.confirmarMfa();
+        MfaLoginRequest request = new MfaLoginRequest("admin", "senhaCorreta123", "captcha-token", "000000");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase("admin", "admin"))
+                .thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("senhaCorreta123", "hash-real")).thenReturn(true);
+        when(mfaSecretCipher.decifrar("secret-cifrado")).thenReturn("JBSWY3DPEHPK3PXP");
+        when(totpService.validar("JBSWY3DPEHPK3PXP", "000000")).thenReturn(false);
+        assertThatThrownBy(() -> authService.loginComMfa(request))
+                .isInstanceOf(UnauthenticatedException.class)
+                .hasMessage("Identificador ou senha inválidos");
+        verifyNoInteractions(jwtService);
+    }
+
+    @Test
+    void loginComMfa_deveEmitirTokenQuandoCodigoTotpValido() {
+        Usuario usuario = new Usuario("admin", "admin@example.com", "hash-real", Role.ADMIN);
+        setId(usuario, UUID.randomUUID());
+        usuario.iniciarEnrollmentMfa("secret-cifrado");
+        usuario.confirmarMfa();
+        MfaLoginRequest request = new MfaLoginRequest("admin", "senhaCorreta123", "captcha-token", "123456");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase("admin", "admin"))
+                .thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("senhaCorreta123", "hash-real")).thenReturn(true);
+        when(mfaSecretCipher.decifrar("secret-cifrado")).thenReturn("JBSWY3DPEHPK3PXP");
+        when(totpService.validar("JBSWY3DPEHPK3PXP", "123456")).thenReturn(true);
+        when(jwtService.gerarToken(any(), anyString(), any())).thenReturn("jwt-token");
+        when(jwtService.expiracaoDe("jwt-token")).thenReturn(Instant.now().plusSeconds(3600));
+        LoginResponse response = authService.loginComMfa(request);
+        assertThat(response.mfaRequerido()).isFalse();
+        assertThat(response.token()).isEqualTo("jwt-token");
+        assertThat(response.usuario().apelido()).isEqualTo("admin");
     }
 
     private void setId(Usuario usuario, UUID id) {

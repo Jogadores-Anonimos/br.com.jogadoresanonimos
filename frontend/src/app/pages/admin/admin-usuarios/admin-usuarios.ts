@@ -2,9 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { Role } from '../../../services/auth.model';
-import { UsuarioAdminService } from '../../../services/usuario-admin';
-import { UsuarioAdmin } from '../../../services/usuario-admin.model';
+import { Role } from '../../../services/auth/auth.model';
+import { UsuarioAdminService } from '../../../services/usuario-admin/usuario-admin';
+import { UsuarioAdmin } from '../../../services/usuario-admin/usuario-admin.model';
 
 @Component({
   selector: 'app-admin-usuarios',

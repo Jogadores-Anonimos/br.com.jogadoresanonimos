@@ -76,11 +76,9 @@ public class CmsService {
             throw new ConflitoDeEstadoException("Já existe uma página com este slug");
         }
         validarOrdens(request.blocos());
-
         CmsPagina pagina = new CmsPagina(request.slug(), request.titulo(), adminId);
         aplicarBlocos(pagina, request.blocos());
         pagina = cmsPaginaRepository.save(pagina);
-
         return buscarAdmin(pagina.getSlug());
     }
 
@@ -88,23 +86,13 @@ public class CmsService {
     public CmsPaginaAdminResponse atualizar(String slug, CmsPaginaUpdateRequest request, UUID adminId) {
         CmsPagina pagina = cmsPaginaRepository.findBySlug(slug)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Página não encontrada"));
-
         validarOrdens(request.blocos());
-
         String snapshotAnterior = serializarSnapshot(pagina);
         cmsAlteracaoLogRepository.save(new CmsAlteracaoLog(pagina.getId(), adminId, snapshotAnterior));
-
-        // clear() agenda DELETE dos blocos antigos (orphanRemoval), mas
-        // sem flush explícito o Hibernate pode ordenar os INSERTs dos
-        // blocos novos (mesmo `ordem`, chave única `pagina_id+ordem`)
-        // antes dos DELETEs no mesmo flush automático — violando a
-        // constraint. Forçar o flush aqui garante que a exclusão dos
-        // blocos antigos já aconteceu no banco antes de inserir os novos.
         pagina.getBlocos().clear();
         cmsPaginaRepository.flush();
         aplicarBlocos(pagina, request.blocos());
-        pagina.atualizar(request.titulo(), adminId);
-
+        pagina.atualizar(adminId);
         return buscarAdmin(pagina.getSlug());
     }
 

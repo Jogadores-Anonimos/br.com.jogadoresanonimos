@@ -67,6 +67,8 @@
           name="texto"
           rows="8"
           [(ngModel)]="textoFormulario"
+          [class.campo-invalido]="errosCampo['texto']"
+          [attr.aria-invalid]="errosCampo['texto'] ? 'true' : null"
           required
         ></textarea>
       </div>

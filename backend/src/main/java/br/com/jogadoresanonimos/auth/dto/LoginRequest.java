@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record LoginRequest(
         @NotBlank(message = "Informe apelido ou e-mail") String identificador,
-        @NotBlank(message = "Senha é obrigatória") String senha
+        @NotBlank(message = "Senha é obrigatória") String senha,
+        @NotBlank(message = "Verificação do reCAPTCHA é obrigatória") String recaptchaToken
 ) {
 }

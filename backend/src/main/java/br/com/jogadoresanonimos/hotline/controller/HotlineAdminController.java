@@ -35,6 +35,12 @@ public class HotlineAdminController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
     }
 
+    @PutMapping("/regioes/{id}")
+    public ResponseEntity<ApiResponse<HotlineRegiaoResponse>> editarRegiao(@PathVariable UUID id,
+                                                                              @Valid @RequestBody EditarRegiaoRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(hotlineService.editarRegiao(id, request)));
+    }
+
     @DeleteMapping("/regioes/{id}")
     public ResponseEntity<ApiResponse<MensagemResponse>> removerRegiao(@PathVariable UUID id) {
         hotlineService.removerRegiao(id);

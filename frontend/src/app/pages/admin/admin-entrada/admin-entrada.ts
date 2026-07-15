@@ -1,12 +1,8 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 
-import { RelatosService } from '../../../services/relatos';
+import { RelatosService } from '../../../services/relatos/relatos';
 
-// Tela de trânsito: não renderiza nada visível, só decide pra onde a
-// entrada do admin deve ir. Se houver relato pendente, prioriza a fila
-// de moderação (é a única ação com urgência real neste admin); senão,
-// cai em Avisos.
 @Component({
   selector: 'app-admin-entrada',
   standalone: true,

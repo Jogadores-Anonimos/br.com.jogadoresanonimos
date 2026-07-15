@@ -4,6 +4,7 @@ import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.escritorio.dto.*;
+import br.com.jogadoresanonimos.escritorio.entity.AgendaItemGrupo;
 import br.com.jogadoresanonimos.escritorio.entity.DiaSemana;
 import br.com.jogadoresanonimos.escritorio.entity.EscritorioServico;
 import br.com.jogadoresanonimos.escritorio.entity.EscritorioServicoTelefone;
@@ -21,7 +22,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -65,64 +65,24 @@ class EscritorioRegionalServiceTest {
 
     private GrupoIntergrupo novoGrupo(EstadoIntergrupo estado) {
         return new GrupoIntergrupo(estado, "Grupo", "Rua", null, "Cidade",
-                EnumSet.of(DiaSemana.SEGUNDA), "Seg 20h", 0);
+                List.of(new AgendaItemGrupo(DiaSemana.SEGUNDA, "Seg 20h")), 0);
     }
-
-    // ---- listarEstruturaCompleta ----
 
     @Test
     void listarEstruturaCompleta_deveCombinarEscritoriosERegioes() {
         when(escritorioServicoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of());
         when(regiaoRepository.findAllComHierarquiaCompleta()).thenReturn(List.of(novaRegiao()));
-
         EscritoriosRegionaisResponse resultado = service.listarEstruturaCompleta();
-
         assertThat(resultado.regioes()).hasSize(1);
         assertThat(resultado.escritorios()).isEmpty();
-    }
-
-    // ---- Região ----
-
-    @Test
-    void criarRegiao_deveSalvarQuandoNomeUnicoSemAceitarOrdemDoPayload() {
-        when(regiaoRepository.existsByNomeIgnoreCase("Região Sudeste")).thenReturn(false);
-        when(regiaoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(novaRegiao()));
-        when(regiaoRepository.save(any(RegiaoIntergrupo.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        RegiaoIntergrupoResponse resultado = service.criarRegiao(new CriarRegiaoRequest("Região Sudeste"));
-
-        assertThat(resultado.nome()).isEqualTo("Região Sudeste");
-        assertThat(resultado.ordem()).isEqualTo(1);
-    }
-
-    @Test
-    void criarRegiao_deveLancarExcecaoQuandoNomeDuplicado() {
-        when(regiaoRepository.existsByNomeIgnoreCase("Região Sudeste")).thenReturn(true);
-
-        assertThatThrownBy(() -> service.criarRegiao(new CriarRegiaoRequest("Região Sudeste")))
-                .isInstanceOf(ValidationException.class);
-
-        verify(regiaoRepository, never()).save(any());
     }
 
     @Test
     void editarRegiao_deveLancarExcecaoQuandoNaoExiste() {
         UUID id = UUID.randomUUID();
         when(regiaoRepository.findById(id)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> service.editarRegiao(id, new EditarRegiaoRequest("nova")))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
-    }
-
-    @Test
-    void removerRegiao_deveDeletarQuandoExiste() {
-        UUID id = UUID.randomUUID();
-        RegiaoIntergrupo regiao = novaRegiao();
-        when(regiaoRepository.findById(id)).thenReturn(Optional.of(regiao));
-
-        service.removerRegiao(id);
-
-        verify(regiaoRepository).delete(regiao);
     }
 
     @Test
@@ -133,9 +93,7 @@ class EscritorioRegionalServiceTest {
         setId(segunda, id);
         when(regiaoRepository.findById(id)).thenReturn(Optional.of(segunda));
         when(regiaoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
-
         RegiaoIntergrupoResponse resultado = service.moverRegiaoParaCima(id);
-
         assertThat(resultado.ordem()).isEqualTo(0);
         assertThat(primeira.getOrdem()).isEqualTo(1);
     }
@@ -148,9 +106,7 @@ class EscritorioRegionalServiceTest {
         RegiaoIntergrupo segunda = new RegiaoIntergrupo("Região Sul", 1);
         when(regiaoRepository.findById(id)).thenReturn(Optional.of(primeira));
         when(regiaoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
-
         RegiaoIntergrupoResponse resultado = service.moverRegiaoParaCima(id);
-
         assertThat(resultado.ordem()).isEqualTo(0);
         assertThat(segunda.getOrdem()).isEqualTo(1);
     }
@@ -163,20 +119,15 @@ class EscritorioRegionalServiceTest {
         setId(segunda, id);
         when(regiaoRepository.findById(id)).thenReturn(Optional.of(segunda));
         when(regiaoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
-
         RegiaoIntergrupoResponse resultado = service.moverRegiaoParaBaixo(id);
-
         assertThat(resultado.ordem()).isEqualTo(1);
         assertThat(primeira.getOrdem()).isEqualTo(0);
     }
-
-    // ---- Estado ----
 
     @Test
     void criarEstado_deveLancarExcecaoQuandoRegiaoNaoExiste() {
         UUID regiaoId = UUID.randomUUID();
         when(regiaoRepository.findById(regiaoId)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> service.criarEstado(regiaoId, new CriarEstadoRequest("SP")))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -185,10 +136,8 @@ class EscritorioRegionalServiceTest {
     void criarEstado_deveLancarExcecaoQuandoUfInvalida() {
         UUID regiaoId = UUID.randomUUID();
         when(regiaoRepository.findById(regiaoId)).thenReturn(Optional.of(novaRegiao()));
-
         assertThatThrownBy(() -> service.criarEstado(regiaoId, new CriarEstadoRequest("XX")))
                 .isInstanceOf(ValidationException.class);
-
         verify(estadoRepository, never()).save(any());
     }
 
@@ -197,10 +146,8 @@ class EscritorioRegionalServiceTest {
         UUID regiaoId = UUID.randomUUID();
         when(regiaoRepository.findById(regiaoId)).thenReturn(Optional.of(novaRegiao()));
         when(estadoRepository.existsByRegiaoIdAndUf(regiaoId, UnidadeFederativa.SP)).thenReturn(true);
-
         assertThatThrownBy(() -> service.criarEstado(regiaoId, new CriarEstadoRequest("SP")))
                 .isInstanceOf(ConflitoDeEstadoException.class);
-
         verify(estadoRepository, never()).save(any());
     }
 
@@ -212,9 +159,7 @@ class EscritorioRegionalServiceTest {
         when(estadoRepository.existsByRegiaoIdAndUf(regiaoId, UnidadeFederativa.SP)).thenReturn(false);
         when(estadoRepository.findAllByRegiaoIdOrderByOrdemAsc(regiaoId)).thenReturn(List.of());
         when(estadoRepository.save(any(EstadoIntergrupo.class))).thenAnswer(inv -> inv.getArgument(0));
-
         EstadoIntergrupoResponse resultado = service.criarEstado(regiaoId, new CriarEstadoRequest("sp"));
-
         assertThat(resultado.uf()).isEqualTo("SP");
         assertThat(resultado.nome()).isEqualTo("São Paulo");
     }
@@ -228,9 +173,7 @@ class EscritorioRegionalServiceTest {
         EstadoIntergrupo estado = novoEstado(regiao);
         setId(estado, id);
         when(estadoRepository.findById(id)).thenReturn(Optional.of(estado));
-
         EstadoIntergrupoResponse resultado = service.editarEstado(regiaoId, id, new EditarEstadoRequest("SP"));
-
         assertThat(resultado.uf()).isEqualTo("SP");
         verify(estadoRepository, never()).existsByRegiaoIdAndUf(any(), any());
     }
@@ -245,7 +188,6 @@ class EscritorioRegionalServiceTest {
         setId(estado, id);
         when(estadoRepository.findById(id)).thenReturn(Optional.of(estado));
         when(estadoRepository.existsByRegiaoIdAndUf(regiaoId, UnidadeFederativa.RJ)).thenReturn(true);
-
         assertThatThrownBy(() -> service.editarEstado(regiaoId, id, new EditarEstadoRequest("RJ")))
                 .isInstanceOf(ConflitoDeEstadoException.class);
     }
@@ -259,7 +201,6 @@ class EscritorioRegionalServiceTest {
         setId(outraRegiao, outraRegiaoId);
         EstadoIntergrupo estado = novoEstado(outraRegiao);
         when(estadoRepository.findById(estadoId)).thenReturn(Optional.of(estado));
-
         assertThatThrownBy(() -> service.removerEstado(regiaoId, estadoId))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -275,15 +216,11 @@ class EscritorioRegionalServiceTest {
         setId(segundo, id);
         when(estadoRepository.findById(id)).thenReturn(Optional.of(segundo));
         when(estadoRepository.findAllByRegiaoIdOrderByOrdemAsc(regiaoId)).thenReturn(List.of(primeiro, segundo));
-
         EstadoIntergrupoResponse resultado = service.moverEstadoParaCima(regiaoId, id);
-
         assertThat(resultado.ordem()).isEqualTo(0);
         assertThat(primeiro.getOrdem()).isEqualTo(1);
         verify(estadoRepository).findAllByRegiaoIdOrderByOrdemAsc(regiaoId);
     }
-
-    // ---- Grupo ----
 
     @Test
     void criarGrupo_deveSalvarComCamposNormalizadosDiasSemanaETelefones() {
@@ -292,19 +229,15 @@ class EscritorioRegionalServiceTest {
         when(estadoRepository.findById(estadoId)).thenReturn(Optional.of(estado));
         when(grupoRepository.findAllByEstadoIdOrderByOrdemAsc(estadoId)).thenReturn(List.of());
         when(grupoRepository.save(any(GrupoIntergrupo.class))).thenAnswer(inv -> inv.getArgument(0));
-
         CriarGrupoRequest request = new CriarGrupoRequest("Grupo Pioneiro", "Rua X", "  ", "São Paulo - SP",
-                List.of("SEGUNDA", "QUINTA"),
-                "18h",
+                List.of(new AgendaItemRequest("SEGUNDA", "18h"), new AgendaItemRequest("QUINTA", "18h")),
                 List.of(new GrupoTelefoneRequest(null, "11 90000-0000"),
                         new GrupoTelefoneRequest("Central", "11 91111-1111")));
-
         GrupoIntergrupoResponse resultado = service.criarGrupo(estadoId, request);
-
         assertThat(resultado.nome()).isEqualTo("Grupo Pioneiro");
         assertThat(resultado.bairro()).isNull();
-        assertThat(resultado.diasSemana()).containsExactlyInAnyOrder("SEGUNDA", "QUINTA");
-        assertThat(resultado.horario()).isEqualTo("18h");
+        assertThat(resultado.agenda()).extracting("diaSemana").containsExactlyInAnyOrder("SEGUNDA", "QUINTA");
+        assertThat(resultado.agenda()).extracting("horario").containsOnly("18h");
         assertThat(resultado.telefones()).hasSize(2);
         assertThat(resultado.telefones()).extracting("telefone")
                 .containsExactlyInAnyOrder("11 90000-0000", "11 91111-1111");
@@ -315,13 +248,10 @@ class EscritorioRegionalServiceTest {
         UUID estadoId = UUID.randomUUID();
         EstadoIntergrupo estado = novoEstado(novaRegiao());
         when(estadoRepository.findById(estadoId)).thenReturn(Optional.of(estado));
-
         CriarGrupoRequest request = new CriarGrupoRequest("Grupo Pioneiro", "Rua X", null, "São Paulo - SP",
-                List.of("FERIADO"), "18h", List.of());
-
+                List.of(new AgendaItemRequest("FERIADO", "18h")), List.of());
         assertThatThrownBy(() -> service.criarGrupo(estadoId, request))
                 .isInstanceOf(ValidationException.class);
-
         verify(grupoRepository, never()).save(any());
     }
 
@@ -332,12 +262,9 @@ class EscritorioRegionalServiceTest {
         when(estadoRepository.findById(estadoId)).thenReturn(Optional.of(estado));
         when(grupoRepository.findAllByEstadoIdOrderByOrdemAsc(estadoId)).thenReturn(List.of());
         when(grupoRepository.save(any(GrupoIntergrupo.class))).thenAnswer(inv -> inv.getArgument(0));
-
         CriarGrupoRequest request = new CriarGrupoRequest("Grupo Sem Telefone", "Rua X", null, "Cidade",
-                List.of("DOMINGO"), "9h", List.of());
-
+                List.of(new AgendaItemRequest("DOMINGO", "9h")), List.of());
         GrupoIntergrupoResponse resultado = service.criarGrupo(estadoId, request);
-
         assertThat(resultado.telefones()).isEmpty();
     }
 
@@ -350,16 +277,15 @@ class EscritorioRegionalServiceTest {
         GrupoIntergrupo grupo = novoGrupo(estado);
         setId(grupo, id);
         when(grupoRepository.findById(id)).thenReturn(Optional.of(grupo));
-
         EditarGrupoRequest request = new EditarGrupoRequest("Grupo Editado", "Rua Nova", "Bairro", "Cidade",
-                List.of("TERCA", "SEXTA", "SABADO"), "19h",
+                List.of(new AgendaItemRequest("TERCA", "19h"), new AgendaItemRequest("SEXTA", "19h"),
+                        new AgendaItemRequest("SABADO", "19h")),
                 List.of(new GrupoTelefoneRequest("Emergência", "11 92222-2222")));
-
         GrupoIntergrupoResponse resultado = service.editarGrupo(estadoId, id, request);
-
         assertThat(resultado.nome()).isEqualTo("Grupo Editado");
-        assertThat(resultado.diasSemana()).containsExactlyInAnyOrder("TERCA", "SEXTA", "SABADO");
-        assertThat(resultado.horario()).isEqualTo("19h");
+        assertThat(resultado.agenda()).extracting("diaSemana")
+                .containsExactlyInAnyOrder("TERCA", "SEXTA", "SABADO");
+        assertThat(resultado.agenda()).extracting("horario").containsOnly("19h");
         assertThat(resultado.telefones()).hasSize(1);
         assertThat(resultado.telefones().get(0).telefone()).isEqualTo("11 92222-2222");
     }
@@ -373,7 +299,6 @@ class EscritorioRegionalServiceTest {
         setId(outroEstado, outroEstadoId);
         GrupoIntergrupo grupo = novoGrupo(outroEstado);
         when(grupoRepository.findById(grupoId)).thenReturn(Optional.of(grupo));
-
         assertThatThrownBy(() -> service.removerGrupo(estadoId, grupoId))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -385,32 +310,25 @@ class EscritorioRegionalServiceTest {
         EstadoIntergrupo estado = novoEstado(novaRegiao());
         setId(estado, estadoId);
         GrupoIntergrupo primeiro = new GrupoIntergrupo(estado, "Grupo 1", "Rua", null, "Cidade",
-                EnumSet.of(DiaSemana.SEGUNDA), "18h", 0);
+                List.of(new AgendaItemGrupo(DiaSemana.SEGUNDA, "18h")), 0);
         setId(primeiro, id);
         GrupoIntergrupo segundo = new GrupoIntergrupo(estado, "Grupo 2", "Rua", null, "Cidade",
-                EnumSet.of(DiaSemana.TERCA), "19h", 1);
+                List.of(new AgendaItemGrupo(DiaSemana.TERCA, "19h")), 1);
         when(grupoRepository.findById(id)).thenReturn(Optional.of(primeiro));
         when(grupoRepository.findAllByEstadoIdOrderByOrdemAsc(estadoId)).thenReturn(List.of(primeiro, segundo));
-
         GrupoIntergrupoResponse resultado = service.moverGrupoParaBaixo(estadoId, id);
-
         assertThat(resultado.ordem()).isEqualTo(1);
         assertThat(segundo.getOrdem()).isEqualTo(0);
         verify(grupoRepository).findAllByEstadoIdOrderByOrdemAsc(estadoId);
     }
 
-    // ---- Escritório de Serviço ----
-
     @Test
     void criarEscritorioServico_deveSalvarComListaDeEmailsSemAceitarOrdemDoPayload() {
         when(escritorioServicoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of());
         when(escritorioServicoRepository.save(any(EscritorioServico.class))).thenAnswer(inv -> inv.getArgument(0));
-
         CriarEscritorioServicoRequest request = new CriarEscritorioServicoRequest("ERSJAB", "Rua Y", "Sala 12", null,
                 "São Paulo - SP", List.of("a@a.com", "b@b.com"), List.of());
-
         EscritorioServicoResponse resultado = service.criarEscritorioServico(request);
-
         assertThat(resultado.emails()).containsExactly("a@a.com", "b@b.com");
         assertThat(resultado.ordem()).isEqualTo(0);
     }
@@ -419,14 +337,11 @@ class EscritorioRegionalServiceTest {
     void criarEscritorioServico_deveSalvarComBairroEMultiplosTelefones() {
         when(escritorioServicoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of());
         when(escritorioServicoRepository.save(any(EscritorioServico.class))).thenAnswer(inv -> inv.getArgument(0));
-
         CriarEscritorioServicoRequest request = new CriarEscritorioServicoRequest("ERSJAB", "Rua Y", "Sala 12",
                 "Centro", "São Paulo - SP", List.of("a@a.com"),
                 List.of(new EscritorioTelefoneRequest(null, "11 90000-0000"),
                         new EscritorioTelefoneRequest("Central", "11 91111-1111")));
-
         EscritorioServicoResponse resultado = service.criarEscritorioServico(request);
-
         assertThat(resultado.bairro()).isEqualTo("Centro");
         assertThat(resultado.telefones()).hasSize(2);
         assertThat(resultado.telefones()).extracting("telefone")
@@ -437,12 +352,9 @@ class EscritorioRegionalServiceTest {
     void criarEscritorioServico_devePermitirBairroNuloEListaDeTelefonesVazia() {
         when(escritorioServicoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of());
         when(escritorioServicoRepository.save(any(EscritorioServico.class))).thenAnswer(inv -> inv.getArgument(0));
-
         CriarEscritorioServicoRequest request = new CriarEscritorioServicoRequest("ERSJAB", "Rua Y", "Sala 12", null,
                 "São Paulo - SP", List.of("a@a.com"), List.of());
-
         EscritorioServicoResponse resultado = service.criarEscritorioServico(request);
-
         assertThat(resultado.bairro()).isNull();
         assertThat(resultado.telefones()).isEmpty();
     }
@@ -451,10 +363,8 @@ class EscritorioRegionalServiceTest {
     void editarEscritorioServico_deveLancarExcecaoQuandoNaoExiste() {
         UUID id = UUID.randomUUID();
         when(escritorioServicoRepository.findById(id)).thenReturn(Optional.empty());
-
         EditarEscritorioServicoRequest request = new EditarEscritorioServicoRequest("nome", "endereco", null, null,
                 "cidade", List.of(), List.of());
-
         assertThatThrownBy(() -> service.editarEscritorioServico(id, request))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -467,14 +377,11 @@ class EscritorioRegionalServiceTest {
         escritorio.substituirTelefones(List.of(new EscritorioServicoTelefone(escritorio, "Antigo", "11 90000-0000")));
         setId(escritorio, id);
         when(escritorioServicoRepository.findById(id)).thenReturn(Optional.of(escritorio));
-
         EditarEscritorioServicoRequest request = new EditarEscritorioServicoRequest("ERSJAB", "Rua Y", "Sala 12",
                 "Bairro Novo", "Cidade", List.of("a@a.com"),
                 List.of(new EscritorioTelefoneRequest("Emergência", "11 92222-2222"),
                         new EscritorioTelefoneRequest("Suporte", "11 93333-3333")));
-
         EscritorioServicoResponse resultado = service.editarEscritorioServico(id, request);
-
         assertThat(resultado.bairro()).isEqualTo("Bairro Novo");
         assertThat(resultado.telefones()).hasSize(2);
         assertThat(resultado.telefones()).extracting("telefone")
@@ -491,12 +398,9 @@ class EscritorioRegionalServiceTest {
         escritorio.substituirTelefones(List.of(new EscritorioServicoTelefone(escritorio, "Antigo", "11 90000-0000")));
         setId(escritorio, id);
         when(escritorioServicoRepository.findById(id)).thenReturn(Optional.of(escritorio));
-
         EditarEscritorioServicoRequest request = new EditarEscritorioServicoRequest("ERSJAB", "Rua Y", "Sala 12",
                 null, "Cidade", List.of("a@a.com"), List.of());
-
         EscritorioServicoResponse resultado = service.editarEscritorioServico(id, request);
-
         assertThat(resultado.bairro()).isNull();
         assertThat(resultado.telefones()).isEmpty();
     }
@@ -506,9 +410,7 @@ class EscritorioRegionalServiceTest {
         UUID id = UUID.randomUUID();
         EscritorioServico escritorio = new EscritorioServico("nome", "endereco", null, null, "cidade", List.of(), 0);
         when(escritorioServicoRepository.findById(id)).thenReturn(Optional.of(escritorio));
-
         service.removerEscritorioServico(id);
-
         verify(escritorioServicoRepository).delete(escritorio);
     }
 
@@ -520,9 +422,7 @@ class EscritorioRegionalServiceTest {
         EscritorioServico segundo = new EscritorioServico("B", "Rua", null, null, "Cidade", List.of(), 1);
         when(escritorioServicoRepository.findById(id)).thenReturn(Optional.of(primeiro));
         when(escritorioServicoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeiro, segundo));
-
         EscritorioServicoResponse resultado = service.moverEscritorioServicoParaCima(id);
-
         assertThat(resultado.ordem()).isEqualTo(0);
         assertThat(segundo.getOrdem()).isEqualTo(1);
     }

@@ -22,5 +22,7 @@ public interface UsuarioArquivoRepository extends JpaRepository<UsuarioArquivo, 
 
     boolean existsById_UsuarioIdAndId_ArquivoId(UUID usuarioId, UUID arquivoId);
 
+    boolean existsById_ArquivoId(UUID arquivoId);
+
     void deleteById_UsuarioIdAndId_ArquivoId(UUID usuarioId, UUID arquivoId);
 }

@@ -112,9 +112,21 @@ isso na revisão.
 - Consistência com o padrão já estabelecido no restante do projeto pesa
   mais que preferência pessoal do revisor — se o projeto já tem um
   padrão, o código novo deve seguir esse padrão, não o "ideal" genérico.
-- Comentários no código: só devem existir para explicar algo que não seja
-  óbvio (ou seções de CSS/referências a contrato de backend); comentário
-  óbvio/redundante é um achado (LOW).
+- Comentários no código são proibidos por padrão. Única exceção: decisão
+  de segurança ou trade-off técnico crítico e não-óbvio (ex: por que uma
+  allowlist de sanitização é assim, por que um path de storage é seguro
+  contra path traversal). Qualquer comentário fora dessa exceção é um
+  achado (LOW), mesmo que não seja "óbvio" — a regra do projeto não é mais
+  "comentário ruim é achado", é "comentário fora da exceção é achado".
+- **Comentário estilo log/changelog é sempre um achado (LOW/MEDIUM)**,
+  mesmo dentro da exceção de segurança/trade-off: data (ex: `AAAA-MM-DD`),
+  narração de status temporal ("validado em", "disponível desde",
+  "desligado em") ou "ver X se precisar voltar" dentro de comentário. Isso
+  não explica um porquê técnico atemporal, é diário de bordo — pertence a
+  commit message/PR, não ao código. Remover.
+- **Linha em branco decorativa** (separando blocos/organização visual, sem
+  necessidade sintática ou de string/stream multi-linha) é um achado
+  (LOW).
 
 ## O que você NÃO faz
 - Não edita o código, só revisa e reporta.
@@ -145,4 +157,5 @@ Ao concluir uma tarefa relevante, repasse um resumo curto ao agente
 que a base de conhecimento do time (`.claude/knowledge/`) se mantenha
 atualizada entre sessões. Isso também alimenta o trabalho do agente
 `professor` de traduzir o progresso do sistema em conteúdo de estudo
-para o usuário.
+para o usuário. Resumo enxuto: telegráfico, sem prosa, sem repetir o
+óbvio (mesma regra de escrita enxuta do CLAUDE.md).

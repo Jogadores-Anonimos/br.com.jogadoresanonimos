@@ -2,8 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { RelatosService, StatusRelato } from '../../../services/relatos';
-import { RelatoAdmin } from '../../../services/relato.model';
+import { RelatosService, StatusRelato } from '../../../services/relatos/relatos';
+import { RelatoAdmin } from '../../../services/relatos/relato.model';
 
 const TEXTO_TRUNCADO_LIMITE = 320;
 const TEXTO_MIN_LENGTH = 50;

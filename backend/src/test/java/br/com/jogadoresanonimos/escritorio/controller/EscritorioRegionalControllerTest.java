@@ -33,9 +33,7 @@ class EscritorioRegionalControllerTest {
     void listar_deveRetornarOkComEstruturaDoService() {
         EscritoriosRegionaisResponse esperado = new EscritoriosRegionaisResponse(List.of(), List.of());
         when(escritorioRegionalService.listarEstruturaCompleta()).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<EscritoriosRegionaisResponse>> resposta = controller.listar();
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         assertThat(resposta.getBody().data()).isEqualTo(esperado);

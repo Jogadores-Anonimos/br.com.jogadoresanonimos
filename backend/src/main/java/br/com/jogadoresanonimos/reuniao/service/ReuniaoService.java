@@ -15,6 +15,8 @@ import java.util.UUID;
 @Service
 public class ReuniaoService {
 
+    private static final String WHATSAPP_PADRAO = "11 99571-6942";
+
     private final ReuniaoRepository reuniaoRepository;
 
     public ReuniaoService(ReuniaoRepository reuniaoRepository) {
@@ -32,7 +34,7 @@ public class ReuniaoService {
     public ReuniaoResponse criar(CriarReuniaoRequest request) {
         Reuniao reuniao = new Reuniao(request.nome().trim(), request.categoria(), request.descricao().trim(),
                 request.dia().trim(), request.horario().trim(), request.local().trim(),
-                normalizar(request.whatsapp()), normalizar(request.diaSemana()), normalizar(request.periodo()),
+                normalizarWhatsapp(request.whatsapp()), normalizar(request.diaSemana()), normalizar(request.periodo()),
                 request.latitude(), request.longitude());
         reuniao = reuniaoRepository.save(reuniao);
         return ReuniaoResponse.from(reuniao);
@@ -56,6 +58,11 @@ public class ReuniaoService {
 
     private String normalizar(String valor) {
         return (valor == null || valor.isBlank()) ? null : valor.trim();
+    }
+
+    private String normalizarWhatsapp(String valor) {
+        String normalizado = normalizar(valor);
+        return normalizado == null ? WHATSAPP_PADRAO : normalizado;
     }
 
     private Reuniao buscarOuFalhar(UUID id) {

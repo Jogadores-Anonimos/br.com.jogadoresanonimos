@@ -4,6 +4,7 @@ import br.com.jogadoresanonimos.arquivo.dto.ArquivoResponse;
 import br.com.jogadoresanonimos.arquivo.entity.Arquivo;
 import br.com.jogadoresanonimos.arquivo.repository.ArquivoRepository;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
+import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
 import br.com.jogadoresanonimos.imagem.service.StorageClient;
 import br.com.jogadoresanonimos.usuario.biblioteca.repository.UsuarioArquivoRepository;
 import br.com.jogadoresanonimos.usuario.biblioteca.service.BibliotecaPessoalService;
@@ -32,11 +33,15 @@ class BibliotecaPessoalServiceTest {
     @Mock
     StorageClient storageClient;
 
+    @Mock
+    RateLimiterService rateLimiterService;
+
     BibliotecaPessoalService service;
 
     @BeforeEach
     void setUp() {
-        service = new BibliotecaPessoalService(usuarioArquivoRepository, arquivoRepository, storageClient);
+        service = new BibliotecaPessoalService(usuarioArquivoRepository, arquivoRepository, storageClient,
+                rateLimiterService);
     }
 
     @Test
@@ -44,9 +49,7 @@ class BibliotecaPessoalServiceTest {
         UUID usuarioId = UUID.randomUUID();
         Arquivo arquivo = new Arquivo("livro.pdf", "chave", 100, "Título", "desc", UUID.randomUUID());
         when(usuarioArquivoRepository.listarArquivosDoUsuario(usuarioId)).thenReturn(List.of(arquivo));
-
         List<ArquivoResponse> resultado = service.listar(usuarioId);
-
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).titulo()).isEqualTo("Título");
         verify(usuarioArquivoRepository).listarArquivosDoUsuario(usuarioId);
@@ -57,9 +60,7 @@ class BibliotecaPessoalServiceTest {
         UUID usuarioId = UUID.randomUUID();
         UUID arquivoId = UUID.randomUUID();
         when(usuarioArquivoRepository.existsById_UsuarioIdAndId_ArquivoId(usuarioId, arquivoId)).thenReturn(true);
-
         service.adicionar(usuarioId, arquivoId);
-
         verify(usuarioArquivoRepository, never()).save(any());
         verifyNoInteractions(arquivoRepository);
     }
@@ -70,10 +71,8 @@ class BibliotecaPessoalServiceTest {
         UUID arquivoId = UUID.randomUUID();
         when(usuarioArquivoRepository.existsById_UsuarioIdAndId_ArquivoId(usuarioId, arquivoId)).thenReturn(false);
         when(arquivoRepository.existsById(arquivoId)).thenReturn(false);
-
         assertThatThrownBy(() -> service.adicionar(usuarioId, arquivoId))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
-
         verify(usuarioArquivoRepository, never()).save(any());
     }
 
@@ -83,9 +82,7 @@ class BibliotecaPessoalServiceTest {
         UUID arquivoId = UUID.randomUUID();
         when(usuarioArquivoRepository.existsById_UsuarioIdAndId_ArquivoId(usuarioId, arquivoId)).thenReturn(false);
         when(arquivoRepository.existsById(arquivoId)).thenReturn(true);
-
         service.adicionar(usuarioId, arquivoId);
-
         verify(usuarioArquivoRepository).save(any());
     }
 
@@ -93,9 +90,7 @@ class BibliotecaPessoalServiceTest {
     void remover_devePassarUsuarioIdEArquivoIdParaORepository_semLancarErroSeNaoExistir() {
         UUID usuarioId = UUID.randomUUID();
         UUID arquivoId = UUID.randomUUID();
-
         service.remover(usuarioId, arquivoId);
-
         verify(usuarioArquivoRepository).deleteById_UsuarioIdAndId_ArquivoId(usuarioId, arquivoId);
     }
 }

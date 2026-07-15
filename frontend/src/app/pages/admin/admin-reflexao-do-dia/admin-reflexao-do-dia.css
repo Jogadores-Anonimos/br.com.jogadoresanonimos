@@ -130,17 +130,19 @@
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: var(--spacing-sm);
-  background: rgba(0, 0, 0, 0.5);
+  overflow-y: auto;
+  padding: var(--spacing-lg) var(--spacing-sm);
+  background: rgba(var(--black-rgb), 0.5);
   z-index: 100;
 }
 
 .admin-reflexao__painel {
   width: 100%;
   max-width: 60ch;
-  max-height: 90vh;
+  margin: auto 0;
+  max-height: calc(100vh - 2 * var(--spacing-lg));
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -240,6 +242,14 @@
 @media (max-width: 600px) {
   .admin-reflexao__grade {
     grid-template-columns: repeat(auto-fill, minmax(2.8rem, 1fr));
+  }
+
+  .admin-reflexao__overlay {
+    padding: var(--spacing-md) var(--spacing-sm);
+  }
+
+  .admin-reflexao__painel {
+    max-height: calc(100vh - 2 * var(--spacing-md));
   }
 
   .admin-reflexao__acoes {

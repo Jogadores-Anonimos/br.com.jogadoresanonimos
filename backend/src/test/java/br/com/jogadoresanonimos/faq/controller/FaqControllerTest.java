@@ -34,9 +34,7 @@ class FaqControllerTest {
     void listarTodos_deveRetornarOkComListaDoService() {
         FaqResponse item = new FaqResponse(UUID.randomUUID(), "pergunta", "resposta", 1);
         when(faqService.listarTodos()).thenReturn(List.of(item));
-
         ResponseEntity<ApiResponse<List<FaqResponse>>> resposta = faqController.listarTodos();
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         assertThat(resposta.getBody().data()).containsExactly(item);

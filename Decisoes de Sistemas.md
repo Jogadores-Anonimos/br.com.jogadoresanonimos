@@ -1,12 +1,8 @@
 # Decisões de Sistemas — Backend, Admin e Infraestrutura
 
-> Documento de trabalho gerado em 2026-07-09 para revisão e aprovação.
-> Nada aqui foi implementado ou registrado como regra de negócio permanente
-> ainda — isso só acontece depois da aprovação, via agente `po`, que
-> atualiza o `CLAUDE.md`.
->
-> Elaborado com base em análise dos agentes `system-design`, `backend`,
-> `security` e `ux-ui`.
+> Registro das decisões de arquitetura já tomadas (backend, admin,
+> infraestrutura, segurança). Pendências reais em aberto ficam em
+> `PENDENCIAS.md`, não aqui.
 
 ## 1. Visão geral da arquitetura
 
@@ -60,26 +56,14 @@
 
 - Login: **apelido + senha** (Argon2id/bcrypt, mínimo 10 caracteres sem
   regra de composição forçada).
-- **E-mail passa a ser coletado no cadastro** — decisão do usuário,
-  exceção deliberada à regra geral de anonimato do projeto. Motivos:
-  1. Permitir recuperação de conta por e-mail (fluxo padrão de "esqueci
-     minha senha"), em vez de depender só de uma chave de recuperação
-     exibida uma única vez.
-  2. Necessário para envio de itens físicos da loja (endereço/contato
-     de entrega depende de um canal de contato).
-  - **Pendência para a próxima sessão**: o fluxo de frontend para captura
-    de e-mail no cadastro ainda não foi desenhado — a ser tratado pelo
-    agente `ux-ui`/`frontend` depois.
-  - **Atenção de arquitetura**: e-mail é dado pessoal e não pode ser
-    exposto/logado junto com dados de participação, relatos ou presença
-    em reuniões (mesmo requisito de isolamento que já vale para os
-    demais dados sensíveis). Isso precisa ser modelado com cuidado (ex:
-    e-mail em tabela separada, acesso restrito, nunca em log) — a ser
-    detalhado com `security`/`backend` quando o fluxo for desenhado.
-  - Esta exceção precisa ser formalizada no `CLAUDE.md` pelo `po` quando
-    aprovada, já que hoje o documento diz que o anonimato tem prioridade
-    sobre qualquer prática técnica comum — este é o primeiro caso em que
-    o próprio usuário optou por abrir mão de parte disso conscientemente.
+- **E-mail passa a ser coletado no cadastro** — exceção deliberada à
+  regra geral de anonimato do projeto, formalizada no `CLAUDE.md`.
+  Motivos: (1) recuperação de conta por e-mail em vez de chave de
+  recuperação exibida uma única vez; (2) necessário para envio de itens
+  físicos da loja. E-mail fica na própria tabela `usuario`
+  (`VARCHAR NOT NULL UNIQUE`), isolamento por regra de aplicação (nunca
+  em query/DTO/log de relato, presença ou reunião). Login aceita apelido
+  OU e-mail.
 - Admin: **MFA via TOTP** (app autenticador) + códigos de backup —
   **planejado, mas fica para depois do CRUD básico**, quando o dashboard
   já estiver em teste.
@@ -91,32 +75,19 @@
 
 ## 5. Storage de imagem
 
-- **Decisão revisada (2026-07-12): disco local persistente do servidor de
-  produção**, não bucket S3-compatible externo. Reverte a recomendação
-  anterior deste documento (R2/B2).
-- **Motivo da mudança**: usar bucket gerenciado de terceiro (R2/B2) exige
-  decidir *titularidade da conta* — fica no nome do cliente (JA Brasil) ou
-  do desenvolvedor responsável pela infra? Essa é uma decisão de negócio
-  (custódia de credencial, continuidade se a relação com o dev terminar,
-  quem paga/renova) que o usuário optou por **não precisar tomar agora**.
-  Disco local do próprio servidor de produção evita essa decisão sem
-  bloquear o desenvolvimento: o binário mora onde a aplicação já roda, sob
-  a mesma titularidade de infra que o resto do sistema.
-- **O que não muda**: `StorageClient` (interface) já isola essa decisão do
-  resto do código — a implementação de disco (antes `StubStorageClient`,
-  usada só em dev/teste, agora promovida a `LocalDiskStorageClient` e
-  usada também em produção) sem necessidade de nova implementação nem de
-  tocar em código de domínio (`imagem` service/controller permanecem
-  iguais, só a config de ambiente aponta o path de disco de prod, via
-  env vars já existentes `STORAGE_STUB_DIR`/`STORAGE_PUBLIC_BASE_URL` —
-  nomes mantidos por decisão do `backend`, não valia o custo de
-  sincronizar rename em 3 arquivos de config). Toda a validação de
-  segurança já pronta continua exatamente como está: remoção de EXIF
-  antes de persistir, validação por magic bytes (não extensão/
-  `Content-Type`), sem aceitar SVG, sem upload por URL, checagem
-  anti-polyglot em PDF, GC de imagem órfã (`@Scheduled` diário, período
-  de graça de 7 dias), rate limit de upload (10/min por admin + 60/min
-  global).
+- **Decisão: disco local persistente do servidor de produção**, não
+  bucket S3-compatible externo — evita decidir titularidade de conta
+  terceira (cliente vs dev) antes de precisar, dado o volume baixo do
+  projeto.
+- `StorageClient` (interface) isola essa decisão do resto do código —
+  implementação de disco (`LocalDiskStorageClient`) usada em dev, teste
+  e produção, sem tocar em código de domínio. Env vars:
+  `STORAGE_STUB_DIR`/`STORAGE_PUBLIC_BASE_URL`.
+- Validação de segurança: remoção de EXIF antes de persistir, validação
+  por magic bytes (não extensão/`Content-Type`), sem aceitar SVG, sem
+  upload por URL, checagem anti-polyglot em PDF, GC de imagem órfã
+  (`@Scheduled` diário, período de graça de 7 dias), rate limit de
+  upload (10/min por admin + 60/min global).
 
 ### Trade-off 1 — Risco de crescimento de disco sem controle
 - **Risco real**: sem bucket gerenciado, não há quota nativa do provedor
@@ -135,13 +106,20 @@
      via `devops` (ex: alerta simples de infraestrutura ao atingir 70-80%
      de uso), já que não existe mais o alerta de billing do provedor
      cloud cobrindo esse papel.
-  3. **Política de retenção/expurgo**: o GC de órfã (7 dias de graça) já
-     ataca o caso "upload sem registro associado". Falta decidir, quando
-     o volume justificar, uma política de retenção para imagens
-     *associadas* a conteúdo removido (ex: se um relato ou página CMS é
-     excluído, o quê acontece com a imagem referenciada) — não é urgente
-     no volume atual (~300 pedidos/dia), mas fica registrado como
-     pendência a fechar com `backend`/`po` antes de crescer.
+  3. **Política de retenção/expurgo — fechada em 2026-07-15**: imagem
+     *associada* a conteúdo removido (bloco de CMS, banner do mural) cai
+     no mesmo fluxo de GC de órfã já existente, sem mecanismo novo. Ao
+     deletar o conteúdo pai (DELETE simples, sem soft-delete de imagem),
+     a `Imagem` correspondente naturalmente para de ter referência ativa
+     e o GC a coleta no ciclo seguinte, dentro do mesmo período de graça
+     de 7 dias. Corrigido também um bug pré-existente descoberto ao
+     analisar essa decisão: `ImagemOrfaGcJob` só checava
+     `CmsBlocoRepository.existsByImagemId`, não checava
+     `BannerMuralRepository` — um banner do mural ativo podia ser
+     erroneamente coletado após 7 dias. Fix: adicionado
+     `BannerMuralRepository.existsByImagemId` na mesma cadeia de filtro
+     do job. `Relato` e `Aviso` não têm campo de imagem, fora do escopo
+     desta decisão.
 - **Por que essa mitigação e não mais**: no volume atual, estimativa
   grosseira de crescimento de disco é baixíssima (poucas dezenas de MB/dia
   mesmo em pico de uploads) — não justifica hoje um mecanismo automatizado
@@ -218,12 +196,17 @@
   nunca vem de input do usuário; `download()` mantém checagem extra
   (`normalize().startsWith(baseDir)`) como defesa adicional contra path
   traversal.
-- **CDN continua fazendo sentido para servir os arquivos**, independente
-  de o binário estar em disco local ou bucket externo — a decisão de CDN
-  (seção não coberta aqui, ver `system-design`/`devops` para
-  configuração de fato) não muda com essa troca de storage; o servidor de
-  origem (`origin`) do CDN só passa a apontar para o próprio backend/
-  disco local em vez de apontar para o bucket.
+- **CDN — decisão fechada em 2026-07-15 (`system-design`)**: vale a pena
+  quando existir hospedagem de produção — Cloudflare (ou equivalente) na
+  frente do domínio real, cache de assets estáticos (JS/CSS/imagens do
+  frontend Angular + arquivos servidos do disco local via
+  `ImagemPublicController`), `origin` apontando pro próprio backend/disco
+  local, sem bucket S3 externo (decisão de storage não muda). Não é
+  questão de volume baixo justificar adiar — CDN de assets estáticos é
+  barato mesmo em baixo tráfego — é bloqueio puro de pré-requisito: não
+  há domínio/DNS real ainda. Entra no checklist de deploy assim que a
+  hospedagem for decidida (ver `PENDENCIAS.md`, seção "Infraestrutura /
+  Deploy").
 - **Custo**: elimina qualquer custo (ainda que mínimo, dado free tier) de
   bucket externo — disco local já está pago dentro do custo do próprio
   servidor de produção.
@@ -419,153 +402,59 @@ comportamento de participante — pode (e deve) identificar o admin agente,
 mas trata qualquer dado de participante referenciado só por id técnico do
 recurso, nunca por conteúdo.
 
-## 11. Pendências para a próxima sessão
+## 12. Rate limiting
 
-1. ~~**Professor**: traduzir este arquivo + `.claude/knowledge/` pro
-   Notion.~~ **Feito em 2026-07-09**: as 11 seções foram publicadas
-   (páginas Spring Boot, Docker, Angular no Notion) e `.claude/knowledge/`
-   foi zerado. ~~**Pendência em andamento**: separar o conteúdo de
-   segurança e de CI-CD/infraestrutura em páginas próprias.~~ **Feito em
-   2026-07-10**: criadas as páginas "Segurança" (Autenticação JWT,
-   Autorização por Role, CORS, Upload de Arquivos, Superfície de Ataque,
-   Tratamento de Erros, Logs/Auditoria, Rate Limiting) e "CI-CD /
-   Infraestrutura" (CI mínimo, health check/Actuator, pool de conexão,
-   observabilidade) no mesmo banco de dados do Notion onde ficam
-   Spring Boot/Docker/Angular; os toggles equivalentes foram removidos
-   de dentro de Spring Boot e Docker, com uma nota apontando pra nova
-   página em cada lugar. CMS Leve permaneceu em Spring Boot (não é
-   conteúdo de segurança).
-2. ~~Desenhar o fluxo de frontend de cadastro com e-mail (UX +
-   validação).~~ **Feito em 2026-07-12** por `ux-ui`: spec de cadastro
-   (apelido novo campo — corrige bug real do código atual que só pedia
-   e-mail+senha e não deixava ninguém logar depois —, e-mail com texto
-   de apoio de anonimato, confirmar senha novo campo), tela "esqueci
-   senha" (link até então morto) e tela "redefinir senha" (nova, com
-   token). Ver `.claude/knowledge/` e resumo da sessão de 2026-07-12.
-3. ~~Definir formalmente com `security`/`backend` como o e-mail fica
-   isolado dos dados de participação/relatos no banco.~~ **Feito em
-   2026-07-12**: e-mail fica na própria tabela `usuario`
-   (`VARCHAR NOT NULL UNIQUE`), sem tabela separada; isolamento é por
-   regra de aplicação (nunca em query/DTO/log de relato, presença ou
-   reunião). Registrado em `.claude/knowledge/seguranca-email-cadastro.md`
-   e formalizado no `CLAUDE.md`.
-4. ~~Decidir se o e-mail também substitui totalmente a "chave de
-   recuperação exibida uma vez" ou se os dois mecanismos convivem.~~
-   **Feito em 2026-07-12**: e-mail substitui totalmente — chave de
-   recuperação abandonada, os dois não convivem. Mesma referência acima.
-   - **Requisito adicional aprovado no meio da sessão**: login passa a
-     aceitar apelido OU e-mail (não só apelido). Ajustado com `security`:
-     índice único em `email` cobre a query de login; rate limit e
-     hash de log de tentativa falha cobrem e-mail com a mesma regra que
-     já valia para apelido (nunca texto puro em log).
-5. ~~Após aprovação final deste documento, acionar o `po` para registrar
-   as decisões aprovadas como regra de negócio permanente no
-   `CLAUDE.md`.~~ **Feito em 2026-07-12** para o bloco de
-   autenticação/e-mail (pendências 2-4 acima). Falta ainda registrar CMS/
-   upload quando esse bloco fechar de vez (ver pendência 6 abaixo).
-6. ~~**Em andamento**: `backend` já entregou o SDD~~ **Implementação
-   inicial feita em 2026-07-12** por `backend`: estrutura de pacotes
-   (`common`, `config`, `security`, `usuario`, `auth`, `cms`, `imagem`),
-   os 3 blocos completos (auth/e-mail com Argon2id+JWT, CMS com
-   sanitização HTML e auditoria, upload com magic bytes+EXIF strip+GC),
-   migrations Flyway V1-V4, tratamento de erro (seção 9) e logs (seção
-   10) aplicados, 23 testes JUnit+Mockito passando. Detalhe em
-   `.claude/knowledge/backend-implementacao-inicial.md`.
-   **Falta ainda**: valores reais de rate limit e MFA/TOTP admin (fechar
-   com `security`); `StorageClient` real (R2/B2, hoje é stub em disco);
-   `EmailService` real via SMTP/API (hoje só loga); suporte a WebP no
-   processamento de imagem (`ImageIO` do JDK não lê nativo — decidir lib
-   ou restringir a jpeg/png); `docker-compose.yml` do projeto; GC de
-   imagem órfã ainda não cobre "objeto no bucket sem linha no Postgres"
-   (depende de bucket real pra listar); forçar troca de senha no
-   primeiro login do admin bootstrap.
-   **Pendências de recurso externo, a cargo do usuário/dono do
-   projeto** (ver detalhe completo no knowledge acima): (1) instância
-   Postgres real dev+prod; (2) segredos `JWT_SECRET`/`LOG_HMAC_SECRET`;
-   (3) bucket S3-compatible real — decidir R2 vs B2 e gerar credenciais;
-   (4) provedor de e-mail (SMTP ou API — SendGrid/SES/Mailgun/outro) para
-   o fluxo de esqueci-senha funcionar de verdade; (5) valores de
-   `ADMIN_BOOTSTRAP_APELIDO`/`EMAIL`/`SENHA` do primeiro admin.
+> Complemento elaborado com `security` em 2026-07-15. Fecha a pendência
+> "valores reais de rate limit" (antes só upload estava fechado).
 
-   Três blocos do contrato original:
-   - **Auth/e-mail**: fechado.
-   - **CMS** (`cms_pagina`/`cms_bloco`/`cms_alteracao_log`): fechado.
-   - **Upload de imagem**: fechado quanto à segurança (EXIF strip, magic
-     bytes, chave UUID, ordem bucket-depois-postgres, rate limit 10/min
-     por admin + 60/min global). **Bloqueado quanto à infra** — três
-     pendências endereçadas a `devops` que não puderam ser delegadas
-     nesta sessão porque os agentes `devops`, `qa-backend` e `qa-system`
-     não apareceram na lista de `subagent_type` disponível para o `po`
-     (gap de ambiente, não de definição — os arquivos
-     `.claude/agents/Devops.md`, `Qa backend.md`, `Qa system.md` existem
-     e estão corretos; testado com variações de nome/capitalização sem
-     sucesso). Reavaliar logo no início da próxima sessão, antes de
-     qualquer outra coisa, se a lista de agentes já carrega esses três.
-     ~~Pendências que ficam esperando `devops`~~ **Fechadas em 2026-07-12**
-     por `devops`, ver seção "Decisões de infra — `devops`" no final do
-     `contrato-auth-cms-upload.md`:
-     1. ~~Tamanho máximo de arquivo aceito + política de quota do bucket
-        S3-compatible (R2/B2)~~ — 5MB por arquivo (proxy + Spring
-        multipart config), quota de bucket coberta por free tier
-        (~10GB) com alerta de billing em 80%, sem cota por admin.
-     2. ~~Retry/backoff da fila de envio de e-mail (esqueci-senha)~~ —
-        sem broker externo, `@Async`+`@Retryable` em memória, 3
-        tentativas/backoff exponencial curto; falha definitiva só loga
-        (sem endereço em texto puro) e conta com o usuário re-chamar
-        `/esqueci-senha` (idempotente).
-     3. ~~GC de imagem órfã no bucket~~ — `@Scheduled` diário no próprio
-        backend (sem cron externo), período de graça de 7 dias antes de
-        considerar upload não-associado como órfão, log só de contagem.
-   - ~~`frontend-services` pode começar a mockar em cima do contrato já
-     fechado (blocos auth/CMS e a parte de segurança do upload) sem
-     esperar as pendências de infra.~~ **Feito em 2026-07-12** — ver
-     detalhe na pendência 8 abaixo.
-7. ~~**Frontend**: revisar o código existente com foco em performance~~
-   **Feito em 2026-07-12**: 2 correções de baixo risco aplicadas —
-   throttle (`auditTime(100)`) no scroll listener de
-   `navbar.ts` (antes sem debounce, diferente do padrão já usado em
-   `voltar-ao-topo.ts`); `loading="lazy"` + `decoding="async"` em imagens
-   de `@for` em `home.html`/`mural-de-apoio.html`/`literatura.html`.
-   Bundle inicial: 716.84 kB. **Achados reportados, não aplicados**
-   (exigem decisão de arquitetura, ficam como pendência nova — ver item
-   9): falta lazy loading de rotas (nenhuma das 22 rotas usa
-   `loadComponent`, inclui `reunioes` que carrega `leaflet` no bundle
-   inicial mesmo pra quem não visita a página); budget de bundle em
-   `angular.json` (3-5mb) ~4x maior que o necessário hoje; script do
-   reCAPTCHA carregado global em `index.html` em vez de sob demanda;
-   `reunioes.ts` sem guard `isPlatformBrowser` (dívida só se SSR entrar
-   depois); sem SSR/hidratação (decisão consciente de não priorizar, dado
-   volume baixo do projeto). Detalhe em `.claude/knowledge/frontend.md`.
-8. ~~`frontend-services`: mockar services de auth/e-mail e CMS em cima do
-   contrato fechado~~ **Feito em 2026-07-12**: Blocos 1 (auth/e-mail) e 2
-   (CMS) mockados com envelope `{success, data, error}` idêntico ao real,
-   flag `environment.useMocks` central pra trocar mock→HTTP real sem
-   mudar assinatura pública. Bloco 3 (upload) ignorado por escolha —
-   `imagemId` no CMS já é referência opaca, não bloqueia. **Achado crítico
-   resolvido no processo**: `auth.ts` estava com contrato antigo,
-   dessincronizado de `minha-conta.ts` (chamava `Auth.register()`/
-   `usuario.identificador` que não existiam) — bloqueava build de
-   produção; `frontend-services` reescreveu `auth.ts` e ajustou
-   `minha-conta.ts` para o contrato novo. Build validado (`tsc --noEmit` e
-   `ng build development` limpos). Detalhe em
-   `.claude/knowledge/frontend-services-auth-cms.md`.
-9. ~~**Nova pendência, aberta em 2026-07-12**: `minha-conta.html` (form de
-   registro) não tem campo de apelido nem confirmar-senha ainda, e não
-   existem as telas de "esqueci senha"/"redefinir senha"~~ **Feito em
-   2026-07-12** por `frontend`: campo apelido + confirmar-senha no
-   registro (com erro por campo, batendo `error.fields` do contrato),
-   label de login trocado para "Apelido ou e-mail", telas novas
-   `esqueci-senha` e `redefinir-senha` (componente+rota cada, consumindo
-   `authService.esqueciSenha`/`redefinirSenha` já prontos, mensagem
-   genérica de sucesso sem diferenciar conta existente). Build validado.
-   Detalhe em `.claude/knowledge/frontend-auth-ui.md`.
-   ~~**Ainda em aberto, sem decisão**: as 4 melhorias de performance
-   reportadas no item 7~~ **Feito em 2026-07-12** por `frontend`: lazy
-   loading (`loadComponent`) aplicado em todas as rotas exceto Home;
-   budget de bundle apertado de 3-5mb para 800kb/1.2mb em
-   `angular.json`; reCAPTCHA tirado do `index.html` global, carregado sob
-   demanda via novo `recaptcha-loader.ts` (script tag dinâmica, sem lib
-   nova — sinalizado para `security` revisar quando conveniente); guard
-   `isPlatformBrowser` adicionado em `reunioes.ts`. Resultado: bundle
-   inicial 716.84 kB → 412.80 kB raw / 106.60 kB transfer, `leaflet`
-   isolado em chunk lazy. Detalhe em `.claude/knowledge/frontend.md`.
+- **Mecanismo único, sem lib nova**: `RateLimiterService` +
+  `TokenBucket` (`backend/src/main/java/br/com/jogadoresanonimos/common/ratelimit/`)
+  — token bucket em memória (`ConcurrentHashMap` de chave → bucket),
+  chamado direto do service layer via `rateLimiterService.check(chave,
+  capacidade, janela)`, lançando `RateLimitedException` → HTTP 429
+  (`error.code = RATE_LIMITED`) já mapeado no `GlobalExceptionHandler`.
+  Todo novo limite deve reaproveitar esse mecanismo, não introduzir
+  Bucket4j/Redis/etc — volume do projeto (~2.500 req/dia) não justifica.
+- **Chave nunca é IP.** Login/registro/esqueci-senha/redefinir-senha usam
+  hash HMAC (`HmacHasher`, chave via secret de ambiente) do identificador
+  ou do token de reset — nunca o valor em claro, nunca IP. Ações
+  autenticadas (relato, conta, biblioteca, upload) usam o UUID técnico do
+  usuário já validado pelo JWT, que não é dado pessoal por si só (mesmo
+  padrão já em uso no upload de imagem/arquivo). Alinhado à regra de
+  anonimato do projeto: rate limit por IP é padrão de mercado aceitável,
+  mas aqui a alternativa (chave hasheada/id técnico) já resolve o mesmo
+  problema sem persistir IP nem em memória.
+
+### Valores fechados
+
+| Endpoint | Chave | Limite | Motivo |
+|---|---|---|---|
+| `POST /api/v1/auth/login` | hash do identificador (apelido/e-mail) | 5 / 1 min | Padrão de mercado contra brute force (OWASP: ~5/min é ponto de partida comum); reCAPTCHA já soma como segunda camada. Mensagem de erro genérica evita enumeration. **Já implementado**, mantido sem alteração. |
+| `POST /api/v1/auth/registro` | hash de `apelido\|email` | 5 / 1 min | Contém spam de criação de conta em massa; reCAPTCHA já soma. **Já implementado**, mantido. |
+| `POST /api/v1/auth/esqueci-senha` | hash do identificador | 5 / 1 min | Evita abuso de envio de e-mail (custo de terceiro) e reduz sinal de enumeração de conta existente — resposta já é sempre genérica independente de a conta existir. **Já implementado**, mantido. |
+| `POST /api/v1/auth/redefinir-senha` | hash do token de reset recebido | 5 / 1 min | **Novo.** Token é aleatório de 32 bytes (baixo risco de brute force prático), mas defesa em profundidade é barata e consistente com o resto do fluxo de auth — sem isso era o único passo do fluxo de recuperação de senha sem limite. |
+| `PUT /api/v1/usuarios/me` (atualizar conta) | UUID do usuário autenticado | 5 / 1 min | **Novo.** Evita uso do endpoint para varrer/confirmar apelidos ou e-mails já cadastrados via resposta de conflito (409), além de conter flood trivial. |
+| `PUT /api/v1/usuarios/me/senha` (alterar senha) | UUID do usuário autenticado | 5 / 1 min | **Novo.** Ainda que exija JWT válido + senha atual, limita tentativa de força bruta contra a senha atual em caso de token comprometido/reuso de sessão. |
+| `POST/DELETE /api/v1/usuarios/me/biblioteca/{id}` | UUID do usuário autenticado | 30 / 1 min | **Novo.** Ação de baixo risco (favoritar/desfavoritar arquivo já autorizado), limite mais permissivo só para conter flood/loop de cliente com bug, não abuso malicioso real. |
+| `POST /api/v1/relatos` (enviar relato) | UUID do autor | 5 / 10 min | Conteúdo sensível gerado por usuário, sujeito a moderação; limite já fechado anteriormente, mantido sem alteração. |
+| `POST /api/v1/admin/imagens` (upload) | UUID do admin + limite global | 10/min por admin + 60/min global | Já fechado anteriormente, mantido sem alteração. |
+| `POST /api/v1/admin/arquivos` (upload PDF) | UUID do admin + limite global | 10/min por admin + 60/min global | Já fechado anteriormente, mantido sem alteração. |
+
+### Endpoints avaliados e descartados (sem rate limit dedicado)
+
+- Todos os `GET` públicos (reuniões, hotlines, escritórios regionais,
+  FAQ, CMS, vinte perguntas, mural de apoio, avisos, reflexão do dia,
+  relatos aprovados, download de arquivo) — leitura pública, sem efeito
+  colateral de escrita/custo de envio; não há sinal concreto de abuso a
+  mitigar hoje. Revisitar se algum desses virar alvo de scraping/DDoS
+  observado em produção (rate limit global "leve" por rota, não por
+  usuário, seria a primeira opção nesse cenário).
+- Sem endpoint de "contato" server-side no projeto (fluxo de contato é
+  estático, WhatsApp/telefone) — não há superfície de spam de formulário
+  de contato para limitar.
+
+## 13. Pendências
+
+Ver `PENDENCIAS.md` — arquivo único de pendências reais em aberto.
+Histórico de implementação de cada bloco (auth/e-mail, CMS, upload,
+frontend, admin) vive em `.claude/knowledge/`.

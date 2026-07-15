@@ -1,4 +1,3 @@
-/* Altura real desta barra também é espelhada como --ticker-height em app.css; manter sincronizado se padding/font-size mudar. */
 :host {
   display: block;
 }

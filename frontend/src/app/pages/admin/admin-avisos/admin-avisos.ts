@@ -2,8 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { AvisosService } from '../../../services/avisos';
-import { AvisoAdmin, CriarAvisoRequest } from '../../../services/aviso.model';
+import { mapearErrosCampo } from '../../../services/api-envelope';
+import { AvisosService } from '../../../services/avisos/avisos';
+import { AvisoAdmin, CriarAvisoRequest } from '../../../services/avisos/aviso.model';
 
 interface FormularioAviso {
   titulo: string;
@@ -16,10 +17,18 @@ function formularioVazio(): FormularioAviso {
   return { titulo: '', corpo: '', fixado: false, dataExpiracao: '' };
 }
 
-// yyyy-MM-dd -> dd/mm/aaaa, pra exibir no input mascarado.
 function paraExibicaoBr(isoData: string): string {
   const [ano, mes, dia] = isoData.split('-');
   return ano && mes && dia ? `${dia}/${mes}/${ano}` : '';
+}
+
+function ordenarAvisos(itens: AvisoAdmin[]): AvisoAdmin[] {
+  return [...itens].sort((a, b) => {
+    if (a.fixado !== b.fixado) {
+      return a.fixado ? -1 : 1;
+    }
+    return new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime();
+  });
 }
 
 @Component({
@@ -41,6 +50,7 @@ export class AdminAvisos implements OnInit {
   formulario: FormularioAviso = formularioVazio();
   salvando = false;
   erroFormulario = '';
+  errosCampo: Record<string, string> = {};
 
   confirmandoExclusao: string | null = null;
   excluindo = false;
@@ -73,6 +83,7 @@ export class AdminAvisos implements OnInit {
     this.formulario = formularioVazio();
     this.dataExpiracaoTexto = '';
     this.erroFormulario = '';
+    this.errosCampo = {};
     this.modo = 'formulario';
   }
 
@@ -86,13 +97,10 @@ export class AdminAvisos implements OnInit {
     };
     this.dataExpiracaoTexto = paraExibicaoBr(this.formulario.dataExpiracao);
     this.erroFormulario = '';
+    this.errosCampo = {};
     this.modo = 'formulario';
   }
 
-  // Máscara dd/mm/aaaa: insere as barras conforme digita e só grava em
-  // formulario.dataExpiracao (yyyy-MM-dd) quando os 3 grupos estiverem
-  // completos e formarem uma data válida — evita depender do formato
-  // nativo do <input type="date">, que segue o idioma do SO/navegador.
   onDataExpiracaoTextoChange(valor: string): void {
     const digitos = valor.replace(/\D/g, '').slice(0, 8);
     let formatado = digitos;
@@ -123,10 +131,19 @@ export class AdminAvisos implements OnInit {
     this.avisoEmEdicao = null;
     this.dataExpiracaoTexto = '';
     this.erroFormulario = '';
+    this.errosCampo = {};
   }
 
   salvar(): void {
-    if (!this.formulario.titulo.trim() || !this.formulario.corpo.trim()) {
+    this.errosCampo = {};
+
+    if (!this.formulario.titulo.trim()) {
+      this.errosCampo['titulo'] = 'Título é obrigatório.';
+    }
+    if (!this.formulario.corpo.trim()) {
+      this.errosCampo['corpo'] = 'Corpo é obrigatório.';
+    }
+    if (Object.keys(this.errosCampo).length > 0) {
       this.erroFormulario = 'Título e corpo são obrigatórios.';
       return;
     }
@@ -138,8 +155,6 @@ export class AdminAvisos implements OnInit {
       titulo: this.formulario.titulo.trim(),
       corpo: this.formulario.corpo.trim(),
       fixado: this.formulario.fixado,
-      // Backend espera Instant (ISO-8601 com hora); <input type="date">
-      // só dá "yyyy-MM-dd" — expira no fim daquele dia (horário local).
       dataExpiracao: this.formulario.dataExpiracao
         ? new Date(`${this.formulario.dataExpiracao}T23:59:59`).toISOString()
         : null,
@@ -152,12 +167,18 @@ export class AdminAvisos implements OnInit {
     acao.subscribe((envelope) => {
       this.salvando = false;
 
-      if (envelope.success) {
+      if (envelope.success && envelope.data) {
+        const salvo = envelope.data;
+        this.avisos = ordenarAvisos(
+          this.avisoEmEdicao
+            ? this.avisos.map((a) => (a.id === salvo.id ? salvo : a))
+            : [...this.avisos, salvo],
+        );
         this.modo = 'lista';
         this.avisoEmEdicao = null;
-        this.carregarAvisos();
       } else {
         this.erroFormulario = envelope.error?.message ?? 'Não foi possível salvar o aviso.';
+        this.errosCampo = mapearErrosCampo(envelope.error?.fields);
       }
     });
   }

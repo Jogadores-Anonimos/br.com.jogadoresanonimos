@@ -1,8 +1,12 @@
-// Envelope de resposta comum a toda a API — ver backend/docs/api/contrato-auth-cms-upload.md
+export interface ApiFieldError {
+  campo: string;
+  mensagem: string;
+}
+
 export interface ApiError {
   code: string;
   message: string;
-  fields?: Record<string, string>;
+  fields?: ApiFieldError[];
   traceId?: string;
 }
 
@@ -16,16 +20,17 @@ export function apiSuccess<T>(data: T): ApiEnvelope<T> {
   return { success: true, data, error: null };
 }
 
-export function apiError<T>(code: string, message: string, fields?: Record<string, string>): ApiEnvelope<T> {
+export function apiError<T>(code: string, message: string, fields?: ApiFieldError[]): ApiEnvelope<T> {
   return { success: false, data: null, error: { code, message, fields } };
 }
 
-// O backend sempre responde erro de negócio (400/404/409/415 etc.) com
-// corpo `{ success:false, error:{ message, code, ... } }` — HttpClient
-// trata qualquer status não-2xx como erro e joga fora do fluxo normal,
-// então sem isso o `catchError` de cada service perderia a mensagem
-// real (ex: "PDF rejeitado — contém OpenAction") e mostraria só um
-// genérico, escondendo do usuário o motivo de verdade.
+export function mapearErrosCampo(fields?: ApiFieldError[]): Record<string, string> {
+  return (fields ?? []).reduce<Record<string, string>>((mapa, item) => {
+    mapa[item.campo] = item.mensagem;
+    return mapa;
+  }, {});
+}
+
 export function apiErrorDeHttpError<T>(erro: unknown, codigoFallback: string, mensagemFallback: string): ApiEnvelope<T> {
   const corpo = (erro as { error?: Partial<ApiEnvelope<unknown>> } | null)?.error;
   if (corpo?.error?.message) {

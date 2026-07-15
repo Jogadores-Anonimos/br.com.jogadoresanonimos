@@ -1,5 +1,34 @@
 # Contrato de API — Auth/E-mail, CMS Leve, Upload de Imagem e de PDF
 
+> **Atualização 2026-07-15 (`backend`) — aditiva, não-breaking**:
+> `LoginResponse.usuario` (1.2) e `UsuarioMeResponse` (1.5) ganham campo
+> novo `deveTrocarSenha: boolean`. Implementa "forçar troca de senha no
+> primeiro login do admin bootstrap" — `AdminBootstrap` agora cria o
+> admin inicial com `deveTrocarSenha = true`; demais fluxos de criação de
+> usuário (`registrar`) continuam `false`. Campo populado a partir da
+> nova coluna `usuario.deve_trocar_senha` (migration `V5`). Frontend deve
+> checar esse campo após login/`/me` e, se `true`, redirecionar/forçar
+> fluxo de troca de senha (reaproveita `PUT /api/v1/usuarios/me/senha`,
+> já existente — ver `contrato-usuario-conta-propria.md`); backend **não**
+> bloqueia outros endpoints admin via middleware — decisão deliberada de
+> simplicidade dado volume baixo do projeto, enforcement é só no
+> front. A flag é limpa automaticamente (`Usuario.setSenhaHash`) em
+> qualquer troca de senha bem-sucedida, tanto via `/me/senha` quanto via
+> `/auth/redefinir-senha`. **Pendente no frontend**: nenhuma tela hoje lê
+> esse campo — `frontend`/`frontend-services` precisam implementar o
+> redirecionamento condicional após login do admin bootstrap.
+>
+> **Atualização 2026-07-15 (`backend`) — MUDANÇA BREAKING**: `registro` e
+> `login` (1.1 e 1.2) passam a exigir `recaptchaToken` (`@NotBlank`) no
+> corpo da requisição — validação server-side real do reCAPTCHA v2
+> checkbox, que antes só existia no frontend (visual, sem enforcement).
+> Requisições sem esse campo agora falham com `400 VALIDATION_ERROR`.
+> `frontend-services` precisa ajustar `AuthService`/`RegistroRequest`/
+> `LoginRequest` do lado do cliente para sempre enviar o token retornado
+> pelo widget do reCAPTCHA antes de chamar esses dois endpoints. Ver
+> seção "1.1a — Validação server-side de reCAPTCHA" abaixo para o
+> contrato completo da mudança.
+>
 > Status: **implementado em código em 2026-07-12** (blocos 1, 2, 3 e 4 —
 > ver `backend/src/main/java/br/com/jogadoresanonimos/{auth,usuario,cms,imagem,arquivo}`).
 > Baseado em `Decisoes de Sistemas.md` (seções 2, 4, 5, 6, 8, 9, 10) e
@@ -47,7 +76,8 @@ Convenções gerais válidas para todos os blocos abaixo:
   "apelido": "string, 3-30 chars, sem espaço, único",
   "email": "string, formato e-mail válido, único",
   "senha": "string, mínimo 10 chars",
-  "confirmarSenha": "string, deve bater com senha"
+  "confirmarSenha": "string, deve bater com senha",
+  "recaptchaToken": "string, obrigatório, token retornado pelo widget reCAPTCHA v2 checkbox"
 }
 ```
 
@@ -71,9 +101,10 @@ na própria confirmação de cadastro.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 400 | `VALIDATION_ERROR` | senha curta, `senha != confirmarSenha`, e-mail mal formado, apelido com espaço/caracteres inválidos — `error.fields` lista o campo |
+| 400 | `VALIDATION_ERROR` | senha curta, `senha != confirmarSenha`, e-mail mal formado, apelido com espaço/caracteres inválidos, ou `recaptchaToken` ausente/inválido/expirado (verificado no Google) — `error.fields` lista o campo, incluindo `recaptchaToken` quando for o caso |
 | 409 | `CONFLICT` | apelido ou e-mail já cadastrado — mensagem genérica **não diz qual dos dois** colidiu (evita enumeration; ver nota abaixo) |
 | 429 | `RATE_LIMITED` | limite de criação de conta na janela |
+| 502 | `UPSTREAM_ERROR` | falha de comunicação com o Google (timeout ~5s, 5xx, resposta malformada) ao verificar o reCAPTCHA — fail-closed, operação é bloqueada, mensagem genérica ao cliente |
 
 > Nota de anti-enumeration: mensagem de 409 é
 > `"Não foi possível concluir o cadastro com os dados informados"`, sem
@@ -100,7 +131,8 @@ na própria confirmação de cadastro.
 ```json
 {
   "identificador": "string, apelido OU e-mail",
-  "senha": "string"
+  "senha": "string",
+  "recaptchaToken": "string, obrigatório, token retornado pelo widget reCAPTCHA v2 checkbox"
 }
 ```
 
@@ -114,19 +146,54 @@ na própria confirmação de cadastro.
     "usuario": {
       "id": "uuid",
       "apelido": "string",
-      "role": "PARTICIPANTE"
+      "role": "PARTICIPANTE",
+      "deveTrocarSenha": false
     }
   },
   "error": null
 }
 ```
+`deveTrocarSenha`: `true` somente para o admin criado por `AdminBootstrap`
+até a primeira troca de senha bem-sucedida (ver nota no topo do doc).
 
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 400 | `VALIDATION_ERROR` | corpo mal formado (campo ausente) |
+| 400 | `VALIDATION_ERROR` | corpo mal formado (campo ausente), ou `recaptchaToken` ausente/inválido/expirado (verificado no Google) — `error.fields` aponta `recaptchaToken` nesse caso |
 | 401 | `UNAUTHENTICATED` | identificador ou senha inválidos — mensagem genérica única, nunca diz qual campo errou nem se a conta existe |
 | 429 | `RATE_LIMITED` | muitas tentativas — inclui header `Retry-After` |
+| 502 | `UPSTREAM_ERROR` | falha de comunicação com o Google ao verificar o reCAPTCHA — fail-closed, bloqueia o login, mensagem genérica ao cliente |
+
+**Ordem de validação no `AuthService.login`** (mesma ordem em `registrar`):
+1. Rate limit (`RateLimiterService`, já existente) — barato, corta abuso
+   antes de qualquer chamada externa.
+2. `RecaptchaService.validar(recaptchaToken)` — chama
+   `https://www.google.com/recaptcha/api/siteverify` via `POST`
+   (`secret` + `response`), timeout de conexão/leitura ~5s. **Nunca
+   envia `remoteip`** — vazaria IP do usuário associado a um evento de
+   auth, o que conflita com o requisito de anonimato do projeto (decisão
+   intencional de `security`). Só o campo `success` da resposta é lido;
+   `challenge_ts`/`hostname` são ignorados e nunca persistidos/logados.
+   `success == false` **ou** qualquer erro de comunicação (timeout, 5xx,
+   JSON malformado) bloqueia a operação — fail-closed, nunca fail-open.
+   Falha de captcha em si vira `400 VALIDATION_ERROR` (`error.fields`
+   aponta `recaptchaToken`); falha de comunicação vira
+   `502 UPSTREAM_ERROR` com mensagem genérica ao cliente — detalhe
+   técnico (classe da exception) só em log interno nível WARN, sem dado
+   pessoal.
+3. Lógica de negócio (checagem de senha/hash, criação de usuário, etc.)
+   só roda depois dos dois passos acima — nenhum acesso a dado de
+   usuário nem hash de senha acontece antes do captcha validar.
+
+**Configuração**: `app.recaptcha.secret-key` (env var
+`RECAPTCHA_SECRET_KEY`), mesmo padrão de `JWT_SECRET` — nunca hardcoded
+no código, só em `.env`/secrets do Docker. **Valor atual em
+`application.properties`/`docker-compose.yml` é a chave secreta pública
+de teste do Google (`6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe`, sempre
+aprova qualquer token) — precisa ser substituída por uma chave real
+antes de qualquer deploy de produção.** `.env`/`.env.example` não foram
+editados por restrição de permissão da sessão; adicionar
+`RECAPTCHA_SECRET_KEY=<chave real>` manualmente antes de produção.
 
 Query de resolução no backend: `WHERE apelido = :id OR email = :id`
 (ou duas consultas separadas, decisão de implementação do `backend`) —
@@ -236,7 +303,8 @@ ser consideradas revogadas (estratégia de revogação a alinhar com
     "apelido": "string",
     "email": "string",
     "role": "PARTICIPANTE",
-    "criadoEm": "2026-07-12T14:30:00Z"
+    "criadoEm": "2026-07-12T14:30:00Z",
+    "deveTrocarSenha": false
   },
   "error": null
 }
@@ -326,18 +394,21 @@ leitura reprocessar.
   `conteudo` bruto (antes de qualquer transformação de exibição) para
   popular o formulário do painel.
 
-### 2.4 `PUT /api/v1/admin/cms/paginas/{slug}` (admin, editar página+blocos)
+### 2.4 `PUT /api/v1/admin/cms/paginas/{slug}` (admin, editar blocos)
 - **Autenticação + autorização**: `ROLE_ADMIN`.
 - **Idempotente**: sim (PUT substitui o estado completo dos blocos da
   página).
 - **Consistência**: forte, síncrona.
 - **Rate limit**: baixo, só para conter automação anômala — não é rota
   de alto risco de abuso externo (exige já estar autenticado como admin).
+- **Breaking change**: título deixou de ser editável (decisão de
+  produto). `CmsPaginaUpdateRequest` não aceita mais o campo `titulo` —
+  se enviado, é ignorado pelo binding (record não tem o campo). Título só
+  é definido na criação (`POST`, ver 2.5) e permanece fixo depois disso.
 
 **Request** (`CmsPaginaUpdateRequest`):
 ```json
 {
-  "titulo": "string",
   "blocos": [
     { "ordem": 1, "tipo": "texto", "conteudo": "string, markup limitado" },
     { "ordem": 2, "tipo": "imagem", "imagemId": "uuid, referência a imagem já enviada via bloco 3", "alt": "string" }

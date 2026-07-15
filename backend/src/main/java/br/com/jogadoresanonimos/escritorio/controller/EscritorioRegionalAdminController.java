@@ -28,25 +28,10 @@ public class EscritorioRegionalAdminController {
         return ResponseEntity.ok(ApiResponse.ok(escritorioRegionalService.listarEstruturaCompleta()));
     }
 
-    // ---- Região ----
-
-    @PostMapping("/regioes")
-    public ResponseEntity<ApiResponse<RegiaoIntergrupoResponse>> criarRegiao(
-            @Valid @RequestBody CriarRegiaoRequest request) {
-        RegiaoIntergrupoResponse response = escritorioRegionalService.criarRegiao(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
-    }
-
     @PutMapping("/regioes/{id}")
     public ResponseEntity<ApiResponse<RegiaoIntergrupoResponse>> editarRegiao(
             @PathVariable UUID id, @Valid @RequestBody EditarRegiaoRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(escritorioRegionalService.editarRegiao(id, request)));
-    }
-
-    @DeleteMapping("/regioes/{id}")
-    public ResponseEntity<ApiResponse<MensagemResponse>> removerRegiao(@PathVariable UUID id) {
-        escritorioRegionalService.removerRegiao(id);
-        return ResponseEntity.ok(ApiResponse.ok(new MensagemResponse("Região removida.")));
     }
 
     @PostMapping("/regioes/{id}/mover-cima")
@@ -58,8 +43,6 @@ public class EscritorioRegionalAdminController {
     public ResponseEntity<ApiResponse<RegiaoIntergrupoResponse>> moverRegiaoParaBaixo(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.ok(escritorioRegionalService.moverRegiaoParaBaixo(id)));
     }
-
-    // ---- Estado ----
 
     @PostMapping("/regioes/{regiaoId}/estados")
     public ResponseEntity<ApiResponse<EstadoIntergrupoResponse>> criarEstado(
@@ -93,7 +76,12 @@ public class EscritorioRegionalAdminController {
         return ResponseEntity.ok(ApiResponse.ok(escritorioRegionalService.moverEstadoParaBaixo(regiaoId, id)));
     }
 
-    // ---- Grupo ----
+    @PostMapping("/regioes/{regiaoId}/enderecos")
+    public ResponseEntity<ApiResponse<GrupoIntergrupoResponse>> criarEnderecoGrupo(
+            @PathVariable UUID regiaoId, @Valid @RequestBody CriarEnderecoGrupoRequest request) {
+        GrupoIntergrupoResponse response = escritorioRegionalService.criarEnderecoGrupo(regiaoId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
+    }
 
     @PostMapping("/estados/{estadoId}/grupos")
     public ResponseEntity<ApiResponse<GrupoIntergrupoResponse>> criarGrupo(
@@ -126,8 +114,6 @@ public class EscritorioRegionalAdminController {
             @PathVariable UUID estadoId, @PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.ok(escritorioRegionalService.moverGrupoParaBaixo(estadoId, id)));
     }
-
-    // ---- Escritório de Serviço ----
 
     @PostMapping("/escritorios-servico")
     public ResponseEntity<ApiResponse<EscritorioServicoResponse>> criarEscritorioServico(

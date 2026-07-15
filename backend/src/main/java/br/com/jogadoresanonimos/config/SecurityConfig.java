@@ -51,7 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/cms/**").permitAll()
-                        .requestMatchers("/api/v1/arquivos/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/arquivos").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/mural-de-apoio").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/relatos").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/avisos").permitAll()
@@ -77,7 +77,6 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

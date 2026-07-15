@@ -138,6 +138,13 @@ geográfico válido (`-90..90` / `-180..180`) — validação de aplicação
 opcionais em branco são normalizados para `null` no service (evita
 strings vazias poluindo o filtro client-side).
 
+`whatsapp`: exceção à normalização acima — quando ausente/vazio **na
+criação**, aplica-se o telefone padrão da associação
+(`11 99571-6942`, 14 chars, dentro do limite de 20) em vez de `null`.
+Decisão de produto: toda reunião sem contato próprio direciona para o
+número institucional. Normalização ocorre no service
+(`ReuniaoService.normalizarWhatsapp`), não no banco/DTO.
+
 **Response 201**: `ReuniaoResponse` criado.
 
 **Erros**:

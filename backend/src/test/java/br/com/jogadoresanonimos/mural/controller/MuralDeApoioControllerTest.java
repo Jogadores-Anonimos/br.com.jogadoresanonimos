@@ -36,9 +36,7 @@ class MuralDeApoioControllerTest {
         BannerMuralPublicoResponse item = new BannerMuralPublicoResponse(UUID.randomUUID(), "https://storage/imagem.jpg",
                 "alt", "legenda", "https://link", Instant.now());
         when(bannerMuralService.listarAtivos()).thenReturn(List.of(item));
-
         ResponseEntity<ApiResponse<List<BannerMuralPublicoResponse>>> resposta = muralDeApoioController.listarAtivos();
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         assertThat(resposta.getBody().data()).containsExactly(item);

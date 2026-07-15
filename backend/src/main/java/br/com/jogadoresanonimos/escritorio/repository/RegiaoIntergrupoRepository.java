@@ -11,13 +11,10 @@ public interface RegiaoIntergrupoRepository extends JpaRepository<RegiaoIntergru
 
     List<RegiaoIntergrupo> findAllByOrderByOrdemAsc();
 
-    // Só um bag (r.estados) é buscado com JOIN FETCH — Hibernate não
-    // permite fetch eager de duas coleções List (bag) na mesma query
-    // (MultipleBagFetchException). e.grupos carrega lazy, resolvido
-    // dentro da mesma transação read-only do service, sem N+1 explosivo
-    // dado o volume baixo esperado (poucas regiões/estados).
     @Query("SELECT DISTINCT r FROM RegiaoIntergrupo r " +
             "LEFT JOIN FETCH r.estados e " +
+            "LEFT JOIN FETCH e.grupos g " +
+            "LEFT JOIN FETCH g.telefones " +
             "ORDER BY r.ordem ASC")
     List<RegiaoIntergrupo> findAllComHierarquiaCompleta();
 

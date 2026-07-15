@@ -7,9 +7,11 @@ import br.com.jogadoresanonimos.relato.dto.EditarRelatoRequest;
 import br.com.jogadoresanonimos.relato.dto.RelatoAdminResponse;
 import br.com.jogadoresanonimos.relato.entity.StatusRelato;
 import br.com.jogadoresanonimos.relato.service.RelatoService;
+import br.com.jogadoresanonimos.security.AuthenticatedUser;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -35,28 +37,33 @@ public class RelatoAdminController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<RelatoAdminResponse>> editar(@PathVariable UUID id,
-                                                                     @Valid @RequestBody EditarRelatoRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(relatoService.editar(id, request)));
+                                                                     @Valid @RequestBody EditarRelatoRequest request,
+                                                                     @AuthenticationPrincipal AuthenticatedUser principal) {
+        return ResponseEntity.ok(ApiResponse.ok(relatoService.editar(id, request, principal.id())));
     }
 
     @PostMapping("/{id}/aprovar")
-    public ResponseEntity<ApiResponse<RelatoAdminResponse>> aprovar(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(relatoService.aprovar(id)));
+    public ResponseEntity<ApiResponse<RelatoAdminResponse>> aprovar(@PathVariable UUID id,
+                                                                      @AuthenticationPrincipal AuthenticatedUser principal) {
+        return ResponseEntity.ok(ApiResponse.ok(relatoService.aprovar(id, principal.id())));
     }
 
     @PostMapping("/{id}/rejeitar")
-    public ResponseEntity<ApiResponse<RelatoAdminResponse>> rejeitar(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(relatoService.rejeitar(id)));
+    public ResponseEntity<ApiResponse<RelatoAdminResponse>> rejeitar(@PathVariable UUID id,
+                                                                       @AuthenticationPrincipal AuthenticatedUser principal) {
+        return ResponseEntity.ok(ApiResponse.ok(relatoService.rejeitar(id, principal.id())));
     }
 
     @PostMapping("/{id}/reverter")
-    public ResponseEntity<ApiResponse<RelatoAdminResponse>> reverter(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(relatoService.reverter(id)));
+    public ResponseEntity<ApiResponse<RelatoAdminResponse>> reverter(@PathVariable UUID id,
+                                                                       @AuthenticationPrincipal AuthenticatedUser principal) {
+        return ResponseEntity.ok(ApiResponse.ok(relatoService.reverter(id, principal.id())));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<MensagemResponse>> remover(@PathVariable UUID id) {
-        relatoService.remover(id);
+    public ResponseEntity<ApiResponse<MensagemResponse>> remover(@PathVariable UUID id,
+                                                                   @AuthenticationPrincipal AuthenticatedUser principal) {
+        relatoService.remover(id, principal.id());
         return ResponseEntity.ok(ApiResponse.ok(new MensagemResponse("Relato removido.")));
     }
 }

@@ -31,9 +31,7 @@ class ReflexaoDiaControllerTest {
     void buscarDeHoje_deveRetornarOkComRespostaDoService() {
         ReflexaoDiaResponse esperado = new ReflexaoDiaResponse(7, 12, "texto");
         when(reflexaoDiaService.buscarDeHoje()).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<ReflexaoDiaResponse>> resposta = reflexaoDiaController.buscarDeHoje();
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
     }
@@ -42,9 +40,7 @@ class ReflexaoDiaControllerTest {
     void buscarPorData_deveRetornarOkComRespostaDoService() {
         ReflexaoDiaResponse esperado = new ReflexaoDiaResponse(7, 12, "texto");
         when(reflexaoDiaService.buscarPorData(7, 12)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<ReflexaoDiaResponse>> resposta = reflexaoDiaController.buscarPorData(7, 12);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
     }

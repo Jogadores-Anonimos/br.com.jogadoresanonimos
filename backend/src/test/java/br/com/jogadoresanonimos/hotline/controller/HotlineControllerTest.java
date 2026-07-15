@@ -32,13 +32,11 @@ class HotlineControllerTest {
     }
 
     @Test
-    void listarTodas_deveRetornarOkComListaDoService() {
-        HotlineRegiaoResponse item = new HotlineRegiaoResponse(UUID.randomUUID(), "Bahia",
-                List.of(new HotlineTelefoneResponse(UUID.randomUUID(), "Linha de apoio", "(71) 0000-0000")));
-        when(hotlineService.listarTodas()).thenReturn(List.of(item));
-
+    void listarTodas_deveRetornarOkComListaPublicaDoService() {
+        HotlineRegiaoResponse item = new HotlineRegiaoResponse(UUID.randomUUID(), "BA", "Salvador",
+                List.of(new HotlineTelefoneResponse(UUID.randomUUID(), "(71) 0000-0000")));
+        when(hotlineService.listarPublicas()).thenReturn(List.of(item));
         ResponseEntity<ApiResponse<List<HotlineRegiaoResponse>>> resposta = hotlineController.listarTodas();
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         assertThat(resposta.getBody().data()).containsExactly(item);

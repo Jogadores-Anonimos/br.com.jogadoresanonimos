@@ -10,11 +10,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.InvalidKeyException;
 import java.util.Base64;
 
-/**
- * HMAC não-reversível para correlacionar tentativas de login/reset em log
- * sem expor apelido/e-mail em texto puro (ver seção 10 do doc de decisões).
- * Chave exata/rotação a confirmar com security.
- */
 @Component
 public class HmacHasher {
 

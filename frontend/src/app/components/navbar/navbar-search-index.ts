@@ -4,12 +4,6 @@ export interface SearchIndexItem {
   keywords: string[];
 }
 
-/**
- * Índice estático de páginas de conteúdo do site, usado pela busca
- * client-side da navbar. Cobre as rotas definidas em app.routes.ts,
- * exceto minha-conta (área autenticada), depoimentos (redirect
- * duplicado de /relatos) e a home.
- */
 export const NAVBAR_SEARCH_INDEX: SearchIndexItem[] = [
   {
     titulo: 'Sobre os Jogadores Anônimos',
@@ -80,9 +74,9 @@ export const NAVBAR_SEARCH_INDEX: SearchIndexItem[] = [
     keywords: ['avisos', 'comunicados', 'notícias', 'informativos']
   },
   {
-    titulo: 'Escritórios Regionais',
-    rota: '/escritorios-regionais',
-    keywords: ['escritórios regionais', 'regional', 'endereços', 'contato regional', 'onde fica']
+    titulo: 'Endereços',
+    rota: '/enderecos',
+    keywords: ['endereços', 'escritórios regionais', 'regional', 'contato regional', 'onde fica', 'grupos de apoio']
   },
   {
     titulo: 'Reflexão do Dia',

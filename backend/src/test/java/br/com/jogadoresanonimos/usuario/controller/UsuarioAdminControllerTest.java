@@ -43,9 +43,7 @@ class UsuarioAdminControllerTest {
     void listarTodos_deveRetornarOkComListaDoService() {
         UsuarioAdminResponse item = usuarioAdminResponse(UUID.randomUUID());
         when(usuarioService.listarTodos()).thenReturn(List.of(item));
-
         ResponseEntity<ApiResponse<List<UsuarioAdminResponse>>> resposta = usuarioAdminController.listarTodos();
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).containsExactly(item);
     }
@@ -58,10 +56,8 @@ class UsuarioAdminControllerTest {
         EditarRoleRequest request = new EditarRoleRequest(Role.ADMIN);
         UsuarioAdminResponse esperado = usuarioAdminResponse(id);
         when(usuarioService.editarRole(id, Role.ADMIN, solicitanteId)).thenReturn(esperado);
-
         ResponseEntity<ApiResponse<UsuarioAdminResponse>> resposta =
                 usuarioAdminController.editarRole(id, request, principal);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
         verify(usuarioService).editarRole(id, Role.ADMIN, solicitanteId);

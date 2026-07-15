@@ -10,12 +10,6 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-/**
- * Bootstrap do primeiro ADMIN via variável de ambiente (seção 3 do doc de
- * decisões) — só roda se não houver nenhum ADMIN ainda. Senha inicial deve
- * ser trocada no primeiro login (TODO: forçar troca — depende de campo/fluxo
- * ainda não modelado, alinhar com security antes de implementar).
- */
 @Component
 public class AdminBootstrap implements CommandLineRunner {
 
@@ -47,7 +41,7 @@ public class AdminBootstrap implements CommandLineRunner {
             log.warn("admin_bootstrap_ignorado motivo=variaveis_ausentes");
             return;
         }
-        Usuario admin = new Usuario(bootstrapApelido, bootstrapEmail, passwordEncoder.encode(bootstrapSenha), Role.ADMIN);
+        Usuario admin = new Usuario(bootstrapApelido, bootstrapEmail, passwordEncoder.encode(bootstrapSenha), Role.ADMIN, true);
         usuarioRepository.save(admin);
         log.info("admin_bootstrap_criado");
     }

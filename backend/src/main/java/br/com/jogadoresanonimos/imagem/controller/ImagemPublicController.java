@@ -12,11 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
 
-// Serve os arquivos gravados por LocalDiskStorageClient — é o path que
-// StorageClient#urlPublicaPara devolve (`{publicBaseUrl}/{chave}`), até
-// então sem nenhum endpoint real por trás, então toda imagem quebrava
-// no cliente (404/403). Público por natureza: mesma decisão já tomada
-// para download de arquivo/literatura (conteúdo institucional aberto).
 @RestController
 public class ImagemPublicController {
 

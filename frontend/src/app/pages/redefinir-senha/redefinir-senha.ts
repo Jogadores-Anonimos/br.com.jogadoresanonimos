@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
-import { Auth } from '../../services/auth';
+import { Auth } from '../../services/auth/auth';
 
 @Component({
   selector: 'app-redefinir-senha',
@@ -51,7 +51,6 @@ export class RedefinirSenha {
       .subscribe((resposta) => {
         this.enviando = false;
         this.sucesso = resposta.success;
-        // 401/token inválido também cai aqui com mensagem genérica única (contrato 1.4)
         this.mensagem = resposta.success
           ? (resposta.data?.mensagem ?? 'Senha redefinida com sucesso.')
           : (resposta.error?.message ?? 'Link inválido ou expirado.');

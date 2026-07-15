@@ -45,9 +45,7 @@ class BibliotecaPessoalControllerTest {
         ArquivoResponse item = new ArquivoResponse(UUID.randomUUID(), "livro.pdf", 1000, "Título", "descrição",
                 "/api/v1/arquivos/x/download", null, Instant.now());
         when(bibliotecaPessoalService.listar(usuarioId)).thenReturn(List.of(item));
-
         ResponseEntity<ApiResponse<List<ArquivoResponse>>> resposta = controller.listar(principal);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         assertThat(resposta.getBody().data()).containsExactly(item);
@@ -56,9 +54,7 @@ class BibliotecaPessoalControllerTest {
     @Test
     void adicionar_deveChamarServiceComUsuarioDoTokenERetornarOk() {
         UUID arquivoId = UUID.randomUUID();
-
         ResponseEntity<ApiResponse<MensagemResponse>> resposta = controller.adicionar(arquivoId, principal);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         verify(bibliotecaPessoalService).adicionar(usuarioId, arquivoId);
@@ -67,9 +63,7 @@ class BibliotecaPessoalControllerTest {
     @Test
     void remover_deveChamarServiceComUsuarioDoTokenERetornarOk() {
         UUID arquivoId = UUID.randomUUID();
-
         ResponseEntity<ApiResponse<MensagemResponse>> resposta = controller.remover(arquivoId, principal);
-
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().success()).isTrue();
         verify(bibliotecaPessoalService).remover(usuarioId, arquivoId);

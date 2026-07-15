@@ -114,7 +114,15 @@
 
     <div class="admin-mural__campo">
       <label for="banner-alt">Texto alternativo</label>
-      <input id="banner-alt" type="text" name="altText" [(ngModel)]="formulario.altText" required />
+      <input
+        id="banner-alt"
+        type="text"
+        name="altText"
+        [(ngModel)]="formulario.altText"
+        [class.campo-invalido]="errosCampo['altText']"
+        [attr.aria-invalid]="errosCampo['altText'] ? 'true' : null"
+        required
+      />
     </div>
 
     <div class="admin-mural__campo">

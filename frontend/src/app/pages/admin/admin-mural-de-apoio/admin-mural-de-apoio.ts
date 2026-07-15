@@ -2,10 +2,11 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { MuralDeApoioService } from '../../../services/mural-de-apoio';
-import { BannerMuralAdmin, CriarBannerMuralRequest } from '../../../services/mural-de-apoio.model';
-import { Imagem } from '../../../services/imagem';
-import { ImagemResponse } from '../../../services/imagem.model';
+import { mapearErrosCampo } from '../../../services/api-envelope';
+import { MuralDeApoioService } from '../../../services/mural-de-apoio/mural-de-apoio';
+import { BannerMuralAdmin, CriarBannerMuralRequest } from '../../../services/mural-de-apoio/mural-de-apoio.model';
+import { Imagem } from '../../../services/imagem/imagem';
+import { ImagemResponse } from '../../../services/imagem/imagem.model';
 
 interface FormularioBanner {
   imagemId: string;
@@ -42,6 +43,7 @@ export class AdminMuralDeApoio implements OnInit {
   erroUploadImagem = '';
   salvando = false;
   erroFormulario = '';
+  errosCampo: Record<string, string> = {};
 
   confirmandoExclusao: string | null = null;
   excluindo = false;
@@ -73,6 +75,7 @@ export class AdminMuralDeApoio implements OnInit {
     this.imagemSelecionadaUrl = null;
     this.erroUploadImagem = '';
     this.erroFormulario = '';
+    this.errosCampo = {};
     this.modo = 'formulario';
   }
 
@@ -88,6 +91,7 @@ export class AdminMuralDeApoio implements OnInit {
     this.imagemSelecionadaUrl = banner.imagemUrl ?? null;
     this.erroUploadImagem = '';
     this.erroFormulario = '';
+    this.errosCampo = {};
     this.modo = 'formulario';
   }
 
@@ -95,6 +99,7 @@ export class AdminMuralDeApoio implements OnInit {
     this.modo = 'lista';
     this.bannerEmEdicao = null;
     this.erroFormulario = '';
+    this.errosCampo = {};
   }
 
   onArquivoSelecionado(event: Event): void {
@@ -121,12 +126,16 @@ export class AdminMuralDeApoio implements OnInit {
   }
 
   salvar(): void {
+    this.errosCampo = {};
+
     if (!this.formulario.imagemId.trim()) {
-      this.erroFormulario = 'Envie uma imagem antes de salvar.';
-      return;
+      this.errosCampo['imagemId'] = 'Envie uma imagem antes de salvar.';
     }
     if (!this.formulario.altText.trim()) {
-      this.erroFormulario = 'Texto alternativo é obrigatório.';
+      this.errosCampo['altText'] = 'Texto alternativo é obrigatório.';
+    }
+    if (Object.keys(this.errosCampo).length > 0) {
+      this.erroFormulario = this.errosCampo['imagemId'] ?? this.errosCampo['altText'];
       return;
     }
 
@@ -153,6 +162,7 @@ export class AdminMuralDeApoio implements OnInit {
         this.carregarBanners();
       } else {
         this.erroFormulario = envelope.error?.message ?? 'Não foi possível salvar o banner.';
+        this.errosCampo = mapearErrosCampo(envelope.error?.fields);
       }
     });
   }

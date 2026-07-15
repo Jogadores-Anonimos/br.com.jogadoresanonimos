@@ -1,0 +1,106 @@
+<app-resource-layout titulo="Endereços">
+
+  <section class="section">
+    <p class="lead">
+      Pontos de contato de serviço da irmandade e endereços de grupos de
+      apoio organizados por região e estado.
+    </p>
+
+    <p *ngIf="carregando()" class="estado" role="status">Carregando endereços…</p>
+
+    <p *ngIf="!carregando() && erro()" class="estado estado--erro" role="alert">
+      Não foi possível carregar os endereços agora. Tente novamente mais tarde.
+    </p>
+  </section>
+
+  <section class="section" *ngIf="!carregando() && !erro()">
+    <h2>Escritórios Regionais de Serviço</h2>
+
+    <p *ngIf="escritorios().length === 0" class="estado">
+      Nenhum escritório regional cadastrado no momento.
+    </p>
+
+    <div class="escritorios-grid" *ngIf="escritorios().length > 0">
+      @for (item of escritorios(); track item.id) {
+        <div class="escritorio-card">
+          <h3>{{ item.nome }}</h3>
+          <p>{{ item.endereco }}</p>
+          @if (item.complemento) {
+            <p>{{ item.complemento }}</p>
+          }
+          <p>{{ item.cidade }}</p>
+          @if (item.telefones.length) {
+            @for (telefone of item.telefones; track telefone.id) {
+              <p>{{ telefone.label ? telefone.label + ': ' : '' }}{{ telefone.telefone }}</p>
+            }
+          }
+          @if (item.emails.length) {
+            @for (email of item.emails; track email) {
+              <p>{{ email }}</p>
+            }
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="section section-alt" *ngIf="!carregando() && !erro()">
+    <h2>Endereços</h2>
+    <p class="lead">
+      Selecione uma região para ver os grupos de apoio agrupados por estado.
+    </p>
+
+    <p *ngIf="regioes().length === 0" class="estado">
+      Nenhum endereço cadastrado no momento.
+    </p>
+
+    <div class="regiao-tabs" role="group" aria-label="Filtrar endereços por região" *ngIf="regioes().length > 0">
+      @for (regiao of regioes(); track regiao.id) {
+        <button
+          type="button"
+          class="regiao-tab"
+          [class.regiao-tab--ativa]="regiaoSelecionada === regiao.id"
+          [attr.aria-pressed]="regiaoSelecionada === regiao.id"
+          (click)="selecionarRegiao(regiao)"
+        >
+          {{ regiao.nome }}
+        </button>
+      }
+    </div>
+
+    @if (regiaoAtual) {
+      @for (estado of regiaoAtual.estados; track estado.id) {
+        <div class="estado-bloco">
+          <div class="estado-header">
+            <h3>{{ estado.nome }}</h3>
+          </div>
+
+          <div class="grupos-grid">
+            @for (grupo of estado.grupos; track grupo.id) {
+              <div class="grupo-card">
+                <h4>{{ grupo.nome }}</h4>
+                <p class="grupo-endereco">
+                  {{ grupo.endereco }}@if (grupo.bairro) {, {{ grupo.bairro }}}, {{ grupo.cidade }}
+                </p>
+                @if (grupo.telefones.length) {
+                  <p class="grupo-telefone">Tel: {{ formatarTelefones(grupo.telefones) }}</p>
+                }
+                <span class="grupo-horario">{{ formatarAgenda(grupo.agenda) }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    }
+  </section>
+
+  <section class="cta-final">
+    <h2>Não encontrou o contato da sua região?</h2>
+    <p>
+      Enquanto os endereços regionais são confirmados, você também pode
+      encontrar apoio pelos nossos hotlines.
+    </p>
+    <a class="btn-cta" routerLink="/hotlines">Ver Hotlines Brasil</a>
+  </section>
+
+</app-resource-layout>

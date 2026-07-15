@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface BannerMuralRepository extends JpaRepository<BannerMural, UUID> {
 
     List<BannerMural> findByAtivoTrue(Sort sort);
+
+    boolean existsByImagemId(UUID imagemId);
 }

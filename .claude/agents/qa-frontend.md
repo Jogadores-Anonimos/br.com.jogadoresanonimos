@@ -61,8 +61,22 @@ cobertura de número por número.
    confirme com `frontend-services` o contrato/mock usado para não testar
    contra um formato que não corresponde ao real.
 
+## Limite de tentativas ao investigar falha
+- Máximo **2 tentativas** investigando a mesma falha de teste/execução.
+  Na 2ª tentativa sem resolver, pare — não entre em loop tentando
+  variações.
+- Antes de insistir, distinga: é bug de código (reporte ao `frontend`/
+  `frontend-services`) ou é problema de ambiente/máquina (path, versão de
+  Node, permissão, algo específico do SO/Windows)? Se for ambiente,
+  **pare imediatamente na 1ª ocorrência** — registre o erro exato e
+  devolva ao usuário para ele investigar a máquina, sem gastar mais
+  tentativa.
+- Ao parar, reporte: erro exato (mensagem curta, não o log inteiro),
+  hipótese (código vs ambiente) e o que já foi tentado — nada além disso.
+
 ## Ensinar o agente aprendiz
 Ao concluir uma rodada de testes relevante, repasse um resumo curto ao
 agente `aprendiz` (o que foi coberto, bugs encontrados e para quem foram
 reportados, decisões de ferramenta de teste) para manter
-`.claude/knowledge/` atualizado.
+`.claude/knowledge/` atualizado. Resumo enxuto: telegráfico, sem prosa
+(mesma regra de escrita enxuta do CLAUDE.md).

@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { BannerMuralApoio, MuralDeApoioService } from '../../services/mural-de-apoio';
-import { Aviso, AvisosService } from '../../services/avisos';
-import { Relato, RelatosService } from '../../services/relatos';
+import { BannerMuralApoio, MuralDeApoioService } from '../../services/mural-de-apoio/mural-de-apoio';
+import { Aviso, AvisosService } from '../../services/avisos/avisos';
+import { Relato, RelatosService } from '../../services/relatos/relatos';
 import { ReflexaoPreview } from '../../components/reflexao-preview/reflexao-preview';
 import { WHATSAPP_CHAT_URL } from '../../config/whatsapp.config';
 
@@ -40,37 +40,55 @@ export class Home implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.muralDeApoioService.getBannersDestaque().subscribe((resposta) => {
-      this.carregandoMural = false;
+    this.muralDeApoioService.getBannersDestaque().subscribe({
+      next: (resposta) => {
+        this.carregandoMural = false;
 
-      if (!resposta.success || !resposta.data) {
+        if (!resposta.success || !resposta.data) {
+          this.erroMural = true;
+          return;
+        }
+
+        this.bannersMural = resposta.data;
+      },
+      error: () => {
+        this.carregandoMural = false;
         this.erroMural = true;
-        return;
-      }
-
-      this.bannersMural = resposta.data;
+      },
     });
 
-    this.avisosService.listarAvisos().subscribe((resposta) => {
-      this.carregandoAvisos = false;
+    this.avisosService.listarAvisos().subscribe({
+      next: (resposta) => {
+        this.carregandoAvisos = false;
 
-      if (!resposta.success || !resposta.data) {
+        if (!resposta.success || !resposta.data) {
+          this.erroAvisos = true;
+          return;
+        }
+
+        this.avisos = resposta.data.slice(0, QUANTIDADE_AVISOS_TEASER);
+      },
+      error: () => {
+        this.carregandoAvisos = false;
         this.erroAvisos = true;
-        return;
-      }
-
-      this.avisos = resposta.data.slice(0, QUANTIDADE_AVISOS_TEASER);
+      },
     });
 
-    this.relatosService.listarRelatosAprovados().subscribe((resposta) => {
-      this.carregandoRelatos = false;
+    this.relatosService.listarRelatosAprovados().subscribe({
+      next: (resposta) => {
+        this.carregandoRelatos = false;
 
-      if (!resposta.success || !resposta.data) {
+        if (!resposta.success || !resposta.data) {
+          this.erroRelatos = true;
+          return;
+        }
+
+        this.relatosPreview = resposta.data.slice(0, QUANTIDADE_RELATOS_TEASER);
+      },
+      error: () => {
+        this.carregandoRelatos = false;
         this.erroRelatos = true;
-        return;
-      }
-
-      this.relatosPreview = resposta.data.slice(0, QUANTIDADE_RELATOS_TEASER);
+      },
     });
   }
 

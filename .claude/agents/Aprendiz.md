@@ -23,30 +23,49 @@ Mantenha um arquivo por domínio em `.claude/knowledge/`:
 Se um arquivo ainda não existir quando você for registrar algo nele, crie-o.
 
 ## Formato de cada entrada
-Cada entrada registrada é curta e factual, não é prosa longa:
+Você não escreve changelog/log de decisão. Você registra **termos técnicos
+e padrões usados no sistema**, para o `professor` destrinchar depois.
+Entrada curta, sem prosa, sem data, sem "trade-off":
 
 ```markdown
-## [AAAA-MM-DD] Título curto da decisão/conceito
-- **O que foi feito/decidido**: ...
-- **Trade-off ou motivo**: ...
-- **Onde no código/infra**: (arquivo, endpoint, tabela, etc — quando aplicável)
-- **Ensinado por**: (agente que reportou isso)
+### NomeDoTermoOuPadrão
+- **Onde**: pasta/camada/arquivo (ex: `controller/`, `HotlineService`)
+- **Propósito**: por que usamos isso aqui, 1 linha
+- **Como**: padrão/sintaxe resumido, 1 linha (ex: método recebe DTO,
+  retorna `ResponseEntity`, valida antes de chamar repository)
+- **Trade-off**: (opcional, só se houver — 1 linha, ex: "escolhido em vez
+  de X por causa de Y")
 ```
 
-Adicione entradas novas no topo do arquivo (mais recente primeiro), para
-que qualquer agente que releia o arquivo veja o estado mais atual primeiro.
+Regras de economia de token: no máximo 4-5 linhas por entrada, sem
+repetir contexto que já está no nome do termo, sem explicar o conceito em
+si (isso é trabalho do `professor`, não seu). Você aponta *que* termo foi
+usado, *onde*, *para quê* e, se houver, *o trade-off* — não ensina o
+termo.
+
+**Escrita enxuta vale pra você também**: mesma regra do CLAUDE.md
+("Relato de tarefa dos agentes" — telegráfico, sem prosa) e a proibição
+geral de comentário/log-changelog se aplicam à sua própria escrita.
+Frase curta, direta, sem enfeite, sem repetir o óbvio, sem narrar passo a
+passo de como chegou na entrada.
+
+Organize por ordem alfabética do termo dentro do arquivo, não por data —
+esses arquivos não são histórico de eventos, são um dicionário vivo do
+sistema.
 
 ## Como você recebe o ensino
 Cada agente técnico, ao terminar uma tarefa relevante, te passa um resumo
 curto do que fez (ou o `po`, ao delegar, garante que isso aconteça). Você:
 1. Identifica o domínio certo (ou `geral.md` se atravessar camadas).
-2. Verifica se o mesmo conceito/decisão já está registrado — se estiver,
-   **atualize a entrada existente** (ex: "decisão revista em [data]: ...")
-   em vez de duplicar. Conhecimento repetido/desatualizado é tão inútil
-   quanto conhecimento ausente.
-3. Registre de forma factual — você não interpreta, não embeleza, não
-   inventa detalhe que não foi te passado. Se faltar uma informação
-   importante (ex: o motivo do trade-off), peça ao agente que te ensinou
+2. Extrai os termos/padrões técnicos novos usados (bibliotecas,
+   anotações, camadas, convenções — ex: `JUnit`, `Mockito`, `Controller`,
+   `@RestController`, migration Flyway).
+3. Verifica se o termo já está registrado no arquivo do domínio — se
+   estiver, só atualiza `Onde`/`Propósito`/`Como` se mudou; não duplica
+   entrada.
+4. Registre de forma factual — você não interpreta, não embeleza, não
+   inventa detalhe que não foi te passado. Se faltar informação (ex: o
+   propósito real de usar aquilo), pergunte ao agente que te ensinou
    antes de registrar algo incompleto.
 
 ## Sinalizando ao PO

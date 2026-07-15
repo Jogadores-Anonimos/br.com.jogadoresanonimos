@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
-import { VintePerguntasService } from '../../services/vinte-perguntas';
+import { VintePerguntasService } from '../../services/vinte-perguntas/vinte-perguntas';
 
 type Resposta = 'sim' | 'nao';
 

@@ -2,8 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { FaqService } from '../../../services/faq';
-import { CriarFaqRequest, Faq } from '../../../services/faq.model';
+import { mapearErrosCampo } from '../../../services/api-envelope';
+import { FaqService } from '../../../services/faq/faq';
+import { CriarFaqRequest, Faq } from '../../../services/faq/faq.model';
 
 interface FormularioFaq {
   pergunta: string;
@@ -33,6 +34,7 @@ export class AdminFaq implements OnInit {
   formulario: FormularioFaq = formularioVazio();
   salvando = false;
   erroFormulario = '';
+  errosCampo: Record<string, string> = {};
 
   confirmandoExclusao: string | null = null;
   excluindo = false;
@@ -65,6 +67,7 @@ export class AdminFaq implements OnInit {
     this.faqEmEdicao = null;
     this.formulario = formularioVazio();
     this.erroFormulario = '';
+    this.errosCampo = {};
     this.modo = 'formulario';
   }
 
@@ -75,6 +78,7 @@ export class AdminFaq implements OnInit {
       resposta: faq.resposta,
     };
     this.erroFormulario = '';
+    this.errosCampo = {};
     this.modo = 'formulario';
   }
 
@@ -82,10 +86,19 @@ export class AdminFaq implements OnInit {
     this.modo = 'lista';
     this.faqEmEdicao = null;
     this.erroFormulario = '';
+    this.errosCampo = {};
   }
 
   salvar(): void {
-    if (!this.formulario.pergunta.trim() || !this.formulario.resposta.trim()) {
+    this.errosCampo = {};
+
+    if (!this.formulario.pergunta.trim()) {
+      this.errosCampo['pergunta'] = 'Pergunta é obrigatória.';
+    }
+    if (!this.formulario.resposta.trim()) {
+      this.errosCampo['resposta'] = 'Resposta é obrigatória.';
+    }
+    if (Object.keys(this.errosCampo).length > 0) {
       this.erroFormulario = 'Pergunta e resposta são obrigatórias.';
       return;
     }
@@ -105,12 +118,16 @@ export class AdminFaq implements OnInit {
     acao.subscribe((envelope) => {
       this.salvando = false;
 
-      if (envelope.success) {
+      if (envelope.success && envelope.data) {
+        const salvo = envelope.data;
+        this.perguntas = this.faqEmEdicao
+          ? this.perguntas.map((f) => (f.id === salvo.id ? salvo : f))
+          : [...this.perguntas, salvo];
         this.modo = 'lista';
         this.faqEmEdicao = null;
-        this.carregarFaq();
       } else {
         this.erroFormulario = envelope.error?.message ?? 'Não foi possível salvar a pergunta.';
+        this.errosCampo = mapearErrosCampo(envelope.error?.fields);
       }
     });
   }
@@ -142,14 +159,14 @@ export class AdminFaq implements OnInit {
   }
 
   moverParaCima(faq: Faq): void {
-    this.mover(faq, () => this.faqService.moverFaqParaCima(faq.id));
+    this.mover(faq, 'cima', () => this.faqService.moverFaqParaCima(faq.id));
   }
 
   moverParaBaixo(faq: Faq): void {
-    this.mover(faq, () => this.faqService.moverFaqParaBaixo(faq.id));
+    this.mover(faq, 'baixo', () => this.faqService.moverFaqParaBaixo(faq.id));
   }
 
-  private mover(faq: Faq, acao: () => ReturnType<FaqService['moverFaqParaCima']>): void {
+  private mover(faq: Faq, direcao: 'cima' | 'baixo', acao: () => ReturnType<FaqService['moverFaqParaCima']>): void {
     this.movendoId = faq.id;
     this.erroMover = '';
 
@@ -157,7 +174,16 @@ export class AdminFaq implements OnInit {
       this.movendoId = null;
 
       if (envelope.success) {
-        this.carregarFaq();
+        const indiceAtual = this.perguntas.findIndex((f) => f.id === faq.id);
+        const indiceVizinho = direcao === 'cima' ? indiceAtual - 1 : indiceAtual + 1;
+        if (indiceAtual !== -1 && indiceVizinho >= 0 && indiceVizinho < this.perguntas.length) {
+          const perguntas = [...this.perguntas];
+          const ordemAtual = perguntas[indiceAtual].ordem;
+          perguntas[indiceAtual] = { ...perguntas[indiceAtual], ordem: perguntas[indiceVizinho].ordem };
+          perguntas[indiceVizinho] = { ...perguntas[indiceVizinho], ordem: ordemAtual };
+          perguntas.sort((a, b) => a.ordem - b.ordem);
+          this.perguntas = perguntas;
+        }
       } else {
         this.erroMover = envelope.error?.message ?? 'Não foi possível reordenar a pergunta.';
       }

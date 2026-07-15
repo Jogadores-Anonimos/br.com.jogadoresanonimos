@@ -12,8 +12,7 @@ public record EditarGrupoRequest(
         @NotBlank @Size(max = 300) String endereco,
         @Size(max = 150) String bairro,
         @NotBlank @Size(max = 150) String cidade,
-        @NotEmpty List<@NotBlank String> diasSemana,
-        @NotBlank @Size(max = 50) String horario,
+        @NotEmpty @Valid List<AgendaItemRequest> agenda,
         @Valid List<GrupoTelefoneRequest> telefones
 ) {
 }

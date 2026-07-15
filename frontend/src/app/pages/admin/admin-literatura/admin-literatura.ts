@@ -2,8 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { Arquivo } from '../../../services/arquivo';
-import { ArquivoResponse } from '../../../services/arquivo.model';
+import { Arquivo } from '../../../services/arquivo/arquivo';
+import { ArquivoResponse } from '../../../services/arquivo/arquivo.model';
 
 interface FormularioArquivo {
   titulo: string;
@@ -99,9 +99,9 @@ export class AdminLiteratura implements OnInit {
       .subscribe((envelope) => {
         this.enviando = false;
 
-        if (envelope.success) {
+        if (envelope.success && envelope.data) {
+          this.arquivos = [envelope.data, ...this.arquivos];
           this.modo = 'lista';
-          this.carregarArquivos();
         } else {
           this.erroUpload = envelope.error?.message ?? 'Não foi possível enviar o arquivo.';
         }
@@ -143,10 +143,11 @@ export class AdminLiteratura implements OnInit {
       .subscribe((envelope) => {
         this.salvando = false;
 
-        if (envelope.success) {
+        if (envelope.success && envelope.data) {
+          const salvo = envelope.data;
+          this.arquivos = this.arquivos.map((a) => (a.id === salvo.id ? salvo : a));
           this.modo = 'lista';
           this.arquivoEmEdicao = null;
-          this.carregarArquivos();
         } else {
           this.erroFormulario = envelope.error?.message ?? 'Não foi possível salvar as alterações.';
         }
