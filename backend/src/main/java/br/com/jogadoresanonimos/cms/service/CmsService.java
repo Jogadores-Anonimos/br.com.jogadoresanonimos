@@ -22,8 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class CmsService {
@@ -93,7 +96,8 @@ public class CmsService {
         cmsPaginaRepository.flush();
         aplicarBlocos(pagina, request.blocos());
         pagina.atualizar(adminId);
-        return buscarAdmin(pagina.getSlug());
+        return new CmsPaginaAdminResponse(pagina.getSlug(), pagina.getTitulo(), pagina.getAtualizadoEm(),
+                pagina.getAtualizadoPor(), montarBlocos(pagina));
     }
 
     private void aplicarBlocos(CmsPagina pagina, List<BlocoRequest> blocosRequest) {
@@ -134,16 +138,29 @@ public class CmsService {
     }
 
     private List<BlocoDto> montarBlocos(CmsPagina pagina) {
-        return pagina.getBlocos().stream().map(b -> {
+        List<CmsBloco> blocos = pagina.getBlocos();
+        Set<UUID> imagemIds = blocos.stream()
+                .filter(b -> b.getTipo() == TipoBloco.imagem)
+                .map(CmsBloco::getImagemId)
+                .collect(Collectors.toSet());
+        Set<UUID> arquivoIds = blocos.stream()
+                .filter(b -> b.getTipo() == TipoBloco.arquivo)
+                .map(CmsBloco::getArquivoId)
+                .collect(Collectors.toSet());
+        Map<UUID, Imagem> imagensPorId = imagemIds.isEmpty() ? Map.of()
+                : imagemRepository.findAllById(imagemIds).stream()
+                        .collect(Collectors.toMap(Imagem::getId, Function.identity()));
+        Map<UUID, Arquivo> arquivosPorId = arquivoIds.isEmpty() ? Map.of()
+                : arquivoRepository.findAllById(arquivoIds).stream()
+                        .collect(Collectors.toMap(Arquivo::getId, Function.identity()));
+        return blocos.stream().map(b -> {
             if (b.getTipo() == TipoBloco.imagem) {
-                String url = imagemRepository.findById(b.getImagemId())
-                        .map(Imagem::getChaveArquivo)
-                        .map(storageClient::urlPublicaPara)
-                        .orElse(null);
+                Imagem imagem = imagensPorId.get(b.getImagemId());
+                String url = imagem == null ? null : storageClient.urlPublicaPara(imagem.getChaveArquivo());
                 return new BlocoDto(b.getOrdem(), b.getTipo().name(), null, b.getImagemId(), url, b.getAlt());
             }
             if (b.getTipo() == TipoBloco.arquivo) {
-                Arquivo arquivo = arquivoRepository.findById(b.getArquivoId()).orElse(null);
+                Arquivo arquivo = arquivosPorId.get(b.getArquivoId());
                 String url = arquivo == null ? null : "/api/v1/arquivos/" + arquivo.getId() + "/download";
                 String titulo = arquivo == null ? null : arquivo.getTitulo();
                 String descricao = arquivo == null ? null : arquivo.getDescricao();

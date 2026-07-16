@@ -25,6 +25,12 @@
 - **Propósito**: evitar upload de PDF-polyglot (válido como PDF e também como outro formato executável)
 - **Como**: usa PDFBox; rejeita `/JavaScript`, `/OpenAction`, `/AA`, `/EmbeddedFile`, `/Launch`; exige `%PDF-` no byte 0; rejeita bytes extras antes/depois do envelope PDF
 
+### AdminAuditoriaLogSpecifications (`JpaSpecificationExecutor`)
+- **Onde**: `auditoria/repository/AdminAuditoriaLogSpecifications.java`, `AdminAuditoriaLogRepository`
+- **Propósito**: substituir `@Query` HQL com padrão `(:param IS NULL OR coluna >= :param)` para filtro opcional de `Instant`, que quebrava (Postgres não infere tipo do parâmetro, `CAST` no HQL evolui erro pra "cannot cast bytea to timestamp")
+- **Como**: `Specification` dinâmica, predicado só entra na query quando o filtro não é nulo — nunca gera cláusula `IS NULL OR` no SQL
+- **Trade-off**: padrão a reaproveitar em qualquer filtro opcional de data futuro no projeto, em vez do `@Query` com `IS NULL OR`
+
 ### Baseline única de migrations (V1__baseline.sql)
 - **Onde**: `backend/src/main/resources/db/migration/V1__baseline.sql`
 - **Propósito**: consolidar migrations `V1`-`V30` (exceto `V26`, nunca existiu) em uma só, reduzindo ruído de histórico
@@ -43,11 +49,32 @@
 - **Como**: `CmsService.serializarSnapshot` migrado para `tools.jackson.databind.ObjectMapper`; dependência solta `jackson-databind` (2.x) removida do `pom.xml` (permanece só transitiva via `jjwt-jackson`)
 - **Trade-off**: qualquer novo uso de Jackson no backend deve usar `tools.jackson.databind` (Jackson 3), nunca `com.fasterxml.jackson.databind`
 
-### Bug: schema mismatch Hibernate (`uf` CHAR vs VARCHAR)
-- **Onde**: `escritorio/entity/EstadoIntergrupo.java` (campo `uf`), migration `V22`
-- **Propósito**: registro de bug pré-existente, não corrigido
-- **Como**: migration cria coluna `uf` como `CHAR(2)`, mas entidade usa `@Column(length = 2)` sem `columnDefinition` — Hibernate infere `VARCHAR`, `ddl-auto=validate` falha e impede o Tomcat de subir
-- **Trade-off**: correção pendente (alinhar `columnDefinition` na entidade ou nova migration alterando o tipo da coluna), decisão a confirmar com usuário por ser mudança de tipo de coluna
+### Bug: schema mismatch Hibernate (`uf` CHAR vs VARCHAR) — resolvido
+- **Onde**: `escritorio/entity/EstadoIntergrupo.java` (campo `uf`), `V1__baseline.sql`, `V3__ajusta_tipo_uf_estado_intergrupo.sql`
+- **Propósito**: divergência era só de banco físico desatualizado (`CHAR(2)`) — entidade e baseline já usavam `VARCHAR(2)` corretamente
+- **Como**: `V3` faz `ALTER TYPE` idempotente na coluna `uf` para corrigir instâncias de banco já provisionadas com o tipo antigo
+- **Trade-off**: migration defensiva, não altera nenhum contrato — só sincroniza ambientes divergentes
+
+### Bug: colisão de migration `V2` duplicada (dois arquivos `V2__*.sql`)
+- **Onde**: `backend/src/main/resources/db/migration/`
+- **Propósito**: agentes paralelos criaram dois `V2__*.sql`; resolvido renomeando um deles
+- **Como**: próxima migration livre confirmada em `V4`+ — sempre checar o diretório real antes de criar, não confiar em número lembrado de sessão anterior
+
+### Bug: `docker-compose.yml` build "fantasma" — `target/classes` do container ≠ `target/` do host
+- **Onde**: `docker-compose.yml` (serviço `backend`), volume mount `./backend/src`
+- **Propósito**: compose só monta `./backend/src`, não a pasta `target/` inteira — build antigo com migrations obsoletas ficava preso dentro do container mesmo após corrigir o código-fonte no host
+- **Como**: fix foi `docker compose exec backend rm -rf /app/target/classes/db/migration` + restart do container
+- **Trade-off**: armadilha conhecida para debugar builds "fantasma" (código correto no host, comportamento antigo no container) neste projeto
+
+### Bug: `MFA_SECRET_ENCRYPTION_KEY` ausente no `docker-compose.yml`
+- **Onde**: `docker-compose.yml` (`backend.environment`)
+- **Propósito**: só `JWT_SECRET`/`LOG_HMAC_SECRET` estavam sendo repassados ao container, faltava `MFA_SECRET_ENCRYPTION_KEY`
+- **Como**: chave adicionada à lista de `environment:` do serviço `backend`; nova chave gerada e configurada no `.env` local (usuário não tinha a anterior)
+
+### CHECK constraints em `admin_auditoria_log` (V2)
+- **Onde**: `V2__adiciona_check_constraints_uf_e_auditoria.sql`
+- **Propósito**: garantir integridade de valores de enum a nível de banco, não só de aplicação
+- **Como**: CHECK em `acao` (APROVAR,REJEITAR,REVERTER,REMOVER,EDITAR) e em `status_anterior`/`status_novo` (pending,approved,rejected)
 
 ### Consolidação por domínio + subpasta técnica
 - **Onde**: cada módulo em `backend/src/main/java/br/com/jogadoresanonimos/<dominio>/`
@@ -67,10 +94,20 @@
 - **Como**: entidade filha `EscritorioServicoTelefone` (FK `ON DELETE CASCADE`, `label` opcional + `telefone` obrigatório), reaproveitando 1:1 a modelagem já usada em `GrupoIntergrupoTelefone`
 - **Trade-off**: migration `V25` é puramente aditiva (sem backfill/drop), diferente da `V22` do módulo Grupo, pois não havia dado legado a migrar
 
+### Estilo: import qualificado inline vs import de topo
+- **Onde**: `AuthService.java`, `ReflexaoDiaService.java`, `VinteQuestaoService.java`, `RateLimiterService.java`
+- **Propósito**: consistência de estilo, uso de nome totalmente qualificado inline no meio do código substituído por import no topo do arquivo
+
 ### FAQ (módulo)
 - **Onde**: `faq/**`, migration `V16`
 - **Propósito**: CRUD admin simples de perguntas frequentes, com endpoint público ordenado por `ordem`
 - **Como**: `Faq` só tem `pergunta`, `resposta`, `ordem` (controle manual, não alfabética/cronológica); sem vínculo com `usuario`; um único DTO (`FaqResponse`) reaproveitado no público e admin, por não ter campo sensível a ocultar; índice simples `(ordem)`
+
+### GC jobs — remoção de `@Transactional` do loop + delete storage-primeiro
+- **Onde**: `ImagemOrfaGcJob`, `ArquivoOrfaGcJob`
+- **Propósito**: `@Transactional` no loop prendia conexão Hikari durante chamada de rede ao storage
+- **Como**: `@Transactional` removida do loop; ordem agora é delete no storage primeiro, delete no banco em batch (`deleteAllByIdInBatch`) só pros IDs confirmados — idempotente, falha no meio do loop não perde nada, item reentra na próxima execução
+- **Achado de brinde**: `ArquivoOrfaGcJob` não removia `thumbnailChave` órfã do storage, corrigido junto
 
 ### GlobalExceptionHandler + taxonomia de erro
 - **Onde**: `common/exception/GlobalExceptionHandler.java` (`@RestControllerAdvice`)
@@ -89,6 +126,12 @@
 - **Como**: promovido do antigo `StubStorageClient`; permissão restritiva ao gravar (`rw-r-----` arquivo, `rwx------` diretório) via `PosixFileAttributeView` (no-op silencioso no Windows); chave do objeto sempre `UUID.randomUUID() + "." + extensao`, nunca nome enviado pelo usuário (proteção contra path traversal); `download()` também checa `path.normalize().startsWith(baseDir)`
 - **Trade-off**: volume baixo do projeto não justifica complexidade operacional de bucket externo (credenciais, billing); troca aceita é não ter CDN/distribuição geográfica nativa
 
+### Índice em `admin_auditoria_log.criado_em` (migration V5)
+- **Onde**: `V5__*.sql`, tabela `admin_auditoria_log`
+- **Propósito**: performance de query de expurgo/listagem por data
+- **Como**: índice simples em `criado_em`, não composto com `entidade`
+- **Trade-off**: `entidade` é filtro independente/opcional e expurgo nunca filtra por ela — um composto liderado por `entidade` não serviria às duas queries mais frequentes
+
 ### Migração de UF+cidade e telefones em Hotline: agenda expand+contract na mesma migration
 - **Onde**: `escritorio/db/migration/V30__migra_agenda_grupo_intergrupo_para_dia_horario.sql`
 - **Propósito**: registrar exceção deliberada ao padrão geral do projeto (expand/contract em migrations separadas)
@@ -105,6 +148,11 @@
 - **Onde**: `mural/**`, migration `V11`
 - **Propósito**: CRUD admin de banners institucionais, com endpoint público listando só ativos
 - **Como**: `BannerMural` guarda só `imagem_id` (FK), URL resolvida em tempo de leitura via `StorageClient.urlPublicaPara()`; toggle `ativo` (não exclui, só some da listagem pública via `findByAtivoTrue`); índice composto `(ativo, criado_em DESC)`
+
+### N+1 em `CmsService.montarBlocos`
+- **Onde**: `cms/service/CmsService.java` (`montarBlocos`, `atualizar`)
+- **Propósito**: eliminar query por bloco de imagem/arquivo
+- **Como**: batch `findAllById` de imagem/arquivo em vez de query individual por bloco; `atualizar` não refaz mais `buscarAdmin` (causava o N+1 duas vezes) — monta resposta a partir da entidade já em mãos na mesma transação
 
 ### RateLimiterService (token bucket em memória)
 - **Onde**: `common/ratelimit/RateLimiterService`
@@ -188,3 +236,14 @@
 - **Onde**: `escritorio/repository/RegiaoIntergrupoRepository.findAllComHierarquiaCompleta()`
 - **Bug corrigido**: fetch join só cobria `regiao.estados`; `estado.grupos` e `grupo.telefones` ficavam LAZY, causando N+1 em `EscritorioRegionalService.listarEstruturaCompleta()`
 - **Como**: `LEFT JOIN FETCH` encadeado (`r.estados e`, `e.grupos g`, `g.telefones`) com `SELECT DISTINCT` para evitar duplicação cartesiana entre coleções irmãs
+
+### Bug: `JpaSystemException` em `RegiaoIntergrupoRepository` — múltiplas coleções-bag fetch-joined (Hibernate 7)
+- **Onde**: `escritorio/repository/RegiaoIntergrupoRepository` (`findAllComHierarquiaCompleta`), `GrupoIntergrupo.agenda` (`@ElementCollection(EAGER)`)
+- **Propósito**: `GET /api/v1/admin/escritorios-regionais` quebrava com `Could not generate fetch: RegiaoIntergrupo -> estados` — `agenda` (EAGER) colidia com `LEFT JOIN FETCH ... telefones` no mesmo nó pai; Hibernate 7 não suporta múltiplas coleções-bag fetch-joined no mesmo nó (mesmo problema de fundo do antigo `MultipleBagFetchException`, mas falha em `buildFetch` em vez de na validação)
+- **Como**: query única dividida em 3 (`findAllComEstados`, `carregarGruposDosEstados`, `carregarTelefonesDosGrupos`), no máximo uma coleção-bag fetch-joined por query, orquestradas na mesma transação — Hibernate reconcilia por identidade no Persistence Context
+- **Trade-off**: padrão a reaproveitar em qualquer hierarquia com múltiplas coleções-bag no projeto
+
+### Serviço nativo `postgresql-x64-18` no Windows (não é bug do projeto)
+- **Onde**: ambiente local do desenvolvedor (fora do Docker)
+- **Propósito**: registrar achado para não confundir debugging futuro
+- **Como**: serviço Windows escuta na porta 5432 do host, mas não conflita com o container (compose usa rede interna `postgres:5432`); só confunde quem tentar `psql localhost:5432` de fora do Docker esperando pegar o banco do compose

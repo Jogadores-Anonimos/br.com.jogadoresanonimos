@@ -64,6 +64,7 @@ public class RelatoService {
 
     @Transactional
     public RelatoAdminResponse editar(UUID id, EditarRelatoRequest request, UUID adminId) {
+        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1));
         Relato relato = buscarOuFalhar(id);
         String statusAnterior = relato.getStatus().name();
         relato.editarTexto(request.texto().trim());
@@ -74,6 +75,7 @@ public class RelatoService {
 
     @Transactional
     public RelatoAdminResponse aprovar(UUID id, UUID adminId) {
+        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1));
         Relato relato = buscarOuFalhar(id);
         String statusAnterior = relato.getStatus().name();
         relato.aprovar();
@@ -84,6 +86,7 @@ public class RelatoService {
 
     @Transactional
     public RelatoAdminResponse rejeitar(UUID id, UUID adminId) {
+        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1));
         Relato relato = buscarOuFalhar(id);
         String statusAnterior = relato.getStatus().name();
         relato.rejeitar();
@@ -94,6 +97,7 @@ public class RelatoService {
 
     @Transactional
     public RelatoAdminResponse reverter(UUID id, UUID adminId) {
+        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1));
         Relato relato = buscarOuFalhar(id);
         String statusAnterior = relato.getStatus().name();
         relato.reverterParaPendente();
@@ -104,6 +108,7 @@ public class RelatoService {
 
     @Transactional
     public void remover(UUID id, UUID adminId) {
+        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1));
         Relato relato = buscarOuFalhar(id);
         String statusAnterior = relato.getStatus().name();
         relatoRepository.delete(relato);

@@ -62,6 +62,20 @@
   line-height: 1.6;
 }
 
+.admin-seguranca__qrcode {
+  display: flex;
+  justify-content: center;
+  padding: var(--spacing-sm);
+  background: var(--color-bg-section);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin-seguranca__qrcode ::ng-deep canvas {
+  max-width: 100%;
+  height: auto;
+}
+
 .admin-seguranca__campo-rotulo {
   color: var(--color-text);
   font-size: 0.9rem;

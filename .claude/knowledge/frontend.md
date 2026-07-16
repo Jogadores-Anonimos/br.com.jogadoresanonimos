@@ -15,17 +15,38 @@
 - **Como**: consome `AvisosService.listarAvisos()`, mostra 3 primeiros; badge "Importante" com `--color-warning` para avisos fixados
 - **Trade-off**: pendência sinalizada ao `po`/`ux-ui` para decidir conscientemente entre revogar a decisão antiga, reverter esta seção, ou conviver com as duas
 
+### AdminEscritoriosServico — split de god component (composição pai/filho)
+- **Onde**: `pages/admin/admin-escritorios-regionais/` (`admin-escritorios-regionais.ts`, 1028→1020 linhas) → `admin-escritorios-servico/` (novo)
+- **Propósito**: reduzir tamanho do componente admin extraindo bloco CRUD independente (escritórios de serviço)
+- **Como**: comunicação via `@Input`/`@Output`; CSS compartilhado via `@import` de classes genéricas do componente pai, sem duplicar estilo
+
 ### AuthService — sessionStorage sempre, localStorage condicional a lembrarDeMim (bugfix)
 - **Onde**: `frontend/src/app/services/auth/auth.ts` (`aplicarLoginBemSucedido`, `lerSessaoPersistida`, `limparSessaoPersistida`, `rehidratarSessao`)
 - **Propósito**: corrigir bug onde F5 na mesma aba deslogava usuário que não marcou "lembrar de mim" (token só ficava em memória)
 - **Como**: `sessionStorage` gravado sempre após login, independente de `lembrarDeMim` (já não sobrevive a fechar aba/navegador, cobre esse caso sozinho); `lembrarDeMim=true` só adiciona gravação em `localStorage` (mesma `SessaoPersistida`); leitura prioriza `sessionStorage`, cai para `localStorage` via `lerSessaoDeStorage`; `limparSessaoPersistida` limpa os dois; `rehidratarSessao` sincroniza `sessionStorage` da aba nova ao reidratar de `localStorage`; `expiraEm` respeitado em ambos
 - **Complemento**: signal público `rehidratacaoConcluida` (readonly, `asReadonly()`, mesmo padrão de `usuarioAtual`) criado para `admin.guard.ts` saber quando `rehidratarSessao()` (assíncrono, roda no construtor via subscribe em `buscarUsuarioLogado()`) terminou; `set(true)` nos 4 caminhos de saída: sem sessão persistida, sessão expirada, e dentro do subscribe (sucesso/falha compartilham o mesmo `set(true)` após o if/else)
 
+### admin-seguranca — QR code MFA via `angularx-qrcode`
+- **Onde**: `pages/admin/admin-seguranca/` (tela MFA), dependência nova `angularx-qrcode` (aprovada pelo usuário)
+- **Propósito**: gerar QR code de enroll TOTP sem chamada a serviço externo (não vazar segredo TOTP pra terceiro)
+- **Como**: renderiza 100% client-side (canvas) a partir do `otpauthUri` retornado pelo backend; chave manual mantida com botão "Copiar" (Clipboard API), feedback "Copiado!" por 2s
+
 ### admin.guard — aguarda rehidratação de sessão antes de checar usuário (bugfix)
 - **Onde**: `frontend/src/app/guards/admin.guard.ts` (`adminGuard`)
 - **Propósito**: corrigir falso "não logado" em refresh de página — guard lia `auth.usuarioAtual()` antes de `Auth.rehidratarSessao()` terminar, redirecionando erroneamente para `/minha-conta` com sessão válida
 - **Como**: guard virou `async`; antes de ler `usuarioAtual()`, faz `await firstValueFrom(toObservable(auth.rehidratacaoConcluida).pipe(filter(c => c), take(1)))` (`toObservable` de `@angular/core/rxjs-interop`, `firstValueFrom`/`filter`/`take` de `rxjs`); lógica de redirecionamento preservada (`/minha-conta` se não logado, `/` se não ADMIN, `true` se ADMIN)
 - **Trade-off**: padrão (`toObservable(signal) + filter + take(1) + firstValueFrom`, guard `async`) é reutilizável por qualquer `CanActivateFn` que dependa de sessão rehidratada
+
+### Bundle inicial — remoção de FormsModule desnecessário no Navbar (performance)
+- **Onde**: `components/navbar/navbar.ts`
+- **Propósito**: componente eager usado em todo `AppComponent` importava `FormsModule` inteiro só por causa de um único `[(ngModel)]`
+- **Como**: trocado `[(ngModel)]` por `[value]` + `(input)` manual, `FormsModule` removido do componente
+- **Trade-off**: bundle inicial caiu de 459KB para 423KB raw, warning de budget do `angular.json` (450KB) eliminado; achado real da auditoria, não o esperado inicialmente
+
+### Barra deslizante — remoção do shell global (decisão UX)
+- **Onde**: `app.html`/`app.ts`/`app.css` (shell), componente `components/barra-deslizante/` mantido mas desconectado
+- **Propósito**: ticker fixo no topo, sem pausa em mobile, conteúdo hardcoded não-administrável, competia com a seção Avisos (canal formal dinâmico via CMS, com `fixado`/expiração) pela atenção do usuário logo na chegada
+- **Como**: removida como elemento global fixo; componente não deletado, só desconectado, disponível se precisar reaproveitar; `--ticker-height` com fallback `0px`, layout não quebrou
 
 ### Bug: custom properties CSS de `:host` não herdam entre elementos irmãos no DOM
 - **Onde**: `pages/admin/admin-layout/admin-layout.css`, `app.ts` (`PREFIXOS_SEM_BARRA_DESLIZANTE`)
@@ -73,6 +94,16 @@
 - **Como**: `subscribe()` passava só `next`; falha silenciosa na cadeia RxJS (ex: exceção no `map` do service, não erro HTTP) nunca chega ao `next` e sem handler `error` a flag `carregando*` nunca vira `false`; fix adiciona `catchError` no pipe do service e troca os três `subscribe()` da Home para objeto `{ next, error }`, setando `carregando*=false`/`erro*=true` no caminho de erro
 - **Trade-off**: padrão a checar em qualquer Observable HTTP com flag de loading — `subscribe` sempre precisa de handler `error` explícito que desligue a flag, senão qualquer falha não-HTTP na cadeia trava o loading indefinidamente
 
+### Bug: campo de nova senha sem feedback visível (minha-conta — troca obrigatória)
+- **Onde**: `pages/minha-conta/minha-conta.html`
+- **Propósito**: botão de trocar senha ficava desabilitado (`minlength="10"`) sem nenhuma mensagem explicando por quê
+- **Como**: mensagem de erro visível adicionada; validação de confirmação de senha (não existia antes) adicionada junto, bug real corrigido de brinde
+
+### ContaAuthForms — split de god component (minha-conta)
+- **Onde**: `pages/minha-conta/minha-conta.ts` (470→210 linhas) → `conta-auth-forms/` (novo)
+- **Propósito**: extrair bloco de login/registro/MFA/reCAPTCHA do componente principal, que acumulava responsabilidades demais
+- **Como**: mesmo padrão de composição pai/filho (`@Input`/`@Output`) usado em `AdminEscritoriosServico`
+
 ### CMS — páginas institucionais migradas de hardcode para blocos
 - **Onde**: `pages/{sobre,historia,anonimato,privacidade,termos,jogo-compulsivo,uma-nova-chance,programa-de-recuperacao,programa-de-unidade,contribuir,vinte-perguntas}/`
 - **Propósito**: consumir `Cms.getPaginaPublica(slug)` em vez de texto hardcoded
@@ -85,11 +116,32 @@
 - **Como**: `PaginasLista` é tabela simples sem busca/paginação/criar/excluir (regra de negócio confirmada); `PaginaEditor` recebe `slug` via rota, lista vertical de blocos com mover/remover/adicionar, indicador de alterações não salvas (signal), `beforeunload` + confirm no botão de saída (sem `CanDeactivate` guard, decisão consciente por volume/risco baixos)
 - **Trade-off**: sem NgRx/state global — signals locais bastam para volume de dados pequeno (um form de página por vez)
 
+### CLAUDE.md — sincronização de seções `[definir]`
+- **Onde**: `CLAUDE.md` (storage de imagem, autenticação, comandos dev/test/build)
+- **Propósito**: seções do documento de regras ainda estavam como placeholder `[definir]` embora a decisão já estivesse fechada em `Decisoes de Sistemas.md`
+- **Como**: texto atualizado para refletir decisões já tomadas, sem mudar decisão nenhuma
+
+### Chunk `admin-escritorios-regionais` (80KB) — decisão de não dividir mais
+- **Onde**: `pages/admin/admin-escritorios-regionais/`
+- **Propósito**: avaliado na auditoria de performance se valia separar por sub-rota de aba
+- **Como**: decisão deliberada de não dividir — sub-rotas por aba exigiriam duplicar fetch entre elas para economizar só ~12-15KB gzip, não compensa
+
 ### Depoimentos → Relatos (rename completo)
 - **Onde**: `frontend/src/app/pages/relatos/`, `services/relatos.ts`, `app.routes.ts`
 - **Propósito**: alinhar nomenclatura 100% (página, service, interfaces, métodos, classes CSS)
 - **Como**: rota `/depoimentos` → `/relatos` com redirect preservado (`redirectTo`, usuários podem ter link salvo); página "Boletim Informativo" removida sem redirect (decisão do `ux-ui`, sem conteúdo real publicado)
 - **Trade-off**: `home.html` manteve link quebrado para `/boletim-informativo` propositalmente (fora de escopo, pendência aberta até tarefa confirmada pelo usuário) — depois corrigido em tarefa separada para `/relatos`
+
+### Enderecos (rota) vs escritorio-regional (domínio/contrato API) — nomenclatura divergente mantida
+- **Onde**: `pages/enderecos/`, `services/escritorio-regional/` (ou equivalente de domínio)
+- **Propósito**: registrar decisão de não renomear para alinhar nomenclatura
+- **Como**: `enderecos` é rota pública/UX, já consumidor desacoplado do service de domínio `escritorio-regional`
+- **Trade-off**: renomear quebraria consistência com contrato de API sem ganho real
+
+### Auth — signal `usuarioAtualDetalhado` elimina HTTP duplicado em `/minha-conta`
+- **Onde**: `services/auth/auth.ts` (novo signal `usuarioAtualDetalhado: UsuarioMe | null`), `pages/minha-conta/minha-conta.ts`
+- **Propósito**: `/minha-conta` fazia refetch de dados detalhados já buscados no login
+- **Como**: signal populado no mesmo ponto que já populava `usuarioAtual` (resumo); `minha-conta.ts` lê do signal primeiro, só faz refetch como fallback (caso de login recente que só populou o resumo)
 
 ### Feature "Depoimentos"/Relatos — página única (ler + escrever)
 - **Onde**: `pages/relatos/` (antes `pages/depoimentos/`)
@@ -131,6 +183,22 @@
 - **Propósito**: `<p>` neto com `overflow-wrap`/`word-break` não quebrava texto longo, mesmo já tendo essas propriedades
 - **Como**: `<li>` é filho direto de container `flex-direction: column`; item flex tem `min-width: auto` por padrão, que no eixo column é a largura — nunca encolhia abaixo do conteúdo, então o `<p>` neto nunca recebia largura restrita para o `overflow-wrap` atuar; fix adiciona `min-width: 0` no `<li>`
 - **Trade-off**: padrão de diagnóstico a repetir — se `overflow-wrap`/`word-break` não funciona visualmente num filho dentro de flex/grid, suspeitar primeiro de `min-width`/`min-height: auto` no ancestral flex/grid antes de mexer mais no elemento de texto
+
+### Leaflet eager em `admin-reunioes.ts` corrigido (mesmo padrão de `reunioes.ts`)
+- **Onde**: `pages/admin/admin-reunioes/admin-reunioes.ts`
+- **Propósito**: 3ª ocorrência do mesmo bug (eager `import * as L`) já registrado em `reunioes.ts` e `admin-reunioes.ts`
+- **Como**: aplicado o mesmo padrão de `import type` + `await import()` dinâmico
+
+### Leaflet — import dinâmico (lazy) em vez de eager
+- **Onde**: `pages/reunioes/reunioes.ts`, `pages/admin/admin-reunioes/admin-reunioes.ts`
+- **Propósito**: evitar carregar biblioteca de mapa no bundle principal quando página não usa mapa
+- **Como**: `import type * as L from 'leaflet'` (só tipos, sem custo de bundle) + `await import('leaflet')` dinâmico, condicionado à presença do container do mapa no DOM (`#mapaContainer`/`#mapaPreviewContainer`); campo `private leaflet?: typeof L` guarda a instância carregada, todo uso `L.foo` vira `this.leaflet.foo`
+- **Trade-off**: confirmado em build — `leaflet-src` sai como chunk lazy próprio (387 kB), fora do bundle inicial e fora dos chunks de rota; mesmo bug (eager `import * as L`) já apareceu 2x no projeto (reunioes público, depois admin-reunioes) — checar esse padrão em qualquer página nova que use Leaflet
+
+### `reunioesFiltradas` — getter migrado para `computed()` (performance)
+- **Onde**: `pages/reunioes/reunioes.ts`
+- **Propósito**: evitar recálculo desnecessário de getter chamado a cada change detection
+- **Como**: fix pontual no componente com custo real de recálculo, não `OnPush` genérico em todo o app (0 componentes usavam `OnPush` antes, decisão de não aplicar globalmente por melhor ROI do fix pontual)
 
 ### Menu "Recursos" — item clicável + toggle separados
 - **Onde**: `components/navbar/navbar.html`
@@ -176,6 +244,11 @@
 - **Como**: `fileReplacements` troca `environment.ts` por `environment.prod.ts` na configuration `production`; `apiBaseUrl` de prod é relativo (`/api/v1`), assume reverse proxy servindo front+back no mesmo domínio; `ng build` já usa `production` como `defaultConfiguration` do builder `@angular/build:application`, então build sem flag sai correto
 - **Trade-off**: `recaptchaSiteKey` de prod está temporariamente igual à de dev — não existe chave própria de produção ainda, pendência registrada em `PENDENCIAS.md`; domínio real de produção também não existe, depende de hospedagem do cliente
 
+### PENDENCIAS.md — falsos positivos corrigidos (auditoria)
+- **Onde**: `home.css`, `admin-reflexao-do-dia.css`, `admin-seguranca.html`
+- **Propósito**: registrar checagem de itens listados como pendência que já estavam resolvidos
+- **Como**: cores citadas como hardcoded em `home.css`/`admin-reflexao-do-dia.css` já usavam `var(--...)`; `onclick` inline citado em `admin-seguranca.html` já não existia (verificado, sem ação)
+
 ### VintePerguntasService/ImagemService — services admin
 - **Onde**: `services/imagem.ts`, `services/vinte-perguntas.ts`
 - **Propósito**: fechar gaps de upload de imagem e CRUD admin de perguntas, endpoints já existiam no backend
@@ -185,6 +258,11 @@
 - **Onde**: `services/vinte-perguntas.ts`, `.model.ts`, `.mock.ts`
 - **Propósito**: backend reverteu `numero` fixo 1-20 para lista dinâmica (criar/remover/mover)
 - **Como**: `VinteQuestaoResponse` ganhou `id: string` (chave estável) + `ordem: number` (mutável); `atualizarPergunta`/`removerPergunta` passaram a usar `id`, não `numero`; novos `criarPergunta`, `moverPerguntaCima`/`moverPerguntaBaixo`
+
+### Cobertura E2E/spec — admin-seguranca, enderecos, pagina-editor
+- **Onde**: `admin-seguranca.spec.ts`, `enderecos.spec.ts`, `pagina-editor.spec.ts` (novos)
+- **Propósito**: fechar gaps de teste em fluxo MFA completo, carregamento/seleção/erro/formatação de endereços, e CMS (bloco texto/imagem, upload, salvar com concorrência, CRUD de perguntas)
+- **Pendência**: `admin-escritorios-regionais.spec.ts`/`hotlines.spec.ts` pré-existentes podem estar quebrados por refactor em paralelo (método `ehPrimeiroEscritorio`, campo `HotlineTelefone.label`) — precisa rodar suíte completa para confirmar pós-refactor
 
 ### Design system — botões CSS, z-index e valores de referência
 - **Onde**: `frontend/src/styles.css`
@@ -205,6 +283,27 @@
 - **Caso não resolvido por merge local**: `admin-escritorios-regionais.salvarEndereco` — `criarEnderecoAdmin` pode criar um `EstadoIntergrupo` novo implicitamente (uf ainda não tinha estado na região) e devolve só o `GrupoIntergrupo`, sem os dados do estado pai (nome/ordem); código checa se o estado já existe localmente (merge) e só cai em `carregarEstrutura()` (refetch) nesse caso raro de estado novo — sinalizado como possível evolução de contrato (backend devolver o estado pai) para o agente `backend`/`frontend-services`, não implementado agora por ser fora de escopo da tarefa
 - **admin-hotlines.salvarTelefones**: caso mais complexo (forkJoin de add/edit/delete de telefones misturados); telefones adicionados via `adicionarTelefoneAdmin` (que retorna a região inteira) são extraídos do envelope só depois de todas as chamadas resolverem, telefones editados/mantidos são recompostos a partir do estado local + formulário — não depende de refetch em nenhum caminho
 - **Trade-off**: `admin-hotlines`/`admin-escritorios-regionais` ficaram com mais linhas por causa da reconstrução de estrutura aninhada (região→estado→grupo), mas eliminam o `carregarEstrutura()` do caminho feliz; validado só por `tsc --noEmit` + `ng build` limpos, sem teste E2E
+
+### Suíte `ng test` — 100% verde (12 arquivos, 138 testes) após correções de sessão
+- **Onde**: `app.spec.ts`, `enderecos.spec.ts`, `admin-faq.spec.ts`, `admin-hotlines.spec.ts`, `pagina-editor.spec.ts`
+- **Propósito**: registrar padrões de correção reutilizáveis em specs futuros
+- **Como**: `app.spec.ts`/`enderecos.spec.ts` — faltava `provideRouter([])` no `TestBed`; `admin-faq.spec.ts`/`admin-hotlines.spec.ts` — call-count desatualizado após CRUD admin migrar de refetch completo pra merge local (ver entrada "CRUD admin — merge local"); `pagina-editor.spec.ts` — `DataTransfer` não existe em jsdom, trocado por `Object.defineProperty(input, 'files', ...)`; achados de brinde: chamada dupla de `criarComponente()` com `TestBed` já instanciado e leitura de estado após `salvar()` já ter sobrescrito com resposta mockada, ambos corrigidos
+
+### Bug de teste: `NG0100` genuíno em app zoneless ao mutar estado direto em vez de disparar evento
+- **Onde**: specs Angular do projeto (app é zoneless, sem `zone.js`)
+- **Propósito**: mutar signal/propriedade de componente direto no teste (fora de binding de evento) e chamar `detectChanges()` pode gerar `NG0100` mesmo sem bug de produção, porque `ApplicationRef.tick()` sempre roda `checkNoChanges` em modo zoneless
+- **Como**: fix correto em teste é disparar o evento real (ex: `.click()`) em vez de mutar estado direto
+- **Trade-off**: padrão a reaproveitar em qualquer spec futuro deste projeto
+
+### Auditoria cross-layer 2026-07-16 — cleanup geral (frontend)
+- **Onde**: 14 arquivos (migração `*ngIf`/`*ngFor` legado para `@if`/`@for`), `admin-mural-de-apoio.html`, `admin-literatura.html`
+- **Propósito**: fechar débitos de cleanup levantados pelo `code-reviewer`
+- **Como**: import morto `RouterLink` removido; sintaxe de controle legado migrada para nova sintaxe Angular em 14 arquivos; `loading="lazy"` adicionado em imagens de `admin-mural-de-apoio.html` e `admin-literatura.html`
+
+### App não é zoneless (correção de suposição anterior)
+- **Onde**: `app.config.ts`
+- **Propósito**: sessão passada tinha registrado suposição errada de que o app era zoneless
+- **Como**: confirmado via ausência de `provideZonelessChangeDetection` em `app.config.ts` — app usa zone.js padrão
 
 ### admin-seguranca — mfaAtivo hardcoded false (bugfix HIGH)
 - **Onde**: `frontend/src/app/pages/admin/admin-seguranca/admin-seguranca.ts`/`.html`

@@ -101,6 +101,12 @@ export const routes: Routes = [
           import('./pages/admin/admin-seguranca/admin-seguranca').then((m) => m.AdminSeguranca),
         data: { titulo: 'Segurança' },
       },
+      {
+        path: 'auditoria',
+        loadComponent: () =>
+          import('./pages/admin/admin-auditoria/admin-auditoria').then((m) => m.AdminAuditoria),
+        data: { titulo: 'Auditoria' },
+      },
     ],
   },
   {

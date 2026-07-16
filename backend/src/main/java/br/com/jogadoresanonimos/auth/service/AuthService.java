@@ -3,14 +3,18 @@ package br.com.jogadoresanonimos.auth.service;
 import br.com.jogadoresanonimos.auth.dto.*;
 import br.com.jogadoresanonimos.auth.entity.PasswordResetToken;
 import br.com.jogadoresanonimos.auth.repository.PasswordResetTokenRepository;
+import br.com.jogadoresanonimos.common.dto.ApiError;
 import br.com.jogadoresanonimos.common.util.HmacHasher;
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
 import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
+import br.com.jogadoresanonimos.security.AuthenticatedUser;
 import br.com.jogadoresanonimos.security.JwtService;
 import br.com.jogadoresanonimos.security.MfaSecretCipher;
 import br.com.jogadoresanonimos.security.TotpService;
+import br.com.jogadoresanonimos.security.entity.JwtDenylistEntry;
+import br.com.jogadoresanonimos.security.repository.JwtDenylistRepository;
 import br.com.jogadoresanonimos.usuario.entity.Role;
 import br.com.jogadoresanonimos.usuario.entity.Usuario;
 import br.com.jogadoresanonimos.usuario.repository.UsuarioRepository;
@@ -25,6 +29,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -44,12 +49,13 @@ public class AuthService {
     private final RecaptchaService recaptchaService;
     private final TotpService totpService;
     private final MfaSecretCipher mfaSecretCipher;
+    private final JwtDenylistRepository jwtDenylistRepository;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UsuarioRepository usuarioRepository, PasswordResetTokenRepository resetTokenRepository,
                         PasswordEncoder passwordEncoder, JwtService jwtService, EmailService emailService,
                         RateLimiterService rateLimiterService, HmacHasher hmacHasher, RecaptchaService recaptchaService,
-                        TotpService totpService, MfaSecretCipher mfaSecretCipher) {
+                        TotpService totpService, MfaSecretCipher mfaSecretCipher, JwtDenylistRepository jwtDenylistRepository) {
         this.usuarioRepository = usuarioRepository;
         this.resetTokenRepository = resetTokenRepository;
         this.passwordEncoder = passwordEncoder;
@@ -60,6 +66,7 @@ public class AuthService {
         this.recaptchaService = recaptchaService;
         this.totpService = totpService;
         this.mfaSecretCipher = mfaSecretCipher;
+        this.jwtDenylistRepository = jwtDenylistRepository;
     }
 
     @Transactional
@@ -68,8 +75,7 @@ public class AuthService {
         recaptchaService.validar(request.recaptchaToken());
         if (!request.senha().equals(request.confirmarSenha())) {
             throw new ValidationException("Senha e confirmação não coincidem",
-                    java.util.List.of(new br.com.jogadoresanonimos.common.dto.ApiError.FieldError(
-                            "confirmarSenha", "Deve ser igual à senha")));
+                    List.of(new ApiError.FieldError("confirmarSenha", "Deve ser igual à senha")));
         }
         boolean apelidoExiste = usuarioRepository.existsByApelidoIgnoreCase(request.apelido());
         boolean emailExiste = usuarioRepository.existsByEmailIgnoreCase(request.email());
@@ -142,7 +148,6 @@ public class AuthService {
             String tokenHash = hmacHasher.hash(tokenBruto);
             PasswordResetToken resetToken = new PasswordResetToken(usuario.getId(), tokenHash, Instant.now().plus(Duration.ofMinutes(30)));
             resetTokenRepository.save(resetToken);
-
             String usuarioIdHash = hmacHasher.hash(usuario.getId().toString());
             emailService.enviarLinkRedefinicaoSenha(usuarioIdHash, tokenBruto);
         });
@@ -154,8 +159,7 @@ public class AuthService {
         checarRateLimitConta("redefinir-senha", request.token());
         if (!request.novaSenha().equals(request.confirmarNovaSenha())) {
             throw new ValidationException("Nova senha e confirmação não coincidem",
-                    java.util.List.of(new br.com.jogadoresanonimos.common.dto.ApiError.FieldError(
-                            "confirmarNovaSenha", "Deve ser igual à nova senha")));
+                    List.of(new ApiError.FieldError("confirmarNovaSenha", "Deve ser igual à nova senha")));
         }
         String tokenHash = hmacHasher.hash(request.token());
         PasswordResetToken resetToken = resetTokenRepository.findByTokenHash(tokenHash)
@@ -166,6 +170,17 @@ public class AuthService {
         usuario.setSenhaHash(passwordEncoder.encode(request.novaSenha()));
         resetToken.marcarUsado();
         return new MensagemResponse("Senha redefinida com sucesso.");
+    }
+
+    @Transactional
+    public MensagemResponse logout(AuthenticatedUser principal) {
+        if (principal == null || principal.jti() == null) {
+            throw new UnauthenticatedException("Token ausente ou inválido");
+        }
+        if (!jwtDenylistRepository.existsByJti(principal.jti())) {
+            jwtDenylistRepository.save(new JwtDenylistEntry(principal.jti(), principal.expiraEm()));
+        }
+        return new MensagemResponse("Sessão encerrada com sucesso.");
     }
 
     private String gerarTokenBruto() {

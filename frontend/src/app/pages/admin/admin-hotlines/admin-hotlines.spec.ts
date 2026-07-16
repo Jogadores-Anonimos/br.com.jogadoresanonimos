@@ -58,7 +58,7 @@ describe('AdminHotlines', () => {
   });
 
   describe('criação de região', () => {
-    it('cria região com UF e cidade válidas e recarrega a lista', () => {
+    it('cria região com UF e cidade válidas e atualiza a lista localmente', () => {
       component.abrirNovaRegiao();
       component.formularioRegiao.uf = 'MG';
       component.formularioRegiao.cidade = 'Belo Horizonte';
@@ -66,7 +66,7 @@ describe('AdminHotlines', () => {
       component.salvarRegiao();
 
       expect(serviceSpy['criarRegiaoAdmin']).toHaveBeenCalledWith({ uf: 'MG', cidade: 'Belo Horizonte' });
-      expect(serviceSpy['listarHotlinesAdmin']).toHaveBeenCalledTimes(2);
+      expect(serviceSpy['listarHotlinesAdmin']).toHaveBeenCalledTimes(1);
       expect(component.modoFormularioRegiao).toBe('fechado');
     });
 

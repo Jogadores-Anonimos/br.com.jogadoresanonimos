@@ -71,6 +71,27 @@
 - **Como**: token guardado em campo privado (não signal, não storage), exposto via `obterToken()`; `HttpInterceptorFn` funcional anexa `Authorization: Bearer` só em requests para `environment.apiBaseUrl`; erro 401 chama `Auth.logout()` e deixa o erro seguir, sem decidir navegação
 - **Trade-off**: sessão não sobrevive a F5, em troca de reduzir superfície de XSS; alternativa mais robusta (httpOnly cookie + refresh token) não adotada por exigir mudança de contrato no backend
 
+### JWT denylist (logout/revogação)
+- **Onde**: migration `V6` (tabela `jwt_denylist`), `JwtService.gerarToken`/`jtiDe`, `JwtAuthenticationFilter`, `JwtDenylistGcJob`, `POST /api/v1/auth/logout`
+- **Propósito**: revogar token antes da expiração natural (logout real), sem depender de refresh curto
+- **Como**: `jti` emitido em todo token, checado contra a denylist no filtro antes de autenticar; sem Redis (volume não justifica); GC diário remove entradas expiradas, mesmo padrão dos outros GC jobs
+- **Trade-off**: Postgres em vez de store em memória compartilhado — troca aceita pelo volume baixo do projeto
+
+### MFA `desativar` exige TOTP + auditoria em ações de MFA
+- **Onde**: `MfaService` (`enroll`/`confirmar`/`desativar`)
+- **Propósito**: defesa em profundidade — senha sozinha não bastava para desativar MFA
+- **Como**: `desativar` agora exige `codigoTotp` válido (checado via `TotpService`) além da senha; as três ações passam a registrar em `AdminAuditoriaService` (ação `EDITAR`, entidade `"mfa"`, entidadeId = próprio usuário, nunca loga o secret)
+
+### ProdConfigValidator (fail-fast de configuração em produção)
+- **Onde**: `config/ProdConfigValidator` (`@Profile("prod")`, `ApplicationRunner`)
+- **Propósito**: impedir boot em produção com segredo de configuração inválido/default
+- **Como**: derruba o boot se `RECAPTCHA_SECRET_KEY` estiver vazia ou igual à chave de teste pública do Google; só ativa com `SPRING_PROFILES_ACTIVE=prod` (ainda não configurado no deploy real, pendente com `devops`)
+
+### Rate limit em ações admin de escrita em massa
+- **Onde**: `RelatoService` (editar/aprovar/rejeitar/reverter/remover), `UsuarioService.editarRole`
+- **Propósito**: cobrir lacuna — ações administrativas em massa não tinham rate limit
+- **Como**: 60/min por `adminId`, reaproveitando `RateLimiterService`/`TokenBucket` já existente
+
 ### Rate limit de upload de imagem (bucket duplo)
 - **Onde**: `POST /api/v1/admin/imagens`
 - **Propósito**: limitar abuso de upload por admin e globalmente
@@ -89,6 +110,16 @@
 - **Detectado por**: `qa-backend-unit`, teste `MfaServiceTest.enroll_deveFalharComRateLimitAposExcederTentativas`, ao reproduzir isolado (capacity=5, 6+ chamadas todas `true`)
 - **Efeito colateral encontrado**: teste `desativar_deveFalharComRateLimitAposExcederTentativas` também tinha bug próprio — usava senha errada desde a 1ª iteração, então `UnauthenticatedException` (checada depois do rate limit no service) nunca dava chance do bucket estourar antes de lançar; corrigido para usar senha correta e resetar MFA a cada iteração, isolando só o rate limit
 - **Trade-off**: nenhum — bug puro de lógica, sem trade-off de design envolvido
+
+### UsuarioAdminResponse.fromMascarado() — mascaramento de e-mail em listagem admin
+- **Onde**: `usuario/dto/UsuarioAdminResponse.java`, listagem admin de usuários
+- **Propósito**: reduzir exposição de e-mail em massa numa tela de listagem
+- **Como**: `fromMascarado()` formata `f***@dominio.com`; ação pontual de editar role mantém e-mail completo — decisão de produto confirmada com o usuário (mascarar só em listagem em massa, não em ação individual)
+
+### LocalDiskStorageClient — warn em SO sem suporte POSIX
+- **Onde**: `LocalDiskStorageClient.aplicarPermissoesRestritivasSePosix`
+- **Propósito**: SO sem POSIX (ex: Windows) fazia a checagem de permissão falhar silenciosamente
+- **Como**: agora loga `warn` quando o SO não suporta `PosixFileAttributeView`, em vez de engolir a falha sem sinal
 
 ### Sanitizer HTML — decisão original (regex, sem dependência nova)
 - **Onde**: `cms/util/HtmlSanitizer.java` (histórico, superado pela migração OWASP)

@@ -1,0 +1,221 @@
+<section class="admin-escritorios__bloco admin-escritorios__bloco--escritorios">
+  <div class="admin-escritorios__bloco-cabecalho">
+    <div>
+      <h2 class="admin-escritorios__subtitulo">Escritórios Regionais de Serviço</h2>
+      <p class="admin-escritorios__descricao">
+        Endereços institucionais de contato, sem relação com a hierarquia de regiões/estados/grupos. Apenas edição.
+      </p>
+    </div>
+  </div>
+
+  @if (modoFormularioEscritorio !== 'fechado') {
+    <form
+      class="admin-escritorios__formulario"
+      (ngSubmit)="salvarEscritorio()"
+    >
+    <h3 class="admin-escritorios__formulario-titulo">
+      {{ modoFormularioEscritorio === 'edicao' ? 'Editar escritório' : 'Novo escritório de serviço' }}
+    </h3>
+
+    <div class="admin-escritorios__campo">
+      <label for="escritorio-nome">Nome</label>
+      <input
+        id="escritorio-nome"
+        type="text"
+        name="nome"
+        [(ngModel)]="formularioEscritorio.nome"
+        [class.campo-invalido]="errosCampoEscritorio['nome']"
+        [attr.aria-invalid]="errosCampoEscritorio['nome'] ? 'true' : null"
+        required
+      />
+    </div>
+
+    <div class="admin-escritorios__campo-linha">
+      <div class="admin-escritorios__campo">
+        <label for="escritorio-cep">CEP</label>
+        <input
+          id="escritorio-cep"
+          type="text"
+          inputmode="numeric"
+          placeholder="00000-000"
+          maxlength="9"
+          name="cepEscritorio"
+          [(ngModel)]="cepEscritorio"
+        />
+      </div>
+
+      <div class="admin-escritorios__campo">
+        <label for="escritorio-numero">Número</label>
+        <input id="escritorio-numero" type="text" placeholder="Ex: 123" name="numeroEscritorio" [(ngModel)]="numeroEscritorio" />
+      </div>
+    </div>
+
+    <div class="admin-escritorios__campo">
+      <button
+        type="button"
+        class="admin-escritorios__botao admin-escritorios__botao--secundario"
+        [disabled]="buscandoCepEscritorio"
+        (click)="buscarCepEscritorio()"
+      >
+        {{ buscandoCepEscritorio ? 'Buscando…' : 'Buscar endereço' }}
+      </button>
+      @if (erroCepEscritorio) {
+        <p class="admin-escritorios__erro-card" role="alert">{{ erroCepEscritorio }}</p>
+      }
+      <p class="admin-escritorios__ajuda">Preenche automaticamente os campos de endereço, bairro e cidade.</p>
+    </div>
+
+    <div class="admin-escritorios__campo">
+      <label for="escritorio-endereco">Endereço</label>
+      <input
+        id="escritorio-endereco"
+        type="text"
+        name="endereco"
+        [(ngModel)]="formularioEscritorio.endereco"
+        [class.campo-invalido]="errosCampoEscritorio['endereco']"
+        [attr.aria-invalid]="errosCampoEscritorio['endereco'] ? 'true' : null"
+        required
+      />
+    </div>
+
+    <div class="admin-escritorios__campo">
+      <label for="escritorio-bairro">Bairro (opcional)</label>
+      <input id="escritorio-bairro" type="text" name="bairro" [(ngModel)]="formularioEscritorio.bairro" />
+    </div>
+
+    <div class="admin-escritorios__campo">
+      <label for="escritorio-complemento">Complemento (opcional)</label>
+      <input id="escritorio-complemento" type="text" name="complemento" [(ngModel)]="formularioEscritorio.complemento" />
+    </div>
+
+    <div class="admin-escritorios__campo">
+      <label for="escritorio-cidade">Cidade</label>
+      <input
+        id="escritorio-cidade"
+        type="text"
+        name="cidade"
+        [(ngModel)]="formularioEscritorio.cidade"
+        [class.campo-invalido]="errosCampoEscritorio['cidade']"
+        [attr.aria-invalid]="errosCampoEscritorio['cidade'] ? 'true' : null"
+        required
+      />
+    </div>
+
+    <div class="admin-escritorios__campo">
+      <label for="escritorio-emails">E-mails (separados por vírgula)</label>
+      <input id="escritorio-emails" type="text" name="emailsTexto" [(ngModel)]="formularioEscritorio.emailsTexto" />
+    </div>
+
+    <div class="admin-escritorios__campo admin-escritorios__telefones">
+      <span class="admin-escritorios__campo-rotulo">Telefones (opcional)</span>
+
+      @if (formularioEscritorio.telefones.length > 0) {
+        <ul class="admin-escritorios__telefones-lista">
+          @for (telefone of formularioEscritorio.telefones; track telefone.id) {
+            <li class="admin-escritorios__telefone-item">
+              <div class="admin-escritorios__campo-linha">
+                <div class="admin-escritorios__campo">
+                  <label [attr.for]="'escritorio-telefone-label-' + telefone.id">Descrição (opcional)</label>
+                  <input
+                    [id]="'escritorio-telefone-label-' + telefone.id"
+                    type="text"
+                    placeholder="Ex: Central"
+                    [(ngModel)]="telefone.label"
+                    [name]="'escritorioTelefoneLabel-' + telefone.id"
+                  />
+                </div>
+                <div class="admin-escritorios__campo">
+                  <label [attr.for]="'escritorio-telefone-numero-' + telefone.id">Telefone</label>
+                  <input
+                    [id]="'escritorio-telefone-numero-' + telefone.id"
+                    type="text"
+                    placeholder="Ex: (11) 4321-0000"
+                    [(ngModel)]="telefone.telefone"
+                    [name]="'escritorioTelefoneNumero-' + telefone.id"
+                    [class.campo-invalido]="errosCampoEscritorio['telefones'] && !telefone.telefone.trim()"
+                    [attr.aria-invalid]="errosCampoEscritorio['telefones'] && !telefone.telefone.trim() ? 'true' : null"
+                    required
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                class="admin-escritorios__botao admin-escritorios__botao--perigo admin-escritorios__botao--pequeno"
+                (click)="removerTelefoneEscritorio(telefone.id)"
+              >
+                Remover telefone
+              </button>
+            </li>
+          }
+        </ul>
+      }
+
+      <button
+        type="button"
+        class="admin-escritorios__botao admin-escritorios__botao--secundario admin-escritorios__botao--pequeno"
+        (click)="adicionarTelefoneEscritorio()"
+      >
+        + Adicionar telefone
+      </button>
+    </div>
+
+    @if (erroFormularioEscritorio) {
+      <p class="admin-escritorios__erro-card" role="alert">{{ erroFormularioEscritorio }}</p>
+    }
+
+    <div class="admin-escritorios__acoes">
+      <button type="submit" class="admin-escritorios__botao admin-escritorios__botao--primario" [disabled]="salvandoEscritorio">
+        {{ salvandoEscritorio ? 'Salvando…' : 'Salvar' }}
+      </button>
+      <button
+        type="button"
+        class="admin-escritorios__botao admin-escritorios__botao--secundario"
+        [disabled]="salvandoEscritorio"
+        (click)="cancelarFormularioEscritorio()"
+      >
+        Cancelar
+      </button>
+    </div>
+  </form>
+  }
+
+  @if (escritoriosOrdenados.length === 0) {
+    <p class="admin-escritorios__estado">Nenhum escritório de serviço cadastrado ainda.</p>
+  }
+
+  @if (escritoriosOrdenados.length > 0) {
+    <ul class="admin-escritorios__lista">
+      @for (escritorio of escritoriosOrdenados; track escritorio.id) {
+        <li class="admin-escritorios__item">
+          <div class="admin-escritorios__item-info">
+            <p class="admin-escritorios__item-nome">{{ escritorio.nome }}</p>
+            <p class="admin-escritorios__item-meta">
+              {{ escritorio.endereco }}@if (escritorio.complemento) {, {{ escritorio.complemento }}}@if (escritorio.bairro) {, {{ escritorio.bairro }}} — {{ escritorio.cidade }}
+            </p>
+            @if (escritorio.emails.length > 0) {
+              <p class="admin-escritorios__item-meta">
+                {{ escritorio.emails.join(', ') }}
+              </p>
+            }
+            @if (escritorio.telefones.length > 0) {
+              <p class="admin-escritorios__item-meta">
+                {{ escritorio.telefones[0].label ? escritorio.telefones[0].label + ': ' : '' }}{{ escritorio.telefones[0].telefone
+                }}@if (escritorio.telefones.length > 1) { (+{{ escritorio.telefones.length - 1 }})}
+              </p>
+            }
+          </div>
+
+          <div class="admin-escritorios__acoes">
+            <button
+              type="button"
+              class="admin-escritorios__botao admin-escritorios__botao--secundario"
+              (click)="abrirEdicaoEscritorio(escritorio)"
+            >
+              Editar
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

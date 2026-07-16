@@ -71,7 +71,7 @@ class EscritorioRegionalServiceTest {
     @Test
     void listarEstruturaCompleta_deveCombinarEscritoriosERegioes() {
         when(escritorioServicoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of());
-        when(regiaoRepository.findAllComHierarquiaCompleta()).thenReturn(List.of(novaRegiao()));
+        when(regiaoRepository.findAllComEstados()).thenReturn(List.of(novaRegiao()));
         EscritoriosRegionaisResponse resultado = service.listarEstruturaCompleta();
         assertThat(resultado.regioes()).hasSize(1);
         assertThat(resultado.escritorios()).isEmpty();

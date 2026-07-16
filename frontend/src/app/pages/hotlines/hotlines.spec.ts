@@ -14,7 +14,7 @@ function regiaoFake(overrides: Partial<HotlineRegiao> = {}): HotlineRegiao {
     id: 'regiao-1',
     uf: 'SP',
     cidade: 'São Paulo',
-    telefones: [{ id: 'telefone-1', label: 'Central', telefone: '(11) 4321-0000' }],
+    telefones: [{ id: 'telefone-1', telefone: '(11) 4321-0000' }],
     ...overrides,
   };
 }
@@ -98,7 +98,7 @@ describe('Hotlines', () => {
   });
 
   describe('estado de sucesso', () => {
-    const regiaoSp = regiaoFake({ id: 'regiao-sp', uf: 'SP', cidade: 'São Paulo', telefones: [{ id: 't1', label: 'Central', telefone: '(11) 4321-0000' }] });
+    const regiaoSp = regiaoFake({ id: 'regiao-sp', uf: 'SP', cidade: 'São Paulo', telefones: [{ id: 't1', telefone: '(11) 4321-0000' }] });
     const regiaoRj = regiaoFake({ id: 'regiao-rj', uf: 'RJ', cidade: 'Rio de Janeiro', telefones: [] });
 
     beforeEach(async () => {
@@ -127,7 +127,7 @@ describe('Hotlines', () => {
 
       const painel = (fixture.nativeElement as HTMLElement).querySelector('#hotline-painel-0') as HTMLElement;
       expect(painel.hidden).toBe(false);
-      expect(painel.textContent).toContain('Central: (11) 4321-0000');
+      expect(painel.textContent).toContain('(11) 4321-0000');
     });
 
     it('fecha o painel ao clicar novamente no mesmo cabeçalho', () => {

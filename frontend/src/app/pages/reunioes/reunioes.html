@@ -17,8 +17,8 @@
         <button
           type="button"
           class="categoria-card"
-          [class.categoria-card--ativa]="categoriaSelecionada === cat.valor"
-          [attr.aria-pressed]="categoriaSelecionada === cat.valor"
+          [class.categoria-card--ativa]="categoriaSelecionada() === cat.valor"
+          [attr.aria-pressed]="categoriaSelecionada() === cat.valor"
           (click)="selecionarCategoria(cat.valor)"
         >
           <span class="categoria-titulo">{{ cat.titulo }}</span>
@@ -28,9 +28,9 @@
     </div>
   </section>
 
-  @if (categoriaSelecionada) {
+  @if (categoriaSelecionada()) {
     <section class="section section-alt">
-      @if (categoriaSelecionada === 'presencial') {
+      @if (categoriaSelecionada() === 'presencial') {
         <div class="mapa-bloco">
           <div class="mapa-wrapper">
             <div class="mapa-leaflet" #mapaContainer></div>
@@ -77,8 +77,8 @@
               <span>Dia da semana</span>
               <select
                 name="filtroDiaSemana"
-                [ngModel]="filtroDiaSemana"
-                (ngModelChange)="filtroDiaSemana = $event; atualizarMarcadores()"
+                [ngModel]="filtroDiaSemana()"
+                (ngModelChange)="filtroDiaSemana.set($event); atualizarMarcadores()"
               >
                 <option value="todos">Todos os dias</option>
                 <option value="hoje">Hoje</option>
@@ -92,8 +92,8 @@
               <span>Período</span>
               <select
                 name="filtroPeriodo"
-                [ngModel]="filtroPeriodo"
-                (ngModelChange)="filtroPeriodo = $event; atualizarMarcadores()"
+                [ngModel]="filtroPeriodo()"
+                (ngModelChange)="filtroPeriodo.set($event); atualizarMarcadores()"
               >
                 <option value="todos">Qualquer período</option>
                 @for (periodo of periodos; track periodo) {
@@ -106,8 +106,8 @@
               <span>Mais próximos</span>
               <select
                 name="filtroRaioKm"
-                [ngModel]="filtroRaioKm"
-                (ngModelChange)="filtroRaioKm = $event; atualizarMarcadores()"
+                [ngModel]="filtroRaioKm()"
+                (ngModelChange)="filtroRaioKm.set($event); atualizarMarcadores()"
                 [disabled]="!localizacaoPermitida()"
                 [title]="localizacaoPermitida() ? '' : 'Permita a localização para filtrar por distância'"
               >
@@ -122,7 +122,7 @@
       }
 
       <div class="reunioes-lista">
-        @for (reuniao of reunioesFiltradas; track $index) {
+        @for (reuniao of reunioesFiltradas(); track $index) {
           <div class="reuniao-card">
             <h3>{{ reuniao.nome }}</h3>
             <p class="reuniao-descricao">{{ reuniao.descricao }}</p>

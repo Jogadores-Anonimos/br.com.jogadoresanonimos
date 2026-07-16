@@ -7,13 +7,13 @@ import {
   OnInit,
   PLATFORM_ID,
   ViewChild,
+  computed,
   inject,
   signal,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { isPlatformBrowser } from '@angular/common';
-import * as L from 'leaflet';
+import type * as L from 'leaflet';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 import { ReuniaoService } from '../../services/reuniao/reuniao';
 import { CategoriaReuniao, Reuniao } from '../../services/reuniao/reuniao.model';
@@ -37,19 +37,19 @@ const WHATSAPP_PLACEHOLDER = '5599999999999';
 let ICONE_GRUPO: L.DivIcon;
 let ICONE_USUARIO: L.DivIcon;
 
-function criarIcones(): void {
+function criarIcones(leaflet: typeof L): void {
   if (ICONE_GRUPO && ICONE_USUARIO) {
     return;
   }
 
-  ICONE_GRUPO = L.divIcon({
+  ICONE_GRUPO = leaflet.divIcon({
     className: 'mapa-marcador-grupo',
     html: '<img src="/images/header/logo-jogadores-anonimos-monograma.png" alt="" />',
     iconSize: [34, 34],
     iconAnchor: [17, 34],
   });
 
-  ICONE_USUARIO = L.divIcon({
+  ICONE_USUARIO = leaflet.divIcon({
     className: 'mapa-marcador-voce',
     html: '',
     iconSize: [16, 16],
@@ -60,7 +60,7 @@ function criarIcones(): void {
 @Component({
   selector: 'app-reunioes',
   standalone: true,
-  imports: [RouterLink, FormsModule, ResourceLayout],
+  imports: [FormsModule, ResourceLayout],
   templateUrl: './reunioes.html',
   styleUrl: './reunioes.css',
 })
@@ -106,17 +106,17 @@ export class Reunioes implements OnInit, OnDestroy {
     'Sábado',
   ];
 
-  reunioes: Reuniao[] = [];
+  readonly reunioes = signal<Reuniao[]>([]);
   carregandoReunioes = true;
   erroCarregamentoReunioes = '';
 
-  categoriaSelecionada: CategoriaReuniao | null = null;
+  readonly categoriaSelecionada = signal<CategoriaReuniao | null>(null);
 
-  filtroDiaSemana: FiltroDia = 'todos';
-  filtroPeriodo: Periodo | 'todos' = 'todos';
-  filtroRaioKm: number | 'todos' = 'todos';
+  readonly filtroDiaSemana = signal<FiltroDia>('todos');
+  readonly filtroPeriodo = signal<Periodo | 'todos'>('todos');
+  readonly filtroRaioKm = signal<number | 'todos'>('todos');
 
-  private userCoords: { latitude: number; longitude: number } | null = null;
+  private readonly userCoords = signal<{ latitude: number; longitude: number } | null>(null);
 
   localizacaoPermitida = signal(false);
   localizacaoIndisponivel = signal(false);
@@ -125,6 +125,7 @@ export class Reunioes implements OnInit, OnDestroy {
   reuniaoDetalhe: Reuniao | null = null;
   reservaConfirmada = false;
 
+  private leaflet?: typeof L;
   private mapa?: L.Map;
   private marcadoresGrupo: L.Marker[] = [];
   private marcadorUsuario?: L.Marker;
@@ -135,7 +136,7 @@ export class Reunioes implements OnInit, OnDestroy {
       return;
     }
     if (ref) {
-      this.criarMapa(ref.nativeElement);
+      this.carregarLeafletECriarMapa(ref.nativeElement);
     } else {
       this.destruirMapa();
     }
@@ -158,7 +159,7 @@ export class Reunioes implements OnInit, OnDestroy {
       this.carregandoReunioes = false;
 
       if (envelope.success && envelope.data) {
-        this.reunioes = envelope.data;
+        this.reunioes.set(envelope.data);
         this.atualizarMarcadores();
       } else {
         this.erroCarregamentoReunioes = envelope.error?.message ?? 'Não foi possível carregar as reuniões agora.';
@@ -171,10 +172,10 @@ export class Reunioes implements OnInit, OnDestroy {
   }
 
   selecionarCategoria(categoria: CategoriaReuniao): void {
-    this.categoriaSelecionada = categoria;
-    this.filtroDiaSemana = 'todos';
-    this.filtroPeriodo = 'todos';
-    this.filtroRaioKm = 'todos';
+    this.categoriaSelecionada.set(categoria);
+    this.filtroDiaSemana.set('todos');
+    this.filtroPeriodo.set('todos');
+    this.filtroRaioKm.set('todos');
     this.fecharDetalhes();
   }
 
@@ -189,10 +190,10 @@ export class Reunioes implements OnInit, OnDestroy {
 
     navigator.geolocation.getCurrentPosition(
       (posicao) => {
-        this.userCoords = {
+        this.userCoords.set({
           latitude: posicao.coords.latitude,
           longitude: posicao.coords.longitude,
-        };
+        });
         this.localizacaoPermitida.set(true);
         this.localizacaoCarregando.set(false);
         this.atualizarMapaComLocalizacao();
@@ -206,13 +207,14 @@ export class Reunioes implements OnInit, OnDestroy {
   }
 
   distanciaKm(reuniao: Reuniao): number | null {
-    if (!this.userCoords || reuniao.latitude === null || reuniao.longitude === null) {
+    const userCoords = this.userCoords();
+    if (!userCoords || reuniao.latitude === null || reuniao.longitude === null) {
       return null;
     }
 
-    const dLat = this.paraRadianos(reuniao.latitude - this.userCoords.latitude);
-    const dLon = this.paraRadianos(reuniao.longitude - this.userCoords.longitude);
-    const lat1 = this.paraRadianos(this.userCoords.latitude);
+    const dLat = this.paraRadianos(reuniao.latitude - userCoords.latitude);
+    const dLon = this.paraRadianos(reuniao.longitude - userCoords.longitude);
+    const lat1 = this.paraRadianos(userCoords.latitude);
     const lat2 = this.paraRadianos(reuniao.latitude);
 
     const a =
@@ -235,27 +237,33 @@ export class Reunioes implements OnInit, OnDestroy {
     return this.diasPorIndiceJs[new Date().getDay()];
   }
 
-  get reunioesFiltradas(): Reuniao[] {
-    if (!this.categoriaSelecionada) {
+  readonly reunioesFiltradas = computed<Reuniao[]>(() => {
+    const categoriaSelecionada = this.categoriaSelecionada();
+    if (!categoriaSelecionada) {
       return [];
     }
 
-    let resultado = this.reunioes.filter((r) => r.categoria === this.categoriaSelecionada);
+    const userCoords = this.userCoords();
+    let resultado = this.reunioes().filter((r) => r.categoria === categoriaSelecionada);
 
-    if (this.categoriaSelecionada === 'presencial') {
-      if (this.filtroDiaSemana !== 'todos') {
-        const diaAlvo = this.filtroDiaSemana === 'hoje' ? this.diaSemanaAtual : this.filtroDiaSemana;
+    if (categoriaSelecionada === 'presencial') {
+      const filtroDiaSemana = this.filtroDiaSemana();
+      const filtroPeriodo = this.filtroPeriodo();
+      const filtroRaioKm = this.filtroRaioKm();
+
+      if (filtroDiaSemana !== 'todos') {
+        const diaAlvo = filtroDiaSemana === 'hoje' ? this.diaSemanaAtual : filtroDiaSemana;
         resultado = resultado.filter((r) => r.diaSemana === diaAlvo);
       }
-      if (this.filtroPeriodo !== 'todos') {
-        resultado = resultado.filter((r) => r.periodo === this.filtroPeriodo);
+      if (filtroPeriodo !== 'todos') {
+        resultado = resultado.filter((r) => r.periodo === filtroPeriodo);
       }
-      if (this.filtroRaioKm !== 'todos' && this.userCoords) {
-        const raioMaximo = this.filtroRaioKm;
+      if (filtroRaioKm !== 'todos' && userCoords) {
+        const raioMaximo = filtroRaioKm;
         resultado = resultado.filter((r) => (this.distanciaKm(r) ?? Infinity) <= raioMaximo);
       }
 
-      if (this.userCoords) {
+      if (userCoords) {
         resultado = [...resultado].sort(
           (a, b) => (this.distanciaKm(a) ?? Infinity) - (this.distanciaKm(b) ?? Infinity),
         );
@@ -263,22 +271,22 @@ export class Reunioes implements OnInit, OnDestroy {
     }
 
     return resultado;
-  }
+  });
 
   atualizarMarcadores(): void {
-    if (!this.mapa) {
+    if (!this.mapa || !this.leaflet) {
       return;
     }
 
     this.marcadoresGrupo.forEach((marcador) => marcador.remove());
     this.marcadoresGrupo = [];
 
-    for (const reuniao of this.reunioesFiltradas) {
+    for (const reuniao of this.reunioesFiltradas()) {
       if (reuniao.latitude === null || reuniao.longitude === null) {
         continue;
       }
 
-      const marcador = L.marker([reuniao.latitude, reuniao.longitude], {
+      const marcador = this.leaflet.marker([reuniao.latitude, reuniao.longitude], {
         icon: ICONE_GRUPO,
         title: reuniao.nome,
         alt: reuniao.nome,
@@ -298,7 +306,7 @@ export class Reunioes implements OnInit, OnDestroy {
   }
 
   private ajustarBounds(): void {
-    if (!this.mapa) {
+    if (!this.mapa || !this.leaflet) {
       return;
     }
 
@@ -319,7 +327,7 @@ export class Reunioes implements OnInit, OnDestroy {
       return;
     }
 
-    this.mapa.fitBounds(L.latLngBounds(pontos), { padding: [32, 32], maxZoom: 13 });
+    this.mapa.fitBounds(this.leaflet.latLngBounds(pontos), { padding: [32, 32], maxZoom: 13 });
   }
 
   abrirDetalhes(reuniao: Reuniao): void {
@@ -343,20 +351,33 @@ export class Reunioes implements OnInit, OnDestroy {
     this.reservaConfirmada = true;
   }
 
-  private criarMapa(container: HTMLDivElement): void {
-    this.destruirMapa();
-    criarIcones();
+  private async carregarLeafletECriarMapa(container: HTMLDivElement): Promise<void> {
+    if (!this.leaflet) {
+      this.leaflet = await import('leaflet');
+    }
+    this.criarMapa(container);
+  }
 
-    this.mapa = L.map(container, {
+  private criarMapa(container: HTMLDivElement): void {
+    if (!this.leaflet) {
+      return;
+    }
+
+    this.destruirMapa();
+    criarIcones(this.leaflet);
+
+    this.mapa = this.leaflet.map(container, {
       center: CENTRO_PADRAO,
       zoom: 12,
       scrollWheelZoom: false,
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; colaboradores do OpenStreetMap',
-    }).addTo(this.mapa);
+    this.leaflet
+      .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '&copy; colaboradores do OpenStreetMap',
+      })
+      .addTo(this.mapa);
 
     container.addEventListener('click', () => this.mapa?.scrollWheelZoom.enable());
     container.addEventListener('focus', () => this.mapa?.scrollWheelZoom.enable());
@@ -367,7 +388,7 @@ export class Reunioes implements OnInit, OnDestroy {
 
     setTimeout(() => this.mapa?.invalidateSize(), 0);
 
-    if (this.userCoords) {
+    if (this.userCoords()) {
       this.atualizarMapaComLocalizacao();
     }
   }
@@ -382,17 +403,20 @@ export class Reunioes implements OnInit, OnDestroy {
   }
 
   private atualizarMapaComLocalizacao(): void {
-    if (!this.mapa || !this.userCoords) {
+    const userCoords = this.userCoords();
+    if (!this.mapa || !this.leaflet || !userCoords) {
       return;
     }
 
     this.marcadorUsuario?.remove();
-    this.marcadorUsuario = L.marker([this.userCoords.latitude, this.userCoords.longitude], {
-      icon: ICONE_USUARIO,
-      title: 'Você',
-      alt: 'Você',
-      keyboard: false,
-    }).addTo(this.mapa);
+    this.marcadorUsuario = this.leaflet
+      .marker([userCoords.latitude, userCoords.longitude], {
+        icon: ICONE_USUARIO,
+        title: 'Você',
+        alt: 'Você',
+        keyboard: false,
+      })
+      .addTo(this.mapa);
 
     this.marcadorUsuario
       .bindTooltip('Você', {

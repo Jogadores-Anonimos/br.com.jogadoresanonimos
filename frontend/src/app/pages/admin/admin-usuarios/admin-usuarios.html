@@ -9,99 +9,113 @@
     </div>
   </div>
 
-  <p *ngIf="carregando" class="admin-usuarios__estado" role="status">Carregando usuários…</p>
+  @if (carregando) {
+    <p class="admin-usuarios__estado" role="status">Carregando usuários…</p>
+  }
 
-  <p *ngIf="!carregando && erroCarregamento" class="admin-usuarios__estado admin-usuarios__estado--erro" role="alert">
-    {{ erroCarregamento }}
-  </p>
+  @if (!carregando && erroCarregamento) {
+    <p class="admin-usuarios__estado admin-usuarios__estado--erro" role="alert">
+      {{ erroCarregamento }}
+    </p>
+  }
 
-  <p *ngIf="!carregando && !erroCarregamento && usuarios.length === 0" class="admin-usuarios__estado">
-    Nenhum usuário cadastrado ainda.
-  </p>
+  @if (!carregando && !erroCarregamento && usuarios.length === 0) {
+    <p class="admin-usuarios__estado">
+      Nenhum usuário cadastrado ainda.
+    </p>
+  }
 
-  <div *ngIf="!carregando && usuarios.length > 0" class="admin-usuarios__filtros">
-    <div class="admin-usuarios__campo">
-      <label for="usuarios-filtro-texto">Buscar por apelido ou e-mail</label>
-      <input id="usuarios-filtro-texto" type="text" [(ngModel)]="filtroTexto" placeholder="Ex: viajante ou nome@exemplo.com" />
+  @if (!carregando && usuarios.length > 0) {
+    <div class="admin-usuarios__filtros">
+      <div class="admin-usuarios__campo">
+        <label for="usuarios-filtro-texto">Buscar por apelido ou e-mail</label>
+        <input id="usuarios-filtro-texto" type="text" [(ngModel)]="filtroTexto" placeholder="Ex: viajante ou nome@exemplo.com" />
+      </div>
+      <div class="admin-usuarios__campo">
+        <label for="usuarios-filtro-role">Permissão</label>
+        <select id="usuarios-filtro-role" [(ngModel)]="filtroRole">
+          <option value="">Todas</option>
+          <option value="PARTICIPANTE">Participante</option>
+          <option value="ADMIN">Administrador</option>
+        </select>
+      </div>
     </div>
-    <div class="admin-usuarios__campo">
-      <label for="usuarios-filtro-role">Permissão</label>
-      <select id="usuarios-filtro-role" [(ngModel)]="filtroRole">
-        <option value="">Todas</option>
-        <option value="PARTICIPANTE">Participante</option>
-        <option value="ADMIN">Administrador</option>
-      </select>
+  }
+
+  @if (!carregando && usuarios.length > 0 && usuariosFiltrados.length === 0) {
+    <p class="admin-usuarios__estado">
+      Nenhum usuário encontrado com esse filtro.
+    </p>
+  }
+
+  @if (!carregando && usuariosFiltrados.length > 0) {
+    <div class="admin-usuarios__tabela-wrapper">
+      <table class="admin-usuarios__tabela">
+        <thead>
+          <tr>
+            <th scope="col">Apelido</th>
+            <th scope="col">E-mail</th>
+            <th scope="col">Criado em</th>
+            <th scope="col">Permissão</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (usuario of usuariosFiltrados; track usuario.id) {
+            <tr>
+              <td [attr.data-label]="'Apelido'">{{ usuario.apelido }}</td>
+              <td [attr.data-label]="'E-mail'">{{ usuario.email }}</td>
+              <td [attr.data-label]="'Criado em'">
+                <time [attr.datetime]="usuario.criadoEm">{{ usuario.criadoEm | date: 'dd/MM/yyyy' }}</time>
+              </td>
+              <td [attr.data-label]="'Permissão'">
+                @if (confirmandoPromocao !== usuario.id) {
+                  <label class="admin-usuarios__label-select" [attr.for]="'role-' + usuario.id">
+                    Permissão de {{ usuario.apelido }}
+                  </label>
+                  <select
+                    [id]="'role-' + usuario.id"
+                    class="admin-usuarios__select"
+                    [ngModel]="roleSelecionada[usuario.id]"
+                    (ngModelChange)="onRoleSelecionada(usuario, $event)"
+                    [disabled]="salvandoRole === usuario.id"
+                  >
+                    <option value="PARTICIPANTE">Participante</option>
+                    <option value="ADMIN">Administrador</option>
+                  </select>
+                } @else {
+                  <div class="admin-usuarios__confirmacao">
+                    <p>Tem certeza que deseja tornar {{ usuario.apelido }} administrador?</p>
+                    <div class="admin-usuarios__confirmacao-acoes">
+                      <button
+                        type="button"
+                        class="admin-usuarios__botao admin-usuarios__botao--primario"
+                        [disabled]="salvandoRole === usuario.id"
+                        (click)="confirmarPromocao(usuario)"
+                      >
+                        Confirmar
+                      </button>
+                      <button
+                        type="button"
+                        class="admin-usuarios__botao admin-usuarios__botao--secundario"
+                        [disabled]="salvandoRole === usuario.id"
+                        (click)="cancelarPromocao(usuario)"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                }
+
+                @if (erroPorUsuario[usuario.id]) {
+                  <p class="admin-usuarios__erro-linha" role="alert">
+                    {{ erroPorUsuario[usuario.id] }}
+                  </p>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </div>
-  </div>
-
-  <p *ngIf="!carregando && usuarios.length > 0 && usuariosFiltrados.length === 0" class="admin-usuarios__estado">
-    Nenhum usuário encontrado com esse filtro.
-  </p>
-
-  <div *ngIf="!carregando && usuariosFiltrados.length > 0" class="admin-usuarios__tabela-wrapper">
-    <table class="admin-usuarios__tabela">
-      <thead>
-        <tr>
-          <th scope="col">Apelido</th>
-          <th scope="col">E-mail</th>
-          <th scope="col">Criado em</th>
-          <th scope="col">Permissão</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let usuario of usuariosFiltrados">
-          <td [attr.data-label]="'Apelido'">{{ usuario.apelido }}</td>
-          <td [attr.data-label]="'E-mail'">{{ usuario.email }}</td>
-          <td [attr.data-label]="'Criado em'">
-            <time [attr.datetime]="usuario.criadoEm">{{ usuario.criadoEm | date: 'dd/MM/yyyy' }}</time>
-          </td>
-          <td [attr.data-label]="'Permissão'">
-            <ng-container *ngIf="confirmandoPromocao !== usuario.id; else confirmacaoPromocao">
-              <label class="admin-usuarios__label-select" [attr.for]="'role-' + usuario.id">
-                Permissão de {{ usuario.apelido }}
-              </label>
-              <select
-                [id]="'role-' + usuario.id"
-                class="admin-usuarios__select"
-                [ngModel]="roleSelecionada[usuario.id]"
-                (ngModelChange)="onRoleSelecionada(usuario, $event)"
-                [disabled]="salvandoRole === usuario.id"
-              >
-                <option value="PARTICIPANTE">Participante</option>
-                <option value="ADMIN">Administrador</option>
-              </select>
-            </ng-container>
-
-            <ng-template #confirmacaoPromocao>
-              <div class="admin-usuarios__confirmacao">
-                <p>Tem certeza que deseja tornar {{ usuario.apelido }} administrador?</p>
-                <div class="admin-usuarios__confirmacao-acoes">
-                  <button
-                    type="button"
-                    class="admin-usuarios__botao admin-usuarios__botao--primario"
-                    [disabled]="salvandoRole === usuario.id"
-                    (click)="confirmarPromocao(usuario)"
-                  >
-                    Confirmar
-                  </button>
-                  <button
-                    type="button"
-                    class="admin-usuarios__botao admin-usuarios__botao--secundario"
-                    [disabled]="salvandoRole === usuario.id"
-                    (click)="cancelarPromocao(usuario)"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </ng-template>
-
-            <p *ngIf="erroPorUsuario[usuario.id]" class="admin-usuarios__erro-linha" role="alert">
-              {{ erroPorUsuario[usuario.id] }}
-            </p>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  }
 </section>

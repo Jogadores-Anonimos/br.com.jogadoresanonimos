@@ -1,4 +1,5 @@
-<section class="admin-mural" *ngIf="modo === 'lista'">
+@if (modo === 'lista') {
+<section class="admin-mural">
   <div class="admin-mural__cabecalho">
     <div>
       <h1 class="admin-mural__titulo">Mural de Apoio</h1>
@@ -12,82 +13,98 @@
     </button>
   </div>
 
-  <p *ngIf="carregando" class="admin-mural__estado" role="status">Carregando banners…</p>
+  @if (carregando) {
+    <p class="admin-mural__estado" role="status">Carregando banners…</p>
+  }
 
-  <p *ngIf="!carregando && erroCarregamento" class="admin-mural__estado admin-mural__estado--erro" role="alert">
-    {{ erroCarregamento }}
-  </p>
+  @if (!carregando && erroCarregamento) {
+    <p class="admin-mural__estado admin-mural__estado--erro" role="alert">
+      {{ erroCarregamento }}
+    </p>
+  }
 
-  <p *ngIf="!carregando && !erroCarregamento && banners.length === 0" class="admin-mural__estado">
-    Nenhum banner cadastrado ainda.
-  </p>
+  @if (!carregando && !erroCarregamento && banners.length === 0) {
+    <p class="admin-mural__estado">
+      Nenhum banner cadastrado ainda.
+    </p>
+  }
 
-  <ul *ngIf="!carregando && banners.length > 0" class="admin-mural__lista">
-    <li *ngFor="let banner of banners" class="admin-mural__card">
-      <img class="admin-mural__imagem" [src]="banner.imagemUrl" [alt]="banner.altText" />
+  @if (!carregando && banners.length > 0) {
+    <ul class="admin-mural__lista">
+      @for (banner of banners; track banner.id) {
+        <li class="admin-mural__card">
+          <img class="admin-mural__imagem" [src]="banner.imagemUrl" [alt]="banner.altText" loading="lazy" />
 
-      <div class="admin-mural__conteudo">
-        <div class="admin-mural__card-titulo-linha">
-          <p class="admin-mural__alt-text">{{ banner.altText }}</p>
-          <span
-            class="admin-mural__badge"
-            [class.admin-mural__badge--ativo]="banner.ativo"
-            [class.admin-mural__badge--inativo]="!banner.ativo"
-          >
-            {{ banner.ativo ? 'Ativo' : 'Pausado' }}
-          </span>
-        </div>
+          <div class="admin-mural__conteudo">
+            <div class="admin-mural__card-titulo-linha">
+              <p class="admin-mural__alt-text">{{ banner.altText }}</p>
+              <span
+                class="admin-mural__badge"
+                [class.admin-mural__badge--ativo]="banner.ativo"
+                [class.admin-mural__badge--inativo]="!banner.ativo"
+              >
+                {{ banner.ativo ? 'Ativo' : 'Pausado' }}
+              </span>
+            </div>
 
-        <p *ngIf="banner.legenda" class="admin-mural__legenda">{{ banner.legenda }}</p>
-        <p *ngIf="banner.linkDestino" class="admin-mural__link">Link: {{ banner.linkDestino }}</p>
+            @if (banner.legenda) {
+              <p class="admin-mural__legenda">{{ banner.legenda }}</p>
+            }
+            @if (banner.linkDestino) {
+              <p class="admin-mural__link">Link: {{ banner.linkDestino }}</p>
+            }
 
-        <p *ngIf="erroExclusao && confirmandoExclusao === banner.id" class="admin-mural__erro-card" role="alert">
-          {{ erroExclusao }}
-        </p>
+            @if (erroExclusao && confirmandoExclusao === banner.id) {
+              <p class="admin-mural__erro-card" role="alert">
+                {{ erroExclusao }}
+              </p>
+            }
 
-        <div class="admin-mural__acoes">
-          <ng-container *ngIf="confirmandoExclusao !== banner.id; else confirmacaoExclusao">
-            <button type="button" class="admin-mural__botao admin-mural__botao--secundario" (click)="abrirEdicao(banner)">
-              Editar
-            </button>
-            <button type="button" class="admin-mural__botao admin-mural__botao--secundario" (click)="alternarAtivo(banner)">
-              {{ banner.ativo ? 'Pausar' : 'Reativar' }}
-            </button>
-            <button
-              type="button"
-              class="admin-mural__botao admin-mural__botao--perigo"
-              (click)="pedirConfirmacaoExclusao(banner)"
-            >
-              Excluir
-            </button>
-          </ng-container>
-
-          <ng-template #confirmacaoExclusao>
-            <p class="admin-mural__confirmacao">Excluir este banner permanentemente?</p>
-            <button
-              type="button"
-              class="admin-mural__botao admin-mural__botao--perigo"
-              [disabled]="excluindo"
-              (click)="confirmarExclusao(banner)"
-            >
-              Confirmar exclusão
-            </button>
-            <button
-              type="button"
-              class="admin-mural__botao admin-mural__botao--secundario"
-              [disabled]="excluindo"
-              (click)="cancelarExclusao()"
-            >
-              Cancelar
-            </button>
-          </ng-template>
-        </div>
-      </div>
-    </li>
-  </ul>
+            <div class="admin-mural__acoes">
+              @if (confirmandoExclusao !== banner.id) {
+                <button type="button" class="admin-mural__botao admin-mural__botao--secundario" (click)="abrirEdicao(banner)">
+                  Editar
+                </button>
+                <button type="button" class="admin-mural__botao admin-mural__botao--secundario" (click)="alternarAtivo(banner)">
+                  {{ banner.ativo ? 'Pausar' : 'Reativar' }}
+                </button>
+                <button
+                  type="button"
+                  class="admin-mural__botao admin-mural__botao--perigo"
+                  (click)="pedirConfirmacaoExclusao(banner)"
+                >
+                  Excluir
+                </button>
+              } @else {
+                <p class="admin-mural__confirmacao">Excluir este banner permanentemente?</p>
+                <button
+                  type="button"
+                  class="admin-mural__botao admin-mural__botao--perigo"
+                  [disabled]="excluindo"
+                  (click)="confirmarExclusao(banner)"
+                >
+                  Confirmar exclusão
+                </button>
+                <button
+                  type="button"
+                  class="admin-mural__botao admin-mural__botao--secundario"
+                  [disabled]="excluindo"
+                  (click)="cancelarExclusao()"
+                >
+                  Cancelar
+                </button>
+              }
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+  }
 </section>
+}
 
-<section class="admin-mural" *ngIf="modo === 'formulario'">
+@if (modo === 'formulario') {
+<section class="admin-mural">
   <h1 class="admin-mural__titulo">{{ bannerEmEdicao ? 'Editar banner' : 'Novo banner' }}</h1>
 
   <form class="admin-mural__formulario" (ngSubmit)="salvar()">
@@ -100,16 +117,22 @@
         [disabled]="enviandoImagem"
         (change)="onArquivoSelecionado($event)"
       />
-      <p *ngIf="enviandoImagem" class="admin-mural__ajuda" role="status">Enviando imagem…</p>
-      <p *ngIf="!enviandoImagem && erroUploadImagem" class="admin-mural__erro-card" role="alert">
-        {{ erroUploadImagem }}
-      </p>
-      <img
-        *ngIf="!enviandoImagem && imagemSelecionadaUrl"
-        [src]="imagemSelecionadaUrl"
-        [alt]="formulario.altText || 'Pré-visualização da imagem selecionada'"
-        class="admin-mural__preview"
-      />
+      @if (enviandoImagem) {
+        <p class="admin-mural__ajuda" role="status">Enviando imagem…</p>
+      }
+      @if (!enviandoImagem && erroUploadImagem) {
+        <p class="admin-mural__erro-card" role="alert">
+          {{ erroUploadImagem }}
+        </p>
+      }
+      @if (!enviandoImagem && imagemSelecionadaUrl) {
+        <img
+          [src]="imagemSelecionadaUrl"
+          [alt]="formulario.altText || 'Pré-visualização da imagem selecionada'"
+          class="admin-mural__preview"
+          loading="lazy"
+        />
+      }
     </div>
 
     <div class="admin-mural__campo">
@@ -135,14 +158,18 @@
       <input id="banner-link" type="text" name="linkDestino" [(ngModel)]="formulario.linkDestino" />
     </div>
 
-    <div class="admin-mural__campo admin-mural__campo--linha" *ngIf="bannerEmEdicao">
-      <label for="banner-ativo" class="admin-mural__label-toggle">
-        <input id="banner-ativo" type="checkbox" name="ativo" [(ngModel)]="formulario.ativo" />
-        Banner ativo (visível publicamente)
-      </label>
-    </div>
+    @if (bannerEmEdicao) {
+      <div class="admin-mural__campo admin-mural__campo--linha">
+        <label for="banner-ativo" class="admin-mural__label-toggle">
+          <input id="banner-ativo" type="checkbox" name="ativo" [(ngModel)]="formulario.ativo" />
+          Banner ativo (visível publicamente)
+        </label>
+      </div>
+    }
 
-    <p *ngIf="erroFormulario" class="admin-mural__erro-card" role="alert">{{ erroFormulario }}</p>
+    @if (erroFormulario) {
+      <p class="admin-mural__erro-card" role="alert">{{ erroFormulario }}</p>
+    }
 
     <div class="admin-mural__acoes">
       <button type="submit" class="admin-mural__botao admin-mural__botao--primario" [disabled]="salvando">
@@ -154,3 +181,4 @@
     </div>
   </form>
 </section>
+}

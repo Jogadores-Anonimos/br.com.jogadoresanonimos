@@ -1,5 +1,7 @@
 package br.com.jogadoresanonimos.auth.service;
 
+import br.com.jogadoresanonimos.auditoria.entity.AcaoAuditoria;
+import br.com.jogadoresanonimos.auditoria.service.AdminAuditoriaService;
 import br.com.jogadoresanonimos.auth.dto.MfaConfirmarRequest;
 import br.com.jogadoresanonimos.auth.dto.MfaDesativarRequest;
 import br.com.jogadoresanonimos.auth.dto.MfaEnrollResponse;
@@ -23,21 +25,29 @@ import java.util.UUID;
 @Service
 public class MfaService {
 
+    private static final String ENTIDADE_MFA = "mfa";
+    private static final String STATUS_MFA_INATIVO = "MFA_INATIVO";
+    private static final String STATUS_MFA_PENDENTE = "MFA_PENDENTE";
+    private static final String STATUS_MFA_ATIVO = "MFA_ATIVO";
+
     private final UsuarioRepository usuarioRepository;
     private final TotpService totpService;
     private final MfaSecretCipher mfaSecretCipher;
     private final PasswordEncoder passwordEncoder;
     private final RateLimiterService rateLimiterService;
+    private final AdminAuditoriaService adminAuditoriaService;
     private final String issuer;
 
     public MfaService(UsuarioRepository usuarioRepository, TotpService totpService, MfaSecretCipher mfaSecretCipher,
                        PasswordEncoder passwordEncoder, RateLimiterService rateLimiterService,
+                       AdminAuditoriaService adminAuditoriaService,
                        @Value("${app.mfa.issuer:JogadoresAnonimos}") String issuer) {
         this.usuarioRepository = usuarioRepository;
         this.totpService = totpService;
         this.mfaSecretCipher = mfaSecretCipher;
         this.passwordEncoder = passwordEncoder;
         this.rateLimiterService = rateLimiterService;
+        this.adminAuditoriaService = adminAuditoriaService;
         this.issuer = issuer;
     }
 
@@ -51,6 +61,8 @@ public class MfaService {
         String secret = totpService.gerarSecretBase32();
         usuario.iniciarEnrollmentMfa(mfaSecretCipher.cifrar(secret));
         String otpauthUri = totpService.construirOtpauthUri(issuer, usuario.getApelido(), secret);
+        adminAuditoriaService.registrar(usuarioId, ENTIDADE_MFA, usuarioId, AcaoAuditoria.EDITAR,
+                STATUS_MFA_INATIVO, STATUS_MFA_PENDENTE);
         return new MfaEnrollResponse(otpauthUri);
     }
 
@@ -69,6 +81,8 @@ public class MfaService {
             throw new UnauthenticatedException("Código TOTP inválido");
         }
         usuario.confirmarMfa();
+        adminAuditoriaService.registrar(usuarioId, ENTIDADE_MFA, usuarioId, AcaoAuditoria.EDITAR,
+                STATUS_MFA_PENDENTE, STATUS_MFA_ATIVO);
         return new MensagemResponse("MFA ativado com sucesso.");
     }
 
@@ -79,7 +93,13 @@ public class MfaService {
         if (!passwordEncoder.matches(request.senha(), usuario.getSenhaHash())) {
             throw new UnauthenticatedException("Senha incorreta");
         }
+        String secret = mfaSecretCipher.decifrar(usuario.getMfaSecretCifrado());
+        if (!totpService.validar(secret, request.codigoTotp())) {
+            throw new UnauthenticatedException("Código TOTP inválido");
+        }
         usuario.desativarMfa();
+        adminAuditoriaService.registrar(usuarioId, ENTIDADE_MFA, usuarioId, AcaoAuditoria.EDITAR,
+                STATUS_MFA_ATIVO, STATUS_MFA_INATIVO);
         return new MensagemResponse("MFA desativado.");
     }
 

@@ -1,4 +1,5 @@
-<section class="admin-faq" *ngIf="modo === 'lista'">
+@if (modo === 'lista') {
+<section class="admin-faq">
   <div class="admin-faq__cabecalho">
     <div>
       <h1 class="admin-faq__titulo">Perguntas e Respostas</h1>
@@ -12,92 +13,106 @@
     </button>
   </div>
 
-  <p *ngIf="carregando" class="admin-faq__estado" role="status">Carregando perguntas…</p>
+  @if (carregando) {
+    <p class="admin-faq__estado" role="status">Carregando perguntas…</p>
+  }
 
-  <p *ngIf="!carregando && erroCarregamento" class="admin-faq__estado admin-faq__estado--erro" role="alert">
-    {{ erroCarregamento }}
-  </p>
+  @if (!carregando && erroCarregamento) {
+    <p class="admin-faq__estado admin-faq__estado--erro" role="alert">
+      {{ erroCarregamento }}
+    </p>
+  }
 
-  <p *ngIf="!carregando && !erroCarregamento && perguntas.length === 0" class="admin-faq__estado">
-    Nenhuma pergunta cadastrada ainda.
-  </p>
+  @if (!carregando && !erroCarregamento && perguntas.length === 0) {
+    <p class="admin-faq__estado">
+      Nenhuma pergunta cadastrada ainda.
+    </p>
+  }
 
-  <ul *ngIf="!carregando && perguntas.length > 0" class="admin-faq__lista">
-    <li *ngFor="let faq of perguntas; let primeiro = first; let ultimo = last" class="admin-faq__card">
-      <div class="admin-faq__card-cabecalho">
-        <div class="admin-faq__card-titulo-linha">
-          <h2 class="admin-faq__card-titulo">{{ faq.pergunta }}</h2>
-        </div>
-      </div>
+  @if (!carregando && perguntas.length > 0) {
+    <ul class="admin-faq__lista">
+      @for (faq of perguntas; track faq.id; let primeiro = $first; let ultimo = $last) {
+        <li class="admin-faq__card">
+          <div class="admin-faq__card-cabecalho">
+            <div class="admin-faq__card-titulo-linha">
+              <h2 class="admin-faq__card-titulo">{{ faq.pergunta }}</h2>
+            </div>
+          </div>
 
-      <p class="admin-faq__corpo">{{ faq.resposta }}</p>
+          <p class="admin-faq__corpo">{{ faq.resposta }}</p>
 
-      <p *ngIf="erroExclusao && confirmandoExclusao === faq.id" class="admin-faq__erro-card" role="alert">
-        {{ erroExclusao }}
-      </p>
+          @if (erroExclusao && confirmandoExclusao === faq.id) {
+            <p class="admin-faq__erro-card" role="alert">
+              {{ erroExclusao }}
+            </p>
+          }
 
-      <p *ngIf="erroMover && movendoId === faq.id" class="admin-faq__erro-card" role="alert">
-        {{ erroMover }}
-      </p>
+          @if (erroMover && movendoId === faq.id) {
+            <p class="admin-faq__erro-card" role="alert">
+              {{ erroMover }}
+            </p>
+          }
 
-      <div class="admin-faq__acoes">
-        <button
-          type="button"
-          class="admin-faq__botao admin-faq__botao--secundario admin-faq__botao--pequeno"
-          [disabled]="primeiro || movendoId === faq.id"
-          [attr.aria-label]="'Mover \'' + faq.pergunta + '\' para cima'"
-          (click)="moverParaCima(faq)"
-        >
-          ▲
-        </button>
-        <button
-          type="button"
-          class="admin-faq__botao admin-faq__botao--secundario admin-faq__botao--pequeno"
-          [disabled]="ultimo || movendoId === faq.id"
-          [attr.aria-label]="'Mover \'' + faq.pergunta + '\' para baixo'"
-          (click)="moverParaBaixo(faq)"
-        >
-          ▼
-        </button>
+          <div class="admin-faq__acoes">
+            <button
+              type="button"
+              class="admin-faq__botao admin-faq__botao--secundario admin-faq__botao--pequeno"
+              [disabled]="primeiro || movendoId === faq.id"
+              [attr.aria-label]="'Mover \'' + faq.pergunta + '\' para cima'"
+              (click)="moverParaCima(faq)"
+            >
+              ▲
+            </button>
+            <button
+              type="button"
+              class="admin-faq__botao admin-faq__botao--secundario admin-faq__botao--pequeno"
+              [disabled]="ultimo || movendoId === faq.id"
+              [attr.aria-label]="'Mover \'' + faq.pergunta + '\' para baixo'"
+              (click)="moverParaBaixo(faq)"
+            >
+              ▼
+            </button>
 
-        <ng-container *ngIf="confirmandoExclusao !== faq.id; else confirmacaoExclusao">
-          <button type="button" class="admin-faq__botao admin-faq__botao--secundario" (click)="abrirEdicao(faq)">
-            Editar
-          </button>
-          <button
-            type="button"
-            class="admin-faq__botao admin-faq__botao--perigo"
-            (click)="pedirConfirmacaoExclusao(faq)"
-          >
-            Excluir
-          </button>
-        </ng-container>
-
-        <ng-template #confirmacaoExclusao>
-          <p class="admin-faq__confirmacao">Excluir esta pergunta permanentemente?</p>
-          <button
-            type="button"
-            class="admin-faq__botao admin-faq__botao--perigo"
-            [disabled]="excluindo"
-            (click)="confirmarExclusao(faq)"
-          >
-            Confirmar exclusão
-          </button>
-          <button
-            type="button"
-            class="admin-faq__botao admin-faq__botao--secundario"
-            [disabled]="excluindo"
-            (click)="cancelarExclusao()"
-          >
-            Cancelar
-          </button>
-        </ng-template>
-      </div>
-    </li>
-  </ul>
+            @if (confirmandoExclusao !== faq.id) {
+              <button type="button" class="admin-faq__botao admin-faq__botao--secundario" (click)="abrirEdicao(faq)">
+                Editar
+              </button>
+              <button
+                type="button"
+                class="admin-faq__botao admin-faq__botao--perigo"
+                (click)="pedirConfirmacaoExclusao(faq)"
+              >
+                Excluir
+              </button>
+            } @else {
+              <p class="admin-faq__confirmacao">Excluir esta pergunta permanentemente?</p>
+              <button
+                type="button"
+                class="admin-faq__botao admin-faq__botao--perigo"
+                [disabled]="excluindo"
+                (click)="confirmarExclusao(faq)"
+              >
+                Confirmar exclusão
+              </button>
+              <button
+                type="button"
+                class="admin-faq__botao admin-faq__botao--secundario"
+                [disabled]="excluindo"
+                (click)="cancelarExclusao()"
+              >
+                Cancelar
+              </button>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  }
 </section>
+}
 
-<section class="admin-faq" *ngIf="modo === 'formulario'">
+@if (modo === 'formulario') {
+<section class="admin-faq">
   <h1 class="admin-faq__titulo">{{ faqEmEdicao ? 'Editar pergunta' : 'Nova pergunta' }}</h1>
 
   <form class="admin-faq__formulario" (ngSubmit)="salvar()">
@@ -127,7 +142,9 @@
       ></textarea>
     </div>
 
-    <p *ngIf="erroFormulario" class="admin-faq__erro-card" role="alert">{{ erroFormulario }}</p>
+    @if (erroFormulario) {
+      <p class="admin-faq__erro-card" role="alert">{{ erroFormulario }}</p>
+    }
 
     <div class="admin-faq__acoes">
       <button type="submit" class="admin-faq__botao admin-faq__botao--primario" [disabled]="salvando">
@@ -139,3 +156,4 @@
     </div>
   </form>
 </section>
+}

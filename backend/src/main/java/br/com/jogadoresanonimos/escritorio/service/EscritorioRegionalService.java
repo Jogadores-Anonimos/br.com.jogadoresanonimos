@@ -41,9 +41,15 @@ public class EscritorioRegionalService {
     public EscritoriosRegionaisResponse listarEstruturaCompleta() {
         var escritorios = escritorioServicoRepository.findAllByOrderByOrdemAsc().stream()
                 .map(EscritorioServicoResponse::from).toList();
-        var regioes = regiaoRepository.findAllComHierarquiaCompleta().stream()
-                .map(RegiaoIntergrupoResponse::from).toList();
-        return new EscritoriosRegionaisResponse(escritorios, regioes);
+        List<RegiaoIntergrupo> regioes = regiaoRepository.findAllComEstados();
+        if (!regioes.isEmpty()) {
+            List<EstadoIntergrupo> estados = regiaoRepository.carregarGruposDosEstados(regioes);
+            if (!estados.isEmpty()) {
+                regiaoRepository.carregarTelefonesDosGrupos(estados);
+            }
+        }
+        var regioesResponse = regioes.stream().map(RegiaoIntergrupoResponse::from).toList();
+        return new EscritoriosRegionaisResponse(escritorios, regioesResponse);
     }
 
     @Transactional

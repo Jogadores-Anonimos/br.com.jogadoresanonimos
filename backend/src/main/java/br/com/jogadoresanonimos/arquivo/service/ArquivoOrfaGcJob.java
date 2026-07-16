@@ -1,16 +1,15 @@
 package br.com.jogadoresanonimos.arquivo.service;
 
-import br.com.jogadoresanonimos.arquivo.entity.Arquivo;
 import br.com.jogadoresanonimos.arquivo.repository.ArquivoRepository;
 import br.com.jogadoresanonimos.imagem.service.StorageClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,17 +28,24 @@ public class ArquivoOrfaGcJob {
     }
 
     @Scheduled(cron = "0 30 4 * * *", zone = "America/Sao_Paulo")
-    @Transactional
     public void executar() {
         Instant limite = Instant.now().minus(PERIODO_DE_GRACA);
         List<UUID> candidatosIds = arquivoRepository.buscarIdsOrfaosAnterioresA(limite);
-        List<Arquivo> candidatos = arquivoRepository.findAllById(candidatosIds);
-        int removidos = 0;
-        for (Arquivo arquivo : candidatos) {
-            storageClient.delete(arquivo.getChaveArquivo());
-            arquivoRepository.delete(arquivo);
-            removidos++;
+        List<Object[]> idsEChaves = arquivoRepository.findIdEChavesPorIdIn(candidatosIds);
+        List<UUID> idsRemovidos = new ArrayList<>();
+        for (Object[] idEChaves : idsEChaves) {
+            UUID id = (UUID) idEChaves[0];
+            String chaveArquivo = (String) idEChaves[1];
+            String thumbnailChave = (String) idEChaves[2];
+            storageClient.delete(chaveArquivo);
+            if (thumbnailChave != null) {
+                storageClient.delete(thumbnailChave);
+            }
+            idsRemovidos.add(id);
         }
-        log.info("gc_arquivo_orfao_executado removidos={}", removidos);
+        if (!idsRemovidos.isEmpty()) {
+            arquivoRepository.deleteAllByIdInBatch(idsRemovidos);
+        }
+        log.info("gc_arquivo_orfao_executado removidos={}", idsRemovidos.size());
     }
 }

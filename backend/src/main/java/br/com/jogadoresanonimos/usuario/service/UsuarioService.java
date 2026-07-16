@@ -44,12 +44,13 @@ public class UsuarioService {
     @Transactional(readOnly = true)
     public List<UsuarioAdminResponse> listarTodos() {
         return usuarioRepository.findAllByOrderByCriadoEmDesc().stream()
-                .map(UsuarioAdminResponse::from)
+                .map(UsuarioAdminResponse::fromMascarado)
                 .toList();
     }
 
     @Transactional
     public UsuarioAdminResponse editarRole(UUID id, Role novaRole, UUID solicitanteId) {
+        rateLimiterService.check("admin-usuario-escrita:" + solicitanteId, 60, Duration.ofMinutes(1));
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado"));
         if (usuario.getRole() == novaRole) {

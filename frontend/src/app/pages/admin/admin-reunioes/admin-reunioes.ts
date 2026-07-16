@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component, ElementRef, OnInit, PLATFORM_ID, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { catchError, of } from 'rxjs';
-import * as L from 'leaflet';
+import type * as L from 'leaflet';
 
 import { mapearErrosCampo } from '../../../services/api-envelope';
 import { ReuniaoService } from '../../../services/reuniao/reuniao';
@@ -101,6 +101,7 @@ export class AdminReunioes implements OnInit {
   excluindo = false;
   erroExclusao = '';
 
+  private leaflet?: typeof L;
   private mapaPreview?: L.Map;
   private marcadorPreview?: L.Marker;
 
@@ -110,7 +111,7 @@ export class AdminReunioes implements OnInit {
       return;
     }
     if (ref) {
-      this.criarMapaPreview(ref.nativeElement);
+      this.carregarLeafletECriarMapaPreview(ref.nativeElement);
     } else {
       this.destruirMapaPreview();
     }
@@ -221,7 +222,7 @@ export class AdminReunioes implements OnInit {
   }
 
   atualizarMapaPreview(): void {
-    if (!this.isBrowser || !this.mapaPreview) {
+    if (!this.isBrowser || !this.mapaPreview || !this.leaflet) {
       return;
     }
 
@@ -245,7 +246,7 @@ export class AdminReunioes implements OnInit {
     if (this.marcadorPreview) {
       this.marcadorPreview.setLatLng(posicao);
     } else {
-      this.marcadorPreview = L.marker(posicao).addTo(this.mapaPreview);
+      this.marcadorPreview = this.leaflet.marker(posicao).addTo(this.mapaPreview);
     }
 
     this.mapaPreview.setView(posicao, 14);
@@ -357,10 +358,21 @@ export class AdminReunioes implements OnInit {
     });
   }
 
+  private async carregarLeafletECriarMapaPreview(container: HTMLDivElement): Promise<void> {
+    if (!this.leaflet) {
+      this.leaflet = await import('leaflet');
+    }
+    this.criarMapaPreview(container);
+  }
+
   private criarMapaPreview(container: HTMLDivElement): void {
+    if (!this.leaflet) {
+      return;
+    }
+
     this.destruirMapaPreview();
 
-    this.mapaPreview = L.map(container, {
+    this.mapaPreview = this.leaflet.map(container, {
       center: CENTRO_PADRAO,
       zoom: 11,
       scrollWheelZoom: false,
@@ -368,10 +380,12 @@ export class AdminReunioes implements OnInit {
       zoomControl: false,
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; colaboradores do OpenStreetMap',
-    }).addTo(this.mapaPreview);
+    this.leaflet
+      .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '&copy; colaboradores do OpenStreetMap',
+      })
+      .addTo(this.mapaPreview);
 
     setTimeout(() => this.mapaPreview?.invalidateSize(), 0);
     this.atualizarMapaPreview();

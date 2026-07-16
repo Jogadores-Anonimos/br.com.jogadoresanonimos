@@ -1,15 +1,14 @@
 package br.com.jogadoresanonimos.imagem.service;
 
-import br.com.jogadoresanonimos.imagem.entity.Imagem;
 import br.com.jogadoresanonimos.imagem.repository.ImagemRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,17 +27,20 @@ public class ImagemOrfaGcJob {
     }
 
     @Scheduled(cron = "0 0 4 * * *", zone = "America/Sao_Paulo")
-    @Transactional
     public void executar() {
         Instant limite = Instant.now().minus(PERIODO_DE_GRACA);
         List<UUID> candidatasIds = imagemRepository.buscarIdsOrfaasAnterioresA(limite);
-        List<Imagem> candidatas = imagemRepository.findAllById(candidatasIds);
-        int removidas = 0;
-        for (Imagem imagem : candidatas) {
-            storageClient.delete(imagem.getChaveArquivo());
-            imagemRepository.delete(imagem);
-            removidas++;
+        List<Object[]> idsEChaves = imagemRepository.findIdEChavePorIdIn(candidatasIds);
+        List<UUID> idsRemovidas = new ArrayList<>();
+        for (Object[] idEChave : idsEChaves) {
+            UUID id = (UUID) idEChave[0];
+            String chaveArquivo = (String) idEChave[1];
+            storageClient.delete(chaveArquivo);
+            idsRemovidas.add(id);
         }
-        log.info("gc_imagem_orfa_executado removidas={}", removidas);
+        if (!idsRemovidas.isEmpty()) {
+            imagemRepository.deleteAllByIdInBatch(idsRemovidas);
+        }
+        log.info("gc_imagem_orfa_executado removidas={}", idsRemovidas.size());
     }
 }

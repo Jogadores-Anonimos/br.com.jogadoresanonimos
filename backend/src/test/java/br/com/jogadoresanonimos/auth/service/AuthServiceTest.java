@@ -8,9 +8,12 @@ import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
 import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
+import br.com.jogadoresanonimos.security.AuthenticatedUser;
 import br.com.jogadoresanonimos.security.JwtService;
 import br.com.jogadoresanonimos.security.MfaSecretCipher;
 import br.com.jogadoresanonimos.security.TotpService;
+import br.com.jogadoresanonimos.security.entity.JwtDenylistEntry;
+import br.com.jogadoresanonimos.security.repository.JwtDenylistRepository;
 import br.com.jogadoresanonimos.usuario.entity.Role;
 import br.com.jogadoresanonimos.usuario.entity.Usuario;
 import br.com.jogadoresanonimos.usuario.repository.UsuarioRepository;
@@ -54,6 +57,8 @@ class AuthServiceTest {
     TotpService totpService;
     @Mock
     MfaSecretCipher mfaSecretCipher;
+    @Mock
+    JwtDenylistRepository jwtDenylistRepository;
 
     RateLimiterService rateLimiterService;
 
@@ -64,7 +69,8 @@ class AuthServiceTest {
     void setUp() {
         rateLimiterService = new RateLimiterService();
         authService = new AuthService(usuarioRepository, resetTokenRepository, passwordEncoder, jwtService,
-                emailService, rateLimiterService, hmacHasher, recaptchaService, totpService, mfaSecretCipher);
+                emailService, rateLimiterService, hmacHasher, recaptchaService, totpService, mfaSecretCipher,
+                jwtDenylistRepository);
         lenientHmac();
     }
 
@@ -294,6 +300,31 @@ class AuthServiceTest {
         assertThat(response.mfaRequerido()).isFalse();
         assertThat(response.token()).isEqualTo("jwt-token");
         assertThat(response.usuario().apelido()).isEqualTo("admin");
+    }
+
+    @Test
+    void logout_deveFalharQuandoPrincipalNulo() {
+        assertThatThrownBy(() -> authService.logout(null))
+                .isInstanceOf(UnauthenticatedException.class);
+    }
+
+    @Test
+    void logout_deveInserirJtiNaDenylistQuandoAindaNaoRevogado() {
+        AuthenticatedUser principal = new AuthenticatedUser(UUID.randomUUID(), "apelido", "PARTICIPANTE",
+                "jti-123", Instant.now().plusSeconds(3600));
+        when(jwtDenylistRepository.existsByJti("jti-123")).thenReturn(false);
+        MensagemResponse response = authService.logout(principal);
+        assertThat(response.mensagem()).isEqualTo("Sessão encerrada com sucesso.");
+        verify(jwtDenylistRepository).save(any(JwtDenylistEntry.class));
+    }
+
+    @Test
+    void logout_naoDeveDuplicarQuandoJtiJaRevogado() {
+        AuthenticatedUser principal = new AuthenticatedUser(UUID.randomUUID(), "apelido", "PARTICIPANTE",
+                "jti-123", Instant.now().plusSeconds(3600));
+        when(jwtDenylistRepository.existsByJti("jti-123")).thenReturn(true);
+        authService.logout(principal);
+        verify(jwtDenylistRepository, never()).save(any());
     }
 
     private void setId(Usuario usuario, UUID id) {

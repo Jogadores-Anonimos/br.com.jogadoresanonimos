@@ -1,14 +1,5 @@
-<header class="app-header-sticky" [class.com-barra-deslizante]="mostrarBarraDeslizante()">
+<header class="app-header-sticky">
   <app-navbar></app-navbar>
-  @if (mostrarBarraDeslizante()) {
-    <app-barra-deslizante
-      [messages]="[
-        'EVITE A PRIMEIRA APOSTA. EVITE PESSOAS E LUGARES DE ATIVA. SÓ POR HOJE. FREQUENTE O MAIOR NÚMERO DE REUNIÕES POSSÍVEIS. AS REUNIÕES PRODUZEM RECUPERAÇÃO.',
-        'UM DIA DE CADA VEZ.',
-        'PERMITA-SE PEDIR AJUDA. SÓ FORÇA DE VONTADE NÃO É SUFICIENTE PARA SUPERAR O JOGO COMPULSIVO.'
-      ]"
-    ></app-barra-deslizante>
-  }
 </header>
 <main>
   <router-outlet></router-outlet>

@@ -63,7 +63,7 @@ class UsuarioServiceTest {
         List<UsuarioAdminResponse> resultado = usuarioService.listarTodos();
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).apelido()).isEqualTo("fulano");
-        assertThat(resultado.get(0).email()).isEqualTo("fulano@exemplo.com");
+        assertThat(resultado.get(0).email()).isEqualTo("f***@exemplo.com");
     }
 
     @Test

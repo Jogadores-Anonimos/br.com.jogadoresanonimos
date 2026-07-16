@@ -3,13 +3,3 @@
   top: 0;
   z-index: 1000;
 }
-
-.app-header-sticky.com-barra-deslizante {
-  --ticker-height: 39px;
-}
-
-@media (max-width: 900px) {
-  .app-header-sticky.com-barra-deslizante {
-    --ticker-height: 26px;
-  }
-}

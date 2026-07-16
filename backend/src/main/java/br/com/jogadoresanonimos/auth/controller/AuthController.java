@@ -3,10 +3,12 @@ package br.com.jogadoresanonimos.auth.controller;
 import br.com.jogadoresanonimos.auth.dto.*;
 import br.com.jogadoresanonimos.auth.service.AuthService;
 import br.com.jogadoresanonimos.common.dto.ApiResponse;
+import br.com.jogadoresanonimos.security.AuthenticatedUser;
 import br.com.jogadoresanonimos.usuario.dto.UsuarioResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -43,5 +45,10 @@ public class AuthController {
     @PostMapping("/redefinir-senha")
     public ResponseEntity<ApiResponse<MensagemResponse>> redefinirSenha(@Valid @RequestBody RedefinirSenhaRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(authService.redefinirSenha(request)));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<MensagemResponse>> logout(@AuthenticationPrincipal AuthenticatedUser principal) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.logout(principal)));
     }
 }

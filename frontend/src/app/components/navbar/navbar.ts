@@ -1,5 +1,4 @@
 import { Component, ElementRef, HostBinding, HostListener, OnDestroy, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription, fromEvent } from 'rxjs';
 import { auditTime, filter } from 'rxjs/operators';
@@ -35,7 +34,7 @@ function criarMobileLayoutMql(): MediaQueryList {
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, FormsModule],
+  imports: [RouterLink, RouterLinkActive],
   templateUrl: './navbar.html',
   styleUrl: './navbar.css'
 })

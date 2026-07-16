@@ -41,6 +41,14 @@
   editáveis por admin.
 - Fora de escopo por ora: editor de layout/drag-and-drop, workflow de
   aprovação multi-etapas.
+- **Nomenclatura `enderecos` (público) vs `escritorios-regionais`
+  (admin/service) — decisão fechada, manter divergente.** Página pública
+  foi renomeada para `enderecos` por clareza de UX para o usuário final;
+  admin e camada de service continuam `escritorios-regionais`/
+  `EscritorioRegionalService` porque é o nome técnico/de domínio do
+  recurso no backend. Não é inconsistência a corrigir — são públicos
+  diferentes (usuário final vs. camada técnica) com nomes propositalmente
+  diferentes.
 
 ## 3. Roles de usuário
 

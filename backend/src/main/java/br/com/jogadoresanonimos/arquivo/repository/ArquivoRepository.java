@@ -19,4 +19,7 @@ public interface ArquivoRepository extends JpaRepository<Arquivo, UUID> {
             AND NOT EXISTS (SELECT 1 FROM UsuarioArquivo ua WHERE ua.id.arquivoId = a.id)
             """)
     List<UUID> buscarIdsOrfaosAnterioresA(@Param("limite") Instant limite);
+
+    @Query("SELECT a.id, a.chaveArquivo, a.thumbnailChave FROM Arquivo a WHERE a.id IN :ids")
+    List<Object[]> findIdEChavesPorIdIn(@Param("ids") List<UUID> ids);
 }

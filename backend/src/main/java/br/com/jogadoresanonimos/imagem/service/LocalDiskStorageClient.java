@@ -94,6 +94,8 @@ public class LocalDiskStorageClient implements StorageClient {
         PosixFileAttributeView view = Files.getFileAttributeView(path, PosixFileAttributeView.class);
         if (view != null) {
             view.setPermissions(permissoes);
+        } else {
+            log.warn("permissao_restritiva_nao_aplicada motivo=sem_suporte_posix_no_so_atual");
         }
     }
 }

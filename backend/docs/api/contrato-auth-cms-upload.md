@@ -378,7 +378,8 @@ Todas as rotas de escrita deste bloco: `ROLE_ADMIN` obrigatório,
 }
 ```
 `conteudo` de blocos tipo `texto` é HTML já sanitizado no backend
-(allowlist `<b>`, `<i>`, `<a href>`, `<p>`, `<br>`) — armazenado
+(allowlist `<b>`, `<i>`, `<a href>`, `<p>`, `<br>`, `<h2>`, `<h3>`,
+`<strong>`, `<ul>`, `<ol>`, `<li>`, ver `HtmlSanitizer`) — armazenado
 sanitizado, não sanitizado só na leitura, para não depender de toda
 leitura reprocessar.
 

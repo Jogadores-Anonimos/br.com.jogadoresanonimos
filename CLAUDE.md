@@ -27,7 +27,10 @@ O site é feito em Angular, com backend em Spring Boot e banco em PostgreSQL.
 ## Stack
 - Linguagem/Framework: Java 21+, Spring Boot 3.2+, Angular 17+
 - Banco de dados: PostgreSQL
-- Armazenamento de imagens: [definir — ex: MinIO self-hosted ou S3-compatible]
+- Armazenamento de imagens: disco local persistente do servidor de
+  produção, isolado atrás da interface `StorageClient`
+  (implementação `LocalDiskStorageClient`), não bucket S3-compatible
+  externo. Ver `Decisoes de Sistemas.md`, seção 5.
 - Estilização: CSS
 - Testes: JUnit, Mockito
 - Infra: Docker
@@ -35,11 +38,12 @@ O site é feito em Angular, com backend em Spring Boot e banco em PostgreSQL.
 
 ## Comandos
 - Subir ambiente: `docker compose up`
-- Backend (dev): [definir, ex: `./mvnw spring-boot:run`]
-- Frontend (dev): [definir, ex: `ng serve`]
-- Testes backend: [definir, ex: `./mvnw test`]
-- Testes frontend: [definir, ex: `ng test`]
-- Build: [definir]
+- Backend (dev): `./mvnw spring-boot:run` (Windows: `mvnw.cmd spring-boot:run`)
+- Frontend (dev): `npm start` (equivalente a `ng serve`)
+- Testes backend: `./mvnw test` (Windows: `mvnw.cmd test`)
+- Testes frontend: `npm test` (equivalente a `ng test`)
+- Build backend: `./mvnw clean package` (Windows: `mvnw.cmd clean package`)
+- Build frontend: `npm run build` (`ng build --configuration production`)
 
 ## Estrutura do projeto
 - `backend/` — Spring Boot, ainda sem nada implementado
@@ -141,14 +145,19 @@ Ver `.claude/agents/*.md` para a definição completa de cada um.
   Em caso de conflito entre uma prática técnica comum (ex: logar IP para
   rate limiting) e esse requisito, o anonimato tem prioridade — buscar a
   alternativa (ex: identificador de sessão não reversível).
-- Autenticação: [definir modelo — ex: apelido + senha, sem exigir e-mail
-  verificado; MFA opcional para funções administrativas, ver agente
-  `security`]
+- Autenticação: login por apelido + senha (Argon2id, mínimo 10
+  caracteres, sem regra de composição forçada); login aceita apelido OU
+  e-mail. **E-mail é coletado no cadastro — exceção deliberada à regra
+  geral de anonimato deste documento**, formalizada para (1) recuperação
+  de conta e (2) envio de itens físicos da loja; isolado por regra de
+  aplicação (nunca em query/DTO/log de relato, presença ou reunião). MFA
+  via TOTP para admin está planejado, ainda pendente de implementação.
+  Ver `Decisoes de Sistemas.md`, seção 4.
 - Uploads de imagem devem ter metadados EXIF removidos antes de salvar
-  (para não vazar geolocalização/dispositivo do usuário). O bucket usado,
-  a política de expurgo e as regras de upload são definidas junto aos
-  agentes `backend`/`devops`/`security` — documentar aqui a decisão final
-  quando fechada.
+  (para não vazar geolocalização/dispositivo do usuário), validação por
+  magic bytes (não extensão/`Content-Type`), sem aceitar SVG. Storage é
+  disco local (ver seção Stack acima); GC de imagem órfã e rate limit de
+  upload já implementados. Ver `Decisoes de Sistemas.md`, seção 5.
 - Respostas de API sempre no formato `{ success, data, error }`.
 - Logs de aplicação não podem conter dados pessoais, nem em nível debug.
 - Tokens de autenticação, senhas e dados sensíveis nunca trafegam em

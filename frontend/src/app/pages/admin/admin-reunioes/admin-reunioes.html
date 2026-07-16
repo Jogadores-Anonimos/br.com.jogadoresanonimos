@@ -1,4 +1,5 @@
-<section class="admin-reunioes" *ngIf="modo === 'lista'">
+@if (modo === 'lista') {
+<section class="admin-reunioes">
   <div class="admin-reunioes__cabecalho">
     <div>
       <h1 class="admin-reunioes__titulo">Reuniões</h1>
@@ -11,74 +12,86 @@
     </button>
   </div>
 
-  <p *ngIf="carregando" class="admin-reunioes__estado" role="status">Carregando reuniões…</p>
+  @if (carregando) {
+    <p class="admin-reunioes__estado" role="status">Carregando reuniões…</p>
+  }
 
-  <p *ngIf="!carregando && erroCarregamento" class="admin-reunioes__estado admin-reunioes__estado--erro" role="alert">
-    {{ erroCarregamento }}
-  </p>
+  @if (!carregando && erroCarregamento) {
+    <p class="admin-reunioes__estado admin-reunioes__estado--erro" role="alert">
+      {{ erroCarregamento }}
+    </p>
+  }
 
-  <p *ngIf="!carregando && !erroCarregamento && reunioes.length === 0" class="admin-reunioes__estado">
-    Nenhuma reunião cadastrada ainda.
-  </p>
+  @if (!carregando && !erroCarregamento && reunioes.length === 0) {
+    <p class="admin-reunioes__estado">
+      Nenhuma reunião cadastrada ainda.
+    </p>
+  }
 
-  <ul *ngIf="!carregando && reunioes.length > 0" class="admin-reunioes__lista">
-    <li *ngFor="let reuniao of reunioes" class="admin-reunioes__card">
-      <div class="admin-reunioes__card-cabecalho">
-        <div class="admin-reunioes__card-titulo-linha">
-          <h2 class="admin-reunioes__card-titulo">{{ reuniao.nome }}</h2>
-          <span class="admin-reunioes__badge" [class.admin-reunioes__badge--virtual]="reuniao.categoria === 'virtual'">
-            {{ reuniao.categoria === 'presencial' ? 'Presencial' : 'Virtual' }}
-          </span>
-        </div>
-        <span class="admin-reunioes__dia-horario">{{ reuniao.dia }} · {{ reuniao.horario }}</span>
-      </div>
+  @if (!carregando && reunioes.length > 0) {
+    <ul class="admin-reunioes__lista">
+      @for (reuniao of reunioes; track reuniao.id) {
+        <li class="admin-reunioes__card">
+          <div class="admin-reunioes__card-cabecalho">
+            <div class="admin-reunioes__card-titulo-linha">
+              <h2 class="admin-reunioes__card-titulo">{{ reuniao.nome }}</h2>
+              <span class="admin-reunioes__badge" [class.admin-reunioes__badge--virtual]="reuniao.categoria === 'virtual'">
+                {{ reuniao.categoria === 'presencial' ? 'Presencial' : 'Virtual' }}
+              </span>
+            </div>
+            <span class="admin-reunioes__dia-horario">{{ reuniao.dia }} · {{ reuniao.horario }}</span>
+          </div>
 
-      <p class="admin-reunioes__corpo">{{ reuniao.descricao }}</p>
-      <p class="admin-reunioes__local">{{ reuniao.local }}</p>
+          <p class="admin-reunioes__corpo">{{ reuniao.descricao }}</p>
+          <p class="admin-reunioes__local">{{ reuniao.local }}</p>
 
-      <p *ngIf="erroExclusao && confirmandoExclusao === reuniao.id" class="admin-reunioes__erro-card" role="alert">
-        {{ erroExclusao }}
-      </p>
+          @if (erroExclusao && confirmandoExclusao === reuniao.id) {
+            <p class="admin-reunioes__erro-card" role="alert">
+              {{ erroExclusao }}
+            </p>
+          }
 
-      <div class="admin-reunioes__acoes">
-        <ng-container *ngIf="confirmandoExclusao !== reuniao.id; else confirmacaoExclusao">
-          <button type="button" class="admin-reunioes__botao admin-reunioes__botao--secundario" (click)="abrirEdicao(reuniao)">
-            Editar
-          </button>
-          <button
-            type="button"
-            class="admin-reunioes__botao admin-reunioes__botao--perigo"
-            (click)="pedirConfirmacaoExclusao(reuniao)"
-          >
-            Excluir
-          </button>
-        </ng-container>
-
-        <ng-template #confirmacaoExclusao>
-          <p class="admin-reunioes__confirmacao">Excluir esta reunião permanentemente?</p>
-          <button
-            type="button"
-            class="admin-reunioes__botao admin-reunioes__botao--perigo"
-            [disabled]="excluindo"
-            (click)="confirmarExclusao(reuniao)"
-          >
-            Confirmar exclusão
-          </button>
-          <button
-            type="button"
-            class="admin-reunioes__botao admin-reunioes__botao--secundario"
-            [disabled]="excluindo"
-            (click)="cancelarExclusao()"
-          >
-            Cancelar
-          </button>
-        </ng-template>
-      </div>
-    </li>
-  </ul>
+          <div class="admin-reunioes__acoes">
+            @if (confirmandoExclusao !== reuniao.id) {
+              <button type="button" class="admin-reunioes__botao admin-reunioes__botao--secundario" (click)="abrirEdicao(reuniao)">
+                Editar
+              </button>
+              <button
+                type="button"
+                class="admin-reunioes__botao admin-reunioes__botao--perigo"
+                (click)="pedirConfirmacaoExclusao(reuniao)"
+              >
+                Excluir
+              </button>
+            } @else {
+              <p class="admin-reunioes__confirmacao">Excluir esta reunião permanentemente?</p>
+              <button
+                type="button"
+                class="admin-reunioes__botao admin-reunioes__botao--perigo"
+                [disabled]="excluindo"
+                (click)="confirmarExclusao(reuniao)"
+              >
+                Confirmar exclusão
+              </button>
+              <button
+                type="button"
+                class="admin-reunioes__botao admin-reunioes__botao--secundario"
+                [disabled]="excluindo"
+                (click)="cancelarExclusao()"
+              >
+                Cancelar
+              </button>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  }
 </section>
+}
 
-<section class="admin-reunioes" *ngIf="modo === 'formulario'">
+@if (modo === 'formulario') {
+<section class="admin-reunioes">
   <h1 class="admin-reunioes__titulo">{{ reuniaoEmEdicao ? 'Editar reunião' : 'Nova reunião' }}</h1>
 
   <form class="admin-reunioes__formulario" (ngSubmit)="salvar()">
@@ -151,7 +164,9 @@
               required
             >
               <option value="" disabled>Selecione</option>
-              <option *ngFor="let h of horarios" [value]="h">{{ h }}</option>
+              @for (h of horarios; track h) {
+                <option [value]="h">{{ h }}</option>
+              }
             </select>
           </div>
         </div>
@@ -186,7 +201,9 @@
           <button type="button" class="admin-reunioes__botao admin-reunioes__botao--secundario" [disabled]="buscandoCep" (click)="buscarCep()">
             {{ buscandoCep ? 'Buscando…' : 'Buscar endereço' }}
           </button>
-          <p *ngIf="erroCep" class="admin-reunioes__erro-card" role="alert">{{ erroCep }}</p>
+          @if (erroCep) {
+            <p class="admin-reunioes__erro-card" role="alert">{{ erroCep }}</p>
+          }
           <p class="admin-reunioes__ajuda">
             Preenche automaticamente o campo "Endereço" e a localização no mapa.
           </p>
@@ -251,7 +268,9 @@
       </div>
     </div>
 
-    <p *ngIf="erroFormulario" class="admin-reunioes__erro-card" role="alert">{{ erroFormulario }}</p>
+    @if (erroFormulario) {
+      <p class="admin-reunioes__erro-card" role="alert">{{ erroFormulario }}</p>
+    }
 
     <div class="admin-reunioes__acoes">
       <button type="submit" class="admin-reunioes__botao admin-reunioes__botao--primario" [disabled]="salvando">
@@ -263,3 +282,4 @@
     </div>
   </form>
 </section>
+}

@@ -8,6 +8,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class RateLimiterService {
@@ -24,7 +25,7 @@ public class RateLimiterService {
         }
     }
 
-    @Scheduled(fixedRate = 10, timeUnit = java.util.concurrent.TimeUnit.MINUTES)
+    @Scheduled(fixedRate = 10, timeUnit = TimeUnit.MINUTES)
     void limparBucketsExpirados() {
         buckets.entrySet().removeIf(entry -> entry.getValue().expirado(IDLE_TTL));
     }

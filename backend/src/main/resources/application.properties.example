@@ -33,6 +33,9 @@ app.admin-bootstrap.apelido=${ADMIN_BOOTSTRAP_APELIDO:}
 app.admin-bootstrap.email=${ADMIN_BOOTSTRAP_EMAIL:}
 app.admin-bootstrap.senha=${ADMIN_BOOTSTRAP_SENHA:}
 
+# Retencao do log de auditoria admin em dias (24 meses por padrao).
+app.auditoria.retencao-dias=${AUDITORIA_RETENCAO_DIAS:730}
+
 server.error.include-stacktrace=never
 server.error.include-message=never
 server.error.include-exception=false

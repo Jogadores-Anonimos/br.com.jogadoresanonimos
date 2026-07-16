@@ -51,6 +51,9 @@ export class Auth {
   private readonly usuarioAtualSignal = signal<UsuarioResumo | null>(null);
   readonly usuarioAtual = this.usuarioAtualSignal.asReadonly();
 
+  private readonly usuarioAtualDetalhadoSignal = signal<UsuarioMe | null>(null);
+  readonly usuarioAtualDetalhado = this.usuarioAtualDetalhadoSignal.asReadonly();
+
   private readonly rehidratacaoConcluidaSignal = signal(false);
   readonly rehidratacaoConcluida = this.rehidratacaoConcluidaSignal.asReadonly();
 
@@ -80,8 +83,7 @@ export class Auth {
     this.salvarSessaoPersistida(sessao, this.lerSessaoDeStorage(localStorage) !== null);
     this.buscarUsuarioLogado().subscribe((resposta) => {
       if (resposta.success && resposta.data) {
-        const { email: _email, criadoEm: _criadoEm, ...resumo } = resposta.data;
-        this.usuarioAtualSignal.set(resumo);
+        this.definirUsuarioAtualDetalhado(resposta.data);
       } else {
         this.logout();
       }
@@ -272,6 +274,9 @@ export class Auth {
     if (!atual || !usuarioMock || usuarioMock.senha !== req.senha) {
       return of(apiError<MensagemResponse>('UNAUTHENTICATED', 'Senha atual incorreta.')).pipe(delay(400));
     }
+    if (req.codigoTotp !== CODIGO_TOTP_MOCK) {
+      return of(apiError<MensagemResponse>('VALIDATION_ERROR', 'Código inválido. Tente novamente.')).pipe(delay(400));
+    }
 
     usuarioMock.mfaAtivo = false;
     return of(apiSuccess<MensagemResponse>({ mensagem: 'MFA desativado com sucesso.' })).pipe(delay(500));
@@ -407,9 +412,31 @@ export class Auth {
   }
 
   logout(): void {
+    this.efetuarLogoutNoServidor().subscribe();
+    this.limparSessaoLocal();
+  }
+
+  private efetuarLogoutNoServidor(): Observable<ApiEnvelope<MensagemResponse>> {
+    if (!environment.useMocks) {
+      return this.http.post<ApiEnvelope<MensagemResponse>>(`${this.baseUrl}/logout`, {}).pipe(
+        catchError(() => of(apiError<MensagemResponse>('UPSTREAM_ERROR', 'Não foi possível encerrar a sessão no servidor.'))),
+      );
+    }
+
+    return of(apiSuccess<MensagemResponse>({ mensagem: 'Sessão encerrada com sucesso.' })).pipe(delay(200));
+  }
+
+  private limparSessaoLocal(): void {
     this.usuarioAtualSignal.set(null);
+    this.usuarioAtualDetalhadoSignal.set(null);
     this.tokenAtual = null;
     this.limparSessaoPersistida();
+  }
+
+  private definirUsuarioAtualDetalhado(usuarioMe: UsuarioMe): void {
+    const { email: _email, criadoEm: _criadoEm, ...resumo } = usuarioMe;
+    this.usuarioAtualSignal.set(resumo);
+    this.usuarioAtualDetalhadoSignal.set(usuarioMe);
   }
 
   private aplicarLoginBemSucedido(envelope: ApiEnvelope<LoginResponse>, lembrarDeMim: boolean): void {
@@ -423,8 +450,7 @@ export class Auth {
 
   private aplicarAtualizacaoContaBemSucedida(envelope: ApiEnvelope<UsuarioMe>): void {
     if (envelope.success && envelope.data) {
-      const { email: _email, criadoEm: _criadoEm, ...resumo } = envelope.data;
-      this.usuarioAtualSignal.set(resumo);
+      this.definirUsuarioAtualDetalhado(envelope.data);
     }
   }
 

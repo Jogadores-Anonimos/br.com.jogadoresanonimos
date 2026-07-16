@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 @Service
 public class VinteQuestaoService {
@@ -83,7 +84,7 @@ public class VinteQuestaoService {
     }
 
     private List<VinteQuestaoResponse> paraResponse(List<VinteQuestao> questoes) {
-        return java.util.stream.IntStream.range(0, questoes.size())
+        return IntStream.range(0, questoes.size())
                 .mapToObj(i -> VinteQuestaoResponse.de(questoes.get(i), i + 1))
                 .toList();
     }

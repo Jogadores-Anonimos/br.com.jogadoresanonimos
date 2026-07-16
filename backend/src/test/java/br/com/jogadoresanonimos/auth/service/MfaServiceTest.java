@@ -1,5 +1,7 @@
 package br.com.jogadoresanonimos.auth.service;
 
+import br.com.jogadoresanonimos.auditoria.entity.AcaoAuditoria;
+import br.com.jogadoresanonimos.auditoria.service.AdminAuditoriaService;
 import br.com.jogadoresanonimos.auth.dto.MfaConfirmarRequest;
 import br.com.jogadoresanonimos.auth.dto.MfaDesativarRequest;
 import br.com.jogadoresanonimos.auth.dto.MfaEnrollResponse;
@@ -26,6 +28,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,6 +44,8 @@ class MfaServiceTest {
     MfaSecretCipher mfaSecretCipher;
     @Mock
     PasswordEncoder passwordEncoder;
+    @Mock
+    AdminAuditoriaService adminAuditoriaService;
 
     RateLimiterService rateLimiterService;
     MfaService mfaService;
@@ -47,7 +54,7 @@ class MfaServiceTest {
     void setUp() {
         rateLimiterService = new RateLimiterService();
         mfaService = new MfaService(usuarioRepository, totpService, mfaSecretCipher, passwordEncoder,
-                rateLimiterService, "JogadoresAnonimos");
+                rateLimiterService, adminAuditoriaService, "JogadoresAnonimos");
     }
 
     private Usuario usuarioComId(UUID id, Role role, boolean mfaAtivo) {
@@ -101,6 +108,8 @@ class MfaServiceTest {
         assertThat(response.otpauthUri()).isEqualTo("otpauth://totp/uri");
         assertThat(usuario.getMfaSecretCifrado()).isEqualTo("secret-cifrado");
         assertThat(usuario.isMfaAtivo()).isFalse();
+        verify(adminAuditoriaService).registrar(usuarioId, "mfa", usuarioId, AcaoAuditoria.EDITAR,
+                "MFA_INATIVO", "MFA_PENDENTE");
     }
 
     @Test
@@ -167,6 +176,8 @@ class MfaServiceTest {
         MensagemResponse response = mfaService.confirmar(usuarioId, request);
         assertThat(response.mensagem()).isEqualTo("MFA ativado com sucesso.");
         assertThat(usuario.isMfaAtivo()).isTrue();
+        verify(adminAuditoriaService).registrar(usuarioId, "mfa", usuarioId, AcaoAuditoria.EDITAR,
+                "MFA_PENDENTE", "MFA_ATIVO");
     }
 
     @Test
@@ -175,23 +186,44 @@ class MfaServiceTest {
         Usuario usuario = usuarioComId(usuarioId, Role.ADMIN, true);
         when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("senhaErrada", "hash-senha")).thenReturn(false);
-        MfaDesativarRequest request = new MfaDesativarRequest("senhaErrada");
+        MfaDesativarRequest request = new MfaDesativarRequest("senhaErrada", "123456");
         assertThatThrownBy(() -> mfaService.desativar(usuarioId, request))
                 .isInstanceOf(UnauthenticatedException.class)
                 .hasMessage("Senha incorreta");
         assertThat(usuario.isMfaAtivo()).isTrue();
+        verify(adminAuditoriaService, never()).registrar(any(), any(), any(), any(), any(), any());
     }
 
     @Test
-    void desativar_deveDesativarMfaQuandoSenhaCorreta() {
+    void desativar_deveFalharQuandoCodigoTotpInvalido() {
         UUID usuarioId = UUID.randomUUID();
         Usuario usuario = usuarioComId(usuarioId, Role.ADMIN, true);
         when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("senhaCorreta", "hash-senha")).thenReturn(true);
-        MfaDesativarRequest request = new MfaDesativarRequest("senhaCorreta");
+        when(mfaSecretCipher.decifrar(usuario.getMfaSecretCifrado())).thenReturn("JBSWY3DPEHPK3PXP");
+        when(totpService.validar("JBSWY3DPEHPK3PXP", "000000")).thenReturn(false);
+        MfaDesativarRequest request = new MfaDesativarRequest("senhaCorreta", "000000");
+        assertThatThrownBy(() -> mfaService.desativar(usuarioId, request))
+                .isInstanceOf(UnauthenticatedException.class)
+                .hasMessage("Código TOTP inválido");
+        assertThat(usuario.isMfaAtivo()).isTrue();
+        verify(adminAuditoriaService, never()).registrar(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void desativar_deveDesativarMfaQuandoSenhaECodigoCorretos() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = usuarioComId(usuarioId, Role.ADMIN, true);
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("senhaCorreta", "hash-senha")).thenReturn(true);
+        when(mfaSecretCipher.decifrar(usuario.getMfaSecretCifrado())).thenReturn("JBSWY3DPEHPK3PXP");
+        when(totpService.validar("JBSWY3DPEHPK3PXP", "123456")).thenReturn(true);
+        MfaDesativarRequest request = new MfaDesativarRequest("senhaCorreta", "123456");
         MensagemResponse response = mfaService.desativar(usuarioId, request);
         assertThat(response.mensagem()).isEqualTo("MFA desativado.");
         assertThat(usuario.isMfaAtivo()).isFalse();
+        verify(adminAuditoriaService).registrar(usuarioId, "mfa", usuarioId, AcaoAuditoria.EDITAR,
+                "MFA_ATIVO", "MFA_INATIVO");
     }
 
     @Test
@@ -200,7 +232,9 @@ class MfaServiceTest {
         Usuario usuario = usuarioComId(usuarioId, Role.ADMIN, true);
         when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("senhaCorreta", "hash-senha")).thenReturn(true);
-        MfaDesativarRequest request = new MfaDesativarRequest("senhaCorreta");
+        when(mfaSecretCipher.decifrar("secret-cifrado")).thenReturn("JBSWY3DPEHPK3PXP");
+        when(totpService.validar("JBSWY3DPEHPK3PXP", "123456")).thenReturn(true);
+        MfaDesativarRequest request = new MfaDesativarRequest("senhaCorreta", "123456");
         assertThatThrownBy(() -> {
             for (int i = 0; i < 10; i++) {
                 usuario.iniciarEnrollmentMfa("secret-cifrado");

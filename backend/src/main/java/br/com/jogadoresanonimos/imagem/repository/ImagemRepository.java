@@ -18,4 +18,7 @@ public interface ImagemRepository extends JpaRepository<Imagem, UUID> {
             AND NOT EXISTS (SELECT 1 FROM BannerMural m WHERE m.imagemId = i.id)
             """)
     List<UUID> buscarIdsOrfaasAnterioresA(@Param("limite") Instant limite);
+
+    @Query("SELECT i.id, i.chaveArquivo FROM Imagem i WHERE i.id IN :ids")
+    List<Object[]> findIdEChavePorIdIn(@Param("ids") List<UUID> ids);
 }

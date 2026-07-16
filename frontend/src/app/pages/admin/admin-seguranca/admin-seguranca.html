@@ -34,20 +34,35 @@
     @if (otpauthUri) {
       <div class="admin-seguranca__enrollment">
         <p class="admin-seguranca__instrucao">
-          Cole isso no seu app autenticador (Google Authenticator, Authy, etc.):
+          Escaneie o QR code com seu app autenticador (Google Authenticator, Authy, etc.)
+          ou digite a chave manualmente.
         </p>
-        <label for="admin-seguranca-otpauth" class="admin-seguranca__campo-rotulo">
-          Chave de configuração
+
+        <div class="admin-seguranca__qrcode" role="img" aria-label="QR code para configuração do MFA">
+          <qrcode [qrdata]="otpauthUri" [width]="200" errorCorrectionLevel="M"></qrcode>
+        </div>
+
+        <label for="admin-seguranca-chave-manual" class="admin-seguranca__campo-rotulo">
+          Chave manual
         </label>
         <input
-          #campoOtpauth
-          id="admin-seguranca-otpauth"
+          #campoChaveManual
+          id="admin-seguranca-chave-manual"
           type="text"
           class="admin-seguranca__otpauth"
-          [value]="otpauthUri"
+          [value]="chaveManual"
           readonly
-          (click)="selecionarChaveConfiguracao(campoOtpauth)"
+          (click)="selecionarChaveConfiguracao(campoChaveManual)"
         />
+        <div class="admin-seguranca__acoes">
+          <button
+            type="button"
+            class="admin-seguranca__botao admin-seguranca__botao--secundario"
+            (click)="copiarChaveManual()"
+          >
+            {{ chaveCopiada ? 'Copiado!' : 'Copiar chave' }}
+          </button>
+        </div>
 
         <form (ngSubmit)="confirmarEnrollment()" #confirmarForm="ngForm" class="admin-seguranca__form">
           <div class="admin-seguranca__campo">
@@ -103,6 +118,21 @@
             type="password"
             autocomplete="current-password"
             [(ngModel)]="desativarSenha"
+            required
+          />
+        </div>
+
+        <div class="admin-seguranca__campo">
+          <label for="admin-seguranca-desativar-codigo">Código do aplicativo autenticador</label>
+          <input
+            id="admin-seguranca-desativar-codigo"
+            name="desativarCodigoTotp"
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            pattern="\d{6}"
+            maxlength="6"
+            [(ngModel)]="desativarCodigoTotp"
             required
           />
         </div>

@@ -92,7 +92,8 @@
         placeholder="Buscar"
         class="search-panel__input"
         aria-label="Buscar"
-        [(ngModel)]="termoBusca"
+        [value]="termoBusca"
+        (input)="termoBusca = $any($event.target).value"
         autocomplete="off"
       />
       <button

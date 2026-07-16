@@ -6,156 +6,170 @@
   </p>
 
   <div class="admin-relatos__abas" role="tablist" aria-label="Filtrar relatos por status">
-    <button
-      *ngFor="let aba of abas"
-      type="button"
-      role="tab"
-      class="admin-relatos__aba"
-      [class.admin-relatos__aba--ativa]="abaAtiva === aba.status"
-      [attr.aria-selected]="abaAtiva === aba.status"
-      (click)="selecionarAba(aba.status)"
-    >
-      {{ aba.label }}
-      <span *ngIf="aba.status === 'pending' && abaAtiva === 'pending' && relatos.length > 0" class="admin-relatos__contador">
-        {{ relatos.length }}
-      </span>
-    </button>
+    @for (aba of abas; track aba.status) {
+      <button
+        type="button"
+        role="tab"
+        class="admin-relatos__aba"
+        [class.admin-relatos__aba--ativa]="abaAtiva === aba.status"
+        [attr.aria-selected]="abaAtiva === aba.status"
+        (click)="selecionarAba(aba.status)"
+      >
+        {{ aba.label }}
+        @if (aba.status === 'pending' && abaAtiva === 'pending' && relatos.length > 0) {
+          <span class="admin-relatos__contador">
+            {{ relatos.length }}
+          </span>
+        }
+      </button>
+    }
   </div>
 
-  <p *ngIf="carregando" class="admin-relatos__estado" role="status">Carregando relatos…</p>
+  @if (carregando) {
+    <p class="admin-relatos__estado" role="status">Carregando relatos…</p>
+  }
 
-  <p *ngIf="!carregando && erroCarregamento" class="admin-relatos__estado admin-relatos__estado--erro" role="alert">
-    {{ erroCarregamento }}
-  </p>
+  @if (!carregando && erroCarregamento) {
+    <p class="admin-relatos__estado admin-relatos__estado--erro" role="alert">
+      {{ erroCarregamento }}
+    </p>
+  }
 
-  <p *ngIf="!carregando && !erroCarregamento && relatos.length === 0" class="admin-relatos__estado">
-    Nenhum relato {{ abaAtiva === 'pending' ? 'pendente' : abaAtiva === 'approved' ? 'aprovado' : 'rejeitado' }} no momento.
-  </p>
+  @if (!carregando && !erroCarregamento && relatos.length === 0) {
+    <p class="admin-relatos__estado">
+      Nenhum relato {{ abaAtiva === 'pending' ? 'pendente' : abaAtiva === 'approved' ? 'aprovado' : 'rejeitado' }} no momento.
+    </p>
+  }
 
-  <ul *ngIf="!carregando && relatos.length > 0" class="admin-relatos__lista">
-    <li *ngFor="let relato of relatos" class="admin-relatos__card">
-      <div class="admin-relatos__card-cabecalho">
-        <span class="admin-relatos__autor">{{ nomeParaExibir(relato) }}</span>
-        <time class="admin-relatos__data" [attr.datetime]="relato.dataCriacao">
-          Enviado em {{ relato.dataCriacao | date: 'dd/MM/yyyy HH:mm' }}
-        </time>
-      </div>
+  @if (!carregando && relatos.length > 0) {
+    <ul class="admin-relatos__lista">
+      @for (relato of relatos; track relato.id) {
+        <li class="admin-relatos__card">
+          <div class="admin-relatos__card-cabecalho">
+            <span class="admin-relatos__autor">{{ nomeParaExibir(relato) }}</span>
+            <time class="admin-relatos__data" [attr.datetime]="relato.dataCriacao">
+              Enviado em {{ relato.dataCriacao | date: 'dd/MM/yyyy HH:mm' }}
+            </time>
+          </div>
 
-      <ng-container *ngIf="!estaEditando(relato); else edicaoTemplate">
-        <p class="admin-relatos__texto">{{ textoExibido(relato) }}</p>
-        <button
-          *ngIf="precisaTruncar(relato) || estaExpandido(relato)"
-          type="button"
-          class="admin-relatos__link-ver-mais"
-          (click)="alternarExpandido(relato)"
-        >
-          {{ estaExpandido(relato) ? 'ver menos' : 'ver mais' }}
-        </button>
-      </ng-container>
+          @if (!estaEditando(relato)) {
+            <p class="admin-relatos__texto">{{ textoExibido(relato) }}</p>
+            @if (precisaTruncar(relato) || estaExpandido(relato)) {
+              <button
+                type="button"
+                class="admin-relatos__link-ver-mais"
+                (click)="alternarExpandido(relato)"
+              >
+                {{ estaExpandido(relato) ? 'ver menos' : 'ver mais' }}
+              </button>
+            }
+          } @else {
+            <label class="admin-relatos__label-edicao" [attr.for]="'edicao-' + relato.id">Editar texto do relato</label>
+            <textarea
+              [id]="'edicao-' + relato.id"
+              class="admin-relatos__textarea"
+              rows="6"
+              [maxlength]="textoMaxLength"
+              [ngModel]="textoEdicao(relato)"
+              (ngModelChange)="onTextoEdicaoChange(relato, $event)"
+            ></textarea>
+            <p class="admin-relatos__contador-caracteres">{{ textoEdicao(relato).length }} / {{ textoMaxLength }}</p>
+          }
 
-      <ng-template #edicaoTemplate>
-        <label class="admin-relatos__label-edicao" [attr.for]="'edicao-' + relato.id">Editar texto do relato</label>
-        <textarea
-          [id]="'edicao-' + relato.id"
-          class="admin-relatos__textarea"
-          rows="6"
-          [maxlength]="textoMaxLength"
-          [ngModel]="textoEdicao(relato)"
-          (ngModelChange)="onTextoEdicaoChange(relato, $event)"
-        ></textarea>
-        <p class="admin-relatos__contador-caracteres">{{ textoEdicao(relato).length }} / {{ textoMaxLength }}</p>
-      </ng-template>
+          @if (erroPorRelato.get(relato.id); as erro) {
+            <p class="admin-relatos__erro-card" role="alert">{{ erro }}</p>
+          }
 
-      <p *ngIf="erroPorRelato.get(relato.id) as erro" class="admin-relatos__erro-card" role="alert">{{ erro }}</p>
+          @if (abaAtiva === 'pending') {
+            <div class="admin-relatos__acoes">
+              @if (!estaEditando(relato)) {
+                <button
+                  type="button"
+                  class="admin-relatos__botao admin-relatos__botao--aprovar"
+                  [disabled]="estaProcessando(relato)"
+                  (click)="aprovar(relato)"
+                >
+                  Aprovar
+                </button>
+                <button
+                  type="button"
+                  class="admin-relatos__botao admin-relatos__botao--rejeitar"
+                  [disabled]="estaProcessando(relato)"
+                  (click)="rejeitar(relato)"
+                >
+                  Rejeitar
+                </button>
+                <button
+                  type="button"
+                  class="admin-relatos__botao admin-relatos__botao--secundario"
+                  [disabled]="estaProcessando(relato)"
+                  (click)="iniciarEdicao(relato)"
+                >
+                  Editar e aprovar
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  class="admin-relatos__botao admin-relatos__botao--aprovar"
+                  [disabled]="estaProcessando(relato)"
+                  (click)="salvarEAprovar(relato)"
+                >
+                  Salvar e aprovar
+                </button>
+                <button
+                  type="button"
+                  class="admin-relatos__botao admin-relatos__botao--secundario"
+                  [disabled]="estaProcessando(relato)"
+                  (click)="cancelarEdicao(relato)"
+                >
+                  Cancelar
+                </button>
+              }
+            </div>
+          }
 
-      <div class="admin-relatos__acoes" *ngIf="abaAtiva === 'pending'">
-        <ng-container *ngIf="!estaEditando(relato); else acoesEdicao">
-          <button
-            type="button"
-            class="admin-relatos__botao admin-relatos__botao--aprovar"
-            [disabled]="estaProcessando(relato)"
-            (click)="aprovar(relato)"
-          >
-            Aprovar
-          </button>
-          <button
-            type="button"
-            class="admin-relatos__botao admin-relatos__botao--rejeitar"
-            [disabled]="estaProcessando(relato)"
-            (click)="rejeitar(relato)"
-          >
-            Rejeitar
-          </button>
-          <button
-            type="button"
-            class="admin-relatos__botao admin-relatos__botao--secundario"
-            [disabled]="estaProcessando(relato)"
-            (click)="iniciarEdicao(relato)"
-          >
-            Editar e aprovar
-          </button>
-        </ng-container>
-
-        <ng-template #acoesEdicao>
-          <button
-            type="button"
-            class="admin-relatos__botao admin-relatos__botao--aprovar"
-            [disabled]="estaProcessando(relato)"
-            (click)="salvarEAprovar(relato)"
-          >
-            Salvar e aprovar
-          </button>
-          <button
-            type="button"
-            class="admin-relatos__botao admin-relatos__botao--secundario"
-            [disabled]="estaProcessando(relato)"
-            (click)="cancelarEdicao(relato)"
-          >
-            Cancelar
-          </button>
-        </ng-template>
-      </div>
-
-      <div class="admin-relatos__acoes" *ngIf="abaAtiva !== 'pending'">
-        <ng-container *ngIf="confirmandoExclusao !== relato.id; else confirmacaoExclusao">
-          <button
-            type="button"
-            class="admin-relatos__botao admin-relatos__botao--secundario"
-            [disabled]="estaProcessando(relato)"
-            (click)="reverterParaPendente(relato)"
-          >
-            Reverter para pendente
-          </button>
-          <button
-            type="button"
-            class="admin-relatos__botao admin-relatos__botao--rejeitar"
-            [disabled]="estaProcessando(relato)"
-            (click)="pedirConfirmacaoExclusao(relato)"
-          >
-            Excluir
-          </button>
-        </ng-container>
-
-        <ng-template #confirmacaoExclusao>
-          <p class="admin-relatos__confirmacao">Excluir este relato permanentemente?</p>
-          <button
-            type="button"
-            class="admin-relatos__botao admin-relatos__botao--rejeitar"
-            [disabled]="estaProcessando(relato)"
-            (click)="confirmarExclusao(relato)"
-          >
-            Confirmar exclusão
-          </button>
-          <button
-            type="button"
-            class="admin-relatos__botao admin-relatos__botao--secundario"
-            [disabled]="estaProcessando(relato)"
-            (click)="cancelarExclusao()"
-          >
-            Cancelar
-          </button>
-        </ng-template>
-      </div>
-    </li>
-  </ul>
+          @if (abaAtiva !== 'pending') {
+            <div class="admin-relatos__acoes">
+              @if (confirmandoExclusao !== relato.id) {
+                <button
+                  type="button"
+                  class="admin-relatos__botao admin-relatos__botao--secundario"
+                  [disabled]="estaProcessando(relato)"
+                  (click)="reverterParaPendente(relato)"
+                >
+                  Reverter para pendente
+                </button>
+                <button
+                  type="button"
+                  class="admin-relatos__botao admin-relatos__botao--rejeitar"
+                  [disabled]="estaProcessando(relato)"
+                  (click)="pedirConfirmacaoExclusao(relato)"
+                >
+                  Excluir
+                </button>
+              } @else {
+                <p class="admin-relatos__confirmacao">Excluir este relato permanentemente?</p>
+                <button
+                  type="button"
+                  class="admin-relatos__botao admin-relatos__botao--rejeitar"
+                  [disabled]="estaProcessando(relato)"
+                  (click)="confirmarExclusao(relato)"
+                >
+                  Confirmar exclusão
+                </button>
+                <button
+                  type="button"
+                  class="admin-relatos__botao admin-relatos__botao--secundario"
+                  [disabled]="estaProcessando(relato)"
+                  (click)="cancelarExclusao()"
+                >
+                  Cancelar
+                </button>
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
 </section>

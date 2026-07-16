@@ -65,10 +65,10 @@ Se o time preferir um usuário "sistema" fixo, é decisão a alinhar com
 
 ## Conteúdo migrado — mapeamento de HTML para blocos
 
-O `HtmlSanitizer` (`cms/util/HtmlSanitizer.java`) só permite as tags
-`<b> <i> <p> <br> <a href>` — não permite `<h2>`, `<ol>`/`<li>`. Isso é
-uma limitação pré-existente do sanitizer, fora do escopo desta tarefa
-(sinalizado, não alterado).
+O `HtmlSanitizer` (`cms/util/HtmlSanitizer.java`) permite as tags
+`<b> <i> <p> <br> <a href> <h2> <h3> <strong> <ul> <ol> <li>` — a
+limitação de `<h2>`/`<ol>`/`<li>` sinalizada originalmente nesta tarefa
+foi resolvida (allowlist ampliada pelo `backend`, fora desta entrega).
 
 Convenção usada para migrar o conteúdo hoje em `<h2>`/listas numeradas
 sem perder a estrutura:
@@ -104,12 +104,12 @@ cobre só o texto narrativo/institucional:
 > 1-20, sem `ordem`, sem create/delete) **nunca chegou a ser usada em
 > produção**: o `VinteQuestaoSeed`/`CmsPaginaSeed` mencionado ali nunca
 > foi implementado, então a tabela `vinte_questao` está vazia desde a
-> migration `V8`. Isso também é a causa raiz de um bug reportado
+> migration `V8`. Isso também foi a causa raiz de um bug reportado
 > separadamente (página pública "sumida"): sem dado nenhum, `GET
-> /api/v1/vinte-perguntas` sempre respondeu `200` com `data: []`, e o
-> frontend não tinha (e ainda não tem, é tarefa do agente `frontend`)
-> tratamento de estado vazio/erro — o botão "Começar o questionário"
-> fica desabilitado silenciosamente, sem loading nem mensagem.
+> /api/v1/vinte-perguntas` sempre respondeu `200` com `data: []`. **Já
+> corrigido** — `frontend` implementou estados de loading/erro/vazio em
+> `vinte-perguntas.ts`/`.html` (mensagem explícita quando não há
+> pergunta cadastrada, com botão de tentar novamente).
 
 ### Revisão — perguntas dinâmicas (vigente)
 
@@ -252,19 +252,12 @@ responsabilidade de UX/conteúdo, não de contrato de API).
 Inalterado — sem tabela de log dedicada, `atualizado_em`/
 `atualizado_por` cobre rastreabilidade básica.
 
-### Causa raiz do bug "página pública sumida" (sinalização, não corrigido aqui)
-Ver nota no topo desta seção. Resumo para o agente `frontend`: a página
-`vinte-perguntas.ts`/`.html` não tem estado de loading nem de erro —
-`ngOnInit` só popula `perguntas` se `resposta.success && resposta.data`
-vier truthy, e o template não mostra nada quando `perguntas.length ===
-0` além do botão desabilitado sem texto explicativo. Com a tabela vazia
-(seed nunca implementado) ou com falha de rede, a experiência é
-idêntica: página "sem quiz", sem pista do motivo. Duas causas possíveis
-sobrepostas:
-1. Falta de tratamento de estado vazio/erro no componente (correção de
-   frontend).
-2. Ausência de um seed real das perguntas iniciais em qualquer
-   ambiente (ponto aberto: alguém — admin ou seed — precisa cadastrar
-   as primeiras perguntas via os novos endpoints `POST`, já que a
-   tabela nasce vazia e não há mais nenhum mecanismo de seed automático
-   planejado para essa tabela).
+### Causa raiz do bug "página pública sumida" (corrigido)
+Ver nota no topo desta seção. `vinte-perguntas.ts`/`.html` agora tratam
+loading, erro de rede e lista vazia como estados distintos, cada um com
+mensagem própria — não há mais tela "sem quiz" silenciosa.
+
+Ponto ainda aberto, não é bug: não há mecanismo de seed automático para
+`vinte_questao` — a tabela nasce vazia em qualquer ambiente novo, alguém
+(admin) precisa cadastrar as perguntas iniciais via os endpoints `POST`
+descritos acima.

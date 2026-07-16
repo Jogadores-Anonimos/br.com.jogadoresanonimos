@@ -2,6 +2,7 @@ package br.com.jogadoresanonimos.config;
 
 import br.com.jogadoresanonimos.security.JwtAuthenticationFilter;
 import br.com.jogadoresanonimos.security.JwtService;
+import br.com.jogadoresanonimos.security.repository.JwtDenylistRepository;
 import br.com.jogadoresanonimos.usuario.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -27,12 +28,15 @@ public class SecurityConfig {
 
     private final JwtService jwtService;
     private final UsuarioRepository usuarioRepository;
+    private final JwtDenylistRepository jwtDenylistRepository;
     private final String allowedOrigin;
 
     public SecurityConfig(JwtService jwtService, UsuarioRepository usuarioRepository,
+                           JwtDenylistRepository jwtDenylistRepository,
                            @Value("${app.cors.allowed-origins}") String allowedOrigin) {
         this.jwtService = jwtService;
         this.usuarioRepository = usuarioRepository;
+        this.jwtDenylistRepository = jwtDenylistRepository;
         this.allowedOrigin = allowedOrigin;
     }
 
@@ -49,6 +53,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/cms/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/arquivos").permitAll()
@@ -65,7 +70,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new JwtAuthenticationFilter(jwtService, usuarioRepository),
+                .addFilterBefore(new JwtAuthenticationFilter(jwtService, usuarioRepository, jwtDenylistRepository),
                         UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

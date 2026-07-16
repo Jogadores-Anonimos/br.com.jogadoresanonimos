@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 public class ReflexaoDiaService {
@@ -46,7 +47,7 @@ public class ReflexaoDiaService {
         Map<Integer, String> textosPorDia = reflexaoDiaRepository.findAllByMesOrderByDiaAsc(mes).stream()
                 .collect(Collectors.toMap(ReflexaoDia::getDia, ReflexaoDia::getTexto));
         int totalDias = DIAS_POR_MES[mes - 1];
-        return java.util.stream.IntStream.rangeClosed(1, totalDias)
+        return IntStream.rangeClosed(1, totalDias)
                 .mapToObj(dia -> new ReflexaoDiaDoMesResponse(dia, textosPorDia.get(dia)))
                 .toList();
     }

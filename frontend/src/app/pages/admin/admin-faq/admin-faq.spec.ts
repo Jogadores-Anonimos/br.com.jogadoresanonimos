@@ -129,11 +129,11 @@ describe('AdminFaq', () => {
     expect(botoesDescer[2].disabled).toBe(true);
   });
 
-  it('clicar em mover para cima chama moverFaqParaCima com o id correto e recarrega a lista', () => {
+  it('clicar em mover para cima chama moverFaqParaCima com o id correto e atualiza a lista localmente', () => {
     component.moverParaCima(perguntas[1]);
 
     expect(faqServiceSpy.moverFaqParaCima).toHaveBeenCalledWith('faq-2');
-    expect(faqServiceSpy.listarFaqAdmin).toHaveBeenCalledTimes(2);
+    expect(faqServiceSpy.listarFaqAdmin).toHaveBeenCalledTimes(1);
   });
 
   it('clicar em mover para baixo chama moverFaqParaBaixo com o id correto', () => {

@@ -29,6 +29,7 @@ public class JwtService {
         Instant now = Instant.now();
         Instant expiration = now.plus(ttlMinutes, ChronoUnit.MINUTES);
         return Jwts.builder()
+                .setId(UUID.randomUUID().toString())
                 .setSubject(usuarioId.toString())
                 .claim("role", role)
                 .claim("senhaAlteradaEm", senhaAlteradaEm.toEpochMilli())
@@ -40,6 +41,10 @@ public class JwtService {
 
     public Instant expiracaoDe(String token) {
         return parseClaims(token).getExpiration().toInstant();
+    }
+
+    public String jtiDe(String token) {
+        return parseClaims(token).getId();
     }
 
     public Claims parseClaims(String token) {

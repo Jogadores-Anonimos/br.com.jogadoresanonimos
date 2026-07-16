@@ -65,7 +65,7 @@ class MfaAdminControllerTest {
     @Test
     void desativar_deveRetornarOkComRespostaDoService() {
         UUID adminId = UUID.randomUUID();
-        MfaDesativarRequest request = new MfaDesativarRequest("senhaCorreta");
+        MfaDesativarRequest request = new MfaDesativarRequest("senhaCorreta", "123456");
         MensagemResponse esperado = new MensagemResponse("MFA desativado.");
         when(mfaService.desativar(adminId, request)).thenReturn(esperado);
         ResponseEntity<ApiResponse<MensagemResponse>> resposta =

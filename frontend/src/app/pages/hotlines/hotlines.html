@@ -5,17 +5,24 @@
       Clique na cidade desejada para ver a lista de linhas de ajuda.
     </p>
 
-    <p *ngIf="carregando()" class="estado" role="status">Carregando linhas de ajuda…</p>
+    @if (carregando()) {
+      <p class="estado" role="status">Carregando linhas de ajuda…</p>
+    }
 
-    <p *ngIf="!carregando() && erro()" class="estado estado--erro" role="alert">
-      Não foi possível carregar as linhas de ajuda agora. Tente novamente mais tarde.
-    </p>
+    @if (!carregando() && erro()) {
+      <p class="estado estado--erro" role="alert">
+        Não foi possível carregar as linhas de ajuda agora. Tente novamente mais tarde.
+      </p>
+    }
 
-    <p *ngIf="!carregando() && !erro() && regioes().length === 0" class="estado">
-      Nenhuma linha de ajuda cadastrada no momento.
-    </p>
+    @if (!carregando() && !erro() && regioes().length === 0) {
+      <p class="estado">
+        Nenhuma linha de ajuda cadastrada no momento.
+      </p>
+    }
 
-    <div class="hotlines-accordion" *ngIf="!carregando() && !erro() && regioes().length > 0">
+    @if (!carregando() && !erro() && regioes().length > 0) {
+    <div class="hotlines-accordion">
       @for (regiao of regioes(); track regiao.id; let i = $index) {
         <div class="hotlines-item">
           <h3 class="hotlines-item__heading">
@@ -48,6 +55,7 @@
         </div>
       }
     </div>
+    }
   </section>
 
   <section class="cta-final">

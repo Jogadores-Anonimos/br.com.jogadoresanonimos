@@ -50,6 +50,7 @@ export interface ConfirmarMfaRequest {
 
 export interface DesativarMfaRequest {
   senha: string;
+  codigoTotp: string;
 }
 
 export interface EsqueciSenhaRequest {

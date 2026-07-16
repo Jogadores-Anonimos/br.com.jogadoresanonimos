@@ -73,6 +73,7 @@ export class AdminLayout {
         { label: 'Literatura', rota: 'literatura' },
         { label: 'Usuários', rota: 'usuarios' },
         { label: 'Segurança', rota: 'seguranca' },
+        { label: 'Auditoria', rota: 'auditoria' },
       ],
     },
   ];

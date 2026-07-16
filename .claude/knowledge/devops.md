@@ -1,3 +1,9 @@
+### Log operacional (acesso hoje)
+- **Onde**: sem painel/ferramenta agregada (`Decisoes de Sistemas.md` seção 7); dev via `docker compose logs backend` / `-f` para tempo real; produção pendente, depende de hospedagem ainda não decidida (`PENDENCIAS.md`, Infraestrutura/Deploy)
+- **Propósito**: observability inicial mínima — só health check + métricas básicas, nada de Prometheus/Grafana/ELK até haver necessidade concreta
+- **Como**: log estruturado para stdout do container/processo, sem dado pessoal, retenção 14-30 dias (`Decisoes de Sistemas.md` seção 10); distinto do log de auditoria admin, que tem tela própria em `/admin/auditoria`
+- **Trade-off**: stack pesada de log agregado adiada por overengineering dado volume do projeto (~2.500 req/dia)
+
 ### docker-compose (dev)
 - **Onde**: `docker-compose.yml` (raiz), `backend/Dockerfile.dev`, `frontend/Dockerfile.dev`, `.env.example`
 - **Propósito**: ambiente de dev local; produção segue pendente (hosting do cliente ainda não confirmado)

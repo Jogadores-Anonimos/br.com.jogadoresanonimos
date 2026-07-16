@@ -1,0 +1,113 @@
+<section class="admin-auditoria">
+  <h1 class="admin-auditoria__titulo">Auditoria</h1>
+  <p class="admin-auditoria__descricao">
+    Histórico de ações administrativas (aprovação, rejeição, reversão, remoção e edição de
+    conteúdo). Os registros são mantidos por tempo limitado.
+  </p>
+
+  <div class="admin-auditoria__filtros">
+    <div class="admin-auditoria__campo">
+      <label for="auditoria-filtro-entidade">Entidade</label>
+      <input
+        id="auditoria-filtro-entidade"
+        type="text"
+        [(ngModel)]="filtroEntidade"
+        placeholder="Ex: RELATO"
+      />
+    </div>
+    <div class="admin-auditoria__campo">
+      <label for="auditoria-filtro-acao">Ação</label>
+      <select id="auditoria-filtro-acao" [(ngModel)]="filtroAcao">
+        <option value="">Todas</option>
+        @for (acao of acoes; track acao.valor) {
+          <option [value]="acao.valor">{{ acao.label }}</option>
+        }
+      </select>
+    </div>
+    <div class="admin-auditoria__campo">
+      <label for="auditoria-filtro-inicio">Data inicial</label>
+      <input id="auditoria-filtro-inicio" type="date" [(ngModel)]="filtroDataInicio" />
+    </div>
+    <div class="admin-auditoria__campo">
+      <label for="auditoria-filtro-fim">Data final</label>
+      <input id="auditoria-filtro-fim" type="date" [(ngModel)]="filtroDataFim" />
+    </div>
+    <div class="admin-auditoria__campo-acoes">
+      <button type="button" class="admin-auditoria__botao admin-auditoria__botao--primario" (click)="aplicarFiltros()">
+        Filtrar
+      </button>
+      <button type="button" class="admin-auditoria__botao admin-auditoria__botao--secundario" (click)="limparFiltros()">
+        Limpar
+      </button>
+    </div>
+  </div>
+
+  @if (carregando) {
+    <p class="admin-auditoria__estado" role="status">Carregando registros…</p>
+  }
+
+  @if (!carregando && erroCarregamento) {
+    <p class="admin-auditoria__estado admin-auditoria__estado--erro" role="alert">
+      {{ erroCarregamento }}
+    </p>
+  }
+
+  @if (!carregando && !erroCarregamento && registros.length === 0) {
+    <p class="admin-auditoria__estado">
+      Nenhum registro encontrado para os filtros selecionados.
+    </p>
+  }
+
+  @if (!carregando && registros.length > 0) {
+    <div class="admin-auditoria__tabela-wrapper">
+      <table class="admin-auditoria__tabela">
+        <thead>
+          <tr>
+            <th scope="col">Data</th>
+            <th scope="col">Admin</th>
+            <th scope="col">Entidade</th>
+            <th scope="col">Ação</th>
+            <th scope="col">Status anterior</th>
+            <th scope="col">Status novo</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (registro of registros; track registro.id) {
+            <tr>
+              <td [attr.data-label]="'Data'">
+                <time [attr.datetime]="registro.criadoEm">{{ registro.criadoEm | date: 'dd/MM/yyyy HH:mm' }}</time>
+              </td>
+              <td [attr.data-label]="'Admin'">{{ registro.adminId }}</td>
+              <td [attr.data-label]="'Entidade'">{{ registro.entidade }} #{{ registro.entidadeId }}</td>
+              <td [attr.data-label]="'Ação'">{{ labelAcao(registro.acao) }}</td>
+              <td [attr.data-label]="'Status anterior'">{{ registro.statusAnterior ?? '—' }}</td>
+              <td [attr.data-label]="'Status novo'">{{ registro.statusNovo ?? '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (!carregando && totalPaginas > 1) {
+    <nav class="admin-auditoria__paginacao" aria-label="Paginação da auditoria">
+      <button
+        type="button"
+        class="admin-auditoria__botao admin-auditoria__botao--secundario"
+        [disabled]="pagina === 0"
+        (click)="irParaPagina(pagina - 1)"
+      >
+        Anterior
+      </button>
+      <span class="admin-auditoria__paginacao-info">Página {{ pagina + 1 }} de {{ totalPaginas }}</span>
+      <button
+        type="button"
+        class="admin-auditoria__botao admin-auditoria__botao--secundario"
+        [disabled]="pagina + 1 >= totalPaginas"
+        (click)="irParaPagina(pagina + 1)"
+      >
+        Próxima
+      </button>
+    </nav>
+  }
+</section>

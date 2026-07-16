@@ -11,6 +11,11 @@
 - **Propósito**: evitar colisão/erro de import quando componente e interface de domínio são usados no mesmo arquivo
 - **Como**: sufixar o componente de página (`...Page`) quando o nome "natural" da feature já é usado por um tipo de domínio no service correspondente
 
+### Índice de busca textual em escritório de serviço — não implementado (YAGNI)
+- **Onde**: módulo `escritorio`
+- **Propósito**: avaliado durante auditoria de performance/segurança 2026-07-16
+- **Como**: decisão de não implementar — não existe endpoint de busca ainda, YAGNI puro
+
 ### Instrução injetada via notificação de sistema
 - **Onde**: processo de coordenação do `po`
 - **Propósito**: registrar prática de segurança de processo
