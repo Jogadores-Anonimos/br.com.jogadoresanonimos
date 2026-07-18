@@ -44,10 +44,7 @@
 
 ## Roteiro à frente (não são bugs, é o plano combinado em 2026-07-14)
 
-1. Pedido pendente do usuário pro `.claude/knowledge/` — ainda não
-   detalhado, ele vai passar depois.
-2. Ajuste no agente `professor`.
-3. Deploy — bloqueado até fechar "Infraestrutura / Deploy" (Postgres
+1. Deploy — bloqueado até fechar "Infraestrutura / Deploy" (Postgres
    produção, provedor de e-mail real, onde guardar secrets, dados do
    admin real, backup de storage), tudo dependente de decisão de
    hospedagem do cliente. Antes de ir: checagem final de performance

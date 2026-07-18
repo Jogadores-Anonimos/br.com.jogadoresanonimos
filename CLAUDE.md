@@ -73,8 +73,8 @@ que delega.
 | `qa-backend-integration` | Testes de integração/contrato de backend (Testcontainers, banco real, MockMvc) |
 | `qa-system` | Testes de integração full-stack, carga, stress e resiliência do sistema completo |
 | `code-reviewer` | Revisa (não edita) o trabalho dos demais agentes, cobrindo frontend/backend/security/infra |
-| `aprendiz` | Registra em `.claude/knowledge/` o que o time fez/decidiu, para não perder contexto entre sessões |
-| `professor` | Traduz o que o sistema aprendeu em conteúdo de estudo no Notion do usuário, no padrão dele |
+| `aprendiz` | Registra em `.claude/knowledge/` o que o time fez/decidiu; antes de um lote de notas relacionadas, também monta a ordem de pré-requisito entre os tópicos e valida com o usuário |
+| `professor` | Traduz o que o sistema aprendeu em conteúdo de estudo no vault Obsidian do usuário, no padrão dele |
 
 Ver `.claude/agents/*.md` para a definição completa de cada um.
 
