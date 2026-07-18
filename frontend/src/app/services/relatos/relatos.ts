@@ -12,21 +12,22 @@ import {
   RelatoAdmin,
   RelatoEnvio,
   RelatoPublico,
+  RelatoPublicoResumo,
   StatusRelato,
 } from './relato.model';
-import { RELATOS_MOCK } from './relato.mock';
+import { RELATOS_MOCK, truncarTextoResumo } from './relato.mock';
 
 export type Relato = RelatoAdmin;
-export type { StatusRelato } from './relato.model';
+export type { RelatoPublico, RelatoPublicoResumo, StatusRelato } from './relato.model';
 
 const TEXTO_MIN_LENGTH = 50;
-const TEXTO_MAX_LENGTH = 4000;
+const TEXTO_MAX_LENGTH = 10000;
 const NOME_EXIBICAO_MAX_LENGTH = 30;
 const TAMANHO_PAGINA_PADRAO = 20;
 
 export interface RelatosResponse {
   success: boolean;
-  data?: Relato[];
+  data?: RelatoPublicoResumo[];
   error?: string;
 }
 
@@ -42,13 +43,13 @@ export class RelatosService {
   private readonly publicaUrl = `${environment.apiBaseUrl}/relatos`;
   private readonly adminUrl = `${environment.apiBaseUrl}/admin/relatos`;
 
-  listarAprovados(pagina = 0, tamanho = TAMANHO_PAGINA_PADRAO): Observable<ApiEnvelope<Pagina<RelatoPublico>>> {
+  listarAprovados(pagina = 0, tamanho = TAMANHO_PAGINA_PADRAO): Observable<ApiEnvelope<Pagina<RelatoPublicoResumo>>> {
     if (!environment.useMocks) {
       return this.http
-        .get<ApiEnvelope<Pagina<RelatoPublico>>>(`${this.publicaUrl}?pagina=${pagina}&tamanho=${tamanho}`)
+        .get<ApiEnvelope<Pagina<RelatoPublicoResumo>>>(`${this.publicaUrl}?pagina=${pagina}&tamanho=${tamanho}`)
         .pipe(
           catchError(() =>
-            of(apiError<Pagina<RelatoPublico>>('UPSTREAM_ERROR', 'Não foi possível carregar os relatos no momento.')),
+            of(apiError<Pagina<RelatoPublicoResumo>>('UPSTREAM_ERROR', 'Não foi possível carregar os relatos no momento.')),
           ),
         );
     }
@@ -56,15 +57,15 @@ export class RelatosService {
     const aprovados = RELATOS_MOCK.filter((r) => r.status === 'approved').sort(
       (a, b) => new Date(b.dataCriacao).getTime() - new Date(a.dataCriacao).getTime(),
     );
-    const conteudo: RelatoPublico[] = aprovados.map(({ id, texto, nomeExibicao, dataCriacao }) => ({
+    const conteudo: RelatoPublicoResumo[] = aprovados.map(({ id, texto, nomeExibicao, dataCriacao }) => ({
       id,
-      texto,
+      textoResumo: truncarTextoResumo(texto),
       nomeExibicao,
       dataCriacao,
     }));
 
     return of(
-      apiSuccess<Pagina<RelatoPublico>>({
+      apiSuccess<Pagina<RelatoPublicoResumo>>({
         conteudo,
         pagina,
         tamanho,
@@ -74,13 +75,29 @@ export class RelatosService {
     ).pipe(delay(500));
   }
 
+  buscarPorId(id: string): Observable<ApiEnvelope<RelatoPublico>> {
+    if (!environment.useMocks) {
+      return this.http.get<ApiEnvelope<RelatoPublico>>(`${this.publicaUrl}/${id}`).pipe(
+        catchError(() => of(apiError<RelatoPublico>('NOT_FOUND', 'Relato não encontrado.'))),
+      );
+    }
+
+    const relato = RELATOS_MOCK.find((r) => r.id === id && r.status === 'approved');
+    if (!relato) {
+      return of(apiError<RelatoPublico>('NOT_FOUND', 'Relato não encontrado.')).pipe(delay(300));
+    }
+
+    const { id: relatoId, texto, nomeExibicao, dataCriacao } = relato;
+    return of(apiSuccess<RelatoPublico>({ id: relatoId, texto, nomeExibicao, dataCriacao })).pipe(delay(400));
+  }
+
   listarRelatosAprovados(): Observable<RelatosResponse> {
     return this.listarAprovados(0, TAMANHO_PAGINA_PADRAO).pipe(
       map((envelope) => {
         if (!envelope.success || !envelope.data) {
           return { success: false, error: envelope.error?.message ?? 'Não foi possível carregar os relatos no momento.' };
         }
-        return { success: true, data: envelope.data.conteudo as Relato[] };
+        return { success: true, data: envelope.data.conteudo };
       }),
       catchError(() => of({ success: false, error: 'Não foi possível carregar os relatos no momento.' })),
     );

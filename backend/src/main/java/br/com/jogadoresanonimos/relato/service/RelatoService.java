@@ -46,10 +46,17 @@ public class RelatoService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<RelatoPublicoResponse> listarAprovados(int pagina, int tamanho) {
+    public PageResponse<RelatoPublicoListaResponse> listarAprovados(int pagina, int tamanho) {
         Pageable pageable = paginavel(pagina, tamanho, Sort.by(Sort.Direction.DESC, "criadoEm"));
         Page<Relato> page = relatoRepository.findByStatus(StatusRelato.approved, pageable);
-        return PageResponse.from(page, RelatoPublicoResponse::from);
+        return PageResponse.from(page, RelatoPublicoListaResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public RelatoPublicoResponse buscarAprovadoPorId(UUID id) {
+        Relato relato = relatoRepository.findByIdAndStatus(id, StatusRelato.approved)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Relato não encontrado"));
+        return RelatoPublicoResponse.from(relato);
     }
 
     @Transactional(readOnly = true)

@@ -4,7 +4,7 @@
     <h2 class="faq-titulo">Perguntas Frequentes</h2>
 
     <div class="faq-lista">
-      @for (item of faqs; track item.pergunta) {
+      @for (item of faqs(); track item.id) {
         <details class="faq-item">
           <summary class="faq-pergunta">
             {{ item.pergunta }}

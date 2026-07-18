@@ -46,8 +46,9 @@ public class BannerMuralService {
 
     @Transactional
     public BannerMuralAdminResponse criar(CriarBannerMuralRequest request) {
-        validarImagem(request.imagemId());
-        BannerMural banner = new BannerMural(request.imagemId(), request.altText(), request.legenda(), request.linkDestino());
+        validarImagemOuVideo(request.imagemId(), request.videoUrl());
+        BannerMural banner = new BannerMural(request.imagemId(), request.videoUrl(), request.altText(),
+                request.legenda(), request.linkDestino());
         banner = bannerMuralRepository.save(banner);
         return paraAdmin(banner);
     }
@@ -55,8 +56,9 @@ public class BannerMuralService {
     @Transactional
     public BannerMuralAdminResponse editar(UUID id, EditarBannerMuralRequest request) {
         BannerMural banner = buscarOuFalhar(id);
-        validarImagem(request.imagemId());
-        banner.editar(request.imagemId(), request.altText(), request.legenda(), request.linkDestino(), request.ativo());
+        validarImagemOuVideo(request.imagemId(), request.videoUrl());
+        banner.editar(request.imagemId(), request.videoUrl(), request.altText(), request.legenda(),
+                request.linkDestino(), request.ativo());
         return paraAdmin(banner);
     }
 
@@ -66,9 +68,17 @@ public class BannerMuralService {
         bannerMuralRepository.delete(banner);
     }
 
-    private void validarImagem(UUID imagemId) {
-        if (!imagemRepository.existsById(imagemId)) {
+    private void validarImagemOuVideo(UUID imagemId, String videoUrl) {
+        boolean temImagem = imagemId != null;
+        boolean temVideo = videoUrl != null && !videoUrl.isBlank();
+        if (temImagem == temVideo) {
+            throw new ValidationException("Informe exatamente um entre imagemId e videoUrl");
+        }
+        if (temImagem && !imagemRepository.existsById(imagemId)) {
             throw new ValidationException("imagemId não corresponde a um upload existente");
+        }
+        if (temVideo && !videoUrl.contains("youtube.com") && !videoUrl.contains("youtu.be")) {
+            throw new ValidationException("videoUrl deve ser um link do YouTube");
         }
     }
 
@@ -78,6 +88,9 @@ public class BannerMuralService {
     }
 
     private String resolverUrl(UUID imagemId) {
+        if (imagemId == null) {
+            return null;
+        }
         return imagemRepository.findById(imagemId)
                 .map(Imagem::getChaveArquivo)
                 .map(storageClient::urlPublicaPara)
@@ -85,13 +98,13 @@ public class BannerMuralService {
     }
 
     private BannerMuralPublicoResponse paraPublico(BannerMural banner) {
-        return new BannerMuralPublicoResponse(banner.getId(), resolverUrl(banner.getImagemId()), banner.getAltText(),
-                banner.getLegenda(), banner.getLinkDestino(), banner.getCriadoEm());
+        return new BannerMuralPublicoResponse(banner.getId(), resolverUrl(banner.getImagemId()), banner.getVideoUrl(),
+                banner.getAltText(), banner.getLegenda(), banner.getLinkDestino(), banner.getCriadoEm());
     }
 
     private BannerMuralAdminResponse paraAdmin(BannerMural banner) {
         return new BannerMuralAdminResponse(banner.getId(), banner.getImagemId(), resolverUrl(banner.getImagemId()),
-                banner.getAltText(), banner.getLegenda(), banner.getLinkDestino(), banner.isAtivo(),
-                banner.getCriadoEm(), banner.getAtualizadoEm());
+                banner.getVideoUrl(), banner.getAltText(), banner.getLegenda(), banner.getLinkDestino(),
+                banner.isAtivo(), banner.getCriadoEm(), banner.getAtualizadoEm());
     }
 }

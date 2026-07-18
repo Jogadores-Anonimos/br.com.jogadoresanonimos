@@ -64,7 +64,7 @@ export class AdminLayout {
         { label: 'Reuniões', rota: 'reunioes' },
         { label: 'Endereços', rota: 'escritorios-regionais' },
         { label: 'Linhas de Ajuda', rota: 'hotlines' },
-        { label: 'Perguntas e Respostas', rota: 'perguntas-e-respostas' },
+        { label: 'Perguntas Frequentes', rota: 'perguntas-e-respostas' },
       ],
     },
     {

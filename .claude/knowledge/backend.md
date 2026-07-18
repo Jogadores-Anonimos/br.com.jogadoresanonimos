@@ -31,17 +31,33 @@
 - **Como**: `Specification` dinâmica, predicado só entra na query quando o filtro não é nulo — nunca gera cláusula `IS NULL OR` no SQL
 - **Trade-off**: padrão a reaproveitar em qualquer filtro opcional de data futuro no projeto, em vez do `@Query` com `IS NULL OR`
 
+### Auditoria de mudança de role (`UsuarioService.editarRole`)
+- **Onde**: `usuario/service/UsuarioService.editarRole`
+- **Propósito**: mudança de role (ADMIN↔PARTICIPANTE) é ação sensível, não tinha rastro em `AdminAuditoriaService`
+- **Como**: registra `entidade="usuario"`, `AcaoAuditoria.EDITAR`, role anterior/nova; só grava quando a role muda de fato (no-op não gera log)
+
 ### Baseline única de migrations (V1__baseline.sql)
 - **Onde**: `backend/src/main/resources/db/migration/V1__baseline.sql`
 - **Propósito**: consolidar migrations `V1`-`V30` (exceto `V26`, nunca existiu) em uma só, reduzindo ruído de histórico
 - **Como**: gerada via `pg_dump --schema-only` + INSERTs de seed reaproveitados; decisões de negócio de migrations descartadas documentadas em `backend/docs/migrations-consolidadas-decisoes.md`
 - **Trade-off**: dev local com volume Docker antigo sofre checksum mismatch do Flyway contra a nova baseline — exige `docker compose down -v` ou `flyway repair`
 
+### Conteúdo institucional real do cliente (migrations V9-V17, páginas CMS)
+- **Onde**: `backend/src/main/resources/db/migration/` (`V9`-`V17`)
+- **Propósito**: substituir placeholder/protótipo genérico (baseado no site GA americano) por texto definitivo aprovado pelo cliente em 10 páginas
+- **Como**: `sobre`/"Como Funciona" (V9+V17, V17 removeu 9 blocos antigos de protótipo que ainda apareciam antes do texto novo); `historia` (V10); `programa-de-recuperacao`/`programa-de-unidade` (V11/V12, texto específico JA Brasil, diferente da tradução genérica AA que estava hardcoded no frontend); `perguntas-e-respostas`/FAQ (V13, módulo `Faq` dedicado, 9 perguntas, texto plano sem HTML); `jogo-compulsivo` (V14); `uma-nova-chance` (V15, poema "Uma Outra Chance"); `anonimato` (V16); `termos`/`privacidade` (V7 rascunho, V8 definitivo, LGPD, sem menção a "acompanhamento profissional de saúde" a pedido do cliente)
+- **Trade-off**: sempre confirmar se conteúdo "existente" numa página CMS é placeholder de protótipo ou dado real aprovado antes de decidir entre substituir vs. anexar (V9 só anexou, V17 precisou corrigir removendo o antigo)
+
 ### Biblioteca pessoal (usuario ↔ arquivo)
 - **Onde**: `usuario/biblioteca/` (entity `UsuarioArquivo`/`UsuarioArquivoId`, `UsuarioArquivoRepository`, `BibliotecaPessoalService`, `BibliotecaPessoalController`); migration `V17`
 - **Propósito**: permitir que usuário logado salve PDFs de literatura na própria biblioteca (aba Downloads de `minha-conta`)
 - **Como**: subpacote dentro do módulo `usuario` (não módulo isolado); tabela de junção com `@EmbeddedId` composto (`usuarioId`+`arquivoId`) como `PRIMARY KEY`; `usuarioId` sempre vem de `@AuthenticationPrincipal`, nunca de path/query; `POST`/`DELETE` idempotentes (idempotência = "estado desejado", não erro 404 em segunda chamada); `ON DELETE CASCADE` nas FKs
 - **Trade-off**: idempotência de DELETE diverge do padrão usado em `RelatoAdminController` (que retorna 404) porque aqui é "preferência", não "recurso que deveria existir"
+
+### Bug incidental: `List.of(Object[]...)` ambíguo em teste (`ImagemOrfaGcJobTest`)
+- **Onde**: `imagem/service/ImagemOrfaGcJobTest.java`
+- **Propósito**: revalidação de suíte (qa-backend-unit) encontrou erro de compilação/inferência de tipo
+- **Como**: `List.of(Object[]...)` ambíguo entre `List<Object>` e `List<Object[]>`; corrigido com `List.<Object[]>of(...)` explícito
 
 ### Bug: Jackson 3 vs Jackson 2 (Spring Boot 4.1.0 / Spring Framework 7)
 - **Onde**: `cms/service/CmsService.java`, `pom.xml`
@@ -70,6 +86,11 @@
 - **Onde**: `docker-compose.yml` (`backend.environment`)
 - **Propósito**: só `JWT_SECRET`/`LOG_HMAC_SECRET` estavam sendo repassados ao container, faltava `MFA_SECRET_ENCRYPTION_KEY`
 - **Como**: chave adicionada à lista de `environment:` do serviço `backend`; nova chave gerada e configurada no `.env` local (usuário não tinha a anterior)
+
+### Auditoria de performance 2026-07-17 (pós-conteúdo real)
+- **Onde**: `escritorio/repository/EscritorioServicoRepository` (`@EntityGraph`), `relato/**` (DTO, controller, `SecurityConfig`)
+- **Propósito**: rodada após popular conteúdo real (94 reuniões, 366 reflexões, 13 relatos, 69 grupos, mural)
+- **Como**: N+1 em `EscritorioServico.telefones` corrigido com `@EntityGraph(attributePaths = "telefones")` em `findAllByOrderByOrdemAsc` (mesmo padrão de `HotlineRegiaoRepository`); sem achado ALTO/CRÍTICO em nenhuma camada, volume real (~2.500 req/dia) bem coberto pela arquitetura atual
 
 ### CHECK constraints em `admin_auditoria_log` (V2)
 - **Onde**: `V2__adiciona_check_constraints_uf_e_auditoria.sql`
@@ -181,6 +202,12 @@
 - **Propósito**: registrar investigação de relatos-lixo ("rwgrrwgrrwgrrw...", "grwgwerg", "teste") visíveis publicamente na home e página de relatos
 - **Como**: `listarAprovados` filtra corretamente por `StatusRelato.approved` (consistente com constraint SQL em `V1__baseline.sql:123`); nenhuma migration Flyway (V1-V6) insere seed na tabela `relato`; causa raiz foi aprovação manual desses 3 relatos de teste via admin real durante teste manual do fluxo, não bug de código nem seed; correção foi `DELETE` direto no Postgres do container de dev (`brcomjogadoresanonimos-postgres-1`), tabela `relato` confirmada vazia depois — sem migration nova (não é schema change) e sem alteração de código
 - **Trade-off**: pendência sinalizada ao agente `security` (não decidida): `RelatoAdminController` só tem `@PreAuthorize("hasRole('ADMIN')")` em aprovar/rejeitar/reverter/remover, sem trilha de auditoria de quem aprovou/quando e sem segunda confirmação para ações destrutivas — não causou este incidente, mas é lacuna a avaliar
+
+### Relato — endpoint público de detalhe + payload resumido na listagem (auditoria 2026-07-17)
+- **Onde**: `relato/dto/RelatoPublicoListaResponse.java`, `relato/controller/RelatoController.java` (`GET /api/v1/relatos/{id}`), `SecurityConfig.java`
+- **Propósito**: listagem pública mandava texto completo (até 8000 chars) em toda página, corrigido
+- **Como**: `RelatoPublicoListaResponse` traz `textoResumo` (300 chars + "..."); novo `GET /api/v1/relatos/{id}` retorna texto completo, 404 uniforme se não existe ou não está aprovado (anti-IDOR, mesmo padrão já usado no projeto); `SecurityConfig` ganhou `permitAll` novo pro path `/api/v1/relatos/*`
+- **Trade-off**: endpoint admin não mudou — fila de moderação é sempre pequena, não precisa truncar
 
 ### Relato: query params em português
 - **Onde**: `backend/docs/api/contrato-relatos.md`

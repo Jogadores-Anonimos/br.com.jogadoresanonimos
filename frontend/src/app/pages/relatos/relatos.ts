@@ -4,13 +4,12 @@ import { RouterLink } from '@angular/router';
 
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 import { Auth } from '../../services/auth/auth';
-import { Relato, RelatosService } from '../../services/relatos/relatos';
-
-const TEXTO_TRUNCADO_LIMITE = 320;
+import { RelatoPublicoResumo, RelatosService } from '../../services/relatos/relatos';
 
 const TEXTO_MIN_LENGTH = 50;
-const TEXTO_MAX_LENGTH = 4000;
+const TEXTO_MAX_LENGTH = 10000;
 const NOME_EXIBICAO_MAX_LENGTH = 30;
+const TAMANHO_PAGINA = 6;
 
 @Component({
   selector: 'app-relatos',
@@ -24,16 +23,21 @@ export class Relatos implements OnInit {
   readonly auth = inject(Auth);
 
   readonly bannerSrc = '/images/home/reuniao-discussao.jpg';
-  readonly textoTruncadoLimite = TEXTO_TRUNCADO_LIMITE;
   readonly textoMinLength = TEXTO_MIN_LENGTH;
   readonly textoMaxLength = TEXTO_MAX_LENGTH;
   readonly nomeExibicaoMaxLength = NOME_EXIBICAO_MAX_LENGTH;
 
   carregando = true;
   erroCarregamento = '';
-  relatos: Relato[] = [];
+  relatos: RelatoPublicoResumo[] = [];
 
-  private readonly expandidos = new Set<string>();
+  pagina = 0;
+  totalPaginas = 0;
+  readonly tamanhoPagina = TAMANHO_PAGINA;
+
+  private readonly textosCompletos = new Map<string, string>();
+  private readonly carregandoTextoCompleto = new Set<string>();
+  private readonly erroTextoCompleto = new Set<string>();
 
   novoTexto = '';
   novoNomeExibicao = '';
@@ -45,48 +49,72 @@ export class Relatos implements OnInit {
     this.carregarRelatos();
   }
 
+  irParaPagina(pagina: number): void {
+    if (pagina < 0 || pagina >= this.totalPaginas || pagina === this.pagina) {
+      return;
+    }
+    this.pagina = pagina;
+    this.carregarRelatos();
+  }
+
   private carregarRelatos(): void {
     this.carregando = true;
     this.erroCarregamento = '';
 
-    this.relatosService.listarRelatosAprovados().subscribe((resposta) => {
+    this.relatosService.listarAprovados(this.pagina, this.tamanhoPagina).subscribe((envelope) => {
       this.carregando = false;
 
-      if (resposta.success) {
-        this.relatos = resposta.data ?? [];
+      if (envelope.success && envelope.data) {
+        this.relatos = envelope.data.conteudo;
+        this.totalPaginas = envelope.data.totalPaginas;
+        this.textosCompletos.clear();
+        this.carregandoTextoCompleto.clear();
+        this.erroTextoCompleto.clear();
       } else {
         this.erroCarregamento =
-          resposta.error ?? 'Não foi possível carregar os relatos no momento.';
+          envelope.error?.message ?? 'Não foi possível carregar os relatos no momento.';
       }
     });
   }
 
-  nomeParaExibir(relato: Relato): string {
+  nomeParaExibir(relato: RelatoPublicoResumo): string {
     const nome = relato.nomeExibicao?.trim();
     return nome ? nome : 'Anônimo';
   }
 
-  precisaTruncar(relato: Relato): boolean {
-    return relato.texto.length > this.textoTruncadoLimite;
+  textoExibido(relato: RelatoPublicoResumo): string {
+    return this.textosCompletos.get(relato.id) ?? relato.textoResumo;
   }
 
-  estaExpandido(relato: Relato): boolean {
-    return this.expandidos.has(relato.id);
+  mostrarBotaoLerMais(relato: RelatoPublicoResumo): boolean {
+    return !this.textosCompletos.has(relato.id);
   }
 
-  textoExibido(relato: Relato): string {
-    if (!this.precisaTruncar(relato) || this.estaExpandido(relato)) {
-      return relato.texto;
+  estaCarregandoTextoCompleto(relato: RelatoPublicoResumo): boolean {
+    return this.carregandoTextoCompleto.has(relato.id);
+  }
+
+  teveErroTextoCompleto(relato: RelatoPublicoResumo): boolean {
+    return this.erroTextoCompleto.has(relato.id);
+  }
+
+  lerCompleto(relato: RelatoPublicoResumo): void {
+    if (this.carregandoTextoCompleto.has(relato.id)) {
+      return;
     }
-    return relato.texto.slice(0, this.textoTruncadoLimite).trimEnd() + '…';
-  }
 
-  alternarExpandido(relato: Relato): void {
-    if (this.expandidos.has(relato.id)) {
-      this.expandidos.delete(relato.id);
-    } else {
-      this.expandidos.add(relato.id);
-    }
+    this.erroTextoCompleto.delete(relato.id);
+    this.carregandoTextoCompleto.add(relato.id);
+
+    this.relatosService.buscarPorId(relato.id).subscribe((envelope) => {
+      this.carregandoTextoCompleto.delete(relato.id);
+
+      if (envelope.success && envelope.data) {
+        this.textosCompletos.set(relato.id, envelope.data.texto);
+      } else {
+        this.erroTextoCompleto.add(relato.id);
+      }
+    });
   }
 
   onEnviarRelato(): void {

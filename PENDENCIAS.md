@@ -44,29 +44,23 @@
 
 ## Roteiro à frente (não são bugs, é o plano combinado em 2026-07-14)
 
-1. Checagem final: front, back, code review, performance (front+back),
-   funcionalidades, banco, segurança — considerar "100% funcional"
-   depois disso. **Rodar de novo depois de implementar os Blocos 1/2
-   acima**, pra confirmar que os fixes não introduziram regressão.
-2. Usuário fornece os dados reais (incluindo imagens de banners, pdfs)
-   iniciais do site — entram já numa migration/seed de **dev**, pra
-   testar com o usuário antes de subir pra produção. Independente do
-   passo 1, pode acontecer em paralelo assim que o usuário tiver o
-   material.
-3. Documentar o projeto e contar quantas linhas de codigo/quantos testes, metrificar o projeto, se esta escalavel ou nao, security points etc, documentação bem detalhada.
-4. Pedido pendente do usuário pro `.claude/knowledge/` — ainda não
+1. Pedido pendente do usuário pro `.claude/knowledge/` — ainda não
    detalhado, ele vai passar depois.
-5. Ajuste no agente `professor`.
-6. Depois de documentado e arrumado: peça visual ponta a ponta, linha a
-   linha, do funcionamento do sistema — pra gravar demo e enviar. (Existem varios videos de requisições desenhadas em sistemas legais de exemplo na internet) 
-   (Deve ser explicado todo sistema, suas escolhas, 
-   por que se usa cada coisa em cada etapa, exemplo: 
-   O Controller pega do banco e usamos esse padrao nas classes por conta disso, 
-   principalmente explicar backend e segurança com bastante calma e didatica.)
-7. Deploy — bloqueado até fechar "Infraestrutura / Deploy" (Postgres
+2. Ajuste no agente `professor`.
+3. Deploy — bloqueado até fechar "Infraestrutura / Deploy" (Postgres
    produção, provedor de e-mail real, onde guardar secrets, dados do
    admin real, backup de storage), tudo dependente de decisão de
-   hospedagem do cliente. Antes de ir: consolidar migrations Flyway numa
-   única V1 (confirmado pelo usuário, só nesse momento final, não antes).
-   Depois disso: checagem final de performance front/back, code review e
-   testes antes de ir.
+   hospedagem do cliente. Antes de ir: checagem final de performance
+   front/back, code review e testes.
+
+## Pendente: literatura em PDF
+
+- [ ] Cliente vai enviar PDFs de literatura institucional (menciona
+  também 3 links repetidos pra `gamblersanonymous.org/gamblers-
+  anonymous-literature-digital/` — possivelmente referência de formato
+  pra página de Literatura, a confirmar quando o material chegar). Sem
+  previsão de data. Quando chegar: mesmo processo desta sessão (upload
+  real via admin se for arquivo binário — PDF passa por
+  `ArquivoService`, validação de magic bytes/anti-polyglot — não dá pra
+  inserir referência de arquivo direto via migration, precisa do fluxo
+  real de upload).

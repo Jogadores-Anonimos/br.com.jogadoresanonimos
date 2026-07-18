@@ -1,5 +1,12 @@
 export type StatusRelato = 'pending' | 'approved' | 'rejected';
 
+export interface RelatoPublicoResumo {
+  id: string;
+  textoResumo: string;
+  nomeExibicao: string | null;
+  dataCriacao: string;
+}
+
 export interface RelatoPublico {
   id: string;
   texto: string;

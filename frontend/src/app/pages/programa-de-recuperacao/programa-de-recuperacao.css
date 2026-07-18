@@ -1,5 +1,5 @@
 .section {
-  max-width: 860px;
+  max-width: 1000px;
   padding: var(--spacing-lg) 0;
 }
 
@@ -8,6 +8,41 @@
   line-height: 1.9;
   font-size: 1.1rem;
   margin-bottom: var(--spacing-sm);
+}
+
+.conteudo-cms ::ng-deep ol {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  margin: 0;
+  padding: 0;
+}
+
+.conteudo-cms ::ng-deep ol li {
+  background: var(--color-bg-section);
+  border: 1px solid var(--color-border);
+  padding: var(--spacing-md);
+  padding-left: var(--spacing-md);
+  color: var(--color-text);
+  line-height: 1.8;
+  font-size: 1.1rem;
+}
+
+.conteudo-cms ::ng-deep ol li::before {
+  content: none;
+  display: none;
+}
+
+.conteudo-cms ::ng-deep ol li strong {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  color: var(--cor-padrao-ja);
+}
+
+.conteudo-cms ::ng-deep ol li p {
+  margin: 0;
+  max-width: none;
 }
 
 .cta-final {
@@ -55,6 +90,12 @@
   outline-offset: 3px;
 }
 
+@media (max-width: 1300px) {
+  .conteudo-cms ::ng-deep ol {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .section {
     padding: var(--spacing-md) 0;
@@ -64,51 +105,16 @@
     font-size: 1rem;
   }
 
+  .conteudo-cms ::ng-deep ol {
+    grid-template-columns: 1fr;
+  }
+
+  .conteudo-cms ::ng-deep ol li {
+    padding: var(--spacing-sm);
+    font-size: 1rem;
+  }
+
   .cta-final {
     padding: var(--spacing-lg) var(--spacing-sm);
-  }
-}
-
-.passos-grid {
-  list-style: none;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--spacing-md);
-  padding: 0;
-  margin: var(--spacing-md) 0 0;
-}
-
-.passo-card {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  box-shadow: var(--shadow-sm);
-}
-
-.passo-card-numero {
-  color: var(--cor-padrao-ja);
-  font-size: 1.1rem;
-  font-weight: 700;
-  display: block;
-  margin-bottom: var(--spacing-xs);
-}
-
-.passo-card-texto {
-  margin: 0;
-  color: var(--color-text);
-  line-height: 1.6;
-  font-size: 1rem;
-}
-
-@media (min-width: 640px) {
-  .passos-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .passos-grid {
-    grid-template-columns: repeat(3, 1fr);
   }
 }

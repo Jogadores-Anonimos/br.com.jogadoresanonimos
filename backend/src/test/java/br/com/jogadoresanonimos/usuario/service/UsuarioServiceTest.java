@@ -1,5 +1,7 @@
 package br.com.jogadoresanonimos.usuario.service;
 
+import br.com.jogadoresanonimos.auditoria.entity.AcaoAuditoria;
+import br.com.jogadoresanonimos.auditoria.service.AdminAuditoriaService;
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
@@ -27,6 +29,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,11 +44,15 @@ class UsuarioServiceTest {
     @Mock
     RateLimiterService rateLimiterService;
 
+    @Mock
+    AdminAuditoriaService adminAuditoriaService;
+
     UsuarioService usuarioService;
 
     @BeforeEach
     void setUp() {
-        usuarioService = new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService);
+        usuarioService = new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
+                adminAuditoriaService);
     }
 
     private Usuario usuarioComId(UUID id, String apelido, Role role) throws Exception {
@@ -69,10 +76,13 @@ class UsuarioServiceTest {
     @Test
     void editarRole_deveAtualizarQuandoNaoHaConflito() throws Exception {
         UUID id = UUID.randomUUID();
+        UUID solicitanteId = UUID.randomUUID();
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
-        UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.ADMIN, UUID.randomUUID());
+        UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.ADMIN, solicitanteId);
         assertThat(resultado.role()).isEqualTo(Role.ADMIN);
+        verify(adminAuditoriaService).registrar(solicitanteId, "usuario", id, AcaoAuditoria.EDITAR,
+                "PARTICIPANTE", "ADMIN");
     }
 
     @Test
@@ -121,6 +131,7 @@ class UsuarioServiceTest {
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
         UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.PARTICIPANTE, UUID.randomUUID());
         assertThat(resultado.role()).isEqualTo(Role.PARTICIPANTE);
+        org.mockito.Mockito.verifyNoInteractions(adminAuditoriaService);
     }
 
     @Test

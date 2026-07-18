@@ -1,15 +1,21 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 import { mapearErrosCampo } from '../../../services/api-envelope';
 import { MuralDeApoioService } from '../../../services/mural-de-apoio/mural-de-apoio';
 import { BannerMuralAdmin, CriarBannerMuralRequest } from '../../../services/mural-de-apoio/mural-de-apoio.model';
+import { extrairYoutubeVideoId, paraYoutubeEmbedUrl } from '../../../services/mural-de-apoio/youtube.util';
 import { Imagem } from '../../../services/imagem/imagem';
 import { ImagemResponse } from '../../../services/imagem/imagem.model';
 
+type TipoBanner = 'imagem' | 'video';
+
 interface FormularioBanner {
+  tipo: TipoBanner;
   imagemId: string;
+  videoUrl: string;
   altText: string;
   legenda: string;
   linkDestino: string;
@@ -17,7 +23,7 @@ interface FormularioBanner {
 }
 
 function formularioVazio(): FormularioBanner {
-  return { imagemId: '', altText: '', legenda: '', linkDestino: '', ativo: true };
+  return { tipo: 'imagem', imagemId: '', videoUrl: '', altText: '', legenda: '', linkDestino: '', ativo: true };
 }
 
 @Component({
@@ -30,6 +36,7 @@ function formularioVazio(): FormularioBanner {
 export class AdminMuralDeApoio implements OnInit {
   private readonly muralService = inject(MuralDeApoioService);
   private readonly imagemService = inject(Imagem);
+  private readonly sanitizer = inject(DomSanitizer);
 
   carregando = true;
   erroCarregamento = '';
@@ -82,7 +89,9 @@ export class AdminMuralDeApoio implements OnInit {
   abrirEdicao(banner: BannerMuralAdmin): void {
     this.bannerEmEdicao = banner;
     this.formulario = {
-      imagemId: banner.imagemId,
+      tipo: banner.videoUrl ? 'video' : 'imagem',
+      imagemId: banner.imagemId ?? '',
+      videoUrl: banner.videoUrl ?? '',
       altText: banner.altText,
       legenda: banner.legenda ?? '',
       linkDestino: banner.linkDestino ?? '',
@@ -125,17 +134,41 @@ export class AdminMuralDeApoio implements OnInit {
     });
   }
 
+  selecionarTipo(tipo: TipoBanner): void {
+    this.formulario.tipo = tipo;
+    this.erroFormulario = '';
+    this.errosCampo = {};
+  }
+
+  embedPreviewUrl(): SafeResourceUrl | null {
+    const embedUrl = paraYoutubeEmbedUrl(this.formulario.videoUrl.trim());
+    return embedUrl ? this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl) : null;
+  }
+
+  videoUrlInvalida(): boolean {
+    const valor = this.formulario.videoUrl.trim();
+    return valor.length > 0 && !extrairYoutubeVideoId(valor);
+  }
+
   salvar(): void {
     this.errosCampo = {};
 
-    if (!this.formulario.imagemId.trim()) {
+    if (this.formulario.tipo === 'imagem' && !this.formulario.imagemId.trim()) {
       this.errosCampo['imagemId'] = 'Envie uma imagem antes de salvar.';
+    }
+    if (this.formulario.tipo === 'video') {
+      const videoUrl = this.formulario.videoUrl.trim();
+      if (!videoUrl) {
+        this.errosCampo['videoUrl'] = 'Informe a URL do vídeo do YouTube.';
+      } else if (!extrairYoutubeVideoId(videoUrl)) {
+        this.errosCampo['videoUrl'] = 'URL do YouTube inválida.';
+      }
     }
     if (!this.formulario.altText.trim()) {
       this.errosCampo['altText'] = 'Texto alternativo é obrigatório.';
     }
     if (Object.keys(this.errosCampo).length > 0) {
-      this.erroFormulario = this.errosCampo['imagemId'] ?? this.errosCampo['altText'];
+      this.erroFormulario = this.errosCampo['imagemId'] ?? this.errosCampo['videoUrl'] ?? this.errosCampo['altText'];
       return;
     }
 
@@ -143,7 +176,8 @@ export class AdminMuralDeApoio implements OnInit {
     this.erroFormulario = '';
 
     const requestBase: CriarBannerMuralRequest = {
-      imagemId: this.formulario.imagemId.trim(),
+      imagemId: this.formulario.tipo === 'imagem' ? this.formulario.imagemId.trim() : undefined,
+      videoUrl: this.formulario.tipo === 'video' ? this.formulario.videoUrl.trim() : undefined,
       altText: this.formulario.altText.trim(),
       legenda: this.formulario.legenda.trim() || undefined,
       linkDestino: this.formulario.linkDestino.trim() || undefined,
@@ -169,7 +203,8 @@ export class AdminMuralDeApoio implements OnInit {
 
   alternarAtivo(banner: BannerMuralAdmin): void {
     const request = {
-      imagemId: banner.imagemId,
+      imagemId: banner.videoUrl ? undefined : (banner.imagemId ?? undefined),
+      videoUrl: banner.videoUrl ?? undefined,
       altText: banner.altText,
       legenda: banner.legenda ?? undefined,
       linkDestino: banner.linkDestino ?? undefined,

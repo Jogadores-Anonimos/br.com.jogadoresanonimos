@@ -1,5 +1,11 @@
 import { RelatoAdmin } from './relato.model';
 
+const TEXTO_RESUMO_LIMITE = 300;
+
+export function truncarTextoResumo(texto: string): string {
+  return texto.length > TEXTO_RESUMO_LIMITE ? `${texto.slice(0, TEXTO_RESUMO_LIMITE)}...` : texto;
+}
+
 export const RELATOS_MOCK: RelatoAdmin[] = [
   {
     id: 'relato-1',

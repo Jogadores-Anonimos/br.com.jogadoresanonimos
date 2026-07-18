@@ -54,7 +54,7 @@ export const NAVBAR_SEARCH_INDEX: SearchIndexItem[] = [
     keywords: ['programa da unidade', '12 passos da unidade', 'doze passos da unidade', 'unidade do grupo']
   },
   {
-    titulo: 'Perguntas & Respostas',
+    titulo: 'Perguntas Frequentes',
     rota: '/perguntas-e-respostas',
     keywords: ['perguntas e respostas', 'faq', 'dúvidas', 'perguntas frequentes']
   },

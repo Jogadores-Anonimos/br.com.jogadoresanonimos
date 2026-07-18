@@ -128,6 +128,11 @@ Ver `.claude/agents/*.md` para a definição completa de cada um.
   escala"). Se usar Postgres externo, nunca depender de porta fixa (ex:
   5432), que colide com o Postgres de desenvolvimento do
   `docker-compose.yml`.
+- Quando migrations Flyway forem consolidadas, o resultado final deve
+  ser sempre exatamente 2 arquivos: um `V1` só de schema (DDL —
+  tabelas, índices, constraints) e um `V2` só de conteúdo/seed (DML —
+  INSERT de dado). Nunca um único arquivo misturando schema e seed,
+  nunca mais que esses 2 arquivos.
 - Sempre delegue as tarefas de frontend, frontend-services, backend,
   security e devops para o agente correspondente — não misture
   responsabilidades entre eles.

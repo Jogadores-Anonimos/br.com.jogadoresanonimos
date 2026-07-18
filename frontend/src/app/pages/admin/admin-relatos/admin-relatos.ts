@@ -7,7 +7,7 @@ import { RelatoAdmin } from '../../../services/relatos/relato.model';
 
 const TEXTO_TRUNCADO_LIMITE = 320;
 const TEXTO_MIN_LENGTH = 50;
-const TEXTO_MAX_LENGTH = 4000;
+const TEXTO_MAX_LENGTH = 10000;
 
 interface AbaStatus {
   status: StatusRelato;

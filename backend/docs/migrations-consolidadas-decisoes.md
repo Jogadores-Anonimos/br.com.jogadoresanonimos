@@ -204,8 +204,148 @@ novas, uma tabela nova), diferente das decisões de V19/V27/V30 da
 consolidação anterior, que exigiram justificativa de descarte de dado
 ou de mudança de modelagem.
 
-## Migrations futuras
+## Migrations futuras (histórico, superado pela consolidação de 2026-07-17 abaixo)
 
 A partir desta consolidação, a próxima migration nova deve se chamar
 `V2__<descrição>.sql` (não `V8`) — o número reinicia porque a baseline
 absorveu tudo até `V7`.
+
+# Terceira consolidação: baseline dupla schema/conteúdo (V1-V35 -> V1__baseline_schema.sql + V2__baseline_conteudo.sql)
+
+Data: 2026-07-17. Ainda não existe produção. Depois da segunda
+consolidação, o time seguiu adicionando migrations incrementais até
+`V35`, todas aditivas (schema evolutivo + seed de conteúdo real:
+páginas institucionais, reuniões, hotlines, relatos legados, reflexões
+diárias, avisos, mural de apoio, escritórios de serviço, FAQ, 20
+perguntas). Diferente das consolidações anteriores (schema+seed
+misturados em um único `V1__baseline.sql`), esta consolidação separa
+explicitamente em dois arquivos:
+
+- `V1__baseline_schema.sql`: só estrutura (`CREATE TABLE`, índices,
+  constraints, `CHECK`, `FK`), sem nenhum `INSERT`/`UPDATE`/`DELETE`.
+- `V2__baseline_conteudo.sql`: todo o seed de conteúdo (só `INSERT`,
+  sem DDL), na ordem de dependência de FK.
+
+Motivo do critério de dois arquivos (em vez de um baseline único como
+nas consolidações anteriores): separar claramente o que é estrutura
+imutável (schema) do que é dado de conteúdo institucional (que pode
+crescer/mudar independentemente do schema em revisões futuras de seed),
+deixando o diff de cada tipo de mudança mais legível.
+
+## Processo usado
+
+1. Confirmado que o Postgres de dev tinha as 35 migrations aplicadas
+   (`flyway_schema_history`, todas `success = t`) e o backend saudável
+   antes de começar.
+2. Gerado `pg_dump --schema-only` (excluindo `flyway_schema_history`) e
+   `pg_dump --data-only --column-inserts` (mesma exclusão) do Postgres
+   de dev via `docker compose exec`.
+3. `V1__baseline_schema.sql` escrito adaptando o dump de schema para o
+   estilo já estabelecido pelo projeto (`CREATE TABLE` com constraints
+   inline, sem `ALTER TABLE` disperso, sem metadata de `pg_dump`
+   como `SET`/comentários de versão).
+4. `V2__baseline_conteudo.sql` escrito a partir do dump de dados,
+   preservando literalmente o SQL gerado pelo `pg_dump` (values,
+   timestamps reais, UUIDs), na ordem de dependência de FK que o
+   próprio `pg_dump` já respeita para essas tabelas
+   (`usuario` -> `cms_pagina`/`imagem` -> `cms_bloco`/`banner_mural`
+   -> tabelas de reunião/hotline/escritório -> `reuniao`/`reflexao_dia`
+   /`relato`).
+5. As 35 migrations antigas foram apagadas e substituídas pelos dois
+   arquivos novos.
+6. Validado resetando o volume do Postgres de dev (`docker compose
+   down` + remoção do volume `postgres_data`, dado descartável de dev)
+   e subindo de novo: Flyway aplicou exatamente `V1` e `V2` (log
+   confirmado, nenhuma migration extra), Hibernate validou o schema
+   sem erro, e uma amostra de 8 endpoints públicos (`/cms/paginas/sobre`,
+   `/reflexao-do-dia/7/17`, `/relatos`, `/reunioes`, `/mural-de-apoio`,
+   `/hotlines`, `/faq`, `/vinte-perguntas`) respondeu com dado íntegro
+   via `curl` real (não `psql`).
+
+## Decisão importante: dado de sessão de dev excluído do seed
+
+O Postgres de dev usado como fonte do `pg_dump` não continha só seed
+de migration — continha também dado real criado durante testes manuais
+da aplicação (signup de admin via `AdminBootstrap`/tela de login, upload
+de imagens pelo painel admin, um cadastro de participante de teste).
+Isso foi detectado comparando a tabela `usuario` do dump (4 linhas) com
+o que as migrations originais realmente inserem (2 linhas: os dois
+usuários-sistema `sistema.seed.cms` e `sistema.seed.relatos`, que
+existem só para ancorar FK de autoria de seed, nunca fazem login).
+
+As duas linhas extras eram: um usuário `admin`/`test@teste.com` com
+hash Argon2 real (criado manualmente durante teste do login/bootstrap
+administrativo) e um participante de teste com e-mail pessoal real
+(`paulagadioli1999@gmail.com`) e hash de senha real. Incluir essas duas
+linhas em `V2__baseline_conteudo.sql` teria hardcoded um hash de senha
+real e um e-mail pessoal real dentro de um arquivo de migration
+versionado — violação direta da regra do projeto de nunca commitar
+credencial/dado pessoal, e do princípio de anonimato do sistema.
+
+**Ação tomada:** as duas linhas de `usuario` foram excluídas do seed.
+`V2__baseline_conteudo.sql` só contém os dois usuários-sistema. O
+`admin` real volta a ser criado em runtime pelo `AdminBootstrap`
+(`CommandLineRunner`, env vars `ADMIN_BOOTSTRAP_*`), como já documentado
+na primeira consolidação — validado no reset final: a baseline sobe com
+2 usuários-sistema, e o `AdminBootstrap` cria o terceiro (o admin real)
+automaticamente no boot seguinte, sem duplicar.
+
+As 5 linhas de `imagem` e 6 linhas de `banner_mural` do dump de dev
+tinham `criado_por` apontando para esse `admin` de teste (porque o
+upload foi feito através do painel admin durante os testes manuais, não
+via migration). Comparado o conteúdo dessas linhas (mesmos UUIDs, mesmo
+`chave_arquivo`, mesmo `alt_text`) contra o SQL original de `V34` e
+`V35` — são exatamente os registros de seed que essas duas migrations
+inseriam (upload manual de banners institucionais, com `criado_por`
+dinamicamente resolvido para "o primeiro ADMIN existente" via
+`CROSS JOIN` na migration original). Para não depender do UUID do
+`admin` de teste excluído, essas 11 linhas tiveram `criado_por`
+remapeado para `sistema.seed.cms` (`00000000-0000-0000-0000-000000000001`)
+na baseline nova — mesmo padrão já usado para os demais registros de
+seed de CMS, mantendo a FK íntegra sem reintroduzir o usuário de teste.
+
+## Verificação de integridade do seed
+
+Contagem de linhas por tabela no dump de dados batida contra o que cada
+migration original inseria (`grep`/leitura direta de cada migration com
+`INSERT`), sem discrepância real encontrada:
+
+- `cms_pagina`: 10, `cms_bloco`: 35 — igual à primeira consolidação.
+- `vinte_questao`: 20 — igual a `V29`.
+- `faq`: 9 — igual a `V13` (nota: o texto da primeira consolidação
+  dizia "10 perguntas de FAQ", impreciso; sempre foram 9, ordem 0-8).
+- `regiao_intergrupo`: 5, `estado_intergrupo`: 22, `grupo_intergrupo`:
+  69, `grupo_intergrupo_horario`: 94, `grupo_intergrupo_telefone`: 69 —
+  produto de `V21`/`V22`/`V23`/`V25` (normalização de telefone e de
+  dia/período).
+- `reuniao`: 94 — gerado por `V24` (`INSERT ... SELECT` a partir de
+  `grupo_intergrupo`) e normalizado por `V25`.
+- `hotline_regiao`: 2, `hotline_telefone`: 3 — seed de `V20`.
+- `escritorio_servico`: 2 — seed de `V28` (`escritorio_servico_telefone`
+  seguiu vazia, sem seed).
+- `reflexao_dia`: 366 — seed de `V31` (uma por dia do ano, incluindo
+  29/02).
+- `relato`: 13 — seed de `V30`, todos com `autor_id` apontando para o
+  usuário-sistema `sistema.seed.relatos` (nunca um usuário real).
+- `aviso`: 1 — seed de `V27`.
+- `imagem`: 5, `banner_mural`: 6 — seed de `V34`/`V35` (ver decisão
+  acima sobre remapeamento de `criado_por`).
+
+Diferente das duas consolidações anteriores (que reaproveitavam SQL
+literal das migrations originais para preservar formatação/comentários
+de intenção), esta consolidação usou o `INSERT` gerado pelo
+`pg_dump --data-only --column-inserts` diretamente para a maioria das
+tabelas — necessário porque várias migrations (`V21`-`V25`, `V30`,
+`V31`) fazem transformação de dado via `INSERT ... SELECT`/`UPDATE` em
+cima de estado intermediário, então o dump do estado final já
+representa corretamente o resultado dessas transformações sem precisar
+reconstruir a cadeia de passos.
+
+## Migrations futuras
+
+A partir desta consolidação, a próxima migration nova deve se chamar
+`V3__<descrição>.sql` — o número reinicia porque a baseline absorveu
+tudo até `V35`. Qualquer alteração de schema daqui para frente entra
+como migration incremental normal (`V3`, `V4`, ...); não editar
+`V1__baseline_schema.sql` nem `V2__baseline_conteudo.sql` depois de
+aplicados.

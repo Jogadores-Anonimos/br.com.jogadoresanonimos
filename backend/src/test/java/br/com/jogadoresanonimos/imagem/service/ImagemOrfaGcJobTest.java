@@ -37,7 +37,7 @@ class ImagemOrfaGcJobTest {
         String chaveArquivo = "chave-" + id;
         when(imagemRepository.buscarIdsOrfaasAnterioresA(any())).thenReturn(List.of(id));
         when(imagemRepository.findIdEChavePorIdIn(List.of(id)))
-                .thenReturn(List.of(new Object[]{id, chaveArquivo}));
+                .thenReturn(List.<Object[]>of(new Object[]{id, chaveArquivo}));
         imagemOrfaGcJob.executar();
         verify(storageClient).delete(chaveArquivo);
         verify(imagemRepository).deleteAllByIdInBatch(List.of(id));
@@ -60,7 +60,7 @@ class ImagemOrfaGcJobTest {
         String chave2 = "chave-" + id2;
         when(imagemRepository.buscarIdsOrfaasAnterioresA(any())).thenReturn(List.of(id1, id2));
         when(imagemRepository.findIdEChavePorIdIn(List.of(id1, id2)))
-                .thenReturn(List.of(new Object[]{id1, chave1}, new Object[]{id2, chave2}));
+                .thenReturn(List.<Object[]>of(new Object[]{id1, chave1}, new Object[]{id2, chave2}));
         imagemOrfaGcJob.executar();
         verify(storageClient, times(1)).delete(chave1);
         verify(storageClient, times(1)).delete(chave2);

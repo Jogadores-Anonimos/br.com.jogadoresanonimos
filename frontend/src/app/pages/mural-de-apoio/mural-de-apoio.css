@@ -61,6 +61,52 @@ a.mural-card:focus-visible {
   display: block;
 }
 
+.mural-card__video {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.mural-card__video-facade {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  background-color: var(--black);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mural-card__video-facade:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: -3px;
+}
+
+.mural-card__play-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(var(--black-rgb), 0.55);
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.mural-card__video-facade:hover .mural-card__play-icone,
+.mural-card__video-facade:focus-visible .mural-card__play-icone {
+  transform: scale(1.08);
+  background: rgba(var(--black-rgb), 0.7);
+}
+
 .cta-final {
   text-align: center;
   padding: var(--spacing-xl) var(--spacing-md);

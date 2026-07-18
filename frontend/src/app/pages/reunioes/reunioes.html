@@ -122,7 +122,7 @@
       }
 
       <div class="reunioes-lista">
-        @for (reuniao of reunioesFiltradas(); track $index) {
+        @for (reuniao of reunioesFiltradas(); track reuniao.id) {
           <div class="reuniao-card">
             <h3>{{ reuniao.nome }}</h3>
             <p class="reuniao-descricao">{{ reuniao.descricao }}</p>

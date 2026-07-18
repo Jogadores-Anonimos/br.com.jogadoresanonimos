@@ -300,10 +300,28 @@
 - **Propósito**: fechar débitos de cleanup levantados pelo `code-reviewer`
 - **Como**: import morto `RouterLink` removido; sintaxe de controle legado migrada para nova sintaxe Angular em 14 arquivos; `loading="lazy"` adicionado em imagens de `admin-mural-de-apoio.html` e `admin-literatura.html`
 
-### App não é zoneless (correção de suposição anterior)
-- **Onde**: `app.config.ts`
-- **Propósito**: sessão passada tinha registrado suposição errada de que o app era zoneless
-- **Como**: confirmado via ausência de `provideZonelessChangeDetection` em `app.config.ts` — app usa zone.js padrão
+### Bug crítico: app rodava sem zone.js E sem `provideZonelessChangeDetection` (nem uma coisa nem outra)
+- **Onde**: `main.ts`, `app.config.ts`
+- **Propósito**: correção retificada 2026-07-17 — entrada anterior desta base ("App não é zoneless") estava incompleta: ausência de `provideZonelessChangeDetection` não implicava zone.js configurado; projeto estava numa configuração acidental sem nenhum dos dois
+- **Como**: sintoma era propriedade de classe simples (não signal) populada dentro de `subscribe()` HTTP nunca atualizar a tela com dado real (só funcionava em dev com mock síncrono); fix: `npm install zone.js` + `import 'zone.js';` no topo de `main.ts`; `import 'zone.js/plugins/zone-patch-fetch';` também em `main.ts` (`HttpClient` moderno usa `fetch`, patch não vem no bundle base do zone.js 0.16.2); `provideZoneChangeDetection({ eventCoalescing: true })` explícito em `app.config.ts` (sem isso Angular 21.2 não forka a zona `angular` a partir do `NgZone`, `Zone.current.name` ficava sempre `<root>`)
+- **Trade-off**: decisão foi reativar zone.js (3 passos acima) em vez de converter ~25+ componentes afetados para signal — mais rápido, resolve tudo de uma vez, modelo clássico/estável do Angular; os 3 passos são obrigatórios juntos, tentativa anterior só com passo 1 (`npm install`) não resolveu
+
+### Páginas CMS com array hardcoded em vez de buscar dado real do backend (bugfix)
+- **Onde**: `programa-de-recuperacao.ts`, `programa-de-unidade.ts`, `perguntas-e-respostas.ts`
+- **Propósito**: componentes tinham array de conteúdo hardcoded (texto genérico de protótipo/tradução AA), nunca migrados pra buscar do backend, mesmo com backend já tendo dado correto
+- **Como**: convertidos pro padrão signal + service (`Cms` ou `FaqService` conforme o caso)
+- **Trade-off**: ao validar que página "mostra dado real", sempre comparar texto renderizado no DOM com resposta da API — API certa não garante que o componente a está consumindo
+
+### `.conteudo-cms` — classe global para conteúdo rico vindo de CMS
+- **Onde**: `frontend/src/styles.css`
+- **Propósito**: estilizar `[innerHTML]` de bloco CMS sem depender de `::ng-deep`
+- **Como**: conteúdo `[innerHTML]` não recebe atributo de encapsulamento Angular, então CSS de componente local não afeta — classe global resolve sem esse problema; `max-width` de parágrafo em `clamp(65ch, 90%, 90ch)` pra não ficar estreito demais em desktop
+
+### Auditoria de performance 2026-07-17 — reuniões, home, bundle (pós-conteúdo real)
+- **Onde**: `pages/reunioes/reunioes.ts`/`.html` (`@for` de reuniões), `pages/home/home.ts` (`listarRelatosAprovados`), `angular.json` (budget)
+- **Propósito**: rodada após popular conteúdo real (94 reuniões, 366 reflexões, 13 relatos, 69 grupos, mural)
+- **Como**: `@for` de reuniões usava `track $index` numa lista que reordena por distância, corrigido para `track reuniao.id` (evita corrupção de reconciliação de DOM ao reordenar); `distanciaKm(reuniao)` era chamado 2x por card no template, corrigido com `@let distancia = distanciaKm(reuniao);` (Angular 21 suporta `@let` em qualquer contexto de template); Home buscava página de 20 relatos só pra mostrar 3 no teaser, corrigido pra `listarRelatosAprovados(1, 3)` direto; bundle inicial 463KB passou do budget de warning (450KB) por crescimento legítimo de feature, budget ajustado pra 490KB
+- **Complemento**: contrato de relato mudou (ver `.claude/knowledge/backend.md`) — `RelatoPublicoResumo` na listagem, botão "Ler mais" chama `buscarPorId` sob demanda pro texto completo, truncamento client-side antigo removido
 
 ### admin-seguranca — mfaAtivo hardcoded false (bugfix HIGH)
 - **Onde**: `frontend/src/app/pages/admin/admin-seguranca/admin-seguranca.ts`/`.html`

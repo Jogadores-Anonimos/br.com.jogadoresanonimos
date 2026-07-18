@@ -1,6 +1,7 @@
 export interface BannerMuralPublico {
   id: string;
-  imagemUrl: string;
+  imagemUrl: string | null;
+  videoUrl: string | null;
   altText: string;
   legenda: string | null;
   linkDestino: string | null;
@@ -8,13 +9,14 @@ export interface BannerMuralPublico {
 }
 
 export interface BannerMuralAdmin extends BannerMuralPublico {
-  imagemId: string;
+  imagemId: string | null;
   ativo: boolean;
   dataAtualizacao: string;
 }
 
 export interface CriarBannerMuralRequest {
-  imagemId: string;
+  imagemId?: string;
+  videoUrl?: string;
   altText: string;
   legenda?: string;
   linkDestino?: string;

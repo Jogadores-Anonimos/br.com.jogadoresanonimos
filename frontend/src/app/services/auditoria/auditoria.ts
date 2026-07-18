@@ -30,7 +30,6 @@ export class AuditoriaService {
       );
     }
 
-    // TODO: substituir por chamada real quando o endpoint estiver disponível
     const filtrados = AUDITORIA_MOCK.filter((log) => this.atendeFiltros(log, filtros)).sort(
       (a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime(),
     );

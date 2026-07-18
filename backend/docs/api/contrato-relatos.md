@@ -7,6 +7,14 @@
 > relatos: pendente/aprovado/rejeitado) e no modelo hoje mockado em
 > `frontend/src/app/services/relatos.ts`.
 >
+> **Atualizado em 2026-07-17 (auditoria de performance, achado BAIXO)**:
+> `GET /api/v1/relatos` (listagem pública) passou a retornar `texto`
+> truncado (`textoResumo`, 300 chars + "...") em vez do texto completo,
+> para reduzir payload de listagem paginada. Endpoint novo
+> `GET /api/v1/relatos/{id}` retorna o texto completo. **Mudança de
+> contrato consumido pelo frontend — ver seção "Mudança breaking
+> sinalizada" no fim deste documento.**
+>
 > **Nota de nomenclatura de query params**: a implementação usa
 > `pagina`/`tamanho` (não `page`/`size` como nos exemplos abaixo),
 > consistente com o restante do código em português (`PageResponse` já
@@ -38,9 +46,11 @@ necessário para:
 - Auditoria futura em caso de abuso (ex: relato com conteúdo ilegal),
   sem que isso apareça na tela de moderação do dia a dia.
 
-Todos os DTOs (`RelatoPublicoResponse`, `RelatoAdminResponse`) só têm:
-`id`, `texto`, `nomeExibicao`, `status`, `dataCriacao` (+ `dataAtualizacao`
-no admin). Nunca `autorId`, apelido ou e-mail do autor.
+Todos os DTOs (`RelatoPublicoListaResponse`, `RelatoPublicoResponse`,
+`RelatoAdminResponse`) só têm: `id`, `texto`/`textoResumo`,
+`nomeExibicao`, `status` (não presente no DTO de listagem pública,
+já que só lista aprovados), `dataCriacao` (+ `dataAtualizacao` no admin).
+Nunca `autorId`, apelido ou e-mail do autor.
 
 ---
 
@@ -89,7 +99,7 @@ minimiza payload de resposta.
 
 ---
 
-## 2. `GET /api/v1/relatos` (público, lista aprovados)
+## 2. `GET /api/v1/relatos` (público, lista aprovados — texto truncado)
 
 - **Autenticação**: nenhuma.
 - **Idempotente**: sim.
@@ -103,16 +113,23 @@ minimiza payload de resposta.
 - **Paginação**: sim, `page`/`size` (query params, sem dado sensível) —
   mesmo com volume baixo hoje, evita over-fetching se a lista crescer;
   `size` default 20, máx 50.
+- **Payload de listagem** (`RelatoPublicoListaResponse`, desde
+  2026-07-17): retorna `textoResumo` (primeiros 300 caracteres do texto
+  + "..." se truncado) em vez do texto completo (até 10000 chars). Motivo:
+  achado de auditoria de performance — payload de listagem paginada (até
+  50 itens/página) não deve carregar texto completo de todo item, só o
+  suficiente para exibir preview. Texto completo fica no endpoint de
+  detalhe (item 2.1).
 
 **Request**: `GET /api/v1/relatos?pagina=0&tamanho=20`
 
-**Response 200** (`Page<RelatoPublicoResponse>`):
+**Response 200** (`Page<RelatoPublicoListaResponse>`):
 ```json
 {
   "success": true,
   "data": {
     "conteudo": [
-      { "id": "uuid", "texto": "string", "nomeExibicao": "string ou null", "dataCriacao": "2026-07-12T14:30:00Z" }
+      { "id": "uuid", "textoResumo": "string, máx 303 chars (300 + '...')", "nomeExibicao": "string ou null", "dataCriacao": "2026-07-12T14:30:00Z" }
     ],
     "pagina": 0,
     "tamanho": 20,
@@ -129,6 +146,42 @@ do mock atual do frontend.
 
 ---
 
+## 2.1. `GET /api/v1/relatos/{id}` (público, detalhe de relato aprovado)
+
+- **Autenticação**: nenhuma.
+- **Idempotente**: sim.
+- **Consistência**: forte — leitura direta do primário por id, sem
+  cache; volume de acesso a detalhe é baixo o suficiente para não
+  justificar cache dedicado nesta entrega.
+- **Regra de IDOR/anonimato**: só retorna relato com `status = approved`.
+  Relato `pending`/`rejected` ou id inexistente: **404** — mesmo
+  comportamento tanto para "não existe" quanto para "existe mas não é
+  público", para não vazar informação sobre estado de moderação de um id
+  arbitrário.
+
+**Request**: `GET /api/v1/relatos/{id}`
+
+**Response 200** (`RelatoPublicoResponse`):
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "texto": "string completo, até 10000 chars",
+    "nomeExibicao": "string ou null",
+    "dataCriacao": "2026-07-12T14:30:00Z"
+  },
+  "error": null
+}
+```
+
+**Erros**:
+| Código HTTP | `error.code` | Motivo |
+|---|---|---|
+| 404 | `NOT_FOUND` | id não existe, ou existe mas não está `approved` |
+
+---
+
 ## 3. `GET /api/v1/admin/relatos?status=pending|approved|rejected` (admin, lista por status)
 
 - **Autenticação + autorização**: `ROLE_ADMIN`, `@PreAuthorize`.
@@ -137,6 +190,15 @@ do mock atual do frontend.
   precisa refletir a última ação de outro admin imediatamente, ex: dois
   admins moderando ao mesmo tempo).
 - **Paginação**: sim, mesmo padrão do endpoint público.
+- **Payload**: mantém texto completo (`RelatoAdminResponse`), sem
+  truncamento — decisão explícita (auditoria de performance
+  2026-07-17): fila de moderação tem volume sempre pequeno (poucos
+  relatos pendentes por vez, não paginação de centenas de itens como a
+  listagem pública histórica pode acumular), e o admin precisa ler o
+  texto completo para decidir aprovar/rejeitar sem um clique extra por
+  item. Truncar aqui adicionaria fricção operacional sem ganho de
+  performance relevante dado o volume. Reavaliar só se o volume de
+  relatos pendentes crescer muito (`system-design`).
 
 **Request**: `GET /api/v1/admin/relatos?status=pending&pagina=0&tamanho=20`
 - `status` obrigatório, um dos três valores do enum.
@@ -311,18 +373,27 @@ SQL).
 
 ---
 
-## Mudança breaking sinalizada — nenhuma
+## Mudança breaking sinalizada — 2026-07-17
 
-Módulo novo, sem contrato anterior consumido pelo frontend (hoje é mock
-puro em `relatos.ts`). Ao migrar `frontend-services` para a API real, o
-shape de `Relato` (`id`, `texto`, `nomeExibicao`, `status`, `dataCriacao`)
-é mantido idêntico ao mock atual — únicas adições são de infraestrutura
-de página (`Page<T>` no lugar de array simples) e o novo endpoint de
-envio retornar só `{ id, status }` em vez de `{ recebido: boolean }`
-(o mock tem um formato ligeiramente mais simples que a resposta real;
-isso é esperado já que o mock nunca teve um contrato fechado formalmente
-— combinar com `frontend-services` antes de trocar o mock pela chamada
-real).
+**Se o `frontend-services` já integrou `GET /api/v1/relatos` com o
+contrato antigo (campo `texto` completo na listagem), isso é uma
+mudança breaking de contrato**, decorrente de correção de achado BAIXO
+de auditoria de performance (N+1 e over-fetching):
+
+- Campo `texto` da listagem pública (`GET /api/v1/relatos`) foi
+  **removido** e substituído por `textoResumo` (truncado, 300 chars +
+  "..."). Telas que hoje mostram o texto completo direto da listagem
+  precisam trocar para: (a) mostrar `textoResumo` como preview, e (b)
+  buscar o texto completo via o novo `GET /api/v1/relatos/{id}` quando o
+  usuário abrir o relato (ex: clique em "ler mais").
+- Endpoint admin (`GET /api/v1/admin/relatos`) **não mudou** — continua
+  retornando texto completo, mesmo formato de antes.
+- `POST /api/v1/relatos` (envio) **não mudou**.
+
+Módulo era novo antes desta mudança, sem contrato anterior consumido
+(mock puro em `relatos.ts`). Se a integração real ainda não aconteceu,
+não há impacto — implementar já direto com o contrato atual (`textoResumo`
+na listagem + `GET /api/v1/relatos/{id}` para detalhe).
 
 ## Pendências explícitas para outros agentes
 
@@ -339,14 +410,23 @@ real).
 ## Implementação (backend)
 
 - `br.com.jogadoresanonimos.relato.controller.RelatoController` —
-  `POST /api/v1/relatos` e `GET /api/v1/relatos`.
+  `POST /api/v1/relatos`, `GET /api/v1/relatos` (listagem truncada) e
+  `GET /api/v1/relatos/{id}` (detalhe, texto completo, só `approved`).
 - `br.com.jogadoresanonimos.relato.controller.RelatoAdminController` —
   os 6 endpoints admin, classe inteira sob `@PreAuthorize("hasRole('ADMIN')")`.
-- Nenhum método novo foi necessário no `RelatoService`; os controllers só
-  consomem o que já estava implementado (`enviar`, `listarAprovados`,
-  `listarPorStatus`, `editar`, `aprovar`, `rejeitar`, `reverter`, `remover`).
+- `br.com.jogadoresanonimos.relato.dto.RelatoPublicoListaResponse` — DTO
+  novo (2026-07-17) para a listagem pública, com `textoResumo`
+  (truncamento em memória, 300 chars + "...", sem lógica no banco).
+- `RelatoService.listarAprovados` passou a retornar
+  `PageResponse<RelatoPublicoListaResponse>` (antes
+  `RelatoPublicoResponse`); `RelatoService.buscarAprovadoPorId` (novo)
+  usa `RelatoRepository.findByIdAndStatus(id, approved)` — 404 uniforme
+  para "não existe" e "não aprovado" (não vaza estado de moderação).
+- `SecurityConfig`: `GET /api/v1/relatos/*` adicionado como `permitAll`
+  (endpoint de detalhe é público, mesmo padrão do endpoint de listagem).
 - Testes unitários em
   `backend/src/test/java/br/com/jogadoresanonimos/relato/controller/`
-  (`RelatoControllerTest`, `RelatoAdminControllerTest`), mockando
-  `RelatoService` — mesmo padrão de teste puro (sem `MockMvc`/contexto
-  Spring) usado hoje no resto do projeto (ex: `CmsServiceTest`).
+  (`RelatoControllerTest`, `RelatoAdminControllerTest`) e
+  `backend/src/test/java/br/com/jogadoresanonimos/relato/service/RelatoServiceTest.java`,
+  mockando `RelatoService`/`RelatoRepository` — mesmo padrão de teste
+  puro (sem `MockMvc`/contexto Spring) usado hoje no resto do projeto.

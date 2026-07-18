@@ -159,7 +159,7 @@ describe('AdminSeguranca', () => {
 
       component.desativarMfa();
 
-      expect(authSpy['desativarMfa']).toHaveBeenCalledWith({ senha: 'senha-correta' });
+      expect(authSpy['desativarMfa']).toHaveBeenCalledWith({ senha: 'senha-correta', codigoTotp: '' });
       expect(component.mfaAtivo).toBe(false);
       expect(component.desativarSenha).toBe('');
       expect(component.desativarMensagem).toBe('MFA desativado com sucesso.');

@@ -1,5 +1,5 @@
 .pagina-legal {
-  max-width: 750px;
+  max-width: 900px;
   margin: 0 auto;
   padding: var(--spacing-xl) var(--spacing-md);
 }
@@ -9,27 +9,4 @@
   font-size: 1.75rem;
   margin-bottom: var(--spacing-lg);
   text-align: center;
-}
-
-.pagina-legal__conteudo p {
-  color: var(--color-text);
-  line-height: 1.7;
-  margin-bottom: var(--spacing-md);
-}
-
-.section > div {
-  margin-bottom: var(--spacing-md);
-}
-
-.section p {
-  margin-bottom: var(--spacing-sm);
-}
-
-.section h2 {
-  margin-top: var(--spacing-lg);
-  margin-bottom: var(--spacing-sm);
-}
-
-.section > div:first-child h2:first-child {
-  margin-top: 0;
 }

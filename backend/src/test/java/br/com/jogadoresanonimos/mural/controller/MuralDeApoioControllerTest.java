@@ -34,7 +34,7 @@ class MuralDeApoioControllerTest {
     @Test
     void listarAtivos_deveRetornarOkComListaDoService() {
         BannerMuralPublicoResponse item = new BannerMuralPublicoResponse(UUID.randomUUID(), "https://storage/imagem.jpg",
-                "alt", "legenda", "https://link", Instant.now());
+                null, "alt", "legenda", "https://link", Instant.now());
         when(bannerMuralService.listarAtivos()).thenReturn(List.of(item));
         ResponseEntity<ApiResponse<List<BannerMuralPublicoResponse>>> resposta = muralDeApoioController.listarAtivos();
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);

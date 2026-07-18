@@ -19,7 +19,7 @@ import java.util.stream.IntStream;
 @Service
 public class ReflexaoDiaService {
 
-    private static final int[] DIAS_POR_MES = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    private static final int[] DIAS_POR_MES = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
     private final ReflexaoDiaRepository reflexaoDiaRepository;
 

@@ -9,44 +9,6 @@
     </p>
   </section>
 
-  <section class="section" aria-labelledby="lista-relatos-titulo">
-    <h2 id="lista-relatos-titulo" class="secao-titulo">
-      O que outros membros compartilharam
-    </h2>
-
-    @if (carregando) {
-      <p class="estado-info">Carregando relatos…</p>
-    } @else if (erroCarregamento) {
-      <p class="estado-info estado-info--erro">{{ erroCarregamento }}</p>
-    } @else if (relatos.length === 0) {
-      <p class="estado-info">
-        Ainda não há relatos publicados. Seja a primeira pessoa a
-        compartilhar sua história.
-      </p>
-    } @else {
-      <ul class="relatos-lista">
-        @for (relato of relatos; track relato.id) {
-          <li class="relato-card">
-            <p class="relato-card__texto">{{ textoExibido(relato) }}</p>
-
-            @if (precisaTruncar(relato)) {
-              <button
-                type="button"
-                class="relato-card__ler-mais"
-                (click)="alternarExpandido(relato)"
-                [attr.aria-expanded]="estaExpandido(relato)"
-              >
-                {{ estaExpandido(relato) ? 'ler menos' : 'ler mais' }}
-              </button>
-            }
-
-            <p class="relato-card__autor">{{ nomeParaExibir(relato) }}</p>
-          </li>
-        }
-      </ul>
-    }
-  </section>
-
   <section class="section secao-formulario" aria-labelledby="form-relato-titulo">
     <h2 id="form-relato-titulo">Quer compartilhar sua história?</h2>
     <p class="secao-formulario__subtitulo">
@@ -130,6 +92,72 @@
           <p class="mensagem mensagem-erro">{{ erroEnvio }}</p>
         }
       </form>
+    }
+  </section>
+
+  <section class="section" aria-labelledby="lista-relatos-titulo">
+    <h2 id="lista-relatos-titulo" class="secao-titulo">
+      O que outros membros compartilharam
+    </h2>
+
+    @if (carregando) {
+      <p class="estado-info">Carregando relatos…</p>
+    } @else if (erroCarregamento) {
+      <p class="estado-info estado-info--erro">{{ erroCarregamento }}</p>
+    } @else if (relatos.length === 0) {
+      <p class="estado-info">
+        Ainda não há relatos publicados. Seja a primeira pessoa a
+        compartilhar sua história.
+      </p>
+    } @else {
+      <ul class="relatos-lista">
+        @for (relato of relatos; track relato.id) {
+          <li class="relato-card">
+            <p class="relato-card__texto">{{ textoExibido(relato) }}</p>
+
+            @if (mostrarBotaoLerMais(relato)) {
+              <button
+                type="button"
+                class="relato-card__ler-mais"
+                (click)="lerCompleto(relato)"
+                [disabled]="estaCarregandoTextoCompleto(relato)"
+              >
+                {{ estaCarregandoTextoCompleto(relato) ? 'Carregando...' : 'ler mais' }}
+              </button>
+
+              @if (teveErroTextoCompleto(relato)) {
+                <p class="mensagem mensagem-erro">
+                  Não foi possível carregar o relato completo. Tente novamente.
+                </p>
+              }
+            }
+
+            <p class="relato-card__autor">{{ nomeParaExibir(relato) }}</p>
+          </li>
+        }
+      </ul>
+
+      @if (totalPaginas > 1) {
+        <nav class="relatos-paginacao" aria-label="Paginação de relatos">
+          <button
+            type="button"
+            class="relatos-paginacao__botao"
+            [disabled]="pagina === 0"
+            (click)="irParaPagina(pagina - 1)"
+          >
+            Anterior
+          </button>
+          <span class="relatos-paginacao__info">Página {{ pagina + 1 }} de {{ totalPaginas }}</span>
+          <button
+            type="button"
+            class="relatos-paginacao__botao"
+            [disabled]="pagina + 1 >= totalPaginas"
+            (click)="irParaPagina(pagina + 1)"
+          >
+            Próxima
+          </button>
+        </nav>
+      }
     }
   </section>
 

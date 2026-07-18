@@ -13,7 +13,7 @@ public class Relato {
     @GeneratedValue
     private UUID id;
 
-    @Column(nullable = false, length = 4000)
+    @Column(nullable = false, length = 10000)
     private String texto;
 
     @Column(name = "nome_exibicao", length = 30)

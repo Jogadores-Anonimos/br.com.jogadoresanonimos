@@ -73,6 +73,11 @@
   outline-offset: 2px;
 }
 
+.relato-card__ler-mais:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .relato-card__autor {
   color: var(--color-text-muted);
   font-weight: var(--font-weight-semibold);
@@ -238,6 +243,57 @@
 .link-secundario:focus-visible {
   outline: 2px solid var(--cor-padrao-ja);
   outline-offset: 2px;
+}
+
+.relatos-paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+
+.relatos-paginacao__botao {
+  background: var(--cor-padrao-ja);
+  color: var(--color-bg-surface);
+  font-weight: var(--font-weight-semibold);
+  font-size: 0.95rem;
+  border: 1px solid var(--cor-padrao-ja);
+  border-radius: var(--radius-sm);
+  padding: 10px 24px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.relatos-paginacao__botao:hover:not(:disabled) {
+  background: var(--color-bg-surface);
+  color: var(--cor-padrao-ja);
+  transform: translateY(-2px);
+}
+
+.relatos-paginacao__botao:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 3px;
+}
+
+.relatos-paginacao__botao:disabled {
+  background: var(--color-bg-section);
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.relatos-paginacao__info {
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 768px) {
+  .relatos-paginacao {
+    flex-wrap: wrap;
+  }
 }
 
 @media (max-width: 900px) {

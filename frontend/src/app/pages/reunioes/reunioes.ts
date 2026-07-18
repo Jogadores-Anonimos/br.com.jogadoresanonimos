@@ -31,6 +31,11 @@ interface FiltroCategoria {
 const RAIO_TERRA_KM = 6371;
 
 const CENTRO_PADRAO: L.LatLngTuple = [-23.55, -46.62];
+const ZOOM_PADRAO = 12;
+const ZOOM_LOCALIZACAO_USUARIO = 11;
+const ZOOM_MAXIMO_LOCALIZACAO_USUARIO = 14;
+const RAIO_VIZINHANCA_KM = 100;
+const MAXIMO_REUNIOES_VIZINHANCA = 15;
 
 const WHATSAPP_PLACEHOLDER = '5599999999999';
 
@@ -305,20 +310,61 @@ export class Reunioes implements OnInit, OnDestroy {
     this.ajustarBounds();
   }
 
+  private pontosVizinhancaUsuario(): L.LatLngExpression[] {
+    const userCoords = this.userCoords();
+    if (!userCoords) {
+      return [];
+    }
+
+    return this.reunioes()
+      .filter((r) => r.latitude !== null && r.longitude !== null)
+      .map((r) => ({ reuniao: r, distancia: this.distanciaKm(r) ?? Infinity }))
+      .filter((item) => item.distancia <= RAIO_VIZINHANCA_KM)
+      .sort((a, b) => a.distancia - b.distancia)
+      .slice(0, MAXIMO_REUNIOES_VIZINHANCA)
+      .map((item) => [item.reuniao.latitude as number, item.reuniao.longitude as number]);
+  }
+
   private ajustarBounds(): void {
     if (!this.mapa || !this.leaflet) {
+      return;
+    }
+
+    const marcadorUsuario = this.marcadorUsuario;
+    if (marcadorUsuario) {
+      const raioKm = this.filtroRaioKm();
+      if (raioKm === 'todos') {
+        const pontosVizinhanca = this.pontosVizinhancaUsuario();
+        if (pontosVizinhanca.length === 0) {
+          this.mapa.setView(marcadorUsuario.getLatLng(), ZOOM_LOCALIZACAO_USUARIO);
+          return;
+        }
+
+        this.mapa.fitBounds(
+          this.leaflet.latLngBounds([marcadorUsuario.getLatLng(), ...pontosVizinhanca]),
+          { padding: [32, 32], maxZoom: ZOOM_MAXIMO_LOCALIZACAO_USUARIO },
+        );
+        return;
+      }
+
+      const pontosProximos: L.LatLngExpression[] = this.marcadoresGrupo
+        .filter((marcador) => marcadorUsuario.getLatLng().distanceTo(marcador.getLatLng()) <= raioKm * 1000)
+        .map((marcador) => marcador.getLatLng());
+      pontosProximos.push(marcadorUsuario.getLatLng());
+
+      this.mapa.fitBounds(this.leaflet.latLngBounds(pontosProximos), {
+        padding: [32, 32],
+        maxZoom: 13,
+      });
       return;
     }
 
     const pontos: L.LatLngExpression[] = this.marcadoresGrupo.map((marcador) =>
       marcador.getLatLng(),
     );
-    if (this.marcadorUsuario) {
-      pontos.push(this.marcadorUsuario.getLatLng());
-    }
 
     if (pontos.length === 0) {
-      this.mapa.setView(CENTRO_PADRAO, 12);
+      this.mapa.setView(CENTRO_PADRAO, ZOOM_PADRAO);
       return;
     }
 
@@ -366,9 +412,15 @@ export class Reunioes implements OnInit, OnDestroy {
     this.destruirMapa();
     criarIcones(this.leaflet);
 
+    const userCoords = this.userCoords();
+    const centroInicial: L.LatLngTuple = userCoords
+      ? [userCoords.latitude, userCoords.longitude]
+      : CENTRO_PADRAO;
+    const zoomInicial = userCoords ? ZOOM_LOCALIZACAO_USUARIO : ZOOM_PADRAO;
+
     this.mapa = this.leaflet.map(container, {
-      center: CENTRO_PADRAO,
-      zoom: 12,
+      center: centroInicial,
+      zoom: zoomInicial,
       scrollWheelZoom: false,
     });
 

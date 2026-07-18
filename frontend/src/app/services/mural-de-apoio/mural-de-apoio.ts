@@ -23,7 +23,7 @@ export interface MuralDeApoioResponse {
   error?: string;
 }
 
-const QUANTIDADE_DESTAQUE_HOME = 3;
+const QUANTIDADE_DESTAQUE_HOME = 5;
 
 function paraLegado(banner: BannerMuralAdmin): BannerMuralApoio {
   const { imagemId: _imagemId, dataAtualizacao: _dataAtualizacao, ...resto } = banner;
@@ -96,8 +96,9 @@ export class MuralDeApoioService {
 
     const novo: BannerMuralAdmin = {
       id: `mock-banner-${MURAL_DE_APOIO_MOCK.length + 1}`,
-      imagemId: req.imagemId,
-      imagemUrl: '/images/mural-de-apoio/placeholder.jpg',
+      imagemId: req.videoUrl ? null : (req.imagemId ?? null),
+      imagemUrl: req.videoUrl ? null : '/images/mural-de-apoio/placeholder.jpg',
+      videoUrl: req.videoUrl ?? null,
       altText: req.altText,
       legenda: req.legenda ?? null,
       linkDestino: req.linkDestino ?? null,
@@ -126,7 +127,9 @@ export class MuralDeApoioService {
       );
     }
 
-    banner.imagemId = req.imagemId;
+    banner.imagemId = req.videoUrl ? null : (req.imagemId ?? null);
+    banner.imagemUrl = req.videoUrl ? null : banner.imagemUrl;
+    banner.videoUrl = req.videoUrl ?? null;
     banner.altText = req.altText;
     banner.legenda = req.legenda ?? null;
     banner.linkDestino = req.linkDestino ?? null;

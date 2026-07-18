@@ -59,6 +59,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/arquivos").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/mural-de-apoio").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/relatos").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/relatos/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/avisos").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/escritorios-regionais").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/reunioes").permitAll()

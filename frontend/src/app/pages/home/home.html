@@ -4,7 +4,7 @@
       <p class="hero__question">O jogo já fez sua vida em casa infeliz?</p>
       <h1 class="hero__slogan">Há Esperança.</h1>
       <p class="hero__text">
-        A Jogadores Anônimos do Brasil existe para ajudar pessoas que acham que podem ter um
+        A Jogadores Anônimos existe para ajudar pessoas que acham que podem ter um
         problema com o jogo.
       </p>
     </div>
@@ -72,6 +72,7 @@
         <a class="quiz-teaser__link" routerLink="/perguntas-e-respostas">Perguntas &amp; Respostas</a>
         <a class="quiz-teaser__link" routerLink="/programa-de-recuperacao">Programa de Recuperação (Os 12 Passos)</a>
         <a class="quiz-teaser__link" routerLink="/programa-de-unidade">Programa da Unidade (12 Passos da Unidade)</a>
+        <a class="quiz-teaser__link" href="https://www.jog-anon.com.br/" target="_blank" rel="noopener noreferrer">Jog-Anon (Área de Familiares)</a>
         <a class="quiz-teaser__link" routerLink="/loja">Loja Online</a>
       </nav>
     </div>
@@ -172,7 +173,7 @@
     } @else if (bannersMural.length > 0) {
       <div class="mural-teaser__grid">
         @for (banner of bannersMural; track banner.id) {
-          @if (banner.linkDestino) {
+          @if (banner.linkDestino && !banner.videoUrl) {
             <a class="mural-teaser__card" [routerLink]="banner.linkDestino">
               <div class="mural-teaser__imagem-wrap">
                 <img class="mural-teaser__imagem" [src]="banner.imagemUrl" [alt]="banner.altText" loading="lazy" decoding="async">
@@ -181,7 +182,34 @@
           } @else {
             <div class="mural-teaser__card">
               <div class="mural-teaser__imagem-wrap">
-                <img class="mural-teaser__imagem" [src]="banner.imagemUrl" [alt]="banner.altText" loading="lazy" decoding="async">
+                @if (banner.videoUrl) {
+                  @if (videoEstaTocando(banner)) {
+                    <iframe
+                      class="mural-teaser__video"
+                      [src]="embedUrlVideo(banner)"
+                      [title]="banner.altText"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowfullscreen
+                    ></iframe>
+                  } @else {
+                    <button
+                      type="button"
+                      class="mural-teaser__video-facade"
+                      [style.backgroundImage]="'url(' + thumbnailUrlVideo(banner) + ')'"
+                      [attr.aria-label]="'Reproduzir vídeo: ' + banner.altText"
+                      (click)="tocarVideo(banner, $event)"
+                    >
+                      <span class="mural-teaser__play-icone" aria-hidden="true">
+                        <svg viewBox="0 0 68 48" width="56" height="40">
+                          <path d="M66.5,7.7c-0.8-2.9-2.5-4.7-5.4-5.4C55.8,1,34,1,34,1S12.2,1,6.9,2.3C4,3,2.2,4.8,1.5,7.7C0.2,13,0,24,0,24s0.2,11,1.5,16.3c0.8,2.9,2.5,4.7,5.4,5.4C12.2,47,34,47,34,47s21.8,0,27.1-1.3c2.9-0.8,4.7-2.5,5.4-5.4C67.8,35,68,24,68,24S67.8,13,66.5,7.7z" fill="var(--cor-padrao-ja)"/>
+                          <path d="M45,24 27,14 27,34" fill="var(--white)"/>
+                        </svg>
+                      </span>
+                    </button>
+                  }
+                } @else {
+                  <img class="mural-teaser__imagem" [src]="banner.imagemUrl" [alt]="banner.altText" loading="lazy" decoding="async">
+                }
               </div>
             </div>
           }

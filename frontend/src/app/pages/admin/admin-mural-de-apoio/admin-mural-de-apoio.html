@@ -33,7 +33,11 @@
     <ul class="admin-mural__lista">
       @for (banner of banners; track banner.id) {
         <li class="admin-mural__card">
-          <img class="admin-mural__imagem" [src]="banner.imagemUrl" [alt]="banner.altText" loading="lazy" />
+          @if (banner.videoUrl) {
+            <span class="admin-mural__imagem admin-mural__imagem--video" aria-hidden="true">Vídeo</span>
+          } @else {
+            <img class="admin-mural__imagem" [src]="banner.imagemUrl" [alt]="banner.altText" loading="lazy" />
+          }
 
           <div class="admin-mural__conteudo">
             <div class="admin-mural__card-titulo-linha">
@@ -108,32 +112,89 @@
   <h1 class="admin-mural__titulo">{{ bannerEmEdicao ? 'Editar banner' : 'Novo banner' }}</h1>
 
   <form class="admin-mural__formulario" (ngSubmit)="salvar()">
-    <div class="admin-mural__campo">
-      <label for="banner-arquivo">Imagem</label>
-      <input
-        id="banner-arquivo"
-        type="file"
-        accept="image/*"
-        [disabled]="enviandoImagem"
-        (change)="onArquivoSelecionado($event)"
-      />
-      @if (enviandoImagem) {
-        <p class="admin-mural__ajuda" role="status">Enviando imagem…</p>
-      }
-      @if (!enviandoImagem && erroUploadImagem) {
-        <p class="admin-mural__erro-card" role="alert">
-          {{ erroUploadImagem }}
-        </p>
-      }
-      @if (!enviandoImagem && imagemSelecionadaUrl) {
-        <img
-          [src]="imagemSelecionadaUrl"
-          [alt]="formulario.altText || 'Pré-visualização da imagem selecionada'"
-          class="admin-mural__preview"
-          loading="lazy"
+    <fieldset class="admin-mural__fieldset">
+      <legend class="admin-mural__legend">Tipo de banner</legend>
+      <label class="admin-mural__label-toggle">
+        <input
+          type="radio"
+          name="tipoBanner"
+          value="imagem"
+          [checked]="formulario.tipo === 'imagem'"
+          (change)="selecionarTipo('imagem')"
         />
-      }
-    </div>
+        Imagem
+      </label>
+      <label class="admin-mural__label-toggle">
+        <input
+          type="radio"
+          name="tipoBanner"
+          value="video"
+          [checked]="formulario.tipo === 'video'"
+          (change)="selecionarTipo('video')"
+        />
+        Vídeo do YouTube
+      </label>
+    </fieldset>
+
+    @if (formulario.tipo === 'imagem') {
+      <div class="admin-mural__campo">
+        <label for="banner-arquivo">Imagem</label>
+        <input
+          id="banner-arquivo"
+          type="file"
+          accept="image/*"
+          [disabled]="enviandoImagem"
+          (change)="onArquivoSelecionado($event)"
+        />
+        @if (enviandoImagem) {
+          <p class="admin-mural__ajuda" role="status">Enviando imagem…</p>
+        }
+        @if (!enviandoImagem && erroUploadImagem) {
+          <p class="admin-mural__erro-card" role="alert">
+            {{ erroUploadImagem }}
+          </p>
+        }
+        @if (errosCampo['imagemId']) {
+          <p class="admin-mural__erro-card" role="alert">{{ errosCampo['imagemId'] }}</p>
+        }
+        @if (!enviandoImagem && imagemSelecionadaUrl) {
+          <img
+            [src]="imagemSelecionadaUrl"
+            [alt]="formulario.altText || 'Pré-visualização da imagem selecionada'"
+            class="admin-mural__preview"
+            loading="lazy"
+          />
+        }
+      </div>
+    }
+
+    @if (formulario.tipo === 'video') {
+      <div class="admin-mural__campo">
+        <label for="banner-video-url">URL do vídeo do YouTube</label>
+        <input
+          id="banner-video-url"
+          type="text"
+          name="videoUrl"
+          placeholder="https://www.youtube.com/watch?v=..."
+          [(ngModel)]="formulario.videoUrl"
+          [class.campo-invalido]="errosCampo['videoUrl']"
+          [attr.aria-invalid]="errosCampo['videoUrl'] ? 'true' : null"
+        />
+        @if (errosCampo['videoUrl']) {
+          <p class="admin-mural__erro-card" role="alert">{{ errosCampo['videoUrl'] }}</p>
+        }
+        @if (!videoUrlInvalida() && embedPreviewUrl(); as previewUrl) {
+          <div class="admin-mural__preview-video">
+            <iframe
+              [src]="previewUrl"
+              title="Pré-visualização do vídeo"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+          </div>
+        }
+      </div>
+    }
 
     <div class="admin-mural__campo">
       <label for="banner-alt">Texto alternativo</label>

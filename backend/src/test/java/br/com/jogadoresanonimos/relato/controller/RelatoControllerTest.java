@@ -4,6 +4,7 @@ import br.com.jogadoresanonimos.common.dto.ApiResponse;
 import br.com.jogadoresanonimos.common.dto.PageResponse;
 import br.com.jogadoresanonimos.relato.dto.EnviarRelatoRequest;
 import br.com.jogadoresanonimos.relato.dto.RelatoEnvioResponse;
+import br.com.jogadoresanonimos.relato.dto.RelatoPublicoListaResponse;
 import br.com.jogadoresanonimos.relato.dto.RelatoPublicoResponse;
 import br.com.jogadoresanonimos.relato.service.RelatoService;
 import br.com.jogadoresanonimos.security.AuthenticatedUser;
@@ -52,11 +53,21 @@ class RelatoControllerTest {
 
     @Test
     void listarAprovados_deveRetornarOkComPaginaDoService() {
-        RelatoPublicoResponse item = new RelatoPublicoResponse(UUID.randomUUID(), "texto".repeat(20), "Anônimo", Instant.now());
-        PageResponse<RelatoPublicoResponse> pagina = new PageResponse<>(List.of(item), 0, 20, 1, 1);
+        RelatoPublicoListaResponse item = new RelatoPublicoListaResponse(UUID.randomUUID(), "texto".repeat(20), "Anônimo", Instant.now());
+        PageResponse<RelatoPublicoListaResponse> pagina = new PageResponse<>(List.of(item), 0, 20, 1, 1);
         when(relatoService.listarAprovados(0, 20)).thenReturn(pagina);
-        ResponseEntity<ApiResponse<PageResponse<RelatoPublicoResponse>>> resposta = relatoController.listarAprovados(0, 20);
+        ResponseEntity<ApiResponse<PageResponse<RelatoPublicoListaResponse>>> resposta = relatoController.listarAprovados(0, 20);
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(pagina);
+    }
+
+    @Test
+    void buscarPorId_deveRetornarOkComRespostaDoService() {
+        UUID id = UUID.randomUUID();
+        RelatoPublicoResponse esperado = new RelatoPublicoResponse(id, "texto".repeat(20), "Anônimo", Instant.now());
+        when(relatoService.buscarAprovadoPorId(id)).thenReturn(esperado);
+        ResponseEntity<ApiResponse<RelatoPublicoResponse>> resposta = relatoController.buscarPorId(id);
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resposta.getBody().data()).isEqualTo(esperado);
     }
 }

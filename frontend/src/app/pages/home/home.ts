@@ -1,9 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 import { BannerMuralApoio, MuralDeApoioService } from '../../services/mural-de-apoio/mural-de-apoio';
+import { paraYoutubeEmbedUrl, paraYoutubeThumbnailUrl } from '../../services/mural-de-apoio/youtube.util';
 import { Aviso, AvisosService } from '../../services/avisos/avisos';
-import { Relato, RelatosService } from '../../services/relatos/relatos';
+import { RelatoPublicoResumo, RelatosService } from '../../services/relatos/relatos';
 import { ReflexaoPreview } from '../../components/reflexao-preview/reflexao-preview';
 import { WHATSAPP_CHAT_URL } from '../../config/whatsapp.config';
 
@@ -29,14 +31,17 @@ export class Home implements OnInit {
   carregandoAvisos = true;
   erroAvisos = false;
 
-  relatosPreview: Relato[] = [];
+  relatosPreview: RelatoPublicoResumo[] = [];
   carregandoRelatos = true;
   erroRelatos = false;
+
+  private readonly banneresTocando = new Set<string>();
 
   constructor(
     private readonly muralDeApoioService: MuralDeApoioService,
     private readonly avisosService: AvisosService,
     private readonly relatosService: RelatosService,
+    private readonly sanitizer: DomSanitizer,
   ) {}
 
   ngOnInit(): void {
@@ -92,13 +97,32 @@ export class Home implements OnInit {
     });
   }
 
-  nomeParaExibir(relato: Relato): string {
+  embedUrlVideo(banner: BannerMuralApoio): SafeResourceUrl | null {
+    const embedUrl = paraYoutubeEmbedUrl(banner.videoUrl);
+    return embedUrl ? this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl) : null;
+  }
+
+  thumbnailUrlVideo(banner: BannerMuralApoio): string | null {
+    return paraYoutubeThumbnailUrl(banner.videoUrl);
+  }
+
+  videoEstaTocando(banner: BannerMuralApoio): boolean {
+    return this.banneresTocando.has(banner.id);
+  }
+
+  tocarVideo(banner: BannerMuralApoio, evento: Event): void {
+    evento.preventDefault();
+    evento.stopPropagation();
+    this.banneresTocando.add(banner.id);
+  }
+
+  nomeParaExibir(relato: RelatoPublicoResumo): string {
     const nome = relato.nomeExibicao?.trim();
     return nome ? nome : 'Anônimo';
   }
 
-  trechoRelato(relato: Relato): string {
-    const texto = relato.texto.trim();
+  trechoRelato(relato: RelatoPublicoResumo): string {
+    const texto = relato.textoResumo.trim();
     if (texto.length <= TRECHO_RELATO_LIMITE) {
       return texto;
     }

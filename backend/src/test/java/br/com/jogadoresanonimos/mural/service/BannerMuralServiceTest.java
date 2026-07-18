@@ -51,7 +51,7 @@ class BannerMuralServiceTest {
     @Test
     void criar_deveFalharQuandoImagemNaoExiste() {
         UUID imagemId = UUID.randomUUID();
-        CriarBannerMuralRequest request = new CriarBannerMuralRequest(imagemId, "alt", "legenda", "https://link");
+        CriarBannerMuralRequest request = new CriarBannerMuralRequest(imagemId, null, "alt", "legenda", "https://link");
         when(imagemRepository.existsById(imagemId)).thenReturn(false);
         assertThatThrownBy(() -> bannerMuralService.criar(request))
                 .isInstanceOf(ValidationException.class);
@@ -61,7 +61,7 @@ class BannerMuralServiceTest {
     @Test
     void criar_devePersistirEBannerAtivoPorPadrao() {
         UUID imagemId = UUID.randomUUID();
-        CriarBannerMuralRequest request = new CriarBannerMuralRequest(imagemId, "alt", "legenda", "https://link");
+        CriarBannerMuralRequest request = new CriarBannerMuralRequest(imagemId, null, "alt", "legenda", "https://link");
         when(imagemRepository.existsById(imagemId)).thenReturn(true);
         when(bannerMuralRepository.save(any(BannerMural.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(imagemRepository.findById(imagemId)).thenReturn(Optional.empty());
@@ -76,7 +76,7 @@ class BannerMuralServiceTest {
     @Test
     void editar_deveLancarNotFoundQuandoIdNaoExiste() {
         UUID id = UUID.randomUUID();
-        EditarBannerMuralRequest request = new EditarBannerMuralRequest(UUID.randomUUID(), "alt", "legenda", "https://link", false);
+        EditarBannerMuralRequest request = new EditarBannerMuralRequest(UUID.randomUUID(), null, "alt", "legenda", "https://link", false);
         when(bannerMuralRepository.findById(id)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> bannerMuralService.editar(id, request))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
@@ -86,8 +86,8 @@ class BannerMuralServiceTest {
     void editar_devePermitirDesativarBanner() {
         UUID id = UUID.randomUUID();
         UUID imagemId = UUID.randomUUID();
-        BannerMural banner = new BannerMural(imagemId, "alt antigo", "legenda antiga", null);
-        EditarBannerMuralRequest request = new EditarBannerMuralRequest(imagemId, "alt novo", "legenda nova", "https://link", false);
+        BannerMural banner = new BannerMural(imagemId, null, "alt antigo", "legenda antiga", null);
+        EditarBannerMuralRequest request = new EditarBannerMuralRequest(imagemId, null, "alt novo", "legenda nova", "https://link", false);
         when(bannerMuralRepository.findById(id)).thenReturn(Optional.of(banner));
         when(imagemRepository.existsById(imagemId)).thenReturn(true);
         when(imagemRepository.findById(imagemId)).thenReturn(Optional.empty());
@@ -99,7 +99,7 @@ class BannerMuralServiceTest {
     @Test
     void listarAtivos_deveResolverUrlPublicaDaImagem() {
         UUID imagemId = UUID.randomUUID();
-        BannerMural banner = new BannerMural(imagemId, "alt", "legenda", null);
+        BannerMural banner = new BannerMural(imagemId, null, "alt", "legenda", null);
         Imagem imagem = imagem(imagemId);
         when(bannerMuralRepository.findByAtivoTrue(any())).thenReturn(List.of(banner));
         when(imagemRepository.findById(imagemId)).thenReturn(Optional.of(imagem));
@@ -107,6 +107,43 @@ class BannerMuralServiceTest {
         var resultado = bannerMuralService.listarAtivos();
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).imagemUrl()).isEqualTo("https://storage/publica.jpg");
+    }
+
+    @Test
+    void criar_deveFalharQuandoImagemEVideoInformadosJuntos() {
+        UUID imagemId = UUID.randomUUID();
+        CriarBannerMuralRequest request = new CriarBannerMuralRequest(imagemId, "https://youtube.com/watch?v=abc",
+                "alt", "legenda", "https://link");
+        assertThatThrownBy(() -> bannerMuralService.criar(request))
+                .isInstanceOf(ValidationException.class);
+        verify(bannerMuralRepository, never()).save(any());
+    }
+
+    @Test
+    void criar_deveFalharQuandoNemImagemNemVideoInformados() {
+        CriarBannerMuralRequest request = new CriarBannerMuralRequest(null, null, "alt", "legenda", "https://link");
+        assertThatThrownBy(() -> bannerMuralService.criar(request))
+                .isInstanceOf(ValidationException.class);
+        verify(bannerMuralRepository, never()).save(any());
+    }
+
+    @Test
+    void criar_deveFalharQuandoVideoUrlNaoForYoutube() {
+        CriarBannerMuralRequest request = new CriarBannerMuralRequest(null, "https://vimeo.com/123",
+                "alt", "legenda", "https://link");
+        assertThatThrownBy(() -> bannerMuralService.criar(request))
+                .isInstanceOf(ValidationException.class);
+        verify(bannerMuralRepository, never()).save(any());
+    }
+
+    @Test
+    void criar_devePersistirBannerDeVideo() {
+        CriarBannerMuralRequest request = new CriarBannerMuralRequest(null, "https://www.youtube.com/watch?v=abc",
+                "alt", "legenda", "https://link");
+        when(bannerMuralRepository.save(any(BannerMural.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        BannerMuralAdminResponse resposta = bannerMuralService.criar(request);
+        assertThat(resposta.videoUrl()).isEqualTo("https://www.youtube.com/watch?v=abc");
+        assertThat(resposta.imagemUrl()).isNull();
     }
 
     @Test

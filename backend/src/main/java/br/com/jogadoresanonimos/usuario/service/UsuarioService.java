@@ -1,5 +1,7 @@
 package br.com.jogadoresanonimos.usuario.service;
 
+import br.com.jogadoresanonimos.auditoria.entity.AcaoAuditoria;
+import br.com.jogadoresanonimos.auditoria.service.AdminAuditoriaService;
 import br.com.jogadoresanonimos.auth.dto.MensagemResponse;
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
@@ -24,15 +26,19 @@ import java.util.UUID;
 @Service
 public class UsuarioService {
 
+    private static final String ENTIDADE_USUARIO = "usuario";
+
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final RateLimiterService rateLimiterService;
+    private final AdminAuditoriaService adminAuditoriaService;
 
     public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
-                           RateLimiterService rateLimiterService) {
+                           RateLimiterService rateLimiterService, AdminAuditoriaService adminAuditoriaService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.rateLimiterService = rateLimiterService;
+        this.adminAuditoriaService = adminAuditoriaService;
     }
 
     public UsuarioMeResponse buscarMe(UUID usuarioId) {
@@ -66,7 +72,10 @@ public class UsuarioService {
         if (removendoUltimoAdmin) {
             throw new ConflitoDeEstadoException("Não é possível remover o último admin do sistema");
         }
+        String roleAnterior = usuario.getRole().name();
         usuario.alterarRole(novaRole);
+        adminAuditoriaService.registrar(solicitanteId, ENTIDADE_USUARIO, usuario.getId(), AcaoAuditoria.EDITAR,
+                roleAnterior, novaRole.name());
         return UsuarioAdminResponse.from(usuario);
     }
 

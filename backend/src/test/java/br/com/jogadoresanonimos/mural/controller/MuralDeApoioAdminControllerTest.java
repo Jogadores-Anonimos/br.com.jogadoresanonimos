@@ -36,8 +36,8 @@ class MuralDeApoioAdminControllerTest {
     }
 
     private BannerMuralAdminResponse bannerAdminResponse(UUID id, boolean ativo) {
-        return new BannerMuralAdminResponse(id, UUID.randomUUID(), "https://storage/imagem.jpg", "alt", "legenda",
-                "https://link", ativo, Instant.now(), Instant.now());
+        return new BannerMuralAdminResponse(id, UUID.randomUUID(), "https://storage/imagem.jpg", null, "alt",
+                "legenda", "https://link", ativo, Instant.now(), Instant.now());
     }
 
     @Test
@@ -51,7 +51,7 @@ class MuralDeApoioAdminControllerTest {
 
     @Test
     void criar_deveRetornarCreatedComRespostaDoService() {
-        CriarBannerMuralRequest request = new CriarBannerMuralRequest(UUID.randomUUID(), "alt", "legenda", "https://link");
+        CriarBannerMuralRequest request = new CriarBannerMuralRequest(UUID.randomUUID(), null, "alt", "legenda", "https://link");
         BannerMuralAdminResponse esperado = bannerAdminResponse(UUID.randomUUID(), true);
         when(bannerMuralService.criar(request)).thenReturn(esperado);
         ResponseEntity<ApiResponse<BannerMuralAdminResponse>> resposta = muralDeApoioAdminController.criar(request);
@@ -63,7 +63,7 @@ class MuralDeApoioAdminControllerTest {
     @Test
     void editar_deveRetornarOkComRespostaDoService() {
         UUID id = UUID.randomUUID();
-        EditarBannerMuralRequest request = new EditarBannerMuralRequest(UUID.randomUUID(), "alt", "legenda", "https://link", false);
+        EditarBannerMuralRequest request = new EditarBannerMuralRequest(UUID.randomUUID(), null, "alt", "legenda", "https://link", false);
         BannerMuralAdminResponse esperado = bannerAdminResponse(id, false);
         when(bannerMuralService.editar(id, request)).thenReturn(esperado);
         ResponseEntity<ApiResponse<BannerMuralAdminResponse>> resposta = muralDeApoioAdminController.editar(id, request);

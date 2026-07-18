@@ -13,8 +13,11 @@ public class BannerMural {
     @GeneratedValue
     private UUID id;
 
-    @Column(name = "imagem_id", nullable = false)
+    @Column(name = "imagem_id")
     private UUID imagemId;
+
+    @Column(name = "video_url", length = 500)
+    private String videoUrl;
 
     @Column(name = "alt_text", nullable = false, length = 300)
     private String altText;
@@ -37,8 +40,9 @@ public class BannerMural {
     protected BannerMural() {
     }
 
-    public BannerMural(UUID imagemId, String altText, String legenda, String linkDestino) {
+    public BannerMural(UUID imagemId, String videoUrl, String altText, String legenda, String linkDestino) {
         this.imagemId = imagemId;
+        this.videoUrl = videoUrl;
         this.altText = altText;
         this.legenda = legenda;
         this.linkDestino = linkDestino;
@@ -47,8 +51,9 @@ public class BannerMural {
         this.atualizadoEm = Instant.now();
     }
 
-    public void editar(UUID imagemId, String altText, String legenda, String linkDestino, boolean ativo) {
+    public void editar(UUID imagemId, String videoUrl, String altText, String legenda, String linkDestino, boolean ativo) {
         this.imagemId = imagemId;
+        this.videoUrl = videoUrl;
         this.altText = altText;
         this.legenda = legenda;
         this.linkDestino = linkDestino;
@@ -62,6 +67,10 @@ public class BannerMural {
 
     public UUID getImagemId() {
         return imagemId;
+    }
+
+    public String getVideoUrl() {
+        return videoUrl;
     }
 
     public String getAltText() {

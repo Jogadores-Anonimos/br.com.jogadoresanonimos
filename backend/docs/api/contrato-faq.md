@@ -189,6 +189,30 @@ completa da lista). Mover além do limite (primeira pergunta subindo,
 
 ---
 
+## Conteúdo — `V13__define_texto_definitivo_pagina_perguntas_e_respostas.sql`
+
+Seed placeholder original (10 perguntas genéricas, inserido em
+`V1__baseline.sql`, migration já aplicada — não editada) substituído
+pelo conteúdo definitivo (9 perguntas, texto de referência fornecido
+pelo cliente) via `DELETE FROM faq` + novo `INSERT`, mesmo padrão usado
+em `V7`/`V8`/`V9`/`V10`/`V11`/`V12` para os demais textos institucionais
+definitivos.
+
+Diferente das páginas `CmsPagina` (`sobre`, `historia`, etc.), a FAQ não
+usa HTML/`HtmlSanitizer` — `pergunta`/`resposta` são texto puro
+(`VARCHAR`), sem tags. Uma resposta com itens numerados (pergunta 3)
+usa quebra de linha simples (`\n\n`) dentro do próprio `VARCHAR`, sem
+marcação — cabe ao frontend decidir como renderizar quebras de linha em
+texto plano (`white-space: pre-line` ou equivalente), não é
+responsabilidade deste contrato.
+
+Título de exibição "Perguntas Frequentes" já é hardcoded no componente
+Angular (`perguntas-e-respostas.ts`/`.html`), não em `CmsPagina` — ver
+`contrato-cms-paginas-institucionais-vinte-perguntas.md`, que documenta
+explicitamente que este módulo não cria `CmsPagina` (heading fixo de UI,
+sem parágrafo institucional). Nenhuma mudança de contrato de API
+necessária para o pedido de renomear o título de exibição.
+
 ## Migration — `V16__cria_tabela_faq.sql`
 
 ```sql

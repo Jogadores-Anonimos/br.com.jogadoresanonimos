@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { Cms } from '../../services/cms/cms';
 import { CmsBlocoTexto } from '../../services/cms/cms.model';
 
@@ -12,13 +12,15 @@ import { CmsBlocoTexto } from '../../services/cms/cms.model';
 export class Privacidade implements OnInit {
   private readonly cms = inject(Cms);
 
-  blocosTexto: CmsBlocoTexto[] = [];
+  readonly blocosTexto = signal<CmsBlocoTexto[]>([]);
 
   ngOnInit(): void {
     this.cms.getPaginaPublica('privacidade').subscribe((resposta) => {
       if (resposta.success && resposta.data) {
-        this.blocosTexto = resposta.data.blocos.filter(
-          (bloco): bloco is CmsBlocoTexto => bloco.tipo === 'texto',
+        this.blocosTexto.set(
+          resposta.data.blocos.filter(
+            (bloco): bloco is CmsBlocoTexto => bloco.tipo === 'texto',
+          ),
         );
       }
     });

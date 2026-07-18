@@ -1,15 +1,9 @@
 <app-resource-layout titulo="Programa da Unidade (12 Passos da Unidade)">
 
-  <section class="section">
-    <p>Para manter a unidade, nossa experiência mostrou que:</p>
-    <ul class="passos-grid">
-      @for (passo of passos; track passo.numero) {
-        <li class="passo-card">
-          <span class="passo-card-numero">Passo {{ passo.numero }}</span>
-          <p class="passo-card-texto">{{ passo.texto }}</p>
-        </li>
-      }
-    </ul>
+  <section class="section conteudo-cms">
+    @for (bloco of blocosTexto(); track bloco.ordem) {
+      <div [innerHTML]="bloco.conteudo"></div>
+    }
   </section>
 
   <section class="cta-final">

@@ -1,8 +1,8 @@
 <main class="pagina-legal">
   <h1 class="pagina-legal__titulo">Política de Privacidade</h1>
 
-  <section class="pagina-legal__conteudo">
-    @for (bloco of blocosTexto; track bloco.ordem) {
+  <section class="pagina-legal__conteudo conteudo-cms">
+    @for (bloco of blocosTexto(); track bloco.ordem) {
       <div [innerHTML]="bloco.conteudo"></div>
     }
   </section>

@@ -1,6 +1,6 @@
 import { ReflexaoDia } from './reflexao-do-dia.model';
 
-export const DIAS_POR_MES: number[] = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+export const DIAS_POR_MES: number[] = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 const TEXTOS_JULHO: string[] = [
   'Hoje escolho lembrar que a recuperação é construída um dia de cada vez, não em uma corrida contra o tempo.',

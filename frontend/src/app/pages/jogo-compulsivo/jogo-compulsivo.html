@@ -1,7 +1,7 @@
 <app-resource-layout titulo="Jogo Compulsivo">
 
-  <section class="section">
-    @for (bloco of blocosTexto; track bloco.ordem) {
+  <section class="section conteudo-cms">
+    @for (bloco of blocosTexto(); track bloco.ordem) {
       <div [innerHTML]="bloco.conteudo"></div>
     }
   </section>

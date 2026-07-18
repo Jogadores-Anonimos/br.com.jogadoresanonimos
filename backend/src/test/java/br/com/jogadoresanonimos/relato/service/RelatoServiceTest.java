@@ -149,4 +149,22 @@ class RelatoServiceTest {
         assertThatThrownBy(() -> relatoService.remover(id, adminId))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
+
+    @Test
+    void buscarAprovadoPorId_deveRetornarRelatoQuandoAprovado() {
+        UUID id = UUID.randomUUID();
+        Relato relato = relatoComId(id, StatusRelato.approved);
+        when(relatoRepository.findByIdAndStatus(id, StatusRelato.approved)).thenReturn(Optional.of(relato));
+        var resposta = relatoService.buscarAprovadoPorId(id);
+        assertThat(resposta.id()).isEqualTo(id);
+        assertThat(resposta.texto()).isEqualTo(relato.getTexto());
+    }
+
+    @Test
+    void buscarAprovadoPorId_deveFalharQuandoNaoAprovadoOuInexistente() {
+        UUID id = UUID.randomUUID();
+        when(relatoRepository.findByIdAndStatus(id, StatusRelato.approved)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> relatoService.buscarAprovadoPorId(id))
+                .isInstanceOf(RecursoNaoEncontradoException.class);
+    }
 }
