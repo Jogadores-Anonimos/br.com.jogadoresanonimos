@@ -156,8 +156,9 @@ Ver `.claude/agents/*.md` para a definição completa de cada um.
   geral de anonimato deste documento**, formalizada para (1) recuperação
   de conta e (2) envio de itens físicos da loja; isolado por regra de
   aplicação (nunca em query/DTO/log de relato, presença ou reunião). MFA
-  via TOTP para admin está planejado, ainda pendente de implementação.
-  Ver `Decisoes de Sistemas.md`, seção 4.
+  via TOTP para admin já implementado ponta a ponta (login + etapa TOTP,
+  ambas as etapas validando reCAPTCHA). Ver `Decisoes de Sistemas.md`,
+  seção 4.
 - Uploads de imagem devem ter metadados EXIF removidos antes de salvar
   (para não vazar geolocalização/dispositivo do usuário), validação por
   magic bytes (não extensão/`Content-Type`), sem aceitar SVG. Storage é

@@ -72,9 +72,9 @@
   (`VARCHAR NOT NULL UNIQUE`), isolamento por regra de aplicação (nunca
   em query/DTO/log de relato, presença ou reunião). Login aceita apelido
   OU e-mail.
-- Admin: **MFA via TOTP** (app autenticador) + códigos de backup —
-  **planejado, mas fica para depois do CRUD básico**, quando o dashboard
-  já estiver em teste.
+- Admin: **MFA via TOTP** (app autenticador) — **implementado**: login
+  inicial e etapa TOTP validam reCAPTCHA cada um com seu próprio widget;
+  backend valida em `AuthService.loginComMfa`.
 - JWT carrega `role` como claim assinado, revalidado a cada requisição.
   Autorização sempre checada no backend (`@PreAuthorize`), nunca inferida
   pela rota do frontend.
@@ -409,6 +409,27 @@ cada endpoint. Log de auditoria é sobre ação administrativa, não sobre
 comportamento de participante — pode (e deve) identificar o admin agente,
 mas trata qualquer dado de participante referenciado só por id técnico do
 recurso, nunca por conteúdo.
+
+## 11-B. Filtro e paginação de reuniões — decisão fechada em 2026-07-19 (`system-design`)
+
+- **Cenário**: painel admin de reuniões precisava de filtro (busca por
+  texto, categoria, dia da semana); página pública de reuniões precisava
+  de paginação, mantendo a ordenação por distância (geolocalização do
+  usuário) já existente.
+- **Decisão**: filtro (admin) e paginação "carregar mais" (público) são
+  **100% client-side** — sem novo endpoint, sem parâmetro de
+  paginação/filtro na API. O backend continua devolvendo a lista
+  completa de reuniões já ordenada; front filtra/pagina em memória.
+- **Por quê**: volume atual é de **94 reuniões** — filtrar/paginar em
+  memória no browser é imperceptível nesse tamanho, e implementar
+  paginação/filtro server-side (com todos os parâmetros, contrato de API
+  novo, testes de contrato) seria complexidade desproporcional ao
+  problema real. Também evita reimplementar a ordenação por distância no
+  backend, que já existe e funciona client-side.
+- **Gatilho de revisão**: se o total de reuniões cadastradas passar de
+  **~1.000-2.000**, revisitar a decisão — nesse volume o payload
+  completo e o custo de filtro em memória no browser deixam de ser
+  desprezíveis, e paginação/filtro server-side passam a valer a pena.
 
 ## 12. Rate limiting
 

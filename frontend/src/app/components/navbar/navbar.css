@@ -29,6 +29,10 @@
   justify-content: flex-start;
 }
 
+.nav-links-mobile-only {
+  display: none;
+}
+
 .utility-bar-actions {
   justify-content: flex-end;
 }
@@ -655,6 +659,10 @@
     display: flex;
   }
 
+  .nav-links-mobile-only {
+    display: list-item;
+  }
+
   .nav-links {
     flex-direction: column;
     align-items: stretch;
@@ -727,6 +735,8 @@
   .dropdown-toggle--icon {
     flex: 0 0 44px;
     justify-content: center;
+    align-self: stretch;
+    min-height: 44px;
     height: auto;
     padding: 0;
   }

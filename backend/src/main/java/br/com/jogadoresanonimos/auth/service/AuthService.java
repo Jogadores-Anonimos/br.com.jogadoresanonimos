@@ -110,6 +110,7 @@ public class AuthService {
     public LoginResponse loginComMfa(MfaLoginRequest request) {
         String identificadorNormalizado = request.identificador().trim().toLowerCase();
         checarRateLimitConta("login-mfa", identificadorNormalizado);
+        recaptchaService.validar(request.recaptchaToken());
         Optional<Usuario> usuarioOpt = usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(
                 request.identificador(), request.identificador());
         if (usuarioOpt.isEmpty() || !passwordEncoder.matches(request.senha(), usuarioOpt.get().getSenhaHash())) {

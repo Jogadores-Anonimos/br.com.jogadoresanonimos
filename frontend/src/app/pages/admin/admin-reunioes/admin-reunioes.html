@@ -22,15 +22,70 @@
     </p>
   }
 
-  @if (!carregando && !erroCarregamento && reunioes.length === 0) {
+  @if (!carregando && !erroCarregamento && reunioes().length > 0) {
+    <div class="admin-reunioes__filtros">
+      <div class="admin-reunioes__campo admin-reunioes__campo-busca">
+        <label for="reuniao-filtro-busca">Buscar</label>
+        <input
+          id="reuniao-filtro-busca"
+          type="text"
+          placeholder="Buscar por nome ou local"
+          [ngModel]="filtroTexto()"
+          (ngModelChange)="filtroTexto.set($event)"
+        />
+      </div>
+
+      <div class="admin-reunioes__campo">
+        <label for="reuniao-filtro-categoria">Categoria</label>
+        <select
+          id="reuniao-filtro-categoria"
+          [ngModel]="filtroCategoria()"
+          (ngModelChange)="filtroCategoria.set($event)"
+        >
+          <option value="">Todas</option>
+          <option value="presencial">Presencial</option>
+          <option value="virtual">Virtual</option>
+        </select>
+      </div>
+
+      <div class="admin-reunioes__campo">
+        <label for="reuniao-filtro-dia-semana">Dia da semana</label>
+        <select
+          id="reuniao-filtro-dia-semana"
+          [ngModel]="filtroDiaSemana()"
+          (ngModelChange)="filtroDiaSemana.set($event)"
+        >
+          <option value="">Todos</option>
+          @for (dia of diasSemanaFiltro; track dia) {
+            <option [value]="dia">{{ dia }}</option>
+          }
+        </select>
+      </div>
+
+      @if (filtroAtivo()) {
+        <button type="button" class="admin-reunioes__botao admin-reunioes__botao--secundario" (click)="limparFiltros()">
+          Limpar filtros
+        </button>
+      }
+    </div>
+  }
+
+  @if (!carregando && !erroCarregamento && reunioes().length === 0) {
     <p class="admin-reunioes__estado">
       Nenhuma reunião cadastrada ainda.
     </p>
   }
 
-  @if (!carregando && reunioes.length > 0) {
+  @if (!carregando && !erroCarregamento && reunioes().length > 0 && reunioesFiltradas().length === 0) {
+    <p class="admin-reunioes__estado">
+      Nenhuma reunião encontrada com esses filtros.
+      <button type="button" class="admin-reunioes__link-limpar" (click)="limparFiltros()">Limpar filtros</button>
+    </p>
+  }
+
+  @if (!carregando && reunioesFiltradas().length > 0) {
     <ul class="admin-reunioes__lista">
-      @for (reuniao of reunioes; track reuniao.id) {
+      @for (reuniao of reunioesFiltradas(); track reuniao.id) {
         <li class="admin-reunioes__card">
           <div class="admin-reunioes__card-cabecalho">
             <div class="admin-reunioes__card-titulo-linha">

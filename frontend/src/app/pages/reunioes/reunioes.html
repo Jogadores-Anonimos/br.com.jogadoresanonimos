@@ -78,7 +78,7 @@
               <select
                 name="filtroDiaSemana"
                 [ngModel]="filtroDiaSemana()"
-                (ngModelChange)="filtroDiaSemana.set($event); atualizarMarcadores()"
+                (ngModelChange)="aplicarFiltroDiaSemana($event)"
               >
                 <option value="todos">Todos os dias</option>
                 <option value="hoje">Hoje</option>
@@ -93,7 +93,7 @@
               <select
                 name="filtroPeriodo"
                 [ngModel]="filtroPeriodo()"
-                (ngModelChange)="filtroPeriodo.set($event); atualizarMarcadores()"
+                (ngModelChange)="aplicarFiltroPeriodo($event)"
               >
                 <option value="todos">Qualquer período</option>
                 @for (periodo of periodos; track periodo) {
@@ -107,7 +107,7 @@
               <select
                 name="filtroRaioKm"
                 [ngModel]="filtroRaioKm()"
-                (ngModelChange)="filtroRaioKm.set($event); atualizarMarcadores()"
+                (ngModelChange)="aplicarFiltroRaioKm($event)"
                 [disabled]="!localizacaoPermitida()"
                 [title]="localizacaoPermitida() ? '' : 'Permita a localização para filtrar por distância'"
               >
@@ -122,7 +122,7 @@
       }
 
       <div class="reunioes-lista">
-        @for (reuniao of reunioesFiltradas(); track reuniao.id) {
+        @for (reuniao of reunioesPaginadas(); track reuniao.id) {
           <div class="reuniao-card">
             <h3>{{ reuniao.nome }}</h3>
             <p class="reuniao-descricao">{{ reuniao.descricao }}</p>
@@ -156,6 +156,14 @@
           </p>
         }
       </div>
+
+      @if (itensVisiveis() < reunioesFiltradas().length) {
+        <div class="reunioes-carregar-mais">
+          <button type="button" class="btn-detalhes" (click)="carregarMaisReunioes()">
+            Carregar mais
+          </button>
+        </div>
+      }
     </section>
 
   }

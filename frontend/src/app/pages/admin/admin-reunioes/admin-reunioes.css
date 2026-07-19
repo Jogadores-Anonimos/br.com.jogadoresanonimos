@@ -39,6 +39,42 @@
   color: var(--color-danger);
 }
 
+.admin-reunioes__link-limpar {
+  padding: 0;
+  color: var(--cor-padrao-ja);
+  font-family: var(--font-body);
+  font-size: inherit;
+  font-weight: var(--font-weight-semibold);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.admin-reunioes__link-limpar:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.admin-reunioes__filtros {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin-reunioes__campo-busca {
+  flex: 2;
+  min-width: 0;
+}
+
+.admin-reunioes__filtros .admin-reunioes__campo {
+  min-width: 0;
+}
+
 .admin-reunioes__lista {
   list-style: none;
   display: flex;
@@ -286,6 +322,15 @@
   .admin-reunioes__mapa-preview-wrapper {
     min-height: 320px;
   }
+
+  .admin-reunioes__filtros {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .admin-reunioes__filtros .admin-reunioes__campo {
+    flex: 1;
+  }
 }
 
 @media (max-width: 600px) {
@@ -308,6 +353,14 @@
   }
 
   .admin-reunioes__acoes .admin-reunioes__botao {
+    width: 100%;
+  }
+
+  .admin-reunioes__filtros {
+    width: 100%;
+  }
+
+  .admin-reunioes__filtros .admin-reunioes__botao--secundario {
     width: 100%;
   }
 }

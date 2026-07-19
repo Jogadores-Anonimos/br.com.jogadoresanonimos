@@ -179,10 +179,14 @@
         <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
       </li>
 
+      <li class="nav-links-mobile-only">
+        <a routerLink="/contribuir" routerLinkActive="active">Contribuir</a>
+      </li>
+
       <li
         class="dropdown"
-        (mouseenter)="abrirDropdown('sobre')"
-        (mouseleave)="fecharDropdown('sobre')"
+        (mouseenter)="!isMobileLayout && abrirDropdown('sobre')"
+        (mouseleave)="!isMobileLayout && fecharDropdown('sobre')"
       >
         <a
           class="dropdown-label"
@@ -209,8 +213,8 @@
 
       <li
         class="dropdown"
-        (mouseenter)="abrirDropdown('recursos')"
-        (mouseleave)="fecharDropdown('recursos')"
+        (mouseenter)="!isMobileLayout && abrirDropdown('recursos')"
+        (mouseleave)="!isMobileLayout && fecharDropdown('recursos')"
       >
         <a
           class="dropdown-label"

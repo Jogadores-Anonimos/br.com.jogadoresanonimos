@@ -2,7 +2,6 @@ import {
   ApplicationRef,
   Component,
   ElementRef,
-  OnDestroy,
   ViewChild,
   inject,
 } from '@angular/core';
@@ -26,7 +25,7 @@ declare const grecaptcha: any;
   templateUrl: './conta-auth-forms.html',
   styleUrl: './conta-auth-forms.css',
 })
-export class ContaAuthForms implements OnDestroy {
+export class ContaAuthForms {
   private readonly appRef = inject(ApplicationRef);
   private readonly recaptchaLoader = inject(RecaptchaLoader);
   private readonly auth = inject(Auth);
@@ -44,6 +43,8 @@ export class ContaAuthForms implements OnDestroy {
 
   loginEtapaMfa = false;
   loginCodigoTotp = '';
+  captchaMfaOk = false;
+  private captchaMfaToken = '';
 
   registroApelido = '';
   registroEmail = '';
@@ -54,7 +55,16 @@ export class ContaAuthForms implements OnDestroy {
   registroSucesso = false;
   captchaRegistroOk = false;
   registroErrosCampo: Record<string, string> = {};
+  registroConcluido = false;
+  registroApelidoConcluido = '';
   private captchaRegistroToken = '';
+
+  @ViewChild('loginSenhaField')
+  set loginSenhaFieldRef(ref: ElementRef<HTMLInputElement> | undefined) {
+    if (ref) {
+      ref.nativeElement.focus();
+    }
+  }
 
   onLoginSubmit(): void {
     this.loginEnviando = true;
@@ -100,7 +110,7 @@ export class ContaAuthForms implements OnDestroy {
     const req: LoginMfaRequest = {
       identificador: this.loginUsuarioOuEmail,
       senha: this.loginSenha,
-      recaptchaToken: this.captchaLoginToken,
+      recaptchaToken: this.captchaMfaToken,
       codigoTotp: this.loginCodigoTotp,
     };
 
@@ -113,6 +123,7 @@ export class ContaAuthForms implements OnDestroy {
         ),
         finalize(() => {
           this.loginEnviando = false;
+          this.resetarCaptcha('login-mfa');
         }),
       )
       .subscribe((resposta) => {
@@ -131,6 +142,7 @@ export class ContaAuthForms implements OnDestroy {
     this.loginCodigoTotp = '';
     this.loginMensagem = '';
     this.resetarCaptcha('login');
+    this.resetarCaptcha('login-mfa');
   }
 
   onRegistroSubmit(): void {
@@ -160,12 +172,13 @@ export class ContaAuthForms implements OnDestroy {
         this.registroSucesso = resposta.success;
         this.registroErrosCampo = mapearErrosCampo(resposta.error?.fields);
         if (resposta.success) {
-          this.registroMensagem = 'Conta criada com sucesso! Faça login abaixo para continuar.';
+          this.registroApelidoConcluido = this.registroApelido;
           this.loginUsuarioOuEmail = this.registroApelido;
           this.registroApelido = '';
           this.registroEmail = '';
           this.registroSenha = '';
           this.registroConfirmarSenha = '';
+          this.registroConcluido = true;
         } else {
           this.registroMensagem = resposta.error?.message ?? 'Não foi possível criar a conta. Tente novamente.';
         }
@@ -174,8 +187,7 @@ export class ContaAuthForms implements OnDestroy {
 
   private captchaLoginWidgetId: number | null = null;
   private captchaRegistroWidgetId: number | null = null;
-  private captchaLoginTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  private captchaRegistroTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private captchaMfaWidgetId: number | null = null;
 
   @ViewChild('captchaLogin')
   set captchaLoginRef(ref: ElementRef<HTMLDivElement> | undefined) {
@@ -184,6 +196,7 @@ export class ContaAuthForms implements OnDestroy {
     } else {
       this.captchaLoginWidgetId = null;
       this.captchaLoginOk = false;
+      this.captchaLoginToken = '';
     }
   }
 
@@ -197,9 +210,20 @@ export class ContaAuthForms implements OnDestroy {
     }
   }
 
+  @ViewChild('captchaMfa')
+  set captchaMfaRef(ref: ElementRef<HTMLDivElement> | undefined) {
+    if (ref) {
+      this.carregarERenderizarRecaptcha(ref.nativeElement, 'login-mfa');
+    } else {
+      this.captchaMfaWidgetId = null;
+      this.captchaMfaOk = false;
+      this.captchaMfaToken = '';
+    }
+  }
+
   private carregarERenderizarRecaptcha(
     container: HTMLDivElement,
-    formulario: 'login' | 'registro',
+    formulario: 'login' | 'registro' | 'login-mfa',
   ): void {
     this.recaptchaLoader
       .carregar()
@@ -211,25 +235,8 @@ export class ContaAuthForms implements OnDestroy {
 
   private renderizarRecaptcha(
     container: HTMLDivElement,
-    formulario: 'login' | 'registro',
-    tentativa = 0,
+    formulario: 'login' | 'registro' | 'login-mfa',
   ): void {
-    if (typeof grecaptcha === 'undefined' || !grecaptcha.render) {
-      if (tentativa > 40) {
-        return;
-      }
-      const timeoutId = setTimeout(
-        () => this.renderizarRecaptcha(container, formulario, tentativa + 1),
-        250,
-      );
-      if (formulario === 'login') {
-        this.captchaLoginTimeoutId = timeoutId;
-      } else {
-        this.captchaRegistroTimeoutId = timeoutId;
-      }
-      return;
-    }
-
     const widgetId = grecaptcha.render(container, {
       sitekey: environment.recaptchaSiteKey,
       callback: (token: string) => {
@@ -245,36 +252,37 @@ export class ContaAuthForms implements OnDestroy {
 
     if (formulario === 'login') {
       this.captchaLoginWidgetId = widgetId;
-    } else {
+    } else if (formulario === 'registro') {
       this.captchaRegistroWidgetId = widgetId;
+    } else {
+      this.captchaMfaWidgetId = widgetId;
     }
   }
 
-  private definirCaptchaToken(formulario: 'login' | 'registro', token: string): void {
+  private definirCaptchaToken(formulario: 'login' | 'registro' | 'login-mfa', token: string): void {
     if (formulario === 'login') {
       this.captchaLoginToken = token;
       this.captchaLoginOk = token !== '';
-    } else {
+    } else if (formulario === 'registro') {
       this.captchaRegistroToken = token;
       this.captchaRegistroOk = token !== '';
+    } else {
+      this.captchaMfaToken = token;
+      this.captchaMfaOk = token !== '';
     }
     this.appRef.tick();
   }
 
-  private resetarCaptcha(formulario: 'login' | 'registro'): void {
-    const widgetId = formulario === 'login' ? this.captchaLoginWidgetId : this.captchaRegistroWidgetId;
+  private resetarCaptcha(formulario: 'login' | 'registro' | 'login-mfa'): void {
+    const widgetId =
+      formulario === 'login'
+        ? this.captchaLoginWidgetId
+        : formulario === 'registro'
+          ? this.captchaRegistroWidgetId
+          : this.captchaMfaWidgetId;
     if (widgetId !== null && typeof grecaptcha !== 'undefined' && grecaptcha.reset) {
       grecaptcha.reset(widgetId);
     }
     this.definirCaptchaToken(formulario, '');
-  }
-
-  ngOnDestroy(): void {
-    if (this.captchaLoginTimeoutId !== null) {
-      clearTimeout(this.captchaLoginTimeoutId);
-    }
-    if (this.captchaRegistroTimeoutId !== null) {
-      clearTimeout(this.captchaRegistroTimeoutId);
-    }
   }
 }

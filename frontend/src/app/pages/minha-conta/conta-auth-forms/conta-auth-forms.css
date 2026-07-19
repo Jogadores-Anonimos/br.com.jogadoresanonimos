@@ -146,6 +146,40 @@
   font-size: 0.85rem;
 }
 
+.registro-confirmacao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) 0;
+}
+
+.registro-confirmacao__icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 2px solid var(--color-success);
+  color: var(--color-success);
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.registro-confirmacao__titulo {
+  color: var(--color-text);
+  font-size: 1.2rem;
+  font-weight: var(--font-weight-heading);
+}
+
+.registro-confirmacao__corpo {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
 @media (max-width: 900px) {
   .conta-grid {
     grid-template-columns: 1fr;

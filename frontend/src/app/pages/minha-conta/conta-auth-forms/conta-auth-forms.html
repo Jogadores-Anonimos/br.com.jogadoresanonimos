@@ -26,6 +26,7 @@
               type="password"
               autocomplete="current-password"
               [(ngModel)]="loginSenha"
+              #loginSenhaField
               required
             />
           </div>
@@ -75,7 +76,9 @@
             />
           </div>
 
-          <button type="submit" class="btn-cta" [disabled]="loginEnviando || loginMfaForm.invalid">
+          <div class="conta-captcha" #captchaMfa></div>
+
+          <button type="submit" class="btn-cta" [disabled]="loginEnviando || loginMfaForm.invalid || !captchaMfaOk">
             {{ loginEnviando ? 'Verificando...' : 'Confirmar código' }}
           </button>
 
@@ -97,105 +100,116 @@
     <h2 class="conta-secao__titulo">Criar conta</h2>
 
     <div class="conta-card">
-      <p class="conta-card-descricao">
-        Usamos apenas seu e-mail para recuperação de conta, nunca
-        pedimos nome real ou outros dados que possam te identificar.
-      </p>
+      @if (!registroConcluido) {
+        <p class="conta-card-descricao">
+          Usamos apenas seu e-mail para recuperação de conta, nunca
+          pedimos nome real ou outros dados que possam te identificar.
+        </p>
 
-      <form (ngSubmit)="onRegistroSubmit()" #registroForm="ngForm">
-        <div class="campo">
-          <label for="registro-apelido">Apelido</label>
-          <input
-            id="registro-apelido"
-            name="apelido"
-            type="text"
-            autocomplete="username"
-            minlength="3"
-            maxlength="30"
-            pattern="\S+"
-            [(ngModel)]="registroApelido"
-            #apelidoField="ngModel"
-            aria-describedby="registro-apelido-ajuda"
-            required
-          />
-          <small id="registro-apelido-ajuda" class="campo-ajuda">
-            3 a 30 caracteres, sem espaços. Não use seu nome real.
-          </small>
-          @if (registroErrosCampo['apelido']) {
-            <span class="campo-erro">{{ registroErrosCampo['apelido'] }}</span>
-          } @else if (apelidoField.invalid && apelidoField.touched) {
-            <span class="campo-erro">Apelido deve ter 3 a 30 caracteres, sem espaços.</span>
+        <form (ngSubmit)="onRegistroSubmit()" #registroForm="ngForm">
+          <div class="campo">
+            <label for="registro-apelido">Apelido</label>
+            <input
+              id="registro-apelido"
+              name="apelido"
+              type="text"
+              autocomplete="username"
+              minlength="3"
+              maxlength="30"
+              pattern="\S+"
+              [(ngModel)]="registroApelido"
+              #apelidoField="ngModel"
+              aria-describedby="registro-apelido-ajuda"
+              required
+            />
+            <small id="registro-apelido-ajuda" class="campo-ajuda">
+              3 a 30 caracteres, sem espaços. Não use seu nome real.
+            </small>
+            @if (registroErrosCampo['apelido']) {
+              <span class="campo-erro">{{ registroErrosCampo['apelido'] }}</span>
+            } @else if (apelidoField.invalid && apelidoField.touched) {
+              <span class="campo-erro">Apelido deve ter 3 a 30 caracteres, sem espaços.</span>
+            }
+          </div>
+
+          <div class="campo">
+            <label for="registro-email">E-mail</label>
+            <input
+              id="registro-email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              [(ngModel)]="registroEmail"
+              required
+            />
+            @if (registroErrosCampo['email']) {
+              <span class="campo-erro">{{ registroErrosCampo['email'] }}</span>
+            }
+          </div>
+
+          <div class="campo">
+            <label for="registro-senha">Senha</label>
+            <input
+              id="registro-senha"
+              name="senha"
+              type="password"
+              autocomplete="new-password"
+              minlength="10"
+              [(ngModel)]="registroSenha"
+              #senhaField="ngModel"
+              required
+            />
+            @if (registroErrosCampo['senha']) {
+              <span class="campo-erro">{{ registroErrosCampo['senha'] }}</span>
+            } @else if (senhaField.invalid && senhaField.touched) {
+              <span class="campo-erro">Senha deve ter no mínimo 10 caracteres.</span>
+            }
+          </div>
+
+          <div class="campo">
+            <label for="registro-confirmar-senha">Confirmar senha</label>
+            <input
+              id="registro-confirmar-senha"
+              name="confirmarSenha"
+              type="password"
+              autocomplete="new-password"
+              [(ngModel)]="registroConfirmarSenha"
+              #confirmarSenhaField="ngModel"
+              required
+            />
+            @if (registroErrosCampo['confirmarSenha']) {
+              <span class="campo-erro">{{ registroErrosCampo['confirmarSenha'] }}</span>
+            } @else if (confirmarSenhaField.touched && registroConfirmarSenha !== registroSenha) {
+              <span class="campo-erro">As senhas informadas não coincidem.</span>
+            }
+          </div>
+
+          <div class="conta-captcha" #captchaRegistro></div>
+
+          <button
+            type="submit"
+            class="btn-cta"
+            [disabled]="registroEnviando || registroForm.invalid || registroConfirmarSenha !== registroSenha"
+          >
+            {{ registroEnviando ? 'Criando...' : 'Criar conta' }}
+          </button>
+
+          @if (registroMensagem) {
+            <p class="mensagem mensagem-erro">
+              {{ registroMensagem }}
+            </p>
           }
-        </div>
-
-        <div class="campo">
-          <label for="registro-email">E-mail</label>
-          <input
-            id="registro-email"
-            name="email"
-            type="email"
-            autocomplete="email"
-            [(ngModel)]="registroEmail"
-            required
-          />
-          @if (registroErrosCampo['email']) {
-            <span class="campo-erro">{{ registroErrosCampo['email'] }}</span>
-          }
-        </div>
-
-        <div class="campo">
-          <label for="registro-senha">Senha</label>
-          <input
-            id="registro-senha"
-            name="senha"
-            type="password"
-            autocomplete="new-password"
-            minlength="10"
-            [(ngModel)]="registroSenha"
-            #senhaField="ngModel"
-            required
-          />
-          @if (registroErrosCampo['senha']) {
-            <span class="campo-erro">{{ registroErrosCampo['senha'] }}</span>
-          } @else if (senhaField.invalid && senhaField.touched) {
-            <span class="campo-erro">Senha deve ter no mínimo 10 caracteres.</span>
-          }
-        </div>
-
-        <div class="campo">
-          <label for="registro-confirmar-senha">Confirmar senha</label>
-          <input
-            id="registro-confirmar-senha"
-            name="confirmarSenha"
-            type="password"
-            autocomplete="new-password"
-            [(ngModel)]="registroConfirmarSenha"
-            #confirmarSenhaField="ngModel"
-            required
-          />
-          @if (registroErrosCampo['confirmarSenha']) {
-            <span class="campo-erro">{{ registroErrosCampo['confirmarSenha'] }}</span>
-          } @else if (confirmarSenhaField.touched && registroConfirmarSenha !== registroSenha) {
-            <span class="campo-erro">As senhas informadas não coincidem.</span>
-          }
-        </div>
-
-        <div class="conta-captcha" #captchaRegistro></div>
-
-        <button
-          type="submit"
-          class="btn-cta"
-          [disabled]="registroEnviando || registroForm.invalid || registroConfirmarSenha !== registroSenha"
-        >
-          {{ registroEnviando ? 'Criando...' : 'Criar conta' }}
-        </button>
-
-        @if (registroMensagem) {
-          <p class="mensagem" [class.mensagem-sucesso]="registroSucesso" [class.mensagem-erro]="!registroSucesso">
-            {{ registroMensagem }}
+        </form>
+      } @else {
+        <div class="registro-confirmacao">
+          <span class="registro-confirmacao__icone" aria-hidden="true">✓</span>
+          <h3 class="registro-confirmacao__titulo">Conta criada.</h3>
+          <p class="registro-confirmacao__corpo">
+            Sua conta está pronta. Faça login ao lado com o apelido
+            <strong>{{ registroApelidoConcluido }}</strong> para continuar.
           </p>
-        }
-      </form>
+        </div>
+      }
     </div>
   </div>
 </div>

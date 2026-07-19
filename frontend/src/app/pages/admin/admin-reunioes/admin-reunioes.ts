@@ -1,6 +1,6 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, ElementRef, OnInit, PLATFORM_ID, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, OnInit, PLATFORM_ID, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { catchError, of } from 'rxjs';
 import type * as L from 'leaflet';
@@ -67,6 +67,8 @@ interface ResultadoNominatim {
 
 const CENTRO_PADRAO: L.LatLngTuple = [-23.55, -46.62];
 
+const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+
 @Component({
   selector: 'app-admin-reunioes',
   standalone: true,
@@ -80,10 +82,39 @@ export class AdminReunioes implements OnInit {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   readonly horarios = gerarHorarios();
+  readonly diasSemanaFiltro = DIAS_SEMANA;
 
   carregando = true;
   erroCarregamento = '';
-  reunioes: Reuniao[] = [];
+  readonly reunioes = signal<Reuniao[]>([]);
+
+  readonly filtroTexto = signal('');
+  readonly filtroCategoria = signal<CategoriaReuniao | ''>('');
+  readonly filtroDiaSemana = signal('');
+
+  readonly filtroAtivo = computed(
+    () => this.filtroTexto().trim() !== '' || this.filtroCategoria() !== '' || this.filtroDiaSemana() !== '',
+  );
+
+  readonly reunioesFiltradas = computed(() => {
+    const texto = this.filtroTexto().trim().toLowerCase();
+    const categoria = this.filtroCategoria();
+    const diaSemana = this.filtroDiaSemana();
+
+    return this.reunioes().filter((reuniao) => {
+      const combinaTexto =
+        texto === '' || reuniao.nome.toLowerCase().includes(texto) || reuniao.local.toLowerCase().includes(texto);
+      const combinaCategoria = categoria === '' || reuniao.categoria === categoria;
+      const combinaDiaSemana = diaSemana === '' || reuniao.diaSemana === diaSemana;
+      return combinaTexto && combinaCategoria && combinaDiaSemana;
+    });
+  });
+
+  limparFiltros(): void {
+    this.filtroTexto.set('');
+    this.filtroCategoria.set('');
+    this.filtroDiaSemana.set('');
+  }
 
   modo: 'lista' | 'formulario' = 'lista';
   reuniaoEmEdicao: Reuniao | null = null;
@@ -129,9 +160,9 @@ export class AdminReunioes implements OnInit {
       this.carregando = false;
 
       if (envelope.success && envelope.data) {
-        this.reunioes = envelope.data;
+        this.reunioes.set(envelope.data);
       } else {
-        this.reunioes = [];
+        this.reunioes.set([]);
         this.erroCarregamento = envelope.error?.message ?? 'Não foi possível carregar as reuniões.';
       }
     });
@@ -319,10 +350,10 @@ export class AdminReunioes implements OnInit {
       if (envelope.success && envelope.data) {
         const salva = envelope.data;
         const reunioes = this.reuniaoEmEdicao
-          ? this.reunioes.map((r) => (r.id === salva.id ? salva : r))
-          : [...this.reunioes, salva];
+          ? this.reunioes().map((r) => (r.id === salva.id ? salva : r))
+          : [...this.reunioes(), salva];
         reunioes.sort((a, b) => a.nome.localeCompare(b.nome));
-        this.reunioes = reunioes;
+        this.reunioes.set(reunioes);
         this.modo = 'lista';
         this.reuniaoEmEdicao = null;
       } else {
@@ -351,7 +382,7 @@ export class AdminReunioes implements OnInit {
       this.confirmandoExclusao = null;
 
       if (envelope.success) {
-        this.reunioes = this.reunioes.filter((r) => r.id !== reuniao.id);
+        this.reunioes.update((atuais) => atuais.filter((r) => r.id !== reuniao.id));
       } else {
         this.erroExclusao = envelope.error?.message ?? 'Não foi possível excluir a reunião.';
       }

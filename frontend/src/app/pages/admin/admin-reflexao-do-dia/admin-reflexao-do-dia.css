@@ -133,7 +133,7 @@
   align-items: flex-start;
   justify-content: center;
   overflow-y: auto;
-  padding: var(--spacing-lg) var(--spacing-sm);
+  padding: calc(var(--nav-height) + var(--utility-bar-height, 48px) + var(--ticker-height, 0px) + var(--spacing-lg)) var(--spacing-sm) var(--spacing-lg);
   background: rgba(var(--black-rgb), 0.5);
   z-index: 100;
 }
@@ -142,7 +142,7 @@
   width: 100%;
   max-width: 60ch;
   margin: auto 0;
-  max-height: calc(100vh - 2 * var(--spacing-lg));
+  max-height: calc(100vh - var(--nav-height) - var(--utility-bar-height, 48px) - var(--ticker-height, 0px) - 2 * var(--spacing-lg));
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -245,11 +245,11 @@
   }
 
   .admin-reflexao__overlay {
-    padding: var(--spacing-md) var(--spacing-sm);
+    padding: calc(var(--nav-height) + var(--utility-bar-height, 48px) + var(--ticker-height, 0px) + var(--spacing-md)) var(--spacing-sm) var(--spacing-md);
   }
 
   .admin-reflexao__painel {
-    max-height: calc(100vh - 2 * var(--spacing-md));
+    max-height: calc(100vh - var(--nav-height) - var(--utility-bar-height, 48px) - var(--ticker-height, 0px) - 2 * var(--spacing-md));
   }
 
   .admin-reflexao__acoes {

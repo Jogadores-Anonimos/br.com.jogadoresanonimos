@@ -36,6 +36,7 @@ const ZOOM_LOCALIZACAO_USUARIO = 11;
 const ZOOM_MAXIMO_LOCALIZACAO_USUARIO = 14;
 const RAIO_VIZINHANCA_KM = 100;
 const MAXIMO_REUNIOES_VIZINHANCA = 15;
+const ITENS_POR_PAGINA = 10;
 
 const WHATSAPP_PLACEHOLDER = '5599999999999';
 
@@ -121,6 +122,8 @@ export class Reunioes implements OnInit, OnDestroy {
   readonly filtroPeriodo = signal<Periodo | 'todos'>('todos');
   readonly filtroRaioKm = signal<number | 'todos'>('todos');
 
+  readonly itensVisiveis = signal(ITENS_POR_PAGINA);
+
   private readonly userCoords = signal<{ latitude: number; longitude: number } | null>(null);
 
   localizacaoPermitida = signal(false);
@@ -181,7 +184,30 @@ export class Reunioes implements OnInit, OnDestroy {
     this.filtroDiaSemana.set('todos');
     this.filtroPeriodo.set('todos');
     this.filtroRaioKm.set('todos');
+    this.itensVisiveis.set(ITENS_POR_PAGINA);
     this.fecharDetalhes();
+  }
+
+  aplicarFiltroDiaSemana(valor: FiltroDia): void {
+    this.filtroDiaSemana.set(valor);
+    this.itensVisiveis.set(ITENS_POR_PAGINA);
+    this.atualizarMarcadores();
+  }
+
+  aplicarFiltroPeriodo(valor: Periodo | 'todos'): void {
+    this.filtroPeriodo.set(valor);
+    this.itensVisiveis.set(ITENS_POR_PAGINA);
+    this.atualizarMarcadores();
+  }
+
+  aplicarFiltroRaioKm(valor: number | 'todos'): void {
+    this.filtroRaioKm.set(valor);
+    this.itensVisiveis.set(ITENS_POR_PAGINA);
+    this.atualizarMarcadores();
+  }
+
+  carregarMaisReunioes(): void {
+    this.itensVisiveis.update((valor) => valor + ITENS_POR_PAGINA);
   }
 
   solicitarLocalizacao(): void {
@@ -277,6 +303,10 @@ export class Reunioes implements OnInit, OnDestroy {
 
     return resultado;
   });
+
+  readonly reunioesPaginadas = computed<Reuniao[]>(() =>
+    this.reunioesFiltradas().slice(0, this.itensVisiveis()),
+  );
 
   atualizarMarcadores(): void {
     if (!this.mapa || !this.leaflet) {
