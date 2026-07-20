@@ -64,7 +64,6 @@ services:
   - type: web
     name: jogadoresanonimos-free-frontend
     runtime: static
-    plan: free
     rootDir: frontend
     buildCommand: npm ci && npx ng build --configuration production
     staticPublishPath: dist/frontend/browser
