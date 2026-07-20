@@ -1,0 +1,74 @@
+databases:
+  - name: jogadoresanonimos-free-db
+    plan: free
+    databaseName: jogadoresanonimos
+    user: jogadoresanonimos
+
+services:
+  - type: web
+    name: jogadoresanonimos-free-backend
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerCommand: sh -c "java -jar app.jar --spring.datasource.url=jdbc:postgresql://$DB_HOST:$DB_PORT/$DB_NAME"
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: jogadoresanonimos-free-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: jogadoresanonimos-free-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: jogadoresanonimos-free-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: jogadoresanonimos-free-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: jogadoresanonimos-free-db
+          property: password
+      - key: DB_POOL_MAX
+        value: "3"
+      - key: DB_POOL_MIN
+        value: "1"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_TTL_MINUTES
+        value: "60"
+      - key: LOG_HMAC_SECRET
+        generateValue: true
+      - key: MFA_SECRET_ENCRYPTION_KEY
+        generateValue: true
+      - key: CORS_ALLOWED_ORIGIN
+        sync: false
+      - key: RECAPTCHA_SECRET_KEY
+        sync: false
+      - key: STORAGE_STUB_DIR
+        value: /app/data/imagens
+      - key: STORAGE_PUBLIC_BASE_URL
+        sync: false
+      - key: ADMIN_BOOTSTRAP_APELIDO
+        sync: false
+      - key: ADMIN_BOOTSTRAP_EMAIL
+        sync: false
+      - key: ADMIN_BOOTSTRAP_SENHA
+        sync: false
+
+  - type: web
+    name: jogadoresanonimos-free-frontend
+    runtime: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm ci && npx ng build --configuration production
+    staticPublishPath: dist/frontend/browser
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

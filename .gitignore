@@ -1,5 +1,7 @@
 .vscode
 .backend/.env
 .env
+.env.staging
+.env.production
 .claude
 CLAUDE.md
