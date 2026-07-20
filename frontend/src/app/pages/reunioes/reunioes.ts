@@ -429,7 +429,8 @@ export class Reunioes implements OnInit, OnDestroy {
 
   private async carregarLeafletECriarMapa(container: HTMLDivElement): Promise<void> {
     if (!this.leaflet) {
-      this.leaflet = await import('leaflet');
+      const mod = await import('leaflet');
+      this.leaflet = (mod as unknown as { default?: typeof L }).default ?? (mod as unknown as typeof L);
     }
     this.criarMapa(container);
   }

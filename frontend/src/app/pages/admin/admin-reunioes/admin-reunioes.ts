@@ -391,7 +391,8 @@ export class AdminReunioes implements OnInit {
 
   private async carregarLeafletECriarMapaPreview(container: HTMLDivElement): Promise<void> {
     if (!this.leaflet) {
-      this.leaflet = await import('leaflet');
+      const mod = await import('leaflet');
+      this.leaflet = (mod as unknown as { default?: typeof L }).default ?? (mod as unknown as typeof L);
     }
     this.criarMapaPreview(container);
   }
