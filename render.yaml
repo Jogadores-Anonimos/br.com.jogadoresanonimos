@@ -65,7 +65,7 @@ services:
     name: jogadoresanonimos-free-frontend
     runtime: static
     rootDir: frontend
-    buildCommand: npm ci && npx ng build --configuration production
+    buildCommand: npm ci && npx ng build --configuration free
     staticPublishPath: dist/frontend/browser
     routes:
       - type: rewrite
