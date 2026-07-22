@@ -1,5 +1,6 @@
 package br.com.jogadoresanonimos.cms.util;
 
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import org.owasp.html.AttributePolicy;
 import org.owasp.html.HtmlChangeListener;
@@ -7,6 +8,7 @@ import org.owasp.html.HtmlPolicyBuilder;
 import org.owasp.html.PolicyFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,7 +34,7 @@ public class HtmlSanitizer {
         MotivoDescarte motivoDescarte = new MotivoDescarte(conteudoBruto);
         String sanitizado = POLICY.sanitize(conteudoBruto, motivoDescarte, null);
         if (motivoDescarte.mensagem != null) {
-            throw new ValidationException(motivoDescarte.mensagem);
+            throw new ValidationException(ErrorCode.CMS_HTML_REJEITADO, motivoDescarte.mensagem, null, motivoDescarte.details);
         }
         return sanitizado;
     }
@@ -40,6 +42,7 @@ public class HtmlSanitizer {
     private static class MotivoDescarte implements HtmlChangeListener<Void> {
         private final String conteudoOriginal;
         private String mensagem;
+        private Map<String, Object> details;
 
         MotivoDescarte(String conteudoOriginal) {
             this.conteudoOriginal = conteudoOriginal;
@@ -53,7 +56,8 @@ public class HtmlSanitizer {
             if ("a".equals(elementName)) {
                 mensagem = motivoDescarteAncora();
             } else {
-                mensagem = "Markup contém tag não permitida: <" + elementName + ">";
+                mensagem = "Markup contém tag não permitida";
+                details = Map.of("tag", elementName);
             }
         }
 

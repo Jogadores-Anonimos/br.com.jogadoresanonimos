@@ -25,6 +25,7 @@ Convenções gerais (mesmas do restante do projeto, ver
 `contrato-auth-cms-upload.md`):
 - Envelope de resposta sempre `{ success, data, error }`.
 - Todos os paths sob `/api/v1`.
+- Catálogo completo de `error.code` em `contrato-erro-padrao.md`.
 - Nenhum token/identificador sensível em query string.
 - `traceId` presente em toda resposta de erro.
 - Datas em ISO-8601 UTC.
@@ -94,8 +95,8 @@ minimiza payload de resposta.
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | texto fora de 50-4000 chars; `nomeExibicao` > 30 chars |
-| 401 | `UNAUTHENTICATED` | token ausente/inválido/expirado |
-| 429 | `RATE_LIMITED` | excesso de envios na janela |
+| 401 | `AUTH_TOKEN_AUSENTE_OU_INVALIDO` | token ausente/inválido/expirado |
+| 429 | `RELATO_RATE_LIMITED` | excesso de envios na janela |
 
 ---
 
@@ -178,7 +179,7 @@ do mock atual do frontend.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 404 | `NOT_FOUND` | id não existe, ou existe mas não está `approved` |
+| 404 | `RELATO_NAO_ENCONTRADO` | id não existe, ou existe mas não está `approved` |
 
 ---
 
@@ -236,7 +237,7 @@ UX simples, sem parâmetro de sort configurável nesta entrega.
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `status` ausente ou fora do enum |
-| 403 | `FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
 
 ---
 
@@ -265,8 +266,8 @@ no futuro, é campo adicional no mesmo request (não é breaking change).
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | texto fora de 50-4000 chars |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `RELATO_NAO_ENCONTRADO` | id não existe |
 
 ---
 
@@ -287,8 +288,8 @@ no futuro, é campo adicional no mesmo request (não é breaking change).
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `RELATO_NAO_ENCONTRADO` | id não existe |
 
 ---
 
@@ -333,8 +334,8 @@ no futuro, é campo adicional no mesmo request (não é breaking change).
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `RELATO_NAO_ENCONTRADO` | id não existe |
 
 ---
 

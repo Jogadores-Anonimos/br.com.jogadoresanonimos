@@ -6,6 +6,7 @@ import br.com.jogadoresanonimos.arquivo.entity.Arquivo;
 import br.com.jogadoresanonimos.arquivo.repository.ArquivoRepository;
 import br.com.jogadoresanonimos.cms.repository.CmsBlocoRepository;
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
@@ -45,25 +46,25 @@ public class ArquivoService {
 
     @Transactional
     public ArquivoResponse upload(MultipartFile arquivo, String titulo, String descricao, UUID adminId) {
-        rateLimiterService.check("upload-arquivo:" + adminId, 10, Duration.ofMinutes(1));
-        rateLimiterService.check("upload-arquivo:global", 60, Duration.ofMinutes(1));
+        rateLimiterService.check("upload-arquivo:" + adminId, 10, Duration.ofMinutes(1), ErrorCode.UPLOAD_RATE_LIMITED);
+        rateLimiterService.check("upload-arquivo:global", 60, Duration.ofMinutes(1), ErrorCode.UPLOAD_RATE_LIMITED);
         if (titulo == null || titulo.isBlank()) {
-            throw new ValidationException("Título de exibição é obrigatório");
+            throw new ValidationException(ErrorCode.UPLOAD_TITULO_OBRIGATORIO, "Título de exibição é obrigatório");
         }
         if (arquivo == null || arquivo.isEmpty()) {
-            throw new ValidationException("Arquivo é obrigatório");
+            throw new ValidationException(ErrorCode.UPLOAD_ARQUIVO_OBRIGATORIO, "Arquivo é obrigatório");
         }
         if (arquivo.getSize() > LIMITE_BYTES) {
-            throw new ValidationException("Arquivo excede o tamanho máximo permitido (20MB)");
+            throw new ValidationException(ErrorCode.UPLOAD_TAMANHO_EXCEDIDO, "Arquivo excede o tamanho máximo permitido (20MB)");
         }
         byte[] original;
         try {
             original = arquivo.getBytes();
         } catch (IOException e) {
-            throw new ValidationException("Não foi possível ler o arquivo enviado");
+            throw new ValidationException(ErrorCode.UPLOAD_LEITURA_FALHOU, "Não foi possível ler o arquivo enviado");
         }
         if (original.length > LIMITE_BYTES) {
-            throw new ValidationException("Arquivo excede o tamanho máximo permitido (20MB)");
+            throw new ValidationException(ErrorCode.UPLOAD_TAMANHO_EXCEDIDO, "Arquivo excede o tamanho máximo permitido (20MB)");
         }
         ArquivoProcessor.ArquivoProcessado processado = arquivoProcessor.processar(original);
         String chave = UUID.randomUUID() + "." + processado.extensao();
@@ -82,10 +83,10 @@ public class ArquivoService {
     @Transactional
     public ArquivoResponse editar(UUID id, EditarArquivoRequest request) {
         Arquivo arquivo = arquivoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Arquivo não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ARQUIVO_NAO_ENCONTRADO, "Arquivo não encontrado"));
         String titulo = request.titulo() == null ? null : request.titulo().trim();
         if (titulo == null || titulo.isBlank()) {
-            throw new ValidationException("Título de exibição é obrigatório");
+            throw new ValidationException(ErrorCode.UPLOAD_TITULO_OBRIGATORIO, "Título de exibição é obrigatório");
         }
         String descricao = request.descricao() == null ? null : request.descricao().trim();
         arquivo.editarMetadados(titulo, descricao);
@@ -95,11 +96,12 @@ public class ArquivoService {
     @Transactional
     public void remover(UUID id) {
         Arquivo arquivo = arquivoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Arquivo não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ARQUIVO_NAO_ENCONTRADO, "Arquivo não encontrado"));
         boolean referenciado = cmsBlocoRepository.existsByArquivoId(id)
                 || usuarioArquivoRepository.existsById_ArquivoId(id);
         if (referenciado) {
-            throw new ConflitoDeEstadoException("Arquivo ainda está em uso em uma página ou biblioteca pessoal e não pode ser removido");
+            throw new ConflitoDeEstadoException(ErrorCode.ARQUIVO_EM_USO,
+                    "Arquivo ainda está em uso em uma página ou biblioteca pessoal e não pode ser removido");
         }
         storageClient.delete(arquivo.getChaveArquivo());
         if (arquivo.getThumbnailChave() != null) {
@@ -111,7 +113,7 @@ public class ArquivoService {
     @Transactional(readOnly = true)
     public Arquivo buscarParaDownload(UUID id) {
         return arquivoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Arquivo não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ARQUIVO_NAO_ENCONTRADO, "Arquivo não encontrado"));
     }
 
     @Transactional(readOnly = true)

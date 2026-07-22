@@ -1,5 +1,6 @@
 package br.com.jogadoresanonimos.imagem.service;
 
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.UnsupportedMediaException;
 import org.springframework.stereotype.Component;
 
@@ -21,19 +22,19 @@ public class ImagemProcessor {
         try {
             imagem = ImageIO.read(new ByteArrayInputStream(original));
         } catch (IOException e) {
-            throw new UnsupportedMediaException("Não foi possível processar o arquivo enviado");
+            throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "Não foi possível processar o arquivo enviado");
         }
         if (imagem == null) {
-            throw new UnsupportedMediaException("Não foi possível processar o arquivo enviado");
+            throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "Não foi possível processar o arquivo enviado");
         }
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             boolean escreveu = ImageIO.write(imagem, tipo.formatoImageIO(), out);
             if (!escreveu) {
-                throw new UnsupportedMediaException("Formato de imagem não suportado para reprocessamento");
+                throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "Formato de imagem não suportado para reprocessamento");
             }
             return new ImagemProcessada(out.toByteArray(), tipo.contentType(), tipo.extensao());
         } catch (IOException e) {
-            throw new UnsupportedMediaException("Não foi possível processar o arquivo enviado");
+            throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "Não foi possível processar o arquivo enviado");
         }
     }
 
@@ -48,7 +49,7 @@ public class ImagemProcessor {
                 && bytes[8] == 'W' && bytes[9] == 'E' && bytes[10] == 'B' && bytes[11] == 'P') {
             return TipoImagem.WEBP;
         }
-        throw new UnsupportedMediaException("Tipo de arquivo não permitido — apenas jpeg, png ou webp");
+        throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "Tipo de arquivo não permitido — apenas jpeg, png ou webp");
     }
 
     private enum TipoImagem {

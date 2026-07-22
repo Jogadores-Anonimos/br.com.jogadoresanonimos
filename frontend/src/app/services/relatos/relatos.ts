@@ -49,7 +49,7 @@ export class RelatosService {
         .get<ApiEnvelope<Pagina<RelatoPublicoResumo>>>(`${this.publicaUrl}?pagina=${pagina}&tamanho=${tamanho}`)
         .pipe(
           catchError(() =>
-            of(apiError<Pagina<RelatoPublicoResumo>>('UPSTREAM_ERROR', 'Não foi possível carregar os relatos no momento.')),
+            of(apiError<Pagina<RelatoPublicoResumo>>('INTERNAL_ERROR', 'Não foi possível carregar os relatos no momento.')),
           ),
         );
     }
@@ -78,13 +78,13 @@ export class RelatosService {
   buscarPorId(id: string): Observable<ApiEnvelope<RelatoPublico>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<RelatoPublico>>(`${this.publicaUrl}/${id}`).pipe(
-        catchError(() => of(apiError<RelatoPublico>('NOT_FOUND', 'Relato não encontrado.'))),
+        catchError(() => of(apiError<RelatoPublico>('RELATO_NAO_ENCONTRADO', 'Relato não encontrado.'))),
       );
     }
 
     const relato = RELATOS_MOCK.find((r) => r.id === id && r.status === 'approved');
     if (!relato) {
-      return of(apiError<RelatoPublico>('NOT_FOUND', 'Relato não encontrado.')).pipe(delay(300));
+      return of(apiError<RelatoPublico>('RELATO_NAO_ENCONTRADO', 'Relato não encontrado.')).pipe(delay(300));
     }
 
     const { id: relatoId, texto, nomeExibicao, dataCriacao } = relato;
@@ -155,7 +155,7 @@ export class RelatosService {
         .get<ApiEnvelope<Pagina<RelatoAdmin>>>(`${this.adminUrl}?status=${status}&pagina=${pagina}&tamanho=${tamanho}`)
         .pipe(
           catchError(() =>
-            of(apiError<Pagina<RelatoAdmin>>('UPSTREAM_ERROR', 'Não foi possível carregar os relatos.')),
+            of(apiError<Pagina<RelatoAdmin>>('INTERNAL_ERROR', 'Não foi possível carregar os relatos.')),
           ),
         );
     }
@@ -180,7 +180,7 @@ export class RelatosService {
   editarRelatoAdmin(id: string, req: EditarRelatoRequest): Observable<ApiEnvelope<RelatoAdmin>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<RelatoAdmin>>(`${this.adminUrl}/${id}`, req).pipe(
-        catchError(() => of(apiError<RelatoAdmin>('UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+        catchError(() => of(apiError<RelatoAdmin>('INTERNAL_ERROR', 'Não foi possível salvar as alterações.'))),
       );
     }
 
@@ -193,7 +193,7 @@ export class RelatosService {
 
     const relato = RELATOS_MOCK.find((r) => r.id === id);
     if (!relato) {
-      return of(apiError<RelatoAdmin>('NOT_FOUND', 'Relato não encontrado.')).pipe(delay(300));
+      return of(apiError<RelatoAdmin>('RELATO_NAO_ENCONTRADO', 'Relato não encontrado.')).pipe(delay(300));
     }
     relato.texto = texto;
     relato.dataAtualizacao = new Date().toISOString();
@@ -215,13 +215,13 @@ export class RelatosService {
   excluirRelatoAdmin(id: string): Observable<ApiEnvelope<{ mensagem: string }>> {
     if (!environment.useMocks) {
       return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/${id}`).pipe(
-        catchError(() => of(apiError<{ mensagem: string }>('UPSTREAM_ERROR', 'Não foi possível remover o relato agora.'))),
+        catchError(() => of(apiError<{ mensagem: string }>('INTERNAL_ERROR', 'Não foi possível remover o relato agora.'))),
       );
     }
 
     const indice = RELATOS_MOCK.findIndex((r) => r.id === id);
     if (indice === -1) {
-      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Relato não encontrado.')).pipe(delay(300));
+      return of(apiError<{ mensagem: string }>('RELATO_NAO_ENCONTRADO', 'Relato não encontrado.')).pipe(delay(300));
     }
     RELATOS_MOCK.splice(indice, 1);
     return of(apiSuccess({ mensagem: 'Relato removido.' })).pipe(delay(400));
@@ -230,13 +230,13 @@ export class RelatosService {
   private transicionarStatusAdmin(id: string, novoStatus: StatusRelato, urlReal: string): Observable<ApiEnvelope<RelatoAdmin>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<RelatoAdmin>>(urlReal, {}).pipe(
-        catchError(() => of(apiError<RelatoAdmin>('UPSTREAM_ERROR', 'Não foi possível atualizar o status do relato.'))),
+        catchError(() => of(apiError<RelatoAdmin>('INTERNAL_ERROR', 'Não foi possível atualizar o status do relato.'))),
       );
     }
 
     const relato = RELATOS_MOCK.find((r) => r.id === id);
     if (!relato) {
-      return of(apiError<RelatoAdmin>('NOT_FOUND', 'Relato não encontrado.')).pipe(delay(300));
+      return of(apiError<RelatoAdmin>('RELATO_NAO_ENCONTRADO', 'Relato não encontrado.')).pipe(delay(300));
     }
     relato.status = novoStatus;
     relato.dataAtualizacao = new Date().toISOString();

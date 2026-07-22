@@ -18,7 +18,7 @@ export class UsuarioAdminService {
   listarUsuarios(): Observable<ApiEnvelope<UsuarioAdmin[]>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<UsuarioAdmin[]>>(this.adminUrl).pipe(
-        catchError(() => of(apiError<UsuarioAdmin[]>('UPSTREAM_ERROR', 'Não foi possível carregar os usuários.'))),
+        catchError(() => of(apiError<UsuarioAdmin[]>('INTERNAL_ERROR', 'Não foi possível carregar os usuários.'))),
       );
     }
 
@@ -29,26 +29,26 @@ export class UsuarioAdminService {
   editarRole(id: string, req: EditarRoleRequest): Observable<ApiEnvelope<UsuarioAdmin>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<UsuarioAdmin>>(`${this.adminUrl}/${id}/role`, req).pipe(
-        catchError(() => of(apiError<UsuarioAdmin>('UPSTREAM_ERROR', 'Não foi possível alterar a role agora.'))),
+        catchError(() => of(apiError<UsuarioAdmin>('INTERNAL_ERROR', 'Não foi possível alterar a role agora.'))),
       );
     }
 
     const usuario = USUARIOS_ADMIN_MOCK.find((u) => u.id === id);
     if (!usuario) {
-      return of(apiError<UsuarioAdmin>('NOT_FOUND', 'Usuário não encontrado.')).pipe(delay(300));
+      return of(apiError<UsuarioAdmin>('USUARIO_NAO_ENCONTRADO', 'Usuário não encontrado.')).pipe(delay(300));
     }
 
     const solicitanteId = this.auth.usuarioAtual()?.id;
     const rebaixandoParaNaoAdmin = usuario.role === 'ADMIN' && req.role !== 'ADMIN';
 
     if (rebaixandoParaNaoAdmin && solicitanteId === id) {
-      return of(apiError<UsuarioAdmin>('CONFLICT', 'Você não pode remover sua própria permissão de administrador.')).pipe(delay(300));
+      return of(apiError<UsuarioAdmin>('USUARIO_AUTO_REBAIXAMENTO_ADMIN', 'Você não pode remover sua própria permissão de administrador.')).pipe(delay(300));
     }
 
     if (rebaixandoParaNaoAdmin) {
       const totalAdmins = USUARIOS_ADMIN_MOCK.filter((u) => u.role === 'ADMIN').length;
       if (totalAdmins <= 1) {
-        return of(apiError<UsuarioAdmin>('CONFLICT', 'Não é possível remover o último administrador do sistema.')).pipe(delay(300));
+        return of(apiError<UsuarioAdmin>('USUARIO_ULTIMO_ADMIN', 'Não é possível remover o último administrador do sistema.')).pipe(delay(300));
       }
     }
 

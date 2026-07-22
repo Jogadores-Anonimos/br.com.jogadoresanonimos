@@ -11,6 +11,7 @@ Convenções gerais (mesmas do restante do projeto, ver
 `contrato-avisos.md`):
 - Envelope de resposta sempre `{ success, data, error }`.
 - Todos os paths sob `/api/v1`.
+- Catálogo completo de `error.code` em `contrato-erro-padrao.md`.
 - Nenhum token/identificador sensível em query string.
 - `traceId` presente em toda resposta de erro.
 
@@ -60,7 +61,7 @@ tabela inteira, uma por dia do calendário).
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 404 | `NOT_FOUND` | nenhuma reflexão cadastrada para a data de hoje |
+| 404 | `REFLEXAO_NAO_ENCONTRADA` | nenhuma reflexão cadastrada para a data de hoje |
 
 ---
 
@@ -76,7 +77,7 @@ tabela inteira, uma por dia do calendário).
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `mes` fora de 1-12, ou `dia` inválido para o `mes` informado |
-| 404 | `NOT_FOUND` | data válida, mas sem reflexão cadastrada |
+| 404 | `REFLEXAO_NAO_ENCONTRADA` | data válida, mas sem reflexão cadastrada |
 
 ---
 
@@ -108,7 +109,7 @@ tabela inteira, uma por dia do calendário).
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `mes` fora de 1-12 |
-| 403 | `FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
 
 ---
 
@@ -132,7 +133,7 @@ tabela inteira, uma por dia do calendário).
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `texto` ausente/vazio/excede 2000 chars, ou `mes`/`dia` inválidos |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
 
 ---
 

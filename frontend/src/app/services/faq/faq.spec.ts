@@ -77,7 +77,7 @@ describe('FaqService', () => {
 
     const envelope: ApiEnvelope<Faq> = await promise;
     expect(envelope.success).toBe(false);
-    expect(envelope.error?.code).toBe('UPSTREAM_ERROR');
+    expect(envelope.error?.code).toBe('INTERNAL_ERROR');
   });
 
   it('listarFaqAdmin não loga dado nenhum no console ao processar a resposta', () => {

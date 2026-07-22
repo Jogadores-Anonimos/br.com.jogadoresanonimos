@@ -3,6 +3,7 @@ package br.com.jogadoresanonimos.relato.service;
 import br.com.jogadoresanonimos.auditoria.entity.AcaoAuditoria;
 import br.com.jogadoresanonimos.auditoria.service.AdminAuditoriaService;
 import br.com.jogadoresanonimos.common.dto.PageResponse;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
 import br.com.jogadoresanonimos.relato.dto.*;
@@ -38,7 +39,7 @@ public class RelatoService {
 
     @Transactional
     public RelatoEnvioResponse enviar(EnviarRelatoRequest request, UUID autorId) {
-        rateLimiterService.check("enviar-relato:" + autorId, 5, Duration.ofMinutes(10));
+        rateLimiterService.check("enviar-relato:" + autorId, 5, Duration.ofMinutes(10), ErrorCode.RELATO_RATE_LIMITED);
         String nomeExibicao = normalizarNomeExibicao(request.nomeExibicao());
         Relato relato = new Relato(request.texto().trim(), nomeExibicao, autorId);
         relato = relatoRepository.save(relato);
@@ -55,7 +56,7 @@ public class RelatoService {
     @Transactional(readOnly = true)
     public RelatoPublicoResponse buscarAprovadoPorId(UUID id) {
         Relato relato = relatoRepository.findByIdAndStatus(id, StatusRelato.approved)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Relato não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.RELATO_NAO_ENCONTRADO, "Relato não encontrado"));
         return RelatoPublicoResponse.from(relato);
     }
 
@@ -71,7 +72,7 @@ public class RelatoService {
 
     @Transactional
     public RelatoAdminResponse editar(UUID id, EditarRelatoRequest request, UUID adminId) {
-        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1));
+        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1), ErrorCode.RELATO_RATE_LIMITED);
         Relato relato = buscarOuFalhar(id);
         String statusAnterior = relato.getStatus().name();
         relato.editarTexto(request.texto().trim());
@@ -82,7 +83,7 @@ public class RelatoService {
 
     @Transactional
     public RelatoAdminResponse aprovar(UUID id, UUID adminId) {
-        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1));
+        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1), ErrorCode.RELATO_RATE_LIMITED);
         Relato relato = buscarOuFalhar(id);
         String statusAnterior = relato.getStatus().name();
         relato.aprovar();
@@ -93,7 +94,7 @@ public class RelatoService {
 
     @Transactional
     public RelatoAdminResponse rejeitar(UUID id, UUID adminId) {
-        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1));
+        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1), ErrorCode.RELATO_RATE_LIMITED);
         Relato relato = buscarOuFalhar(id);
         String statusAnterior = relato.getStatus().name();
         relato.rejeitar();
@@ -104,7 +105,7 @@ public class RelatoService {
 
     @Transactional
     public RelatoAdminResponse reverter(UUID id, UUID adminId) {
-        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1));
+        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1), ErrorCode.RELATO_RATE_LIMITED);
         Relato relato = buscarOuFalhar(id);
         String statusAnterior = relato.getStatus().name();
         relato.reverterParaPendente();
@@ -115,7 +116,7 @@ public class RelatoService {
 
     @Transactional
     public void remover(UUID id, UUID adminId) {
-        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1));
+        rateLimiterService.check("admin-relato-escrita:" + adminId, 60, Duration.ofMinutes(1), ErrorCode.RELATO_RATE_LIMITED);
         Relato relato = buscarOuFalhar(id);
         String statusAnterior = relato.getStatus().name();
         relatoRepository.delete(relato);
@@ -125,7 +126,7 @@ public class RelatoService {
 
     private Relato buscarOuFalhar(UUID id) {
         return relatoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Relato não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.RELATO_NAO_ENCONTRADO, "Relato não encontrado"));
     }
 
     private String normalizarNomeExibicao(String nomeExibicao) {

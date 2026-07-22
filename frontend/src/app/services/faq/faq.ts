@@ -21,7 +21,7 @@ export class FaqService {
   listarFaq(): Observable<ApiEnvelope<Faq[]>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<Faq[]>>(this.publicaUrl).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<Faq[]>(erro, 'UPSTREAM_ERROR', 'Não foi possível carregar as perguntas frequentes.'))),
+        catchError((erro) => of(apiErrorDeHttpError<Faq[]>(erro, 'INTERNAL_ERROR', 'Não foi possível carregar as perguntas frequentes.'))),
       );
     }
 
@@ -32,7 +32,7 @@ export class FaqService {
   listarFaqAdmin(): Observable<ApiEnvelope<Faq[]>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<Faq[]>>(this.adminUrl).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<Faq[]>(erro, 'UPSTREAM_ERROR', 'Não foi possível carregar as perguntas frequentes.'))),
+        catchError((erro) => of(apiErrorDeHttpError<Faq[]>(erro, 'INTERNAL_ERROR', 'Não foi possível carregar as perguntas frequentes.'))),
       );
     }
 
@@ -42,7 +42,7 @@ export class FaqService {
   criarFaqAdmin(req: CriarFaqRequest): Observable<ApiEnvelope<Faq>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<Faq>>(this.adminUrl, req).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<Faq>(erro, 'UPSTREAM_ERROR', 'Não foi possível criar a pergunta agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<Faq>(erro, 'INTERNAL_ERROR', 'Não foi possível criar a pergunta agora.'))),
       );
     }
 
@@ -59,13 +59,13 @@ export class FaqService {
   editarFaqAdmin(id: string, req: EditarFaqRequest): Observable<ApiEnvelope<Faq>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<Faq>>(`${this.adminUrl}/${id}`, req).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<Faq>(erro, 'UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+        catchError((erro) => of(apiErrorDeHttpError<Faq>(erro, 'INTERNAL_ERROR', 'Não foi possível salvar as alterações.'))),
       );
     }
 
     const faq = FAQ_MOCK.find((f) => f.id === id);
     if (!faq) {
-      return of(apiError<Faq>('NOT_FOUND', 'Pergunta não encontrada.')).pipe(delay(300));
+      return of(apiError<Faq>('FAQ_NAO_ENCONTRADA', 'Pergunta não encontrada.')).pipe(delay(300));
     }
     if (!req.pergunta?.trim() || !req.resposta?.trim()) {
       return of(apiError<Faq>('VALIDATION_ERROR', 'Pergunta e resposta são obrigatórias.')).pipe(delay(300));
@@ -78,13 +78,13 @@ export class FaqService {
   excluirFaqAdmin(id: string): Observable<ApiEnvelope<{ mensagem: string }>> {
     if (!environment.useMocks) {
       return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/${id}`).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<{ mensagem: string }>(erro, 'UPSTREAM_ERROR', 'Não foi possível remover a pergunta agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<{ mensagem: string }>(erro, 'INTERNAL_ERROR', 'Não foi possível remover a pergunta agora.'))),
       );
     }
 
     const indice = FAQ_MOCK.findIndex((f) => f.id === id);
     if (indice === -1) {
-      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Pergunta não encontrada.')).pipe(delay(300));
+      return of(apiError<{ mensagem: string }>('FAQ_NAO_ENCONTRADA', 'Pergunta não encontrada.')).pipe(delay(300));
     }
     FAQ_MOCK.splice(indice, 1);
     return of(apiSuccess({ mensagem: 'Pergunta removida.' })).pipe(delay(400));
@@ -101,14 +101,14 @@ export class FaqService {
   private moverFaq(id: string, direcao: 'cima' | 'baixo'): Observable<ApiEnvelope<Faq>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<Faq>>(`${this.adminUrl}/${id}/mover-${direcao}`, {}).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<Faq>(erro, 'UPSTREAM_ERROR', 'Não foi possível reordenar a pergunta agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<Faq>(erro, 'INTERNAL_ERROR', 'Não foi possível reordenar a pergunta agora.'))),
       );
     }
 
     const ordenados = ordenar(FAQ_MOCK);
     const indice = ordenados.findIndex((f) => f.id === id);
     if (indice === -1) {
-      return of(apiError<Faq>('NOT_FOUND', 'Pergunta não encontrada.')).pipe(delay(300));
+      return of(apiError<Faq>('FAQ_NAO_ENCONTRADA', 'Pergunta não encontrada.')).pipe(delay(300));
     }
     const indiceVizinho = direcao === 'cima' ? indice - 1 : indice + 1;
     if (indiceVizinho < 0 || indiceVizinho >= ordenados.length) {

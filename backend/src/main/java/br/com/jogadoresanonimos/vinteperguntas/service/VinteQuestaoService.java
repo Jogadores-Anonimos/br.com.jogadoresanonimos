@@ -1,5 +1,6 @@
 package br.com.jogadoresanonimos.vinteperguntas.service;
 
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.common.util.ReordenacaoUtil;
@@ -51,7 +52,7 @@ public class VinteQuestaoService {
     public void remover(UUID id) {
         VinteQuestao questao = buscarOuFalhar(id);
         if (vinteQuestaoRepository.count() <= 1) {
-            throw new ValidationException("Não é possível remover a última pergunta.");
+            throw new ValidationException(ErrorCode.VINTE_PERGUNTAS_ULTIMA_PERGUNTA, "Não é possível remover a última pergunta.");
         }
         vinteQuestaoRepository.delete(questao);
     }
@@ -80,7 +81,7 @@ public class VinteQuestaoService {
 
     private VinteQuestao buscarOuFalhar(UUID id) {
         return vinteQuestaoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Pergunta não encontrada"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.VINTE_PERGUNTAS_NAO_ENCONTRADA, "Pergunta não encontrada"));
     }
 
     private List<VinteQuestaoResponse> paraResponse(List<VinteQuestao> questoes) {

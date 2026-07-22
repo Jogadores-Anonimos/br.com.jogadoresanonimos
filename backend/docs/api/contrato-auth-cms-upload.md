@@ -51,6 +51,7 @@ Convenções gerais válidas para todos os blocos abaixo:
 - Envelope de resposta sempre `{ success, data, error }` (ver seção 9 do
   doc de decisões para o formato de `error`).
 - Todos os paths sob `/api/v1`.
+- Catálogo completo de `error.code` em `contrato-erro-padrao.md`.
 - Nenhum endpoint aceita token/identificador sensível em query string —
   sempre header (`Authorization: Bearer <jwt>`) ou corpo.
 - `traceId` (UUID por requisição) presente em toda resposta de erro,
@@ -102,17 +103,42 @@ na própria confirmação de cadastro.
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | senha curta, `senha != confirmarSenha`, e-mail mal formado, apelido com espaço/caracteres inválidos, ou `recaptchaToken` ausente/inválido/expirado (verificado no Google) — `error.fields` lista o campo, incluindo `recaptchaToken` quando for o caso |
-| 409 | `CONFLICT` | apelido ou e-mail já cadastrado — mensagem genérica **não diz qual dos dois** colidiu (evita enumeration; ver nota abaixo) |
-| 429 | `RATE_LIMITED` | limite de criação de conta na janela |
-| 502 | `UPSTREAM_ERROR` | falha de comunicação com o Google (timeout ~5s, 5xx, resposta malformada) ao verificar o reCAPTCHA — fail-closed, operação é bloqueada, mensagem genérica ao cliente |
+| 409 | `AUTH_APELIDO_EM_USO` / `AUTH_EMAIL_EM_USO` / `AUTH_CADASTRO_CONFLITO` | apelido **ou** e-mail já cadastrado — mensagem **específica** por campo, ver nota abaixo (mudança de política em 2026-07-22, revertendo a mensagem genérica anterior); `AUTH_CADASTRO_CONFLITO` só na corrida concorrente rara pega pelo `DataIntegrityViolationException` |
+| 429 | `AUTH_RATE_LIMITED` | limite de criação de conta na janela, incluindo bucket global de varredura (ver nota) |
+| 502 | `AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL` | falha de comunicação com o Google (timeout ~5s, 5xx, resposta malformada) ao verificar o reCAPTCHA — fail-closed, operação é bloqueada, mensagem genérica ao cliente |
 
-> Nota de anti-enumeration: mensagem de 409 é
-> `"Não foi possível concluir o cadastro com os dados informados"`, sem
-> especificar apelido vs. e-mail. Isso é uma escolha mais conservadora
-> que a UX usual (que costuma dizer "apelido já existe"); documentado
-> aqui porque é uma decisão deliberada de segurança, não descuido — a
-> UX pode reavaliar com `ux-ui` se o custo de fricção for considerado
-> alto, mas a decisão de segurança teria que ser revista primeiro.
+> **Atualização 2026-07-22 (`security`)**: revertida a decisão anterior de
+> mensagem 409 genérica. Por decisão explícita do usuário/PO (risco de
+> user enumeration aceito conscientemente, só neste fluxo), o 409 agora
+> diz qual campo colidiu:
+> - Apelido em uso: `error.message = "Esse apelido já está em uso,
+>   escolha outro"`, `error.fields = [{ campo: "apelido", mensagem:
+>   "Esse apelido já está em uso, escolha outro" }]`.
+> - E-mail em uso: `error.message = "Esse e-mail já está cadastrado"`,
+>   `error.fields = [{ campo: "email", mensagem: "Esse e-mail já está
+>   cadastrado" }]`.
+> - Checagem é sequencial (apelido primeiro, depois e-mail) — se ambos
+>   colidem, retorna o erro de apelido primeiro; cliente que corrigir o
+>   apelido e reenviar descobre o e-mail em uso na tentativa seguinte.
+> - Corrida de escrita concorrente (dois cadastros simultâneos com o
+>   mesmo apelido/e-mail passando pela checagem `exists*` antes do
+>   `save`) ainda cai no `catch (DataIntegrityViolationException)` com a
+>   mensagem antiga, genérica (`"Apelido ou e-mail já cadastrado..."`) —
+>   caso raro (janela de corrida), não vale o custo de re-consultar qual
+>   dos dois colidiu after-the-fact.
+> - **Login continua com mensagem 401 genérica, sem exceção** — não é
+>   afetado por esta mudança. Só o fluxo de cadastro muda.
+> - Mitigação complementar de rate limit: além do bucket já existente
+>   por `hash(apelido|email)` (chave composta, pouco eficaz contra
+>   varredura porque cada tentativa nova de scraping usa uma chave
+>   diferente), foi adicionado um bucket **global** por ação
+>   (`registro-varredura-global`, capacidade 30/minuto, mesma
+>   `RateLimiterService`/`TokenBucket` já usados no projeto) — não
+>   identifica quem está fazendo a varredura (não loga IP, mantém
+>   requisito de anonimato do projeto), só limita o volume agregado de
+>   tentativas de cadastro no sistema inteiro na janela, tornando
+>   scraping em massa impraticável sem impedir o uso legítimo (~300
+>   pedidos de ajuda/dia, cadastro é evento raro por usuário).
 
 ---
 
@@ -160,9 +186,9 @@ até a primeira troca de senha bem-sucedida (ver nota no topo do doc).
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | corpo mal formado (campo ausente), ou `recaptchaToken` ausente/inválido/expirado (verificado no Google) — `error.fields` aponta `recaptchaToken` nesse caso |
-| 401 | `UNAUTHENTICATED` | identificador ou senha inválidos — mensagem genérica única, nunca diz qual campo errou nem se a conta existe |
-| 429 | `RATE_LIMITED` | muitas tentativas — inclui header `Retry-After` |
-| 502 | `UPSTREAM_ERROR` | falha de comunicação com o Google ao verificar o reCAPTCHA — fail-closed, bloqueia o login, mensagem genérica ao cliente |
+| 401 | `AUTH_INVALID_CREDENTIALS` | identificador ou senha inválidos — mensagem genérica única, nunca diz qual campo errou nem se a conta existe |
+| 429 | `AUTH_RATE_LIMITED` | muitas tentativas — inclui header `Retry-After` |
+| 502 | `AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL` | falha de comunicação com o Google ao verificar o reCAPTCHA — fail-closed, bloqueia o login, mensagem genérica ao cliente |
 
 **Ordem de validação no `AuthService.login`** (mesma ordem em `registrar`):
 1. Rate limit (`RateLimiterService`, já existente) — barato, corta abuso
@@ -178,7 +204,7 @@ até a primeira troca de senha bem-sucedida (ver nota no topo do doc).
    JSON malformado) bloqueia a operação — fail-closed, nunca fail-open.
    Falha de captcha em si vira `400 VALIDATION_ERROR` (`error.fields`
    aponta `recaptchaToken`); falha de comunicação vira
-   `502 UPSTREAM_ERROR` com mensagem genérica ao cliente — detalhe
+   `502 AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL` com mensagem genérica ao cliente — detalhe
    técnico (classe da exception) só em log interno nível WARN, sem dado
    pessoal.
 3. Lógica de negócio (checagem de senha/hash, criação de usuário, etc.)
@@ -231,7 +257,7 @@ contrato de API é o mesmo independente da estratégia SQL escolhida.
 Nunca retorna 404 nem diferencia conta existente/inexistente — regra
 de anti-enumeration já estabelecida no projeto.
 
-**Erros**: só `429 RATE_LIMITED` e `400 VALIDATION_ERROR` (corpo ausente)
+**Erros**: só `429 AUTH_RATE_LIMITED` e `400 VALIDATION_ERROR` (corpo ausente)
 chegam a existir; qualquer outra falha de negócio é absorvida no 200
 genérico acima.
 
@@ -276,8 +302,8 @@ novo token, usa o já persistido enquanto válido).
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | senha curta ou `novaSenha != confirmarNovaSenha` |
-| 401 | `UNAUTHENTICATED` | token inválido, expirado ou já utilizado — mensagem genérica ("link inválido ou expirado"), sem detalhar qual dos três |
-| 429 | `RATE_LIMITED` | excesso de tentativas para o mesmo token |
+| 401 | `AUTH_RESET_TOKEN_INVALIDO` | token inválido, expirado ou já utilizado — mensagem genérica ("link inválido ou expirado"), sem detalhar qual dos três |
+| 429 | `AUTH_RATE_LIMITED` | excesso de tentativas para o mesmo token |
 
 Ao redefinir com sucesso, todas as sessões JWT ativas do usuário devem
 ser consideradas revogadas (estratégia de revogação a alinhar com
@@ -317,7 +343,7 @@ para admin, ela usa outro DTO sem `email`).
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 401 | `UNAUTHENTICATED` | token ausente/inválido/expirado |
+| 401 | `AUTH_TOKEN_AUSENTE_OU_INVALIDO` | token ausente/inválido/expirado |
 
 ### Migration proposta — Bloco 1
 ```sql
@@ -383,7 +409,7 @@ Todas as rotas de escrita deste bloco: `ROLE_ADMIN` obrigatório,
 sanitizado, não sanitizado só na leitura, para não depender de toda
 leitura reprocessar.
 
-**Erros**: `404 NOT_FOUND` se slug não existir.
+**Erros**: `404 CMS_PAGINA_NAO_ENCONTRADA` se slug não existir.
 
 ### 2.2 `GET /api/v1/admin/cms/paginas` (admin, lista)
 - **Autenticação + autorização**: `ROLE_ADMIN`.
@@ -427,8 +453,8 @@ com a de composição de página.
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | markup fora da allowlist, `ordem` duplicada/faltando, `imagemId` que não corresponde a upload existente |
-| 403 | `FORBIDDEN` | autenticado mas sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | slug não existe (para criar página nova, ver 2.5) |
+| 403 | `AUTH_FORBIDDEN` | autenticado mas sem `ROLE_ADMIN` |
+| 404 | `CMS_PAGINA_NAO_ENCONTRADA` | slug não existe (para criar página nova, ver 2.5) |
 
 Efeito colateral obrigatório (síncrono, mesma transação): grava
 `atualizado_em`/`atualizado_por` na página e insere linha em
@@ -441,7 +467,7 @@ decisões.
   consistência do 2.4.
 - **Request**: `{ "slug": "string, kebab-case, único", "titulo": "string", "blocos": [...] }`
 - **Response 201**: mesmo shape de página.
-- **Erros**: `400 VALIDATION_ERROR`, `403 FORBIDDEN`, `409 CONFLICT` (slug já existe).
+- **Erros**: `400 VALIDATION_ERROR`, `403 AUTH_FORBIDDEN`, `409 CMS_SLUG_EM_USO` (slug já existe).
 
 ### Migrations propostas — Bloco 2
 ```sql
@@ -521,11 +547,11 @@ posição) quanto a query de listagem ordenada.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 400 | `VALIDATION_ERROR` | `alt` ausente; arquivo maior que limite (definir com `devops`, ex. 5MB) |
-| 415 | `UNSUPPORTED_MEDIA` | magic bytes não correspondem a jpeg/png/webp (inclui rejeição explícita de SVG) |
-| 403 | `FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
-| 429 | `RATE_LIMITED` | excesso de uploads na janela |
-| 502 | `UPSTREAM_ERROR` | falha de I/O no disco local (ex. sem espaço, permissão) — não vaza path/detalhe interno na mensagem ao cliente |
+| 400 | `VALIDATION_ERROR` (`UPLOAD_ALT_OBRIGATORIO`/`UPLOAD_ARQUIVO_OBRIGATORIO`/`UPLOAD_TAMANHO_EXCEDIDO`/`UPLOAD_LEITURA_FALHOU`) | `alt` ausente; arquivo ausente; arquivo maior que limite (definir com `devops`, ex. 5MB); falha de leitura do multipart |
+| 415 | `UPLOAD_TIPO_NAO_PERMITIDO` | magic bytes não correspondem a jpeg/png/webp (inclui rejeição explícita de SVG) |
+| 403 | `AUTH_FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
+| 429 | `UPLOAD_RATE_LIMITED` | excesso de uploads na janela |
+| 502 | `UPLOAD_STORAGE_INDISPONIVEL` | falha de I/O no disco local (ex. sem espaço, permissão) — não vaza path/detalhe interno na mensagem ao cliente |
 
 **Pipeline obrigatório no backend antes de gravar em disco**:
 1. Ler bytes, validar magic bytes contra allowlist (jpeg/png/webp).
@@ -562,9 +588,9 @@ revisitar.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
-| 409 | `CONFLICT` | imagem ainda referenciada por um `cms_bloco` ativo — bloqueia exclusão até o bloco ser removido/trocado (evita link quebrado em página pública) |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `IMAGEM_NAO_ENCONTRADA` | id não existe |
+| 409 | `IMAGEM_EM_USO` | imagem ainda referenciada por um `cms_bloco` ativo — bloqueia exclusão até o bloco ser removido/trocado (evita link quebrado em página pública) |
 
 ### Migration proposta — Bloco 3
 ```sql
@@ -638,11 +664,11 @@ fixos (ver 4.3), nunca expõe a chave real do objeto no bucket.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 400 | `VALIDATION_ERROR` | `titulo` ausente; arquivo maior que 20MB |
-| 415 | `UNSUPPORTED_MEDIA` | magic bytes fora do byte 0; bytes extras após `%%EOF` (polyglot); PDF contém `/JavaScript`, `/OpenAction`, `/AA`, `/EmbeddedFile` ou `/Launch` |
-| 403 | `FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
-| 429 | `RATE_LIMITED` | excesso de uploads na janela |
-| 502 | `UPSTREAM_ERROR` | bucket indisponível/erro de rede |
+| 400 | `VALIDATION_ERROR` (`UPLOAD_TITULO_OBRIGATORIO`/`UPLOAD_ARQUIVO_OBRIGATORIO`/`UPLOAD_TAMANHO_EXCEDIDO`/`UPLOAD_LEITURA_FALHOU`) | `titulo` ausente; arquivo ausente; arquivo maior que 20MB; falha de leitura do multipart |
+| 415 | `UPLOAD_TIPO_NAO_PERMITIDO` | magic bytes fora do byte 0; bytes extras após `%%EOF` (polyglot); PDF contém `/JavaScript`, `/OpenAction`, `/AA`, `/EmbeddedFile` ou `/Launch` |
+| 403 | `AUTH_FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
+| 429 | `UPLOAD_RATE_LIMITED` | excesso de uploads na janela |
+| 502 | `UPLOAD_STORAGE_INDISPONIVEL` | bucket indisponível/erro de rede |
 
 **Pipeline obrigatório no backend** (paralelo ao Bloco 3, sem reencode —
 reencodar destruiria o PDF, diferente de imagem):
@@ -660,8 +686,8 @@ reencodar destruiria o PDF, diferente de imagem):
    e mesma nota de consistência do Bloco 3).
 
 ### 4.2 `DELETE /api/v1/admin/arquivos/{id}` (admin, remover)
-- Mesmo contrato do Bloco 3 (3.2): idempotente, `403 FORBIDDEN`,
-  `404 NOT_FOUND`, `409 CONFLICT` se ainda referenciado por `cms_bloco`.
+- Mesmo contrato do Bloco 3 (3.2): idempotente, `403 AUTH_FORBIDDEN`,
+  `404 ARQUIVO_NAO_ENCONTRADO`, `409 ARQUIVO_EM_USO` se ainda referenciado por `cms_bloco`.
 
 ### 4.3 `GET /api/v1/arquivos/{id}/download` (pública, servir PDF)
 - **Autenticação**: nenhuma — literatura institucional é conteúdo aberto,
@@ -678,7 +704,7 @@ reencodar destruiria o PDF, diferente de imagem):
   estático do document root do servidor web — é sempre o backend que lê
   o objeto e retorna os bytes.
 
-**Erros**: `404 NOT_FOUND` se id não existir; `502 UPSTREAM_ERROR` se o
+**Erros**: `404 ARQUIVO_NAO_ENCONTRADO` se id não existir; `502 UPLOAD_STORAGE_INDISPONIVEL` se o
 storage falhar ao ler.
 
 ### Migrations — Bloco 4

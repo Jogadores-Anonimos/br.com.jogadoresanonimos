@@ -46,7 +46,7 @@ export class EscritorioRegionalService {
   listarEstrutura(): Observable<ApiEnvelope<EscritoriosRegionais>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<EscritoriosRegionais>>(this.publicaUrl).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<EscritoriosRegionais>(erro, 'UPSTREAM_ERROR', 'Não foi possível carregar os escritórios regionais.'))),
+        catchError((erro) => of(apiErrorDeHttpError<EscritoriosRegionais>(erro, 'INTERNAL_ERROR', 'Não foi possível carregar os escritórios regionais.'))),
       );
     }
 
@@ -57,7 +57,7 @@ export class EscritorioRegionalService {
   listarEstruturaAdmin(): Observable<ApiEnvelope<EscritoriosRegionais>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<EscritoriosRegionais>>(this.adminUrl).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<EscritoriosRegionais>(erro, 'UPSTREAM_ERROR', 'Não foi possível carregar os escritórios regionais.'))),
+        catchError((erro) => of(apiErrorDeHttpError<EscritoriosRegionais>(erro, 'INTERNAL_ERROR', 'Não foi possível carregar os escritórios regionais.'))),
       );
     }
 
@@ -67,13 +67,13 @@ export class EscritorioRegionalService {
   editarRegiaoAdmin(id: string, req: EditarRegiaoRequest): Observable<ApiEnvelope<RegiaoIntergrupo>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<RegiaoIntergrupo>>(`${this.adminUrl}/regioes/${id}`, req).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<RegiaoIntergrupo>(erro, 'UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+        catchError((erro) => of(apiErrorDeHttpError<RegiaoIntergrupo>(erro, 'INTERNAL_ERROR', 'Não foi possível salvar as alterações.'))),
       );
     }
 
     const regiao = ESCRITORIOS_REGIONAIS_MOCK.regioes.find((r) => r.id === id);
     if (!regiao) {
-      return of(apiError<RegiaoIntergrupo>('NOT_FOUND', 'Região não encontrada.')).pipe(delay(300));
+      return of(apiError<RegiaoIntergrupo>('ESCRITORIO_REGIAO_NAO_ENCONTRADA', 'Região não encontrada.')).pipe(delay(300));
     }
     if (!req.nome?.trim()) {
       return of(apiError<RegiaoIntergrupo>('VALIDATION_ERROR', 'Nome é obrigatório.', [{ campo: 'nome', mensagem: 'obrigatório' }])).pipe(delay(300));
@@ -94,14 +94,14 @@ export class EscritorioRegionalService {
   private moverRegiao(id: string, direcao: 'cima' | 'baixo'): Observable<ApiEnvelope<RegiaoIntergrupo>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<RegiaoIntergrupo>>(`${this.adminUrl}/regioes/${id}/mover-${direcao}`, {}).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<RegiaoIntergrupo>(erro, 'UPSTREAM_ERROR', 'Não foi possível reordenar a região agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<RegiaoIntergrupo>(erro, 'INTERNAL_ERROR', 'Não foi possível reordenar a região agora.'))),
       );
     }
 
     const lista = ESCRITORIOS_REGIONAIS_MOCK.regioes;
     const indice = lista.findIndex((r) => r.id === id);
     if (indice === -1) {
-      return of(apiError<RegiaoIntergrupo>('NOT_FOUND', 'Região não encontrada.')).pipe(delay(300));
+      return of(apiError<RegiaoIntergrupo>('ESCRITORIO_REGIAO_NAO_ENCONTRADA', 'Região não encontrada.')).pipe(delay(300));
     }
     const item = trocarOrdem(lista, indice, direcao);
     return of(apiSuccess(item)).pipe(delay(300));
@@ -110,19 +110,19 @@ export class EscritorioRegionalService {
   criarEstadoAdmin(regiaoId: string, req: CriarEstadoRequest): Observable<ApiEnvelope<EstadoIntergrupo>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<EstadoIntergrupo>>(`${this.adminUrl}/regioes/${regiaoId}/estados`, req).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<EstadoIntergrupo>(erro, 'UPSTREAM_ERROR', 'Não foi possível criar o estado agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<EstadoIntergrupo>(erro, 'INTERNAL_ERROR', 'Não foi possível criar o estado agora.'))),
       );
     }
 
     const regiao = ESCRITORIOS_REGIONAIS_MOCK.regioes.find((r) => r.id === regiaoId);
     if (!regiao) {
-      return of(apiError<EstadoIntergrupo>('NOT_FOUND', 'Região não encontrada.')).pipe(delay(300));
+      return of(apiError<EstadoIntergrupo>('ESCRITORIO_REGIAO_NAO_ENCONTRADA', 'Região não encontrada.')).pipe(delay(300));
     }
     if (!ufValida(req.uf)) {
-      return of(apiError<EstadoIntergrupo>('VALIDATION_ERROR', 'UF inválida.', [{ campo: 'uf', mensagem: 'inválida' }])).pipe(delay(300));
+      return of(apiError<EstadoIntergrupo>('ESCRITORIO_UF_INVALIDA', 'UF inválida.', [{ campo: 'uf', mensagem: 'inválida' }])).pipe(delay(300));
     }
     if (regiao.estados.some((e) => e.uf === req.uf)) {
-      return of(apiError<EstadoIntergrupo>('CONFLICT', 'Já existe um estado com esta UF nesta região.')).pipe(delay(300));
+      return of(apiError<EstadoIntergrupo>('ESCRITORIO_ESTADO_UF_EM_USO', 'Já existe um estado com esta UF nesta região.')).pipe(delay(300));
     }
     const agora = new Date().toISOString();
     const novo: EstadoIntergrupo = {
@@ -142,16 +142,16 @@ export class EscritorioRegionalService {
   criarEnderecoAdmin(regiaoId: string, req: CriarEnderecoGrupoRequest): Observable<ApiEnvelope<GrupoIntergrupo>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<GrupoIntergrupo>>(`${this.adminUrl}/regioes/${regiaoId}/enderecos`, req).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<GrupoIntergrupo>(erro, 'UPSTREAM_ERROR', 'Não foi possível criar o endereço agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<GrupoIntergrupo>(erro, 'INTERNAL_ERROR', 'Não foi possível criar o endereço agora.'))),
       );
     }
 
     const regiao = ESCRITORIOS_REGIONAIS_MOCK.regioes.find((r) => r.id === regiaoId);
     if (!regiao) {
-      return of(apiError<GrupoIntergrupo>('NOT_FOUND', 'Região não encontrada.')).pipe(delay(300));
+      return of(apiError<GrupoIntergrupo>('ESCRITORIO_REGIAO_NAO_ENCONTRADA', 'Região não encontrada.')).pipe(delay(300));
     }
     if (!ufValida(req.uf)) {
-      return of(apiError<GrupoIntergrupo>('VALIDATION_ERROR', 'UF inválida.', [{ campo: 'uf', mensagem: 'inválida' }])).pipe(delay(300));
+      return of(apiError<GrupoIntergrupo>('ESCRITORIO_UF_INVALIDA', 'UF inválida.', [{ campo: 'uf', mensagem: 'inválida' }])).pipe(delay(300));
     }
     if (!req.nome?.trim() || !req.endereco?.trim() || !req.cidade?.trim() || !req.agenda?.length) {
       return of(apiError<GrupoIntergrupo>('VALIDATION_ERROR', 'Preencha todos os campos obrigatórios.')).pipe(delay(300));
@@ -193,20 +193,20 @@ export class EscritorioRegionalService {
   editarEstadoAdmin(regiaoId: string, id: string, req: EditarEstadoRequest): Observable<ApiEnvelope<EstadoIntergrupo>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<EstadoIntergrupo>>(`${this.adminUrl}/regioes/${regiaoId}/estados/${id}`, req).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<EstadoIntergrupo>(erro, 'UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+        catchError((erro) => of(apiErrorDeHttpError<EstadoIntergrupo>(erro, 'INTERNAL_ERROR', 'Não foi possível salvar as alterações.'))),
       );
     }
 
     const regiao = ESCRITORIOS_REGIONAIS_MOCK.regioes.find((r) => r.id === regiaoId);
     const estado = regiao?.estados.find((e) => e.id === id);
     if (!regiao || !estado) {
-      return of(apiError<EstadoIntergrupo>('NOT_FOUND', 'Região ou estado não encontrado.')).pipe(delay(300));
+      return of(apiError<EstadoIntergrupo>('ESCRITORIO_ESTADO_NAO_ENCONTRADO', 'Região ou estado não encontrado.')).pipe(delay(300));
     }
     if (!ufValida(req.uf)) {
-      return of(apiError<EstadoIntergrupo>('VALIDATION_ERROR', 'UF inválida.', [{ campo: 'uf', mensagem: 'inválida' }])).pipe(delay(300));
+      return of(apiError<EstadoIntergrupo>('ESCRITORIO_UF_INVALIDA', 'UF inválida.', [{ campo: 'uf', mensagem: 'inválida' }])).pipe(delay(300));
     }
     if (req.uf !== estado.uf && regiao.estados.some((e) => e.uf === req.uf)) {
-      return of(apiError<EstadoIntergrupo>('CONFLICT', 'Já existe um estado com esta UF nesta região.')).pipe(delay(300));
+      return of(apiError<EstadoIntergrupo>('ESCRITORIO_ESTADO_UF_EM_USO', 'Já existe um estado com esta UF nesta região.')).pipe(delay(300));
     }
     estado.uf = req.uf;
     estado.nome = nomeUf(req.uf);
@@ -217,14 +217,14 @@ export class EscritorioRegionalService {
   excluirEstadoAdmin(regiaoId: string, id: string): Observable<ApiEnvelope<{ mensagem: string }>> {
     if (!environment.useMocks) {
       return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/regioes/${regiaoId}/estados/${id}`).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<{ mensagem: string }>(erro, 'UPSTREAM_ERROR', 'Não foi possível remover o estado agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<{ mensagem: string }>(erro, 'INTERNAL_ERROR', 'Não foi possível remover o estado agora.'))),
       );
     }
 
     const regiao = ESCRITORIOS_REGIONAIS_MOCK.regioes.find((r) => r.id === regiaoId);
     const indice = regiao?.estados.findIndex((e) => e.id === id) ?? -1;
     if (!regiao || indice === -1) {
-      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Região ou estado não encontrado.')).pipe(delay(300));
+      return of(apiError<{ mensagem: string }>('ESCRITORIO_ESTADO_NAO_ENCONTRADO', 'Região ou estado não encontrado.')).pipe(delay(300));
     }
     regiao.estados.splice(indice, 1);
     return of(apiSuccess({ mensagem: 'Estado removido.' })).pipe(delay(400));
@@ -242,16 +242,16 @@ export class EscritorioRegionalService {
     if (!environment.useMocks) {
       return this.http
         .post<ApiEnvelope<EstadoIntergrupo>>(`${this.adminUrl}/regioes/${regiaoId}/estados/${id}/mover-${direcao}`, {})
-        .pipe(catchError((erro) => of(apiErrorDeHttpError<EstadoIntergrupo>(erro, 'UPSTREAM_ERROR', 'Não foi possível reordenar o estado agora.'))));
+        .pipe(catchError((erro) => of(apiErrorDeHttpError<EstadoIntergrupo>(erro, 'INTERNAL_ERROR', 'Não foi possível reordenar o estado agora.'))));
     }
 
     const regiao = ESCRITORIOS_REGIONAIS_MOCK.regioes.find((r) => r.id === regiaoId);
     if (!regiao) {
-      return of(apiError<EstadoIntergrupo>('NOT_FOUND', 'Região não encontrada.')).pipe(delay(300));
+      return of(apiError<EstadoIntergrupo>('ESCRITORIO_REGIAO_NAO_ENCONTRADA', 'Região não encontrada.')).pipe(delay(300));
     }
     const indice = regiao.estados.findIndex((e) => e.id === id);
     if (indice === -1) {
-      return of(apiError<EstadoIntergrupo>('NOT_FOUND', 'Estado não encontrado.')).pipe(delay(300));
+      return of(apiError<EstadoIntergrupo>('ESCRITORIO_ESTADO_NAO_ENCONTRADO', 'Estado não encontrado.')).pipe(delay(300));
     }
     const item = trocarOrdem(regiao.estados, indice, direcao);
     return of(apiSuccess(item)).pipe(delay(300));
@@ -270,13 +270,13 @@ export class EscritorioRegionalService {
   criarGrupoAdmin(estadoId: string, req: CriarGrupoRequest): Observable<ApiEnvelope<GrupoIntergrupo>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<GrupoIntergrupo>>(`${this.adminUrl}/estados/${estadoId}/grupos`, req).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<GrupoIntergrupo>(erro, 'UPSTREAM_ERROR', 'Não foi possível criar o grupo agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<GrupoIntergrupo>(erro, 'INTERNAL_ERROR', 'Não foi possível criar o grupo agora.'))),
       );
     }
 
     const estado = this.encontrarEstadoPorId(estadoId);
     if (!estado) {
-      return of(apiError<GrupoIntergrupo>('NOT_FOUND', 'Estado não encontrado.')).pipe(delay(300));
+      return of(apiError<GrupoIntergrupo>('ESCRITORIO_ESTADO_NAO_ENCONTRADO', 'Estado não encontrado.')).pipe(delay(300));
     }
     if (!req.nome?.trim() || !req.endereco?.trim() || !req.cidade?.trim() || !req.agenda?.length) {
       return of(apiError<GrupoIntergrupo>('VALIDATION_ERROR', 'Preencha todos os campos obrigatórios.')).pipe(delay(300));
@@ -302,14 +302,14 @@ export class EscritorioRegionalService {
   editarGrupoAdmin(estadoId: string, id: string, req: EditarGrupoRequest): Observable<ApiEnvelope<GrupoIntergrupo>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<GrupoIntergrupo>>(`${this.adminUrl}/estados/${estadoId}/grupos/${id}`, req).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<GrupoIntergrupo>(erro, 'UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+        catchError((erro) => of(apiErrorDeHttpError<GrupoIntergrupo>(erro, 'INTERNAL_ERROR', 'Não foi possível salvar as alterações.'))),
       );
     }
 
     const estado = this.encontrarEstadoPorId(estadoId);
     const grupo = estado?.grupos.find((g) => g.id === id);
     if (!estado || !grupo) {
-      return of(apiError<GrupoIntergrupo>('NOT_FOUND', 'Estado ou grupo não encontrado.')).pipe(delay(300));
+      return of(apiError<GrupoIntergrupo>('ESCRITORIO_GRUPO_NAO_ENCONTRADO', 'Estado ou grupo não encontrado.')).pipe(delay(300));
     }
     if (!req.nome?.trim() || !req.endereco?.trim() || !req.cidade?.trim() || !req.agenda?.length) {
       return of(apiError<GrupoIntergrupo>('VALIDATION_ERROR', 'Preencha todos os campos obrigatórios.')).pipe(delay(300));
@@ -327,14 +327,14 @@ export class EscritorioRegionalService {
   excluirGrupoAdmin(estadoId: string, id: string): Observable<ApiEnvelope<{ mensagem: string }>> {
     if (!environment.useMocks) {
       return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/estados/${estadoId}/grupos/${id}`).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<{ mensagem: string }>(erro, 'UPSTREAM_ERROR', 'Não foi possível remover o grupo agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<{ mensagem: string }>(erro, 'INTERNAL_ERROR', 'Não foi possível remover o grupo agora.'))),
       );
     }
 
     const estado = this.encontrarEstadoPorId(estadoId);
     const indice = estado?.grupos.findIndex((g) => g.id === id) ?? -1;
     if (!estado || indice === -1) {
-      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Estado ou grupo não encontrado.')).pipe(delay(300));
+      return of(apiError<{ mensagem: string }>('ESCRITORIO_GRUPO_NAO_ENCONTRADO', 'Estado ou grupo não encontrado.')).pipe(delay(300));
     }
     estado.grupos.splice(indice, 1);
     return of(apiSuccess({ mensagem: 'Grupo removido.' })).pipe(delay(400));
@@ -352,16 +352,16 @@ export class EscritorioRegionalService {
     if (!environment.useMocks) {
       return this.http
         .post<ApiEnvelope<GrupoIntergrupo>>(`${this.adminUrl}/estados/${estadoId}/grupos/${id}/mover-${direcao}`, {})
-        .pipe(catchError((erro) => of(apiErrorDeHttpError<GrupoIntergrupo>(erro, 'UPSTREAM_ERROR', 'Não foi possível reordenar o grupo agora.'))));
+        .pipe(catchError((erro) => of(apiErrorDeHttpError<GrupoIntergrupo>(erro, 'INTERNAL_ERROR', 'Não foi possível reordenar o grupo agora.'))));
     }
 
     const estado = this.encontrarEstadoPorId(estadoId);
     if (!estado) {
-      return of(apiError<GrupoIntergrupo>('NOT_FOUND', 'Estado não encontrado.')).pipe(delay(300));
+      return of(apiError<GrupoIntergrupo>('ESCRITORIO_ESTADO_NAO_ENCONTRADO', 'Estado não encontrado.')).pipe(delay(300));
     }
     const indice = estado.grupos.findIndex((g) => g.id === id);
     if (indice === -1) {
-      return of(apiError<GrupoIntergrupo>('NOT_FOUND', 'Grupo não encontrado.')).pipe(delay(300));
+      return of(apiError<GrupoIntergrupo>('ESCRITORIO_GRUPO_NAO_ENCONTRADO', 'Grupo não encontrado.')).pipe(delay(300));
     }
     const item = trocarOrdem(estado.grupos, indice, direcao);
     return of(apiSuccess(item)).pipe(delay(300));
@@ -370,7 +370,7 @@ export class EscritorioRegionalService {
   criarEscritorioServicoAdmin(req: CriarEscritorioServicoRequest): Observable<ApiEnvelope<EscritorioServico>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<EscritorioServico>>(`${this.adminUrl}/escritorios-servico`, req).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<EscritorioServico>(erro, 'UPSTREAM_ERROR', 'Não foi possível criar o escritório agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<EscritorioServico>(erro, 'INTERNAL_ERROR', 'Não foi possível criar o escritório agora.'))),
       );
     }
 
@@ -398,13 +398,13 @@ export class EscritorioRegionalService {
   editarEscritorioServicoAdmin(id: string, req: EditarEscritorioServicoRequest): Observable<ApiEnvelope<EscritorioServico>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<EscritorioServico>>(`${this.adminUrl}/escritorios-servico/${id}`, req).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<EscritorioServico>(erro, 'UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+        catchError((erro) => of(apiErrorDeHttpError<EscritorioServico>(erro, 'INTERNAL_ERROR', 'Não foi possível salvar as alterações.'))),
       );
     }
 
     const escritorio = ESCRITORIOS_REGIONAIS_MOCK.escritorios.find((e) => e.id === id);
     if (!escritorio) {
-      return of(apiError<EscritorioServico>('NOT_FOUND', 'Escritório não encontrado.')).pipe(delay(300));
+      return of(apiError<EscritorioServico>('ESCRITORIO_SERVICO_NAO_ENCONTRADO', 'Escritório não encontrado.')).pipe(delay(300));
     }
     if (!req.nome?.trim() || !req.endereco?.trim() || !req.cidade?.trim()) {
       return of(apiError<EscritorioServico>('VALIDATION_ERROR', 'Preencha todos os campos obrigatórios.')).pipe(delay(300));
@@ -423,13 +423,13 @@ export class EscritorioRegionalService {
   excluirEscritorioServicoAdmin(id: string): Observable<ApiEnvelope<{ mensagem: string }>> {
     if (!environment.useMocks) {
       return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/escritorios-servico/${id}`).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<{ mensagem: string }>(erro, 'UPSTREAM_ERROR', 'Não foi possível remover o escritório agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<{ mensagem: string }>(erro, 'INTERNAL_ERROR', 'Não foi possível remover o escritório agora.'))),
       );
     }
 
     const indice = ESCRITORIOS_REGIONAIS_MOCK.escritorios.findIndex((e) => e.id === id);
     if (indice === -1) {
-      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Escritório não encontrado.')).pipe(delay(300));
+      return of(apiError<{ mensagem: string }>('ESCRITORIO_SERVICO_NAO_ENCONTRADO', 'Escritório não encontrado.')).pipe(delay(300));
     }
     ESCRITORIOS_REGIONAIS_MOCK.escritorios.splice(indice, 1);
     return of(apiSuccess({ mensagem: 'Escritório de serviço removido.' })).pipe(delay(400));
@@ -447,13 +447,13 @@ export class EscritorioRegionalService {
     if (!environment.useMocks) {
       return this.http
         .post<ApiEnvelope<EscritorioServico>>(`${this.adminUrl}/escritorios-servico/${id}/mover-${direcao}`, {})
-        .pipe(catchError((erro) => of(apiErrorDeHttpError<EscritorioServico>(erro, 'UPSTREAM_ERROR', 'Não foi possível reordenar o escritório agora.'))));
+        .pipe(catchError((erro) => of(apiErrorDeHttpError<EscritorioServico>(erro, 'INTERNAL_ERROR', 'Não foi possível reordenar o escritório agora.'))));
     }
 
     const lista = ESCRITORIOS_REGIONAIS_MOCK.escritorios;
     const indice = lista.findIndex((e) => e.id === id);
     if (indice === -1) {
-      return of(apiError<EscritorioServico>('NOT_FOUND', 'Escritório não encontrado.')).pipe(delay(300));
+      return of(apiError<EscritorioServico>('ESCRITORIO_SERVICO_NAO_ENCONTRADO', 'Escritório não encontrado.')).pipe(delay(300));
     }
     const item = trocarOrdem(lista, indice, direcao);
     return of(apiSuccess(item)).pipe(delay(300));

@@ -1,5 +1,6 @@
 package br.com.jogadoresanonimos.reuniao.service;
 
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.reuniao.dto.CriarReuniaoRequest;
 import br.com.jogadoresanonimos.reuniao.dto.EditarReuniaoRequest;
@@ -67,6 +68,6 @@ public class ReuniaoService {
 
     private Reuniao buscarOuFalhar(UUID id) {
         return reuniaoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Reunião não encontrada"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.REUNIAO_NAO_ENCONTRADA, "Reunião não encontrada"));
     }
 }

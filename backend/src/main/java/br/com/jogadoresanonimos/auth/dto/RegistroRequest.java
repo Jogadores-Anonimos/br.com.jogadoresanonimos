@@ -6,23 +6,23 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record RegistroRequest(
-        @NotBlank(message = "Apelido é obrigatório")
-        @Size(min = 3, max = 30, message = "Apelido deve ter entre 3 e 30 caracteres")
-        @Pattern(regexp = "\\S+", message = "Apelido não pode conter espaços")
+        @NotBlank(message = "Escolha um apelido para continuar")
+        @Size(min = 3, max = 30, message = "O apelido deve ter entre 3 e 30 caracteres")
+        @Pattern(regexp = "\\S+", message = "O apelido não pode conter espaços")
         String apelido,
 
-        @NotBlank(message = "E-mail é obrigatório")
-        @Email(message = "E-mail em formato inválido")
+        @NotBlank(message = "Informe um e-mail para continuar")
+        @Email(message = "Digite um e-mail válido, como nome@exemplo.com")
         String email,
 
-        @NotBlank(message = "Senha é obrigatória")
-        @Size(min = 10, message = "Senha deve ter no mínimo 10 caracteres")
+        @NotBlank(message = "Crie uma senha para continuar")
+        @Size(min = 10, message = "A senha deve ter no mínimo 10 caracteres")
         String senha,
 
-        @NotBlank(message = "Confirmação de senha é obrigatória")
+        @NotBlank(message = "Confirme a senha para continuar")
         String confirmarSenha,
 
-        @NotBlank(message = "Verificação do reCAPTCHA é obrigatória")
+        @NotBlank(message = "Marque a verificação \"Não sou um robô\" para continuar")
         String recaptchaToken
 ) {
 }

@@ -1,6 +1,7 @@
 package br.com.jogadoresanonimos.escritorio.service;
 
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.common.util.ReordenacaoUtil;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -57,7 +59,7 @@ public class EscritorioRegionalService {
         RegiaoIntergrupo regiao = buscarRegiaoOuFalhar(id);
         String nome = request.nome().trim();
         if (!nome.equalsIgnoreCase(regiao.getNome()) && regiaoRepository.existsByNomeIgnoreCase(nome)) {
-            throw new ValidationException("Já existe uma região com esse nome.");
+            throw new ValidationException(ErrorCode.ESCRITORIO_REGIAO_NOME_EM_USO, "Já existe uma região com esse nome.");
         }
         regiao.editar(nome);
         return RegiaoIntergrupoResponse.from(regiao);
@@ -89,7 +91,7 @@ public class EscritorioRegionalService {
         RegiaoIntergrupo regiao = buscarRegiaoOuFalhar(regiaoId);
         UnidadeFederativa uf = resolverUf(request.uf());
         if (estadoRepository.existsByRegiaoIdAndUf(regiaoId, uf)) {
-            throw new ConflitoDeEstadoException(
+            throw new ConflitoDeEstadoException(ErrorCode.ESCRITORIO_ESTADO_UF_EM_USO,
                     "Já existe um estado com essa UF nesta região. Edite o estado existente em vez de criar um novo.");
         }
         int ordem = proximaOrdem(estadoRepository.findAllByRegiaoIdOrderByOrdemAsc(regiaoId), EstadoIntergrupo::getOrdem);
@@ -103,7 +105,7 @@ public class EscritorioRegionalService {
         EstadoIntergrupo estado = buscarEstadoOuFalhar(regiaoId, id);
         UnidadeFederativa uf = resolverUf(request.uf());
         if (uf != estado.getUf() && estadoRepository.existsByRegiaoIdAndUf(regiaoId, uf)) {
-            throw new ConflitoDeEstadoException(
+            throw new ConflitoDeEstadoException(ErrorCode.ESCRITORIO_ESTADO_UF_EM_USO,
                     "Já existe um estado com essa UF nesta região. Edite o estado existente em vez de criar um novo.");
         }
         estado.editar(uf);
@@ -277,39 +279,39 @@ public class EscritorioRegionalService {
 
     private RegiaoIntergrupo buscarRegiaoOuFalhar(UUID id) {
         return regiaoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Região não encontrada"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_REGIAO_NAO_ENCONTRADA, "Região não encontrada"));
     }
 
     private EstadoIntergrupo buscarEstadoOuFalhar(UUID id) {
         return estadoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Estado não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_ESTADO_NAO_ENCONTRADO, "Estado não encontrado"));
     }
 
     private EstadoIntergrupo buscarEstadoOuFalhar(UUID regiaoId, UUID id) {
         EstadoIntergrupo estado = buscarEstadoOuFalhar(id);
         if (!estado.getRegiao().getId().equals(regiaoId)) {
-            throw new RecursoNaoEncontradoException("Estado não encontrado nesta região");
+            throw new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_ESTADO_NAO_ENCONTRADO, "Estado não encontrado nesta região");
         }
         return estado;
     }
 
     private GrupoIntergrupo buscarGrupoOuFalhar(UUID estadoId, UUID id) {
         GrupoIntergrupo grupo = grupoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Grupo não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_GRUPO_NAO_ENCONTRADO, "Grupo não encontrado"));
         if (!grupo.getEstado().getId().equals(estadoId)) {
-            throw new RecursoNaoEncontradoException("Grupo não encontrado neste estado");
+            throw new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_GRUPO_NAO_ENCONTRADO, "Grupo não encontrado neste estado");
         }
         return grupo;
     }
 
     private EscritorioServico buscarEscritorioServicoOuFalhar(UUID id) {
         return escritorioServicoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Escritório de serviço não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_SERVICO_NAO_ENCONTRADO, "Escritório de serviço não encontrado"));
     }
 
     private static UnidadeFederativa resolverUf(String uf) {
         return UnidadeFederativa.deSigla(uf)
-                .orElseThrow(() -> new ValidationException("UF inválida: informe uma das 27 UFs do Brasil."));
+                .orElseThrow(() -> new ValidationException(ErrorCode.ESCRITORIO_UF_INVALIDA, "UF inválida: informe uma das 27 UFs do Brasil."));
     }
 
     private static List<AgendaItemGrupo> resolverAgenda(List<AgendaItemRequest> agenda) {
@@ -320,10 +322,12 @@ public class EscritorioRegionalService {
             try {
                 dia = DiaSemana.valueOf(item.diaSemana().trim().toUpperCase());
             } catch (IllegalArgumentException ex) {
-                throw new ValidationException("Dia da semana inválido: " + item.diaSemana());
+                throw new ValidationException(ErrorCode.ESCRITORIO_DIA_SEMANA_INVALIDO, "Dia da semana inválido",
+                        null, Map.of("diaSemana", item.diaSemana()));
             }
             if (!diasJaVistos.add(dia)) {
-                throw new ValidationException("Dia da semana duplicado na agenda: " + dia.name());
+                throw new ValidationException(ErrorCode.ESCRITORIO_DIA_SEMANA_DUPLICADO, "Dia da semana duplicado na agenda",
+                        null, Map.of("diaSemana", dia.name()));
             }
             itens.add(new AgendaItemGrupo(dia, item.horario().trim()));
         }

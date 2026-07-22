@@ -2,6 +2,7 @@ package br.com.jogadoresanonimos.usuario.controller;
 
 import br.com.jogadoresanonimos.auth.dto.MensagemResponse;
 import br.com.jogadoresanonimos.common.dto.ApiResponse;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
 import br.com.jogadoresanonimos.security.AuthenticatedUser;
 import br.com.jogadoresanonimos.usuario.dto.AlterarSenhaRequest;
@@ -30,7 +31,7 @@ public class UsuarioController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UsuarioMeResponse>> me(@AuthenticationPrincipal AuthenticatedUser principal) {
         if (principal == null) {
-            throw new UnauthenticatedException("Token ausente ou inválido");
+            throw new UnauthenticatedException(ErrorCode.AUTH_TOKEN_AUSENTE_OU_INVALIDO, "Token ausente ou inválido");
         }
         return ResponseEntity.ok(ApiResponse.ok(usuarioService.buscarMe(principal.id())));
     }
@@ -40,7 +41,7 @@ public class UsuarioController {
             @Valid @RequestBody AtualizarContaRequest request,
             @AuthenticationPrincipal AuthenticatedUser principal) {
         if (principal == null) {
-            throw new UnauthenticatedException("Token ausente ou inválido");
+            throw new UnauthenticatedException(ErrorCode.AUTH_TOKEN_AUSENTE_OU_INVALIDO, "Token ausente ou inválido");
         }
         return ResponseEntity.ok(ApiResponse.ok(usuarioService.atualizarConta(principal.id(), request)));
     }
@@ -50,7 +51,7 @@ public class UsuarioController {
             @Valid @RequestBody AlterarSenhaRequest request,
             @AuthenticationPrincipal AuthenticatedUser principal) {
         if (principal == null) {
-            throw new UnauthenticatedException("Token ausente ou inválido");
+            throw new UnauthenticatedException(ErrorCode.AUTH_TOKEN_AUSENTE_OU_INVALIDO, "Token ausente ou inválido");
         }
         return ResponseEntity.ok(ApiResponse.ok(usuarioService.alterarSenha(principal.id(), request)));
     }

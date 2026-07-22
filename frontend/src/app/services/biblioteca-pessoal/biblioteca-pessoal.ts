@@ -17,7 +17,7 @@ export class BibliotecaPessoalService {
   listarMinhaBiblioteca(): Observable<ApiEnvelope<ArquivoResponse[]>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<ArquivoResponse[]>>(this.baseUrl).pipe(
-        catchError(() => of(apiError<ArquivoResponse[]>('UPSTREAM_ERROR', 'Não foi possível carregar sua biblioteca agora.'))),
+        catchError(() => of(apiError<ArquivoResponse[]>('INTERNAL_ERROR', 'Não foi possível carregar sua biblioteca agora.'))),
       );
     }
 
@@ -30,12 +30,12 @@ export class BibliotecaPessoalService {
   adicionarABiblioteca(arquivoId: string): Observable<ApiEnvelope<{ mensagem: string }>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<{ mensagem: string }>>(`${this.baseUrl}/${arquivoId}`, {}).pipe(
-        catchError(() => of(apiError<{ mensagem: string }>('UPSTREAM_ERROR', 'Não foi possível adicionar o arquivo agora.'))),
+        catchError(() => of(apiError<{ mensagem: string }>('INTERNAL_ERROR', 'Não foi possível adicionar o arquivo agora.'))),
       );
     }
 
     if (!ARQUIVOS_MOCK.some((a) => a.id === arquivoId)) {
-      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Arquivo não encontrado.')).pipe(delay(300));
+      return of(apiError<{ mensagem: string }>('BIBLIOTECA_ARQUIVO_NAO_ENCONTRADO', 'Arquivo não encontrado.')).pipe(delay(300));
     }
     if (!BIBLIOTECA_PESSOAL_IDS_MOCK.includes(arquivoId)) {
       BIBLIOTECA_PESSOAL_IDS_MOCK.push(arquivoId);
@@ -46,7 +46,7 @@ export class BibliotecaPessoalService {
   removerDaBiblioteca(arquivoId: string): Observable<ApiEnvelope<{ mensagem: string }>> {
     if (!environment.useMocks) {
       return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.baseUrl}/${arquivoId}`).pipe(
-        catchError(() => of(apiError<{ mensagem: string }>('UPSTREAM_ERROR', 'Não foi possível remover o arquivo agora.'))),
+        catchError(() => of(apiError<{ mensagem: string }>('INTERNAL_ERROR', 'Não foi possível remover o arquivo agora.'))),
       );
     }
 

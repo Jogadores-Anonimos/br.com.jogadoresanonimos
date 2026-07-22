@@ -3,6 +3,7 @@ package br.com.jogadoresanonimos.usuario.biblioteca.service;
 import br.com.jogadoresanonimos.arquivo.dto.ArquivoResponse;
 import br.com.jogadoresanonimos.arquivo.entity.Arquivo;
 import br.com.jogadoresanonimos.arquivo.repository.ArquivoRepository;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
 import br.com.jogadoresanonimos.imagem.service.StorageClient;
@@ -48,12 +49,12 @@ public class BibliotecaPessoalService {
 
     @Transactional
     public void adicionar(UUID usuarioId, UUID arquivoId) {
-        rateLimiterService.check("biblioteca-adicionar:" + usuarioId, 30, Duration.ofMinutes(1));
+        rateLimiterService.check("biblioteca-adicionar:" + usuarioId, 30, Duration.ofMinutes(1), ErrorCode.BIBLIOTECA_RATE_LIMITED);
         if (usuarioArquivoRepository.existsById_UsuarioIdAndId_ArquivoId(usuarioId, arquivoId)) {
             return;
         }
         if (!arquivoRepository.existsById(arquivoId)) {
-            throw new RecursoNaoEncontradoException("Arquivo não encontrado");
+            throw new RecursoNaoEncontradoException(ErrorCode.BIBLIOTECA_ARQUIVO_NAO_ENCONTRADO, "Arquivo não encontrado");
         }
         usuarioArquivoRepository.save(new UsuarioArquivo(usuarioId, arquivoId));
     }

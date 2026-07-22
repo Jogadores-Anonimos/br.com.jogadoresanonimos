@@ -52,8 +52,10 @@ Convenções gerais (mesmas do restante do projeto, ver `contrato-avisos.md`):
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `titulo` ausente/em branco ou fora do tamanho; `descricao` fora do tamanho |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `ARQUIVO_NAO_ENCONTRADO` | id não existe |
+
+> Catálogo completo de `error.code` em `contrato-erro-padrao.md`.
 
 ---
 

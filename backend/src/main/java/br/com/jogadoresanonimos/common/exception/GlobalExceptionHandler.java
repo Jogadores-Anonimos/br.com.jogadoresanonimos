@@ -28,8 +28,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ApiResponse<Object>> handleApiException(ApiException ex, HttpServletRequest request) {
         String traceId = traceId();
-        List<ApiError.FieldError> fields = ex instanceof ValidationException ve ? ve.getFields() : null;
-        ApiError error = ApiError.of(ex.getCode().name(), ex.getMessage(), fields, traceId);
+        ApiError error = ApiError.of(ex.getCode(), ex.getMessage(), ex.getDetails(), ex.getFields(), traceId);
         HttpHeaders headers = new HttpHeaders();
         if (ex instanceof RateLimitedException rle) {
             headers.add(HttpHeaders.RETRY_AFTER, String.valueOf(rle.getRetryAfterSeconds()));
@@ -44,7 +43,7 @@ public class GlobalExceptionHandler {
         List<ApiError.FieldError> fields = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> new ApiError.FieldError(fe.getField(), fe.getDefaultMessage()))
                 .toList();
-        ApiError error = ApiError.of(ErrorCode.VALIDATION_ERROR.name(), "Dados informados são inválidos", fields, traceId);
+        ApiError error = ApiError.of(ErrorCode.VALIDATION_ERROR, "Dados informados são inválidos", fields, traceId);
         logOperational(HttpStatus.BAD_REQUEST, request, traceId, null);
         return ResponseEntity.badRequest().body(ApiResponse.fail(error));
     }
@@ -52,7 +51,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiResponse<Object>> handleUploadTooLarge(MaxUploadSizeExceededException ex, HttpServletRequest request) {
         String traceId = traceId();
-        ApiError error = ApiError.of(ErrorCode.VALIDATION_ERROR.name(), "Arquivo excede o tamanho máximo permitido", traceId);
+        ApiError error = ApiError.of(ErrorCode.UPLOAD_TOO_LARGE, "Arquivo excede o tamanho máximo permitido", traceId);
         logOperational(HttpStatus.BAD_REQUEST, request, traceId, null);
         return ResponseEntity.badRequest().body(ApiResponse.fail(error));
     }
@@ -60,7 +59,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({BadCredentialsException.class})
     public ResponseEntity<ApiResponse<Object>> handleBadCredentials(Exception ex, HttpServletRequest request) {
         String traceId = traceId();
-        ApiError error = ApiError.of(ErrorCode.UNAUTHENTICATED.name(), "Identificador ou senha inválidos", traceId);
+        ApiError error = ApiError.of(ErrorCode.AUTH_INVALID_CREDENTIALS, "Identificador ou senha inválidos", traceId);
         logOperational(HttpStatus.UNAUTHORIZED, request, traceId, null);
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.fail(error));
     }
@@ -68,7 +67,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Object>> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         String traceId = traceId();
-        ApiError error = ApiError.of(ErrorCode.FORBIDDEN.name(), "Acesso negado", traceId);
+        ApiError error = ApiError.of(ErrorCode.FORBIDDEN, "Acesso negado", traceId);
         logOperational(HttpStatus.FORBIDDEN, request, traceId, null);
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(error));
     }
@@ -90,7 +89,7 @@ public class GlobalExceptionHandler {
             return ResponseEntity.status(HttpStatus.OK).build();
         }
         String traceId = traceId();
-        ApiError error = ApiError.of(ErrorCode.INTERNAL_ERROR.name(), "Ocorreu um erro, tente novamente", traceId);
+        ApiError error = ApiError.of(ErrorCode.INTERNAL_ERROR, "Ocorreu um erro, tente novamente", traceId);
         logOperational(HttpStatus.INTERNAL_SERVER_ERROR, request, traceId, ex);
         return ResponseEntity.internalServerError().body(ApiResponse.fail(error));
     }

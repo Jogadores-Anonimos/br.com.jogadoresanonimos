@@ -5,6 +5,6 @@ import org.springframework.http.HttpStatus;
 public class ConflitoDeRegiaoHotlineException extends ApiException {
 
     public ConflitoDeRegiaoHotlineException(String message) {
-        super(HttpStatus.CONFLICT, ErrorCode.CONFLICT, message);
+        super(HttpStatus.CONFLICT, ErrorCode.HOTLINE_REGIAO_EM_USO, message);
     }
 }

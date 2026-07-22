@@ -19,7 +19,7 @@ export class Imagem {
       formData.append('arquivo', req.arquivo);
       formData.append('alt', req.alt);
       return this.http.post<ApiEnvelope<ImagemResponse>>(this.adminUrl, formData).pipe(
-        catchError(() => of(apiError<ImagemResponse>('UPSTREAM_ERROR', 'Não foi possível enviar a imagem agora.'))),
+        catchError(() => of(apiError<ImagemResponse>('INTERNAL_ERROR', 'Não foi possível enviar a imagem agora.'))),
       );
     }
 
@@ -44,13 +44,13 @@ export class Imagem {
   removerImagem(id: string): Observable<ApiEnvelope<MensagemResponse>> {
     if (!environment.useMocks) {
       return this.http.delete<ApiEnvelope<MensagemResponse>>(`${this.adminUrl}/${id}`).pipe(
-        catchError(() => of(apiError<MensagemResponse>('UPSTREAM_ERROR', 'Não foi possível remover a imagem agora.'))),
+        catchError(() => of(apiError<MensagemResponse>('INTERNAL_ERROR', 'Não foi possível remover a imagem agora.'))),
       );
     }
 
     const indice = IMAGENS_MOCK.findIndex((i) => i.id === id);
     if (indice === -1) {
-      return of(apiError<MensagemResponse>('NOT_FOUND', 'Imagem não encontrada.')).pipe(delay(300));
+      return of(apiError<MensagemResponse>('IMAGEM_NAO_ENCONTRADA', 'Imagem não encontrada.')).pipe(delay(300));
     }
     IMAGENS_MOCK.splice(indice, 1);
     return of(apiSuccess({ mensagem: 'Imagem removida.' })).pipe(delay(400));

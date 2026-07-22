@@ -39,7 +39,7 @@ export class HotlineService {
   listarHotlines(): Observable<ApiEnvelope<HotlineRegiao[]>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<HotlineRegiao[]>>(this.publicaUrl).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<HotlineRegiao[]>(erro, 'UPSTREAM_ERROR', 'Não foi possível carregar as linhas de ajuda.'))),
+        catchError((erro) => of(apiErrorDeHttpError<HotlineRegiao[]>(erro, 'INTERNAL_ERROR', 'Não foi possível carregar as linhas de ajuda.'))),
       );
     }
 
@@ -51,7 +51,7 @@ export class HotlineService {
   listarHotlinesAdmin(): Observable<ApiEnvelope<HotlineRegiao[]>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<HotlineRegiao[]>>(this.adminUrl).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<HotlineRegiao[]>(erro, 'UPSTREAM_ERROR', 'Não foi possível carregar as linhas de ajuda.'))),
+        catchError((erro) => of(apiErrorDeHttpError<HotlineRegiao[]>(erro, 'INTERNAL_ERROR', 'Não foi possível carregar as linhas de ajuda.'))),
       );
     }
 
@@ -61,19 +61,19 @@ export class HotlineService {
   criarRegiaoAdmin(req: CriarRegiaoRequest): Observable<ApiEnvelope<HotlineRegiao>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<HotlineRegiao>>(`${this.adminUrl}/regioes`, req).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<HotlineRegiao>(erro, 'UPSTREAM_ERROR', 'Não foi possível criar a região agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<HotlineRegiao>(erro, 'INTERNAL_ERROR', 'Não foi possível criar a região agora.'))),
       );
     }
 
     const cidade = req.cidade?.trim() ?? '';
     if (!ufValida(req.uf)) {
-      return of(apiError<HotlineRegiao>('VALIDATION_ERROR', 'UF inválida.', [{ campo: 'uf', mensagem: 'inválida' }])).pipe(delay(300));
+      return of(apiError<HotlineRegiao>('HOTLINE_UF_INVALIDA', 'UF inválida.', [{ campo: 'uf', mensagem: 'inválida' }])).pipe(delay(300));
     }
     if (!cidade) {
       return of(apiError<HotlineRegiao>('VALIDATION_ERROR', 'Cidade é obrigatória.', [{ campo: 'cidade', mensagem: 'obrigatório' }])).pipe(delay(300));
     }
     if (HOTLINES_MOCK.some((r) => r.uf === req.uf && r.cidade.toLowerCase() === cidade.toLowerCase())) {
-      return of(apiError<HotlineRegiao>('CONFLICT', 'Já existe uma região com esta UF e cidade.')).pipe(delay(300));
+      return of(apiError<HotlineRegiao>('HOTLINE_REGIAO_EM_USO', 'Já existe uma região com esta UF e cidade.')).pipe(delay(300));
     }
 
     const nova: HotlineRegiao = { id: proximoIdMock('regiao'), uf: req.uf, cidade, telefones: [] };
@@ -84,24 +84,24 @@ export class HotlineService {
   editarRegiaoAdmin(id: string, req: EditarRegiaoRequest): Observable<ApiEnvelope<HotlineRegiao>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<HotlineRegiao>>(`${this.adminUrl}/regioes/${id}`, req).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<HotlineRegiao>(erro, 'UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+        catchError((erro) => of(apiErrorDeHttpError<HotlineRegiao>(erro, 'INTERNAL_ERROR', 'Não foi possível salvar as alterações.'))),
       );
     }
 
     const regiao = HOTLINES_MOCK.find((r) => r.id === id);
     if (!regiao) {
-      return of(apiError<HotlineRegiao>('NOT_FOUND', 'Região não encontrada.')).pipe(delay(300));
+      return of(apiError<HotlineRegiao>('HOTLINE_REGIAO_NAO_ENCONTRADA', 'Região não encontrada.')).pipe(delay(300));
     }
     const cidade = req.cidade?.trim() ?? '';
     if (!ufValida(req.uf)) {
-      return of(apiError<HotlineRegiao>('VALIDATION_ERROR', 'UF inválida.', [{ campo: 'uf', mensagem: 'inválida' }])).pipe(delay(300));
+      return of(apiError<HotlineRegiao>('HOTLINE_UF_INVALIDA', 'UF inválida.', [{ campo: 'uf', mensagem: 'inválida' }])).pipe(delay(300));
     }
     if (!cidade) {
       return of(apiError<HotlineRegiao>('VALIDATION_ERROR', 'Cidade é obrigatória.', [{ campo: 'cidade', mensagem: 'obrigatório' }])).pipe(delay(300));
     }
     const combinacaoMudou = req.uf !== regiao.uf || cidade.toLowerCase() !== regiao.cidade.toLowerCase();
     if (combinacaoMudou && HOTLINES_MOCK.some((r) => r.id !== id && r.uf === req.uf && r.cidade.toLowerCase() === cidade.toLowerCase())) {
-      return of(apiError<HotlineRegiao>('CONFLICT', 'Já existe uma região com esta UF e cidade.')).pipe(delay(300));
+      return of(apiError<HotlineRegiao>('HOTLINE_REGIAO_EM_USO', 'Já existe uma região com esta UF e cidade.')).pipe(delay(300));
     }
 
     regiao.uf = req.uf;
@@ -112,13 +112,13 @@ export class HotlineService {
   excluirRegiaoAdmin(id: string): Observable<ApiEnvelope<{ mensagem: string }>> {
     if (!environment.useMocks) {
       return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/regioes/${id}`).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<{ mensagem: string }>(erro, 'UPSTREAM_ERROR', 'Não foi possível remover a região agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<{ mensagem: string }>(erro, 'INTERNAL_ERROR', 'Não foi possível remover a região agora.'))),
       );
     }
 
     const indice = HOTLINES_MOCK.findIndex((r) => r.id === id);
     if (indice === -1) {
-      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Região não encontrada.')).pipe(delay(300));
+      return of(apiError<{ mensagem: string }>('HOTLINE_REGIAO_NAO_ENCONTRADA', 'Região não encontrada.')).pipe(delay(300));
     }
     HOTLINES_MOCK.splice(indice, 1);
     return of(apiSuccess({ mensagem: 'Região removida.' })).pipe(delay(400));
@@ -127,13 +127,13 @@ export class HotlineService {
   adicionarTelefoneAdmin(regiaoId: string, req: CriarTelefoneRequest): Observable<ApiEnvelope<HotlineRegiao>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<HotlineRegiao>>(`${this.adminUrl}/regioes/${regiaoId}/telefones`, req).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<HotlineRegiao>(erro, 'UPSTREAM_ERROR', 'Não foi possível adicionar o telefone agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<HotlineRegiao>(erro, 'INTERNAL_ERROR', 'Não foi possível adicionar o telefone agora.'))),
       );
     }
 
     const regiao = HOTLINES_MOCK.find((r) => r.id === regiaoId);
     if (!regiao) {
-      return of(apiError<HotlineRegiao>('NOT_FOUND', 'Região não encontrada.')).pipe(delay(300));
+      return of(apiError<HotlineRegiao>('HOTLINE_REGIAO_NAO_ENCONTRADA', 'Região não encontrada.')).pipe(delay(300));
     }
     if (!req.telefone?.trim()) {
       return of(apiError<HotlineRegiao>('VALIDATION_ERROR', 'Telefone é obrigatório.')).pipe(delay(300));
@@ -146,7 +146,7 @@ export class HotlineService {
   editarTelefoneAdmin(id: string, req: EditarTelefoneRequest): Observable<ApiEnvelope<HotlineTelefone>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<HotlineTelefone>>(`${this.adminUrl}/telefones/${id}`, req).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<HotlineTelefone>(erro, 'UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+        catchError((erro) => of(apiErrorDeHttpError<HotlineTelefone>(erro, 'INTERNAL_ERROR', 'Não foi possível salvar as alterações.'))),
       );
     }
 
@@ -160,13 +160,13 @@ export class HotlineService {
         return of(apiSuccess(telefone)).pipe(delay(400));
       }
     }
-    return of(apiError<HotlineTelefone>('NOT_FOUND', 'Telefone não encontrado.')).pipe(delay(300));
+    return of(apiError<HotlineTelefone>('HOTLINE_TELEFONE_NAO_ENCONTRADO', 'Telefone não encontrado.')).pipe(delay(300));
   }
 
   excluirTelefoneAdmin(id: string): Observable<ApiEnvelope<{ mensagem: string }>> {
     if (!environment.useMocks) {
       return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/telefones/${id}`).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<{ mensagem: string }>(erro, 'UPSTREAM_ERROR', 'Não foi possível remover o telefone agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<{ mensagem: string }>(erro, 'INTERNAL_ERROR', 'Não foi possível remover o telefone agora.'))),
       );
     }
 
@@ -177,6 +177,6 @@ export class HotlineService {
         return of(apiSuccess({ mensagem: 'Telefone removido.' })).pipe(delay(400));
       }
     }
-    return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Telefone não encontrado.')).pipe(delay(300));
+    return of(apiError<{ mensagem: string }>('HOTLINE_TELEFONE_NAO_ENCONTRADO', 'Telefone não encontrado.')).pipe(delay(300));
   }
 }

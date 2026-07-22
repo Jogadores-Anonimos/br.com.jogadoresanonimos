@@ -46,7 +46,7 @@ export class Arquivo {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<ArquivoResponse[]>>(this.publicaUrl).pipe(
         map(comUrlsAbsolutasEnvelope),
-        catchError((erro) => of(apiErrorDeHttpError<ArquivoResponse[]>(erro, 'UPSTREAM_ERROR', 'Não foi possível carregar as publicações agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<ArquivoResponse[]>(erro, 'INTERNAL_ERROR', 'Não foi possível carregar as publicações agora.'))),
       );
     }
 
@@ -60,7 +60,7 @@ export class Arquivo {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<ArquivoResponse[]>>(this.adminUrl).pipe(
         map(comUrlsAbsolutasEnvelope),
-        catchError((erro) => of(apiErrorDeHttpError<ArquivoResponse[]>(erro, 'UPSTREAM_ERROR', 'Não foi possível carregar os arquivos agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<ArquivoResponse[]>(erro, 'INTERNAL_ERROR', 'Não foi possível carregar os arquivos agora.'))),
       );
     }
 
@@ -80,7 +80,7 @@ export class Arquivo {
       }
       return this.http.post<ApiEnvelope<ArquivoResponse>>(this.adminUrl, formData).pipe(
         map(comUrlAbsolutaEnvelopeUnico),
-        catchError((erro) => of(apiErrorDeHttpError<ArquivoResponse>(erro, 'UPSTREAM_ERROR', 'Não foi possível enviar o arquivo agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<ArquivoResponse>(erro, 'INTERNAL_ERROR', 'Não foi possível enviar o arquivo agora.'))),
       );
     }
 
@@ -106,13 +106,13 @@ export class Arquivo {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<ArquivoResponse>>(`${this.adminUrl}/${id}`, req).pipe(
         map(comUrlAbsolutaEnvelopeUnico),
-        catchError((erro) => of(apiErrorDeHttpError<ArquivoResponse>(erro, 'UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+        catchError((erro) => of(apiErrorDeHttpError<ArquivoResponse>(erro, 'INTERNAL_ERROR', 'Não foi possível salvar as alterações.'))),
       );
     }
 
     const arquivo = ARQUIVOS_MOCK.find((a) => a.id === id);
     if (!arquivo) {
-      return of(apiError<ArquivoResponse>('NOT_FOUND', 'Arquivo não encontrado.')).pipe(delay(300));
+      return of(apiError<ArquivoResponse>('ARQUIVO_NAO_ENCONTRADO', 'Arquivo não encontrado.')).pipe(delay(300));
     }
     if (!req.titulo?.trim()) {
       return of(apiError<ArquivoResponse>('VALIDATION_ERROR', 'Título é obrigatório.', [{ campo: 'titulo', mensagem: 'obrigatório' }])).pipe(delay(300));
@@ -136,13 +136,13 @@ export class Arquivo {
   deletarArquivo(id: string): Observable<ApiEnvelope<{ mensagem: string }>> {
     if (!environment.useMocks) {
       return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/${id}`).pipe(
-        catchError((erro) => of(apiErrorDeHttpError<{ mensagem: string }>(erro, 'UPSTREAM_ERROR', 'Não foi possível remover o arquivo agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<{ mensagem: string }>(erro, 'INTERNAL_ERROR', 'Não foi possível remover o arquivo agora.'))),
       );
     }
 
     const indice = ARQUIVOS_MOCK.findIndex((a) => a.id === id);
     if (indice === -1) {
-      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Arquivo não encontrado.')).pipe(delay(300));
+      return of(apiError<{ mensagem: string }>('ARQUIVO_NAO_ENCONTRADO', 'Arquivo não encontrado.')).pipe(delay(300));
     }
     ARQUIVOS_MOCK.splice(indice, 1);
     return of(apiSuccess({ mensagem: 'Arquivo removido.' })).pipe(delay(400));

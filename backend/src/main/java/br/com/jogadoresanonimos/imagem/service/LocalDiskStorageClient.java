@@ -1,5 +1,6 @@
 package br.com.jogadoresanonimos.imagem.service;
 
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.UpstreamException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,7 @@ public class LocalDiskStorageClient implements StorageClient {
             aplicarPermissoesRestritivas(destino);
         } catch (IOException e) {
             log.error("falha_upload_storage_local");
-            throw new UpstreamException("Não foi possível concluir o upload no momento");
+            throw new UpstreamException(ErrorCode.UPLOAD_STORAGE_INDISPONIVEL, "Não foi possível concluir o upload no momento");
         }
     }
 
@@ -55,7 +56,7 @@ public class LocalDiskStorageClient implements StorageClient {
             Files.deleteIfExists(baseDir.resolve(chave));
         } catch (IOException e) {
             log.error("falha_delete_storage_local");
-            throw new UpstreamException("Não foi possível remover a imagem no momento");
+            throw new UpstreamException(ErrorCode.UPLOAD_STORAGE_INDISPONIVEL, "Não foi possível remover a imagem no momento");
         }
     }
 
@@ -69,12 +70,12 @@ public class LocalDiskStorageClient implements StorageClient {
         try {
             Path caminho = baseDir.resolve(chave).normalize();
             if (!caminho.startsWith(baseDir.normalize())) {
-                throw new UpstreamException("Arquivo não encontrado");
+                throw new UpstreamException(ErrorCode.UPLOAD_STORAGE_INDISPONIVEL, "Arquivo não encontrado");
             }
             return Files.readAllBytes(caminho);
         } catch (IOException e) {
             log.error("falha_download_storage_local");
-            throw new UpstreamException("Não foi possível ler o arquivo no momento");
+            throw new UpstreamException(ErrorCode.UPLOAD_STORAGE_INDISPONIVEL, "Não foi possível ler o arquivo no momento");
         }
     }
 

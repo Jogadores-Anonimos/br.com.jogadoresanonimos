@@ -71,7 +71,7 @@ export class MuralDeApoioService {
   listarTodosAdmin(): Observable<ApiEnvelope<BannerMuralAdmin[]>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<BannerMuralAdmin[]>>(this.adminUrl).pipe(
-        catchError(() => of(apiError<BannerMuralAdmin[]>('UPSTREAM_ERROR', 'Não foi possível carregar os banners.'))),
+        catchError(() => of(apiError<BannerMuralAdmin[]>('INTERNAL_ERROR', 'Não foi possível carregar os banners.'))),
       );
     }
 
@@ -84,7 +84,7 @@ export class MuralDeApoioService {
   criarBannerAdmin(req: CriarBannerMuralRequest): Observable<ApiEnvelope<BannerMuralAdmin>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<BannerMuralAdmin>>(this.adminUrl, req).pipe(
-        catchError(() => of(apiError<BannerMuralAdmin>('UPSTREAM_ERROR', 'Não foi possível criar o banner agora.'))),
+        catchError(() => of(apiError<BannerMuralAdmin>('INTERNAL_ERROR', 'Não foi possível criar o banner agora.'))),
       );
     }
 
@@ -113,13 +113,13 @@ export class MuralDeApoioService {
   editarBannerAdmin(id: string, req: EditarBannerMuralRequest): Observable<ApiEnvelope<BannerMuralAdmin>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<BannerMuralAdmin>>(`${this.adminUrl}/${id}`, req).pipe(
-        catchError(() => of(apiError<BannerMuralAdmin>('UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+        catchError(() => of(apiError<BannerMuralAdmin>('INTERNAL_ERROR', 'Não foi possível salvar as alterações.'))),
       );
     }
 
     const banner = MURAL_DE_APOIO_MOCK.find((b) => b.id === id);
     if (!banner) {
-      return of(apiError<BannerMuralAdmin>('NOT_FOUND', 'Banner não encontrado.')).pipe(delay(300));
+      return of(apiError<BannerMuralAdmin>('MURAL_BANNER_NAO_ENCONTRADO', 'Banner não encontrado.')).pipe(delay(300));
     }
     if (!req.altText?.trim()) {
       return of(apiError<BannerMuralAdmin>('VALIDATION_ERROR', 'Texto alternativo é obrigatório.', [{ campo: 'altText', mensagem: 'obrigatório' }])).pipe(
@@ -141,13 +141,13 @@ export class MuralDeApoioService {
   excluirBannerAdmin(id: string): Observable<ApiEnvelope<{ mensagem: string }>> {
     if (!environment.useMocks) {
       return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/${id}`).pipe(
-        catchError(() => of(apiError<{ mensagem: string }>('UPSTREAM_ERROR', 'Não foi possível remover o banner agora.'))),
+        catchError(() => of(apiError<{ mensagem: string }>('INTERNAL_ERROR', 'Não foi possível remover o banner agora.'))),
       );
     }
 
     const indice = MURAL_DE_APOIO_MOCK.findIndex((b) => b.id === id);
     if (indice === -1) {
-      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Banner não encontrado.')).pipe(delay(300));
+      return of(apiError<{ mensagem: string }>('MURAL_BANNER_NAO_ENCONTRADO', 'Banner não encontrado.')).pipe(delay(300));
     }
     MURAL_DE_APOIO_MOCK.splice(indice, 1);
     return of(apiSuccess({ mensagem: 'Banner removido.' })).pipe(delay(400));

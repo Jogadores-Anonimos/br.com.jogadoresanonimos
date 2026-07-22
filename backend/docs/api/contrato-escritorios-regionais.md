@@ -66,6 +66,7 @@
 Convenções gerais (mesmas do restante do projeto, ver `contrato-avisos.md`):
 - Envelope de resposta sempre `{ success, data, error }`.
 - Todos os paths sob `/api/v1`.
+- Catálogo completo de `error.code` em `contrato-erro-padrao.md`.
 - Nenhum token/identificador sensível em query string.
 - `traceId` presente em toda resposta de erro.
 - Datas em ISO-8601 UTC.
@@ -235,7 +236,7 @@ rolável.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
 
 ---
 
@@ -282,9 +283,9 @@ para exibição, não é input).
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `uf` ausente/vazia ou não é uma das 27 UFs válidas |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | `regiaoId` não existe |
-| 409 | `CONFLICT` | já existe um estado com essa UF nesta região (mensagem orienta o admin a editar o existente) |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `ESCRITORIO_REGIAO_NAO_ENCONTRADA` | `regiaoId` não existe |
+| 409 | `ESCRITORIO_ESTADO_UF_EM_USO` | já existe um estado com essa UF nesta região (mensagem orienta o admin a editar o existente) |
 
 ### 7. `PUT /api/v1/admin/escritorios-regionais/regioes/{regiaoId}/estados/{id}`
 
@@ -903,8 +904,8 @@ estado usado/criado — não precisa de DTO de resposta dedicado).
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `uf` ausente/inválida, `agenda` vazia/com dia duplicado/dados obrigatórios ausentes |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | `regiaoId` não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `ESCRITORIO_REGIAO_NAO_ENCONTRADA` | `regiaoId` não existe |
 
 **Endpoints antigos preservados**: `POST /regioes/{regiaoId}/estados` e
 `POST /estados/{estadoId}/grupos` continuam funcionando exatamente como

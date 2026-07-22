@@ -1,13 +1,99 @@
 package br.com.jogadoresanonimos.common.exception;
 
-public enum ErrorCode {
-    VALIDATION_ERROR,
-    UNAUTHENTICATED,
-    FORBIDDEN,
-    NOT_FOUND,
-    CONFLICT,
-    RATE_LIMITED,
-    UNSUPPORTED_MEDIA,
-    UPSTREAM_ERROR,
-    INTERNAL_ERROR
+public final class ErrorCode {
+
+    private ErrorCode() {
+    }
+
+    public static final String VALIDATION_ERROR = "VALIDATION_ERROR";
+    public static final String UPLOAD_TOO_LARGE = "UPLOAD_TOO_LARGE";
+    public static final String UNAUTHENTICATED = "AUTH_UNAUTHENTICATED";
+    public static final String FORBIDDEN = "AUTH_FORBIDDEN";
+    public static final String INTERNAL_ERROR = "INTERNAL_ERROR";
+
+    public static final String AUTH_INVALID_CREDENTIALS = "AUTH_INVALID_CREDENTIALS";
+    public static final String AUTH_APELIDO_EM_USO = "AUTH_APELIDO_EM_USO";
+    public static final String AUTH_EMAIL_EM_USO = "AUTH_EMAIL_EM_USO";
+    public static final String AUTH_CADASTRO_CONFLITO = "AUTH_CADASTRO_CONFLITO";
+    public static final String AUTH_SENHA_CONFIRMACAO_DIVERGENTE = "AUTH_SENHA_CONFIRMACAO_DIVERGENTE";
+    public static final String AUTH_RESET_TOKEN_INVALIDO = "AUTH_RESET_TOKEN_INVALIDO";
+    public static final String AUTH_TOKEN_AUSENTE_OU_INVALIDO = "AUTH_TOKEN_AUSENTE_OU_INVALIDO";
+    public static final String AUTH_RECAPTCHA_INVALIDO = "AUTH_RECAPTCHA_INVALIDO";
+    public static final String AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL = "AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL";
+    public static final String AUTH_RATE_LIMITED = "AUTH_RATE_LIMITED";
+
+    public static final String MFA_JA_ATIVO = "MFA_JA_ATIVO";
+    public static final String MFA_ENROLLMENT_INEXISTENTE = "MFA_ENROLLMENT_INEXISTENTE";
+    public static final String MFA_CODIGO_INVALIDO = "MFA_CODIGO_INVALIDO";
+    public static final String MFA_SENHA_INCORRETA = "MFA_SENHA_INCORRETA";
+    public static final String MFA_USUARIO_NAO_ENCONTRADO = "MFA_USUARIO_NAO_ENCONTRADO";
+    public static final String MFA_RATE_LIMITED = "MFA_RATE_LIMITED";
+
+    public static final String USUARIO_NAO_ENCONTRADO = "USUARIO_NAO_ENCONTRADO";
+    public static final String USUARIO_AUTO_REBAIXAMENTO_ADMIN = "USUARIO_AUTO_REBAIXAMENTO_ADMIN";
+    public static final String USUARIO_ULTIMO_ADMIN = "USUARIO_ULTIMO_ADMIN";
+    public static final String USUARIO_DADOS_EM_USO = "USUARIO_DADOS_EM_USO";
+    public static final String USUARIO_SENHA_CONFIRMACAO_DIVERGENTE = "USUARIO_SENHA_CONFIRMACAO_DIVERGENTE";
+    public static final String USUARIO_SENHA_ATUAL_INCORRETA = "USUARIO_SENHA_ATUAL_INCORRETA";
+    public static final String USUARIO_RATE_LIMITED = "USUARIO_RATE_LIMITED";
+
+    public static final String RELATO_NAO_ENCONTRADO = "RELATO_NAO_ENCONTRADO";
+    public static final String RELATO_RATE_LIMITED = "RELATO_RATE_LIMITED";
+
+    public static final String UPLOAD_TITULO_OBRIGATORIO = "UPLOAD_TITULO_OBRIGATORIO";
+    public static final String UPLOAD_ARQUIVO_OBRIGATORIO = "UPLOAD_ARQUIVO_OBRIGATORIO";
+    public static final String UPLOAD_TAMANHO_EXCEDIDO = "UPLOAD_TAMANHO_EXCEDIDO";
+    public static final String UPLOAD_LEITURA_FALHOU = "UPLOAD_LEITURA_FALHOU";
+    public static final String UPLOAD_TIPO_NAO_PERMITIDO = "UPLOAD_TIPO_NAO_PERMITIDO";
+    public static final String UPLOAD_ALT_OBRIGATORIO = "UPLOAD_ALT_OBRIGATORIO";
+    public static final String UPLOAD_RATE_LIMITED = "UPLOAD_RATE_LIMITED";
+    public static final String UPLOAD_STORAGE_INDISPONIVEL = "UPLOAD_STORAGE_INDISPONIVEL";
+
+    public static final String ARQUIVO_NAO_ENCONTRADO = "ARQUIVO_NAO_ENCONTRADO";
+    public static final String ARQUIVO_EM_USO = "ARQUIVO_EM_USO";
+
+    public static final String IMAGEM_NAO_ENCONTRADA = "IMAGEM_NAO_ENCONTRADA";
+    public static final String IMAGEM_EM_USO = "IMAGEM_EM_USO";
+
+    public static final String CMS_PAGINA_NAO_ENCONTRADA = "CMS_PAGINA_NAO_ENCONTRADA";
+    public static final String CMS_SLUG_EM_USO = "CMS_SLUG_EM_USO";
+    public static final String CMS_BLOCO_REFERENCIA_INVALIDA = "CMS_BLOCO_REFERENCIA_INVALIDA";
+    public static final String CMS_BLOCO_ORDEM_DUPLICADA = "CMS_BLOCO_ORDEM_DUPLICADA";
+    public static final String CMS_BLOCO_TIPO_INVALIDO = "CMS_BLOCO_TIPO_INVALIDO";
+    public static final String CMS_HTML_REJEITADO = "CMS_HTML_REJEITADO";
+
+    public static final String MURAL_BANNER_NAO_ENCONTRADO = "MURAL_BANNER_NAO_ENCONTRADO";
+    public static final String MURAL_BANNER_MIDIA_INVALIDA = "MURAL_BANNER_MIDIA_INVALIDA";
+
+    public static final String AVISO_NAO_ENCONTRADO = "AVISO_NAO_ENCONTRADO";
+
+    public static final String FAQ_NAO_ENCONTRADA = "FAQ_NAO_ENCONTRADA";
+
+    public static final String REFLEXAO_NAO_ENCONTRADA = "REFLEXAO_NAO_ENCONTRADA";
+    public static final String REFLEXAO_DATA_INVALIDA = "REFLEXAO_DATA_INVALIDA";
+
+    public static final String VINTE_PERGUNTAS_NAO_ENCONTRADA = "VINTE_PERGUNTAS_NAO_ENCONTRADA";
+    public static final String VINTE_PERGUNTAS_ULTIMA_PERGUNTA = "VINTE_PERGUNTAS_ULTIMA_PERGUNTA";
+
+    public static final String REUNIAO_NAO_ENCONTRADA = "REUNIAO_NAO_ENCONTRADA";
+
+    public static final String ESCRITORIO_REGIAO_NAO_ENCONTRADA = "ESCRITORIO_REGIAO_NAO_ENCONTRADA";
+    public static final String ESCRITORIO_REGIAO_NOME_EM_USO = "ESCRITORIO_REGIAO_NOME_EM_USO";
+    public static final String ESCRITORIO_ESTADO_NAO_ENCONTRADO = "ESCRITORIO_ESTADO_NAO_ENCONTRADO";
+    public static final String ESCRITORIO_ESTADO_UF_EM_USO = "ESCRITORIO_ESTADO_UF_EM_USO";
+    public static final String ESCRITORIO_GRUPO_NAO_ENCONTRADO = "ESCRITORIO_GRUPO_NAO_ENCONTRADO";
+    public static final String ESCRITORIO_SERVICO_NAO_ENCONTRADO = "ESCRITORIO_SERVICO_NAO_ENCONTRADO";
+    public static final String ESCRITORIO_UF_INVALIDA = "ESCRITORIO_UF_INVALIDA";
+    public static final String ESCRITORIO_DIA_SEMANA_INVALIDO = "ESCRITORIO_DIA_SEMANA_INVALIDO";
+    public static final String ESCRITORIO_DIA_SEMANA_DUPLICADO = "ESCRITORIO_DIA_SEMANA_DUPLICADO";
+
+    public static final String HOTLINE_REGIAO_NAO_ENCONTRADA = "HOTLINE_REGIAO_NAO_ENCONTRADA";
+    public static final String HOTLINE_TELEFONE_NAO_ENCONTRADO = "HOTLINE_TELEFONE_NAO_ENCONTRADO";
+    public static final String HOTLINE_REGIAO_EM_USO = "HOTLINE_REGIAO_EM_USO";
+    public static final String HOTLINE_UF_INVALIDA = "HOTLINE_UF_INVALIDA";
+
+    public static final String BIBLIOTECA_ARQUIVO_NAO_ENCONTRADO = "BIBLIOTECA_ARQUIVO_NAO_ENCONTRADO";
+    public static final String BIBLIOTECA_RATE_LIMITED = "BIBLIOTECA_RATE_LIMITED";
+
+    public static final String AUDITORIA_INTERVALO_INVALIDO = "AUDITORIA_INTERVALO_INVALIDO";
 }

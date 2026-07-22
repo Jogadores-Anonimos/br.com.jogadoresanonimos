@@ -4,7 +4,7 @@ import { of } from 'rxjs';
 import { AdminSeguranca } from './admin-seguranca';
 import { Auth } from '../../../services/auth/auth';
 import { UsuarioMe } from '../../../services/auth/auth.model';
-import { apiError, apiSuccess } from '../../../services/api-envelope';
+import { MFA_CODIGO_INVALIDO_MENSAGEM, apiError, apiSuccess } from '../../../services/api-envelope';
 
 function usuarioFake(overrides: Partial<UsuarioMe> = {}): UsuarioMe {
   return {
@@ -137,13 +137,13 @@ describe('AdminSeguranca', () => {
     });
 
     it('mostra erro e mantém o formulário quando o código de confirmação é inválido', () => {
-      authSpy['confirmarMfa'].mockReturnValue(of(apiError('VALIDATION_ERROR', 'Código inválido. Tente novamente.')));
+      authSpy['confirmarMfa'].mockReturnValue(of(apiError('AUTH_MFA_INVALID', 'Código inválido.')));
       component.iniciarEnrollment();
       component.confirmarCodigoTotp = '000000';
 
       component.confirmarEnrollment();
 
-      expect(component.confirmarErro).toBe('Código inválido. Tente novamente.');
+      expect(component.confirmarErro).toBe(MFA_CODIGO_INVALIDO_MENSAGEM);
       expect(component.mfaAtivo).toBe(false);
     });
   });

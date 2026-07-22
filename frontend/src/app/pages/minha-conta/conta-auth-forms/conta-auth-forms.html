@@ -185,6 +185,9 @@
           </div>
 
           <div class="conta-captcha" #captchaRegistro></div>
+          @if (registroErrosCampo['recaptchaToken']) {
+            <span class="campo-erro">{{ registroErrosCampo['recaptchaToken'] }}</span>
+          }
 
           <button
             type="submit"

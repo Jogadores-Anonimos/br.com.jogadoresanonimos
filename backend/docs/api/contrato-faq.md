@@ -20,6 +20,7 @@ Convenções gerais (mesmas do restante do projeto, ver
 `contrato-avisos.md`/`contrato-relatos.md`):
 - Envelope de resposta sempre `{ success, data, error }`.
 - Todos os paths sob `/api/v1`.
+- Catálogo completo de `error.code` em `contrato-erro-padrao.md`.
 - Nenhum token/identificador sensível em query string.
 - `traceId` presente em toda resposta de erro.
 
@@ -97,7 +98,7 @@ esconder), então não há necessidade de dois DTOs distintos.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
 
 ---
 
@@ -124,7 +125,7 @@ não houver nenhuma pergunta cadastrada ainda).
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | pergunta/resposta ausente ou fora do tamanho |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
 
 ---
 
@@ -146,8 +147,8 @@ do `CriarFaqRequest` atual.
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | pergunta/resposta fora do tamanho |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `FAQ_NAO_ENCONTRADA` | id não existe |
 
 ---
 
@@ -163,8 +164,8 @@ do `CriarFaqRequest` atual.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `FAQ_NAO_ENCONTRADA` | id não existe |
 
 ---
 
@@ -184,8 +185,8 @@ completa da lista). Mover além do limite (primeira pergunta subindo,
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `FAQ_NAO_ENCONTRADA` | id não existe |
 
 ---
 

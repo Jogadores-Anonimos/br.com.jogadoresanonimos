@@ -7,7 +7,8 @@
 
 Convenções gerais (mesmas do resto do projeto): envelope
 `{ success, data, error }`, paths sob `/api/v1`, nenhum segredo em query
-string, datas ISO-8601 UTC.
+string, datas ISO-8601 UTC. Catálogo completo de `error.code` em
+`contrato-erro-padrao.md`.
 
 ## Decisão: MFA opcional, não obrigatório
 Admin ativa quando quiser — sem forçar enrollment no primeiro login.
@@ -164,10 +165,10 @@ não depende de captcha.
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `codigoTotp` ausente/não numérico/tamanho errado, ou `recaptchaToken` ausente (formato, não validade) |
-| 401 | `UNAUTHENTICATED` | identificador/senha inválidos, usuário não é admin com MFA ativo (ataque de replay de fluxo), ou `codigoTotp` incorreto — mensagem genérica única, mesmo padrão anti-enumeration do login |
-| 429 | `RATE_LIMITED` | excesso de tentativas (bucket de login ou bucket específico de TOTP) |
+| 401 | `AUTH_INVALID_CREDENTIALS` | identificador/senha inválidos, usuário não é admin com MFA ativo (ataque de replay de fluxo), ou `codigoTotp` incorreto — mensagem genérica única, mesmo padrão anti-enumeration do login |
+| 429 | `AUTH_RATE_LIMITED` | excesso de tentativas (bucket de login ou bucket específico de TOTP) |
 
-`502 UPSTREAM_ERROR` não se aplica aqui (sem chamada ao `siteverify`
+`502 AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL` não se aplica aqui (sem chamada ao `siteverify`
 nesta etapa).
 
 Ordem de validação no `AuthService`: rate limit (login + login-mfa) →
@@ -193,7 +194,7 @@ estar logado). Prefixo `/api/v1/admin/mfa`.
   descontrolada de secrets.
 - **Consistência**: forte, síncrona.
 - **Pré-condição**: `mfa_ativo` deve ser `false`. Se já ativo, retorna
-  `409 CONFLICT` — admin precisa desativar antes de reconfigurar (ver
+  `409 MFA_JA_ATIVO` — admin precisa desativar antes de reconfigurar (ver
   endpoint de desativação abaixo), evita perder acesso por engano no meio
   de uma reconfiguração.
 
@@ -219,9 +220,9 @@ apresentacional.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
-| 409 | `CONFLICT` | MFA já ativo para este admin |
-| 429 | `RATE_LIMITED` | excesso de tentativas de enroll |
+| 403 | `AUTH_FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
+| 409 | `MFA_JA_ATIVO` | MFA já ativo para este admin |
+| 429 | `MFA_RATE_LIMITED` | excesso de tentativas de enroll |
 
 ### `POST /api/v1/admin/mfa/confirmar`
 - **Autenticação + autorização**: `ROLE_ADMIN`.
@@ -247,11 +248,11 @@ apresentacional.
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `codigoTotp` ausente/formato inválido |
-| 401 | `UNAUTHENTICATED` | código incorreto |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | não há enrollment pendente (nenhuma chamada prévia a `/enroll`) |
-| 409 | `CONFLICT` | MFA já está ativo |
-| 429 | `RATE_LIMITED` | excesso de tentativas |
+| 401 | `MFA_CODIGO_INVALIDO` | código incorreto |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `MFA_ENROLLMENT_INEXISTENTE` | não há enrollment pendente (nenhuma chamada prévia a `/enroll`) |
+| 409 | `MFA_JA_ATIVO` | MFA já está ativo |
+| 429 | `MFA_RATE_LIMITED` | excesso de tentativas |
 
 ### `POST /api/v1/admin/mfa/desativar`
 - **Autenticação + autorização**: `ROLE_ADMIN`.
@@ -272,8 +273,8 @@ apresentacional.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 401 | `UNAUTHENTICATED` | senha incorreta |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
+| 401 | `MFA_SENHA_INCORRETA` | senha incorreta |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
 
 Efeito: `mfa_ativo = false` e `mfa_secret_cifrado = NULL` (apaga o
 secret, não só desativa a flag — reconfiguração futura sempre parte de

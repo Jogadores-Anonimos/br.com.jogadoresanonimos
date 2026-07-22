@@ -4,7 +4,7 @@ import { Observable, of } from 'rxjs';
 import { catchError, delay, tap } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
-import { ApiEnvelope, ApiFieldError, apiError, apiSuccess } from '../api-envelope';
+import { ApiEnvelope, ApiFieldError, MFA_CODIGO_INVALIDO_MENSAGEM, apiError, apiErrorDeHttpError, apiSuccess } from '../api-envelope';
 import {
   AlterarSenhaRequest,
   AtualizarContaRequest,
@@ -142,7 +142,9 @@ export class Auth {
   registrar(req: RegistroRequest): Observable<ApiEnvelope<UsuarioResponse>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<UsuarioResponse>>(`${this.baseUrl}/registro`, req).pipe(
-        catchError(() => of(apiError<UsuarioResponse>('UPSTREAM_ERROR', 'Não foi possível concluir o cadastro. Tente novamente.'))),
+        catchError((erro) =>
+          of(apiErrorDeHttpError<UsuarioResponse>(erro, 'INTERNAL_ERROR', 'Não foi possível concluir o cadastro. Tente novamente.')),
+        ),
       );
     }
 
@@ -151,9 +153,22 @@ export class Auth {
       return of(validacao).pipe(delay(400));
     }
 
-    const jaExiste = encontrarUsuarioMockPorIdentificador(req.apelido) || encontrarUsuarioMockPorIdentificador(req.email);
-    if (jaExiste) {
-      return of(apiError<UsuarioResponse>('CONFLICT', 'Não foi possível concluir o cadastro com os dados informados')).pipe(delay(400));
+    const apelidoEmUso = encontrarUsuarioMockPorIdentificador(req.apelido);
+    if (apelidoEmUso) {
+      return of(
+        apiError<UsuarioResponse>('AUTH_APELIDO_EM_USO', 'Esse apelido já está em uso, escolha outro', [
+          { campo: 'apelido', mensagem: 'Esse apelido já está em uso, escolha outro' },
+        ]),
+      ).pipe(delay(400));
+    }
+
+    const emailEmUso = encontrarUsuarioMockPorIdentificador(req.email);
+    if (emailEmUso) {
+      return of(
+        apiError<UsuarioResponse>('AUTH_EMAIL_EM_USO', 'Esse e-mail já está cadastrado', [
+          { campo: 'email', mensagem: 'Esse e-mail já está cadastrado' },
+        ]),
+      ).pipe(delay(400));
     }
 
     const resposta: UsuarioResponse = {
@@ -170,7 +185,9 @@ export class Auth {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<LoginResponse>>(`${this.baseUrl}/login`, req).pipe(
         tap((resposta) => this.aplicarLoginBemSucedido(resposta, req.lembrarDeMim ?? false)),
-        catchError(() => of(apiError<LoginResponse>('UPSTREAM_ERROR', 'Não foi possível entrar. Tente novamente.'))),
+        catchError((erro) =>
+          of(apiErrorDeHttpError<LoginResponse>(erro, 'INTERNAL_ERROR', 'Não foi possível entrar. Tente novamente.')),
+        ),
       );
     }
 
@@ -180,7 +197,7 @@ export class Auth {
 
     const usuario = encontrarUsuarioMockPorIdentificador(req.identificador);
     if (!usuario || usuario.senha !== req.senha) {
-      return of(apiError<LoginResponse>('UNAUTHENTICATED', 'Apelido/e-mail ou senha inválidos.')).pipe(delay(400));
+      return of(apiError<LoginResponse>('AUTH_INVALID_CREDENTIALS', 'Apelido/e-mail ou senha inválidos.')).pipe(delay(400));
     }
 
     if (usuario.mfaAtivo) {
@@ -204,16 +221,18 @@ export class Auth {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<LoginResponse>>(`${this.baseUrl}/login/mfa`, req).pipe(
         tap((resposta) => this.aplicarLoginBemSucedido(resposta, lembrarDeMim)),
-        catchError(() => of(apiError<LoginResponse>('UPSTREAM_ERROR', 'Não foi possível entrar. Tente novamente.'))),
+        catchError((erro) =>
+          of(apiErrorDeHttpError<LoginResponse>(erro, 'INTERNAL_ERROR', 'Não foi possível entrar. Tente novamente.')),
+        ),
       );
     }
 
     const usuario = encontrarUsuarioMockPorIdentificador(req.identificador);
     if (!usuario || usuario.senha !== req.senha) {
-      return of(apiError<LoginResponse>('UNAUTHENTICATED', 'Apelido/e-mail ou senha inválidos.')).pipe(delay(400));
+      return of(apiError<LoginResponse>('AUTH_INVALID_CREDENTIALS', 'Apelido/e-mail ou senha inválidos.')).pipe(delay(400));
     }
     if (req.codigoTotp !== CODIGO_TOTP_MOCK) {
-      return of(apiError<LoginResponse>('UNAUTHENTICATED', 'Código inválido. Tente novamente.')).pipe(delay(400));
+      return of(apiError<LoginResponse>('MFA_CODIGO_INVALIDO', MFA_CODIGO_INVALIDO_MENSAGEM)).pipe(delay(400));
     }
 
     const resposta: LoginResponse = {
@@ -231,13 +250,15 @@ export class Auth {
   enrollMfa(): Observable<ApiEnvelope<MfaEnrollResponse>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<MfaEnrollResponse>>(`${environment.apiBaseUrl}/admin/mfa/enroll`, {}).pipe(
-        catchError(() => of(apiError<MfaEnrollResponse>('UPSTREAM_ERROR', 'Não foi possível iniciar a configuração do MFA. Tente novamente.'))),
+        catchError((erro) =>
+          of(apiErrorDeHttpError<MfaEnrollResponse>(erro, 'INTERNAL_ERROR', 'Não foi possível iniciar a configuração do MFA. Tente novamente.')),
+        ),
       );
     }
 
     const atual = this.usuarioAtualSignal();
     if (!atual) {
-      return of(apiError<MfaEnrollResponse>('UNAUTHENTICATED', 'Sessão expirada. Faça login novamente.')).pipe(delay(300));
+      return of(apiError<MfaEnrollResponse>('AUTH_TOKEN_AUSENTE_OU_INVALIDO', 'Sessão expirada. Faça login novamente.')).pipe(delay(300));
     }
     return of(apiSuccess<MfaEnrollResponse>({ otpauthUri: OTPAUTH_URI_MOCK })).pipe(delay(500));
   }
@@ -245,17 +266,19 @@ export class Auth {
   confirmarMfa(req: ConfirmarMfaRequest): Observable<ApiEnvelope<MensagemResponse>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<MensagemResponse>>(`${environment.apiBaseUrl}/admin/mfa/confirmar`, req).pipe(
-        catchError(() => of(apiError<MensagemResponse>('UPSTREAM_ERROR', 'Não foi possível confirmar o MFA. Tente novamente.'))),
+        catchError((erro) =>
+          of(apiErrorDeHttpError<MensagemResponse>(erro, 'INTERNAL_ERROR', 'Não foi possível confirmar o MFA. Tente novamente.')),
+        ),
       );
     }
 
     const atual = this.usuarioAtualSignal();
     const usuarioMock = atual ? USUARIOS_MOCK.find((u) => u.id === atual.id) : undefined;
     if (!atual || !usuarioMock) {
-      return of(apiError<MensagemResponse>('UNAUTHENTICATED', 'Sessão expirada. Faça login novamente.')).pipe(delay(300));
+      return of(apiError<MensagemResponse>('AUTH_TOKEN_AUSENTE_OU_INVALIDO', 'Sessão expirada. Faça login novamente.')).pipe(delay(300));
     }
     if (req.codigoTotp !== CODIGO_TOTP_MOCK) {
-      return of(apiError<MensagemResponse>('VALIDATION_ERROR', 'Código inválido. Tente novamente.')).pipe(delay(400));
+      return of(apiError<MensagemResponse>('MFA_CODIGO_INVALIDO', MFA_CODIGO_INVALIDO_MENSAGEM)).pipe(delay(400));
     }
 
     usuarioMock.mfaAtivo = true;
@@ -265,17 +288,19 @@ export class Auth {
   desativarMfa(req: DesativarMfaRequest): Observable<ApiEnvelope<MensagemResponse>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<MensagemResponse>>(`${environment.apiBaseUrl}/admin/mfa/desativar`, req).pipe(
-        catchError(() => of(apiError<MensagemResponse>('UPSTREAM_ERROR', 'Não foi possível desativar o MFA. Tente novamente.'))),
+        catchError((erro) =>
+          of(apiErrorDeHttpError<MensagemResponse>(erro, 'INTERNAL_ERROR', 'Não foi possível desativar o MFA. Tente novamente.')),
+        ),
       );
     }
 
     const atual = this.usuarioAtualSignal();
     const usuarioMock = atual ? USUARIOS_MOCK.find((u) => u.id === atual.id) : undefined;
     if (!atual || !usuarioMock || usuarioMock.senha !== req.senha) {
-      return of(apiError<MensagemResponse>('UNAUTHENTICATED', 'Senha atual incorreta.')).pipe(delay(400));
+      return of(apiError<MensagemResponse>('MFA_SENHA_INCORRETA', 'Senha atual incorreta.')).pipe(delay(400));
     }
     if (req.codigoTotp !== CODIGO_TOTP_MOCK) {
-      return of(apiError<MensagemResponse>('VALIDATION_ERROR', 'Código inválido. Tente novamente.')).pipe(delay(400));
+      return of(apiError<MensagemResponse>('MFA_CODIGO_INVALIDO', MFA_CODIGO_INVALIDO_MENSAGEM)).pipe(delay(400));
     }
 
     usuarioMock.mfaAtivo = false;
@@ -302,7 +327,9 @@ export class Auth {
   redefinirSenha(req: RedefinirSenhaRequest): Observable<ApiEnvelope<MensagemResponse>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<MensagemResponse>>(`${this.baseUrl}/redefinir-senha`, req).pipe(
-        catchError(() => of(apiError<MensagemResponse>('UPSTREAM_ERROR', 'Não foi possível redefinir sua senha. Tente novamente.'))),
+        catchError((erro) =>
+          of(apiErrorDeHttpError<MensagemResponse>(erro, 'INTERNAL_ERROR', 'Não foi possível redefinir sua senha. Tente novamente.')),
+        ),
       );
     }
 
@@ -310,10 +337,10 @@ export class Auth {
       return of(apiError<MensagemResponse>('VALIDATION_ERROR', `A nova senha deve ter no mínimo ${SENHA_MIN} caracteres.`)).pipe(delay(300));
     }
     if (req.novaSenha !== req.confirmarNovaSenha) {
-      return of(apiError<MensagemResponse>('VALIDATION_ERROR', 'As senhas informadas não coincidem.')).pipe(delay(300));
+      return of(apiError<MensagemResponse>('AUTH_SENHA_CONFIRMACAO_DIVERGENTE', 'As senhas informadas não coincidem.')).pipe(delay(300));
     }
     if (!req.token) {
-      return of(apiError<MensagemResponse>('UNAUTHENTICATED', 'Link inválido ou expirado.')).pipe(delay(300));
+      return of(apiError<MensagemResponse>('AUTH_RESET_TOKEN_INVALIDO', 'Link inválido ou expirado.')).pipe(delay(300));
     }
 
     return of(apiSuccess<MensagemResponse>({ mensagem: 'Senha redefinida com sucesso.' })).pipe(delay(500));
@@ -322,7 +349,9 @@ export class Auth {
   buscarUsuarioLogado(): Observable<ApiEnvelope<UsuarioMe>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<UsuarioMe>>(`${environment.apiBaseUrl}/usuarios/me`).pipe(
-        catchError(() => of(apiError<UsuarioMe>('UNAUTHENTICATED', 'Sessão expirada. Faça login novamente.'))),
+        catchError((erro) =>
+          of(apiErrorDeHttpError<UsuarioMe>(erro, 'AUTH_TOKEN_AUSENTE_OU_INVALIDO', 'Sessão expirada. Faça login novamente.')),
+        ),
       );
     }
 
@@ -333,7 +362,7 @@ export class Auth {
         ? encontrarUsuarioMockPorToken(this.tokenAtual)
         : undefined;
     if (!usuario) {
-      return of(apiError<UsuarioMe>('UNAUTHENTICATED', 'Sessão expirada. Faça login novamente.')).pipe(delay(300));
+      return of(apiError<UsuarioMe>('AUTH_TOKEN_AUSENTE_OU_INVALIDO', 'Sessão expirada. Faça login novamente.')).pipe(delay(300));
     }
 
     const { senha: _senha, ...usuarioMe } = usuario;
@@ -344,7 +373,9 @@ export class Auth {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<UsuarioMe>>(`${environment.apiBaseUrl}/usuarios/me`, req).pipe(
         tap((envelope) => this.aplicarAtualizacaoContaBemSucedida(envelope)),
-        catchError(() => of(apiError<UsuarioMe>('UPSTREAM_ERROR', 'Não foi possível salvar os dados informados. Tente novamente.'))),
+        catchError((erro) =>
+          of(apiErrorDeHttpError<UsuarioMe>(erro, 'INTERNAL_ERROR', 'Não foi possível salvar os dados informados. Tente novamente.')),
+        ),
       );
     }
 
@@ -355,12 +386,12 @@ export class Auth {
 
     const atual = this.usuarioAtualSignal();
     if (!atual) {
-      return of(apiError<UsuarioMe>('UNAUTHENTICATED', 'Sessão expirada. Faça login novamente.')).pipe(delay(300));
+      return of(apiError<UsuarioMe>('AUTH_TOKEN_AUSENTE_OU_INVALIDO', 'Sessão expirada. Faça login novamente.')).pipe(delay(300));
     }
 
     const conflito = encontrarUsuarioMockPorIdentificador(req.apelido) ?? encontrarUsuarioMockPorIdentificador(req.email);
     if (conflito && conflito.id !== atual.id) {
-      return of(apiError<UsuarioMe>('CONFLICT', 'Não foi possível salvar os dados informados')).pipe(delay(400));
+      return of(apiError<UsuarioMe>('USUARIO_DADOS_EM_USO', 'Não foi possível salvar os dados informados')).pipe(delay(400));
     }
 
     const usuarioMock = USUARIOS_MOCK.find((u) => u.id === atual.id);
@@ -387,7 +418,9 @@ export class Auth {
   alterarSenha(req: AlterarSenhaRequest): Observable<ApiEnvelope<MensagemResponse>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<MensagemResponse>>(`${environment.apiBaseUrl}/usuarios/me/senha`, req).pipe(
-        catchError(() => of(apiError<MensagemResponse>('UPSTREAM_ERROR', 'Não foi possível alterar sua senha. Tente novamente.'))),
+        catchError((erro) =>
+          of(apiErrorDeHttpError<MensagemResponse>(erro, 'INTERNAL_ERROR', 'Não foi possível alterar sua senha. Tente novamente.')),
+        ),
       );
     }
 
@@ -398,13 +431,13 @@ export class Auth {
       return of(apiError<MensagemResponse>('VALIDATION_ERROR', `A nova senha deve ter no mínimo ${SENHA_MIN} caracteres.`)).pipe(delay(300));
     }
     if (req.novaSenha !== req.confirmarNovaSenha) {
-      return of(apiError<MensagemResponse>('VALIDATION_ERROR', 'As senhas informadas não coincidem.')).pipe(delay(300));
+      return of(apiError<MensagemResponse>('USUARIO_SENHA_CONFIRMACAO_DIVERGENTE', 'As senhas informadas não coincidem.')).pipe(delay(300));
     }
 
     const atual = this.usuarioAtualSignal();
     const usuarioMock = atual ? USUARIOS_MOCK.find((u) => u.id === atual.id) : undefined;
     if (!atual || !usuarioMock || usuarioMock.senha !== req.senhaAtual) {
-      return of(apiError<MensagemResponse>('UNAUTHENTICATED', 'Senha atual incorreta.')).pipe(delay(400));
+      return of(apiError<MensagemResponse>('USUARIO_SENHA_ATUAL_INCORRETA', 'Senha atual incorreta.')).pipe(delay(400));
     }
 
     usuarioMock.senha = req.novaSenha;
@@ -419,7 +452,7 @@ export class Auth {
   private efetuarLogoutNoServidor(): Observable<ApiEnvelope<MensagemResponse>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<MensagemResponse>>(`${this.baseUrl}/logout`, {}).pipe(
-        catchError(() => of(apiError<MensagemResponse>('UPSTREAM_ERROR', 'Não foi possível encerrar a sessão no servidor.'))),
+        catchError(() => of(apiError<MensagemResponse>('INTERNAL_ERROR', 'Não foi possível encerrar a sessão no servidor.'))),
       );
     }
 

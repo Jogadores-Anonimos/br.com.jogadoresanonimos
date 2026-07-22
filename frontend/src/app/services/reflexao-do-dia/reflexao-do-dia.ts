@@ -75,7 +75,7 @@ export class ReflexaoDoDiaService {
     if (envelope.success && envelope.data) {
       return { success: true, data: envelope.data };
     }
-    if (envelope.error?.code === 'NOT_FOUND') {
+    if (envelope.error?.code === 'REFLEXAO_NAO_ENCONTRADA') {
       return { success: false, error: 'Ainda não há reflexão cadastrada para este dia.' };
     }
     return { success: false, error: envelope.error?.message ?? 'Não foi possível carregar a reflexão.' };
@@ -84,12 +84,12 @@ export class ReflexaoDoDiaService {
   listarMesAdmin(mes: number): Observable<ApiEnvelope<ReflexaoDiaDoMes[]>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<ReflexaoDiaDoMes[]>>(`${this.adminUrl}?mes=${mes}`).pipe(
-        catchError(() => of(apiError<ReflexaoDiaDoMes[]>('UPSTREAM_ERROR', 'Não foi possível carregar o calendário do mês.'))),
+        catchError(() => of(apiError<ReflexaoDiaDoMes[]>('INTERNAL_ERROR', 'Não foi possível carregar o calendário do mês.'))),
       );
     }
 
     if (mes < 1 || mes > 12) {
-      return of(apiError<ReflexaoDiaDoMes[]>('VALIDATION_ERROR', 'Mês inválido.')).pipe(delay(300));
+      return of(apiError<ReflexaoDiaDoMes[]>('REFLEXAO_DATA_INVALIDA', 'Mês inválido.')).pipe(delay(300));
     }
     const totalDias = DIAS_POR_MES[mes - 1];
     const dias: ReflexaoDiaDoMes[] = Array.from({ length: totalDias }, (_, indice) => {
@@ -102,7 +102,7 @@ export class ReflexaoDoDiaService {
   salvarReflexaoAdmin(mes: number, dia: number, req: SalvarReflexaoDiaRequest): Observable<ApiEnvelope<ReflexaoDia>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<ReflexaoDia>>(`${this.adminUrl}/${mes}/${dia}`, req).pipe(
-        catchError(() => of(apiError<ReflexaoDia>('UPSTREAM_ERROR', 'Não foi possível salvar a reflexão agora.'))),
+        catchError(() => of(apiError<ReflexaoDia>('INTERNAL_ERROR', 'Não foi possível salvar a reflexão agora.'))),
       );
     }
 
@@ -111,7 +111,7 @@ export class ReflexaoDoDiaService {
       return of(apiError<ReflexaoDia>('VALIDATION_ERROR', 'Texto é obrigatório.', [{ campo: 'texto', mensagem: 'obrigatório' }])).pipe(delay(300));
     }
     if (mes < 1 || mes > 12 || dia < 1 || dia > DIAS_POR_MES[mes - 1]) {
-      return of(apiError<ReflexaoDia>('VALIDATION_ERROR', 'Data inválida.')).pipe(delay(300));
+      return of(apiError<ReflexaoDia>('REFLEXAO_DATA_INVALIDA', 'Data inválida.')).pipe(delay(300));
     }
 
     if (!REFLEXOES_MOCK_UPSERT.has(mes)) {

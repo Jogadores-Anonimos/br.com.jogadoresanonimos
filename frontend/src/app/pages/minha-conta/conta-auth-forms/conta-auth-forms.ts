@@ -12,7 +12,7 @@ import { catchError, finalize } from 'rxjs/operators';
 
 import { Auth } from '../../../services/auth/auth';
 import { LoginMfaRequest, LoginResponse, UsuarioResponse } from '../../../services/auth/auth.model';
-import { apiError, mapearErrosCampo } from '../../../services/api-envelope';
+import { MFA_CODIGO_INVALIDO_MENSAGEM, apiError, mapearErrosCampo, mensagemDeErro } from '../../../services/api-envelope';
 import { RecaptchaLoader } from '../../../services/recaptcha-loader';
 import { environment } from '../../../../environments/environment';
 
@@ -97,9 +97,7 @@ export class ContaAuthForms {
           return;
         }
         this.loginSucesso = resposta.success;
-        this.loginMensagem = resposta.success
-          ? ''
-          : (resposta.error?.message ?? 'Não foi possível entrar. Tente novamente.');
+        this.loginMensagem = resposta.success ? '' : mensagemDeErro(resposta.error, 'Não foi possível entrar. Tente novamente.');
       });
   }
 
@@ -128,9 +126,7 @@ export class ContaAuthForms {
       )
       .subscribe((resposta) => {
         this.loginSucesso = resposta.success;
-        this.loginMensagem = resposta.success
-          ? ''
-          : (resposta.error?.message ?? 'Código inválido. Tente novamente.');
+        this.loginMensagem = resposta.success ? '' : mensagemDeErro(resposta.error, MFA_CODIGO_INVALIDO_MENSAGEM);
         if (!resposta.success) {
           this.loginCodigoTotp = '';
         }
@@ -180,7 +176,7 @@ export class ContaAuthForms {
           this.registroConfirmarSenha = '';
           this.registroConcluido = true;
         } else {
-          this.registroMensagem = resposta.error?.message ?? 'Não foi possível criar a conta. Tente novamente.';
+          this.registroMensagem = mensagemDeErro(resposta.error, 'Não foi possível criar a conta. Tente novamente.');
         }
       });
   }

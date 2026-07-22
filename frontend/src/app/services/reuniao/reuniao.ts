@@ -17,7 +17,7 @@ export class ReuniaoService {
   listarReunioes(): Observable<ApiEnvelope<Reuniao[]>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<Reuniao[]>>(this.publicaUrl).pipe(
-        catchError(() => of(apiError<Reuniao[]>('UPSTREAM_ERROR', 'Não foi possível carregar as reuniões no momento.'))),
+        catchError(() => of(apiError<Reuniao[]>('INTERNAL_ERROR', 'Não foi possível carregar as reuniões no momento.'))),
       );
     }
 
@@ -29,7 +29,7 @@ export class ReuniaoService {
   listarReunioesAdmin(): Observable<ApiEnvelope<Reuniao[]>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<Reuniao[]>>(this.adminUrl).pipe(
-        catchError(() => of(apiError<Reuniao[]>('UPSTREAM_ERROR', 'Não foi possível carregar as reuniões.'))),
+        catchError(() => of(apiError<Reuniao[]>('INTERNAL_ERROR', 'Não foi possível carregar as reuniões.'))),
       );
     }
 
@@ -39,7 +39,7 @@ export class ReuniaoService {
   criarReuniaoAdmin(req: CriarReuniaoRequest): Observable<ApiEnvelope<Reuniao>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<Reuniao>>(this.adminUrl, req).pipe(
-        catchError(() => of(apiError<Reuniao>('UPSTREAM_ERROR', 'Não foi possível criar a reunião agora.'))),
+        catchError(() => of(apiError<Reuniao>('INTERNAL_ERROR', 'Não foi possível criar a reunião agora.'))),
       );
     }
 
@@ -68,13 +68,13 @@ export class ReuniaoService {
   editarReuniaoAdmin(id: string, req: EditarReuniaoRequest): Observable<ApiEnvelope<Reuniao>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<Reuniao>>(`${this.adminUrl}/${id}`, req).pipe(
-        catchError(() => of(apiError<Reuniao>('UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+        catchError(() => of(apiError<Reuniao>('INTERNAL_ERROR', 'Não foi possível salvar as alterações.'))),
       );
     }
 
     const reuniao = REUNIOES_MOCK.find((r) => r.id === id);
     if (!reuniao) {
-      return of(apiError<Reuniao>('NOT_FOUND', 'Reunião não encontrada.')).pipe(delay(300));
+      return of(apiError<Reuniao>('REUNIAO_NAO_ENCONTRADA', 'Reunião não encontrada.')).pipe(delay(300));
     }
     if (!req.nome?.trim() || !req.descricao?.trim() || !req.dia?.trim() || !req.horario?.trim() || !req.local?.trim()) {
       return of(apiError<Reuniao>('VALIDATION_ERROR', 'Preencha todos os campos obrigatórios.')).pipe(delay(300));
@@ -97,13 +97,13 @@ export class ReuniaoService {
   excluirReuniaoAdmin(id: string): Observable<ApiEnvelope<{ mensagem: string }>> {
     if (!environment.useMocks) {
       return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/${id}`).pipe(
-        catchError(() => of(apiError<{ mensagem: string }>('UPSTREAM_ERROR', 'Não foi possível remover a reunião agora.'))),
+        catchError(() => of(apiError<{ mensagem: string }>('INTERNAL_ERROR', 'Não foi possível remover a reunião agora.'))),
       );
     }
 
     const indice = REUNIOES_MOCK.findIndex((r) => r.id === id);
     if (indice === -1) {
-      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Reunião não encontrada.')).pipe(delay(300));
+      return of(apiError<{ mensagem: string }>('REUNIAO_NAO_ENCONTRADA', 'Reunião não encontrada.')).pipe(delay(300));
     }
     REUNIOES_MOCK.splice(indice, 1);
     return of(apiSuccess({ mensagem: 'Reunião removida.' })).pipe(delay(400));

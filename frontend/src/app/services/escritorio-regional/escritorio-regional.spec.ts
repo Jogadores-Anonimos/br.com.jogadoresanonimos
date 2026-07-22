@@ -77,7 +77,7 @@ describe('EscritorioRegionalService', () => {
 
     const chamada = httpMock.expectOne(`${adminUrl}/regioes/regiao-fake-1/estados`);
     chamada.flush(
-      { success: false, data: null, error: { code: 'CONFLICT', message: 'Já existe um estado com esta UF nesta região.' } },
+      { success: false, data: null, error: { code: 'ESCRITORIO_ESTADO_UF_EM_USO', message: 'Já existe um estado com esta UF nesta região.' } },
       { status: 409, statusText: 'Conflict' },
     );
 
@@ -93,7 +93,7 @@ describe('EscritorioRegionalService', () => {
 
     const envelope = await promise;
     expect(envelope.success).toBe(false);
-    expect(envelope.error?.code).toBe('UPSTREAM_ERROR');
+    expect(envelope.error?.code).toBe('INTERNAL_ERROR');
   });
 
   it('editarEstadoAdmin envia o payload correto com PUT', () => {
@@ -219,6 +219,6 @@ describe('EscritorioRegionalService', () => {
 
     const envelope: ApiEnvelope<EscritoriosRegionais> = await promise;
     expect(envelope.success).toBe(false);
-    expect(envelope.error?.code).toBe('UPSTREAM_ERROR');
+    expect(envelope.error?.code).toBe('INTERNAL_ERROR');
   });
 });

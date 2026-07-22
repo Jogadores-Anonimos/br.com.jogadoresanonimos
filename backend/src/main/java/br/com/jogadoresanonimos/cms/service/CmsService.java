@@ -9,6 +9,7 @@ import br.com.jogadoresanonimos.cms.repository.CmsAlteracaoLogRepository;
 import br.com.jogadoresanonimos.cms.repository.CmsPaginaRepository;
 import br.com.jogadoresanonimos.cms.util.HtmlSanitizer;
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.arquivo.entity.Arquivo;
@@ -54,7 +55,7 @@ public class CmsService {
     @Transactional(readOnly = true)
     public CmsPaginaPublicaResponse buscarPublica(String slug) {
         CmsPagina pagina = cmsPaginaRepository.findBySlug(slug)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Página não encontrada"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.CMS_PAGINA_NAO_ENCONTRADA, "Página não encontrada"));
         return new CmsPaginaPublicaResponse(pagina.getSlug(), pagina.getTitulo(), montarBlocos(pagina));
     }
 
@@ -68,7 +69,7 @@ public class CmsService {
     @Transactional(readOnly = true)
     public CmsPaginaAdminResponse buscarAdmin(String slug) {
         CmsPagina pagina = cmsPaginaRepository.findBySlug(slug)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Página não encontrada"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.CMS_PAGINA_NAO_ENCONTRADA, "Página não encontrada"));
         return new CmsPaginaAdminResponse(pagina.getSlug(), pagina.getTitulo(), pagina.getAtualizadoEm(),
                 pagina.getAtualizadoPor(), montarBlocos(pagina));
     }
@@ -76,7 +77,7 @@ public class CmsService {
     @Transactional
     public CmsPaginaAdminResponse criar(CmsPaginaCreateRequest request, UUID adminId) {
         if (cmsPaginaRepository.existsBySlug(request.slug())) {
-            throw new ConflitoDeEstadoException("Já existe uma página com este slug");
+            throw new ConflitoDeEstadoException(ErrorCode.CMS_SLUG_EM_USO, "Já existe uma página com este slug");
         }
         validarOrdens(request.blocos());
         CmsPagina pagina = new CmsPagina(request.slug(), request.titulo(), adminId);
@@ -88,7 +89,7 @@ public class CmsService {
     @Transactional
     public CmsPaginaAdminResponse atualizar(String slug, CmsPaginaUpdateRequest request, UUID adminId) {
         CmsPagina pagina = cmsPaginaRepository.findBySlug(slug)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Página não encontrada"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.CMS_PAGINA_NAO_ENCONTRADA, "Página não encontrada"));
         validarOrdens(request.blocos());
         String snapshotAnterior = serializarSnapshot(pagina);
         cmsAlteracaoLogRepository.save(new CmsAlteracaoLog(pagina.getId(), adminId, snapshotAnterior));
@@ -108,12 +109,12 @@ public class CmsService {
                 pagina.getBlocos().add(new CmsBloco(pagina, br.ordem(), tipo, conteudoSanitizado, null, null, null));
             } else if (tipo == TipoBloco.imagem) {
                 if (br.imagemId() == null || !imagemRepository.existsById(br.imagemId())) {
-                    throw new ValidationException("imagemId não corresponde a um upload existente");
+                    throw new ValidationException(ErrorCode.CMS_BLOCO_REFERENCIA_INVALIDA, "imagemId não corresponde a um upload existente");
                 }
                 pagina.getBlocos().add(new CmsBloco(pagina, br.ordem(), tipo, null, br.imagemId(), null, br.alt()));
             } else {
                 if (br.arquivoId() == null || !arquivoRepository.existsById(br.arquivoId())) {
-                    throw new ValidationException("arquivoId não corresponde a um upload existente");
+                    throw new ValidationException(ErrorCode.CMS_BLOCO_REFERENCIA_INVALIDA, "arquivoId não corresponde a um upload existente");
                 }
                 pagina.getBlocos().add(new CmsBloco(pagina, br.ordem(), tipo, null, null, br.arquivoId(), null));
             }
@@ -124,7 +125,8 @@ public class CmsService {
         Set<Integer> vistas = new HashSet<>();
         for (BlocoRequest b : blocos) {
             if (!vistas.add(b.ordem())) {
-                throw new ValidationException("Ordem de bloco duplicada: " + b.ordem());
+                throw new ValidationException(ErrorCode.CMS_BLOCO_ORDEM_DUPLICADA, "Ordem de bloco duplicada",
+                        null, Map.of("ordem", b.ordem()));
             }
         }
     }
@@ -133,7 +135,8 @@ public class CmsService {
         try {
             return TipoBloco.valueOf(tipo);
         } catch (IllegalArgumentException e) {
-            throw new ValidationException("Tipo de bloco inválido: " + tipo);
+            throw new ValidationException(ErrorCode.CMS_BLOCO_TIPO_INVALIDO, "Tipo de bloco inválido",
+                    null, Map.of("tipo", tipo));
         }
     }
 

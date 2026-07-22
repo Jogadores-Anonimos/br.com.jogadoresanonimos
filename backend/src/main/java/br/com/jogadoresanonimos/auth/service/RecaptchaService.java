@@ -2,6 +2,7 @@ package br.com.jogadoresanonimos.auth.service;
 
 import br.com.jogadoresanonimos.auth.dto.RecaptchaVerifyResponse;
 import br.com.jogadoresanonimos.common.dto.ApiError;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.UpstreamException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import org.slf4j.Logger;
@@ -44,11 +45,13 @@ public class RecaptchaService {
             resposta = restTemplate.postForObject(VERIFY_URL, request, RecaptchaVerifyResponse.class);
         } catch (RestClientException e) {
             log.warn("recaptcha_upstream_falha erro={}", e.getClass().getSimpleName());
-            throw new UpstreamException("Não foi possível validar o reCAPTCHA no momento, tente novamente");
+            throw new UpstreamException(ErrorCode.AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL,
+                    "Não foi possível validar o reCAPTCHA no momento, tente novamente");
         }
         if (resposta == null || !resposta.success()) {
-            throw new ValidationException("Falha na verificação do reCAPTCHA",
-                    List.of(new ApiError.FieldError("recaptchaToken", "Verificação do reCAPTCHA inválida ou expirada")));
+            throw new ValidationException(ErrorCode.AUTH_RECAPTCHA_INVALIDO, "Falha na verificação do reCAPTCHA",
+                    List.of(new ApiError.FieldError("recaptchaToken",
+                            "A verificação \"Não sou um robô\" expirou ou é inválida. Marque novamente e tente outra vez.")));
         }
     }
 }

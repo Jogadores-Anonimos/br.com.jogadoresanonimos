@@ -1,5 +1,6 @@
 package br.com.jogadoresanonimos.faq.service;
 
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.util.ReordenacaoUtil;
 import br.com.jogadoresanonimos.faq.dto.CriarFaqRequest;
@@ -74,6 +75,6 @@ public class FaqService {
 
     private Faq buscarOuFalhar(UUID id) {
         return faqRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Pergunta não encontrada"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.FAQ_NAO_ENCONTRADA, "Pergunta não encontrada"));
     }
 }

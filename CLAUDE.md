@@ -159,6 +159,21 @@ Ver `.claude/agents/*.md` para a definição completa de cada um.
   via TOTP para admin já implementado ponta a ponta (login + etapa TOTP,
   ambas as etapas validando reCAPTCHA). Ver `Decisoes de Sistemas.md`,
   seção 4.
+- Exceção deliberada de anonimato — mensagem de cadastro específica por
+  campo (2026-07-22): o endpoint de cadastro informa explicitamente qual
+  campo colidiu quando `apelido` ou `email` já está em uso ("Esse
+  apelido já está em uso, escolha outro" vs "Esse e-mail já está
+  cadastrado"), revertendo uma decisão anterior de mensagem 409
+  genérica. Risco aceito conscientemente pelo usuário: user enumeration
+  no cadastro (é possível varrer apelidos/e-mails para descobrir contas
+  existentes). Escopo estrito: só o cadastro — a mensagem de login (401)
+  continua genérica, sem indicar se o identificador existe ou a senha
+  está errada, e isso não muda. Mitigação complementar: rate limit
+  global por ação (registro-varredura-global, sem identificar quem faz
+  a requisição, preservando o requisito de anonimato) além do rate
+  limit já existente por identificador. Ver
+  `backend/docs/api/contrato-auth-cms-upload.md`, seção 1.1, para o
+  contrato completo.
 - Uploads de imagem devem ter metadados EXIF removidos antes de salvar
   (para não vazar geolocalização/dispositivo do usuário), validação por
   magic bytes (não extensão/`Content-Type`), sem aceitar SVG. Storage é

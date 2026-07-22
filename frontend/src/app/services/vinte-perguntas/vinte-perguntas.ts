@@ -22,7 +22,7 @@ export class VintePerguntasService {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<VinteQuestaoResponse[]>>(this.publicaUrl).pipe(
         catchError(() =>
-          of(apiError<VinteQuestaoResponse[]>('UPSTREAM_ERROR', 'Não foi possível carregar as perguntas agora.')),
+          of(apiError<VinteQuestaoResponse[]>('INTERNAL_ERROR', 'Não foi possível carregar as perguntas agora.')),
         ),
       );
     }
@@ -34,7 +34,7 @@ export class VintePerguntasService {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<VinteQuestaoResponse[]>>(this.adminUrl).pipe(
         catchError(() =>
-          of(apiError<VinteQuestaoResponse[]>('UPSTREAM_ERROR', 'Não foi possível carregar as perguntas agora.')),
+          of(apiError<VinteQuestaoResponse[]>('INTERNAL_ERROR', 'Não foi possível carregar as perguntas agora.')),
         ),
       );
     }
@@ -48,7 +48,7 @@ export class VintePerguntasService {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<VinteQuestaoResponse>>(this.adminUrl, req).pipe(
         catchError(() =>
-          of(apiError<VinteQuestaoResponse>('UPSTREAM_ERROR', 'Não foi possível adicionar a pergunta agora.')),
+          of(apiError<VinteQuestaoResponse>('INTERNAL_ERROR', 'Não foi possível adicionar a pergunta agora.')),
         ),
       );
     }
@@ -76,14 +76,14 @@ export class VintePerguntasService {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<VinteQuestaoResponse>>(`${this.adminUrl}/${id}`, req).pipe(
         catchError(() =>
-          of(apiError<VinteQuestaoResponse>('UPSTREAM_ERROR', 'Não foi possível salvar a pergunta agora.')),
+          of(apiError<VinteQuestaoResponse>('INTERNAL_ERROR', 'Não foi possível salvar a pergunta agora.')),
         ),
       );
     }
 
     const pergunta = VINTE_PERGUNTAS_MOCK.find((p) => p.id === id);
     if (!pergunta) {
-      return of(apiError<VinteQuestaoResponse>('NOT_FOUND', 'Pergunta não encontrada.')).pipe(delay(300));
+      return of(apiError<VinteQuestaoResponse>('VINTE_PERGUNTAS_NAO_ENCONTRADA', 'Pergunta não encontrada.')).pipe(delay(300));
     }
     if (!req.texto?.trim()) {
       return of(apiError<VinteQuestaoResponse>('VALIDATION_ERROR', 'Texto é obrigatório.', [{ campo: 'texto', mensagem: 'obrigatório' }])).pipe(
@@ -99,18 +99,18 @@ export class VintePerguntasService {
     if (!environment.useMocks) {
       return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/${id}`).pipe(
         catchError(() =>
-          of(apiError<{ mensagem: string }>('UPSTREAM_ERROR', 'Não foi possível remover a pergunta agora.')),
+          of(apiError<{ mensagem: string }>('INTERNAL_ERROR', 'Não foi possível remover a pergunta agora.')),
         ),
       );
     }
 
     const indice = VINTE_PERGUNTAS_MOCK.findIndex((p) => p.id === id);
     if (indice === -1) {
-      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Pergunta não encontrada.')).pipe(delay(300));
+      return of(apiError<{ mensagem: string }>('VINTE_PERGUNTAS_NAO_ENCONTRADA', 'Pergunta não encontrada.')).pipe(delay(300));
     }
     if (VINTE_PERGUNTAS_MOCK.length === 1) {
       return of(
-        apiError<{ mensagem: string }>('VALIDATION_ERROR', 'Não é possível remover a última pergunta.'),
+        apiError<{ mensagem: string }>('VINTE_PERGUNTAS_ULTIMA_PERGUNTA', 'Não é possível remover a última pergunta.'),
       ).pipe(delay(300));
     }
 
@@ -122,7 +122,7 @@ export class VintePerguntasService {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<VinteQuestaoResponse>>(`${this.adminUrl}/${id}/mover-cima`, {}).pipe(
         catchError(() =>
-          of(apiError<VinteQuestaoResponse>('UPSTREAM_ERROR', 'Não foi possível mover a pergunta agora.')),
+          of(apiError<VinteQuestaoResponse>('INTERNAL_ERROR', 'Não foi possível mover a pergunta agora.')),
         ),
       );
     }
@@ -134,7 +134,7 @@ export class VintePerguntasService {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<VinteQuestaoResponse>>(`${this.adminUrl}/${id}/mover-baixo`, {}).pipe(
         catchError(() =>
-          of(apiError<VinteQuestaoResponse>('UPSTREAM_ERROR', 'Não foi possível mover a pergunta agora.')),
+          of(apiError<VinteQuestaoResponse>('INTERNAL_ERROR', 'Não foi possível mover a pergunta agora.')),
         ),
       );
     }
@@ -146,7 +146,7 @@ export class VintePerguntasService {
     const ordenadas = [...VINTE_PERGUNTAS_MOCK].sort((a, b) => a.ordem - b.ordem);
     const posicao = ordenadas.findIndex((p) => p.id === id);
     if (posicao === -1) {
-      return of(apiError<VinteQuestaoResponse>('NOT_FOUND', 'Pergunta não encontrada.')).pipe(delay(300));
+      return of(apiError<VinteQuestaoResponse>('VINTE_PERGUNTAS_NAO_ENCONTRADA', 'Pergunta não encontrada.')).pipe(delay(300));
     }
     const posicaoVizinha = posicao + direcao;
     if (posicaoVizinha < 0 || posicaoVizinha >= ordenadas.length) {

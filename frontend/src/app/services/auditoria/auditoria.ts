@@ -25,7 +25,7 @@ export class AuditoriaService {
       const query = this.montarQuery(filtros, pagina, tamanho);
       return this.http.get<ApiEnvelope<Pagina<AuditoriaLogAdmin>>>(`${this.adminUrl}?${query}`).pipe(
         catchError(() =>
-          of(apiError<Pagina<AuditoriaLogAdmin>>('UPSTREAM_ERROR', 'Não foi possível carregar o log de auditoria.')),
+          of(apiError<Pagina<AuditoriaLogAdmin>>('INTERNAL_ERROR', 'Não foi possível carregar o log de auditoria.')),
         ),
       );
     }

@@ -13,6 +13,7 @@ Convenções gerais (mesmas do restante do projeto, ver
 `contrato-relatos.md`/`contrato-auth-cms-upload.md`):
 - Envelope de resposta sempre `{ success, data, error }`.
 - Todos os paths sob `/api/v1`.
+- Catálogo completo de `error.code` em `contrato-erro-padrao.md`.
 - Nenhum token/identificador sensível em query string.
 - `traceId` presente em toda resposta de erro.
 - Datas em ISO-8601 UTC.
@@ -122,7 +123,7 @@ Ordenado por `dataPublicacao` DESC.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
 
 ---
 
@@ -153,7 +154,7 @@ Ordenado por `dataPublicacao` DESC.
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `altText` ausente/vazio/> 300 chars; `legenda`/`linkDestino` acima do limite |
 | 400 | `VALIDATION_ERROR` | `imagemId` não corresponde a upload existente |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
 
 ---
 
@@ -184,8 +185,8 @@ Ordenado por `dataPublicacao` DESC.
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | mesmos do item 3 |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `MURAL_BANNER_NAO_ENCONTRADO` | id não existe |
 
 ---
 
@@ -205,8 +206,8 @@ Ordenado por `dataPublicacao` DESC.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `MURAL_BANNER_NAO_ENCONTRADO` | id não existe |
 
 ---
 

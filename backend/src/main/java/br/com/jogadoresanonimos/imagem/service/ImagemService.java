@@ -1,6 +1,7 @@
 package br.com.jogadoresanonimos.imagem.service;
 
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
@@ -39,22 +40,22 @@ public class ImagemService {
 
     @Transactional
     public ImagemResponse upload(MultipartFile arquivo, String alt, UUID adminId) {
-        rateLimiterService.check("upload-imagem:" + adminId, 10, Duration.ofMinutes(1));
-        rateLimiterService.check("upload-imagem:global", 60, Duration.ofMinutes(1));
+        rateLimiterService.check("upload-imagem:" + adminId, 10, Duration.ofMinutes(1), ErrorCode.UPLOAD_RATE_LIMITED);
+        rateLimiterService.check("upload-imagem:global", 60, Duration.ofMinutes(1), ErrorCode.UPLOAD_RATE_LIMITED);
         if (alt == null || alt.isBlank()) {
-            throw new ValidationException("Texto alternativo (alt) é obrigatório");
+            throw new ValidationException(ErrorCode.UPLOAD_ALT_OBRIGATORIO, "Texto alternativo (alt) é obrigatório");
         }
         if (arquivo == null || arquivo.isEmpty()) {
-            throw new ValidationException("Arquivo é obrigatório");
+            throw new ValidationException(ErrorCode.UPLOAD_ARQUIVO_OBRIGATORIO, "Arquivo é obrigatório");
         }
         if (arquivo.getSize() > LIMITE_BYTES) {
-            throw new ValidationException("Arquivo excede o tamanho máximo permitido (5MB)");
+            throw new ValidationException(ErrorCode.UPLOAD_TAMANHO_EXCEDIDO, "Arquivo excede o tamanho máximo permitido (5MB)");
         }
         byte[] original;
         try {
             original = arquivo.getBytes();
         } catch (IOException e) {
-            throw new ValidationException("Não foi possível ler o arquivo enviado");
+            throw new ValidationException(ErrorCode.UPLOAD_LEITURA_FALHOU, "Não foi possível ler o arquivo enviado");
         }
         ImagemProcessor.ImagemProcessada processada = imagemProcessor.processar(original);
         String chave = UUID.randomUUID() + "." + processada.extensao();
@@ -67,10 +68,10 @@ public class ImagemService {
     @Transactional
     public void remover(UUID id) {
         Imagem imagem = imagemRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Imagem não encontrada"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.IMAGEM_NAO_ENCONTRADA, "Imagem não encontrada"));
         boolean referenciada = cmsBlocoRepository.existsByImagemId(id);
         if (referenciada) {
-            throw new ConflitoDeEstadoException("Imagem ainda está em uso em uma página e não pode ser removida");
+            throw new ConflitoDeEstadoException(ErrorCode.IMAGEM_EM_USO, "Imagem ainda está em uso em uma página e não pode ser removida");
         }
         storageClient.delete(imagem.getChaveArquivo());
         imagemRepository.delete(imagem);

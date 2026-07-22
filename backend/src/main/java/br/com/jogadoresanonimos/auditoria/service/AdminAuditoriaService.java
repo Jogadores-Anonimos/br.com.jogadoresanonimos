@@ -6,6 +6,7 @@ import br.com.jogadoresanonimos.auditoria.entity.AdminAuditoriaLog;
 import br.com.jogadoresanonimos.auditoria.repository.AdminAuditoriaLogRepository;
 import br.com.jogadoresanonimos.auditoria.repository.AdminAuditoriaLogSpecifications;
 import br.com.jogadoresanonimos.common.dto.PageResponse;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,7 +40,7 @@ public class AdminAuditoriaService {
     public PageResponse<AuditoriaLogResponse> listar(String entidade, AcaoAuditoria acao, Instant dataInicio,
                                                        Instant dataFim, int pagina, int tamanho) {
         if (dataInicio != null && dataFim != null && dataInicio.isAfter(dataFim)) {
-            throw new ValidationException("dataInicio não pode ser posterior a dataFim.");
+            throw new ValidationException(ErrorCode.AUDITORIA_INTERVALO_INVALIDO, "dataInicio não pode ser posterior a dataFim.");
         }
         Pageable pageable = paginavel(pagina, tamanho);
         Page<AdminAuditoriaLog> page = adminAuditoriaLogRepository.findAll(

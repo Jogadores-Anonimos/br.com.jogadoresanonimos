@@ -1,5 +1,6 @@
 package br.com.jogadoresanonimos.imagem.controller;
 
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.imagem.service.StorageClient;
 import org.springframework.http.CacheControl;
@@ -24,7 +25,7 @@ public class ImagemPublicController {
     @GetMapping("/stub-storage/{chave}")
     public ResponseEntity<byte[]> servir(@PathVariable String chave) {
         if (chave.contains("/") || chave.contains("..")) {
-            throw new RecursoNaoEncontradoException("Arquivo não encontrado");
+            throw new RecursoNaoEncontradoException(ErrorCode.ARQUIVO_NAO_ENCONTRADO, "Arquivo não encontrado");
         }
         byte[] conteudo = storageClient.download(chave);
         return ResponseEntity.ok()

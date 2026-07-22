@@ -12,6 +12,7 @@ Convenções gerais (mesmas do restante do projeto, ver
 `contrato-avisos.md`/`contrato-relatos.md`):
 - Envelope de resposta sempre `{ success, data, error }`.
 - Todos os paths sob `/api/v1`.
+- Catálogo completo de `error.code` em `contrato-erro-padrao.md`.
 - Nenhum token/identificador sensível em query string.
 - `traceId` presente em toda resposta de erro.
 
@@ -106,7 +107,7 @@ de autoria como o CMS de páginas institucionais.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
 
 ---
 
@@ -151,7 +152,7 @@ número institucional. Normalização ocorre no service
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | campo obrigatório ausente/fora do tamanho; `categoria` inválida; lat/long fora do range |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
 
 ---
 
@@ -169,8 +170,8 @@ número institucional. Normalização ocorre no service
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | mesmo do create |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `REUNIAO_NAO_ENCONTRADA` | id não existe |
 
 ---
 
@@ -186,8 +187,8 @@ número institucional. Normalização ocorre no service
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `REUNIAO_NAO_ENCONTRADA` | id não existe |
 
 ---
 

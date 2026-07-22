@@ -1,5 +1,6 @@
 package br.com.jogadoresanonimos.arquivo.service;
 
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.UnsupportedMediaException;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSDictionary;
@@ -40,7 +41,7 @@ public class ArquivoProcessor {
             validarSemRecursosPerigosos(documento);
             thumbnail = gerarThumbnail(documento);
         } catch (IOException e) {
-            throw new UnsupportedMediaException("Não foi possível processar o arquivo PDF enviado");
+            throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "Não foi possível processar o arquivo PDF enviado");
         }
         return new ArquivoProcessado(original, "application/pdf", "pdf", thumbnail);
     }
@@ -63,11 +64,11 @@ public class ArquivoProcessor {
 
     private void validarMagicBytesNoInicio(byte[] bytes) {
         if (bytes.length < MAGIC.length) {
-            throw new UnsupportedMediaException("Tipo de arquivo não permitido — apenas PDF");
+            throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "Tipo de arquivo não permitido — apenas PDF");
         }
         for (int i = 0; i < MAGIC.length; i++) {
             if (bytes[i] != MAGIC[i]) {
-                throw new UnsupportedMediaException("Tipo de arquivo não permitido — apenas PDF");
+                throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "Tipo de arquivo não permitido — apenas PDF");
             }
         }
     }
@@ -76,33 +77,33 @@ public class ArquivoProcessor {
         String texto = new String(original, StandardCharsets.ISO_8859_1);
         int ultimoEof = texto.lastIndexOf("%%EOF");
         if (ultimoEof < 0) {
-            throw new UnsupportedMediaException("Arquivo PDF sem marcador de final de documento (%%EOF)");
+            throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "Arquivo PDF sem marcador de final de documento (%%EOF)");
         }
         int fimLinha = ultimoEof + "%%EOF".length();
         while (fimLinha < original.length && (original[fimLinha] == '\r' || original[fimLinha] == '\n')) {
             fimLinha++;
         }
         if (fimLinha != original.length) {
-            throw new UnsupportedMediaException("Arquivo PDF contém dados extras após o final do documento (possível polyglot)");
+            throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "Arquivo PDF contém dados extras após o final do documento (possível polyglot)");
         }
     }
 
     private void validarSemRecursosPerigosos(PDDocument documento) throws IOException {
         var catalogo = documento.getDocumentCatalog();
         if (catalogo.getOpenAction() != null) {
-            throw new UnsupportedMediaException("PDF rejeitado — contém OpenAction");
+            throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "PDF rejeitado — contém OpenAction");
         }
         if (catalogo.getCOSObject().containsKey(COSName.getPDFName("AA"))) {
-            throw new UnsupportedMediaException("PDF rejeitado — contém ações automáticas (/AA)");
+            throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "PDF rejeitado — contém ações automáticas (/AA)");
         }
         PDNameTreeNode<?> embeddedFiles = catalogo.getNames() != null ? catalogo.getNames().getEmbeddedFiles() : null;
         if (embeddedFiles != null) {
-            throw new UnsupportedMediaException("PDF rejeitado — contém arquivo embutido (/EmbeddedFile)");
+            throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "PDF rejeitado — contém arquivo embutido (/EmbeddedFile)");
         }
         PDPageTree paginas = catalogo.getPages();
         for (PDPage pagina : paginas) {
             if (pagina.getCOSObject().containsKey(COSName.getPDFName("AA"))) {
-                throw new UnsupportedMediaException("PDF rejeitado — contém ações automáticas de página (/AA)");
+                throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "PDF rejeitado — contém ações automáticas de página (/AA)");
             }
         }
         for (COSObjectKeyEntry entry : todosOsObjetos(documento)) {
@@ -110,15 +111,15 @@ public class ArquivoProcessor {
                 continue;
             }
             if (dict.containsKey(COSName.getPDFName("JS")) || dict.containsKey(COSName.getPDFName("JavaScript"))) {
-                throw new UnsupportedMediaException("PDF rejeitado — contém /JavaScript");
+                throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "PDF rejeitado — contém /JavaScript");
             }
             COSName tipo = dict.getCOSName(COSName.TYPE);
             if (tipo != null && "EmbeddedFile".equals(tipo.getName())) {
-                throw new UnsupportedMediaException("PDF rejeitado — contém arquivo embutido (/EmbeddedFile)");
+                throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "PDF rejeitado — contém arquivo embutido (/EmbeddedFile)");
             }
             COSName subtipo = dict.getCOSName(COSName.S);
             if (subtipo != null && ("JavaScript".equals(subtipo.getName()) || "Launch".equals(subtipo.getName()))) {
-                throw new UnsupportedMediaException("PDF rejeitado — contém ação /JavaScript ou /Launch");
+                throw new UnsupportedMediaException(ErrorCode.UPLOAD_TIPO_NAO_PERMITIDO, "PDF rejeitado — contém ação /JavaScript ou /Launch");
             }
         }
     }

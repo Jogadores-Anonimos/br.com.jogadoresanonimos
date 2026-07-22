@@ -6,6 +6,7 @@ import br.com.jogadoresanonimos.aviso.dto.CriarAvisoRequest;
 import br.com.jogadoresanonimos.aviso.dto.EditarAvisoRequest;
 import br.com.jogadoresanonimos.aviso.entity.Aviso;
 import br.com.jogadoresanonimos.aviso.repository.AvisoRepository;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +61,6 @@ public class AvisoService {
 
     private Aviso buscarOuFalhar(UUID id) {
         return avisoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Aviso não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.AVISO_NAO_ENCONTRADO, "Aviso não encontrado"));
     }
 }

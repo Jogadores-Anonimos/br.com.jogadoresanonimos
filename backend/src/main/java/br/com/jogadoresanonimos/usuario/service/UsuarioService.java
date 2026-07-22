@@ -4,6 +4,7 @@ import br.com.jogadoresanonimos.auditoria.entity.AcaoAuditoria;
 import br.com.jogadoresanonimos.auditoria.service.AdminAuditoriaService;
 import br.com.jogadoresanonimos.auth.dto.MensagemResponse;
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
@@ -43,7 +44,7 @@ public class UsuarioService {
 
     public UsuarioMeResponse buscarMe(UUID usuarioId) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new UnauthenticatedException("Token ausente ou inválido"));
+                .orElseThrow(() -> new UnauthenticatedException(ErrorCode.AUTH_TOKEN_AUSENTE_OU_INVALIDO, "Token ausente ou inválido"));
         return UsuarioMeResponse.from(usuario);
     }
 
@@ -56,21 +57,21 @@ public class UsuarioService {
 
     @Transactional
     public UsuarioAdminResponse editarRole(UUID id, Role novaRole, UUID solicitanteId) {
-        rateLimiterService.check("admin-usuario-escrita:" + solicitanteId, 60, Duration.ofMinutes(1));
+        rateLimiterService.check("admin-usuario-escrita:" + solicitanteId, 60, Duration.ofMinutes(1), ErrorCode.USUARIO_RATE_LIMITED);
         Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.USUARIO_NAO_ENCONTRADO, "Usuário não encontrado"));
         if (usuario.getRole() == novaRole) {
             return UsuarioAdminResponse.from(usuario);
         }
         boolean autoRebaixamento = usuario.getId().equals(solicitanteId)
                 && usuario.getRole() == Role.ADMIN && novaRole != Role.ADMIN;
         if (autoRebaixamento) {
-            throw new ConflitoDeEstadoException("Um admin não pode remover a própria role de admin");
+            throw new ConflitoDeEstadoException(ErrorCode.USUARIO_AUTO_REBAIXAMENTO_ADMIN, "Um admin não pode remover a própria role de admin");
         }
         boolean removendoUltimoAdmin = usuario.getRole() == Role.ADMIN && novaRole != Role.ADMIN
                 && usuarioRepository.countByRole(Role.ADMIN) <= 1;
         if (removendoUltimoAdmin) {
-            throw new ConflitoDeEstadoException("Não é possível remover o último admin do sistema");
+            throw new ConflitoDeEstadoException(ErrorCode.USUARIO_ULTIMO_ADMIN, "Não é possível remover o último admin do sistema");
         }
         String roleAnterior = usuario.getRole().name();
         usuario.alterarRole(novaRole);
@@ -81,15 +82,15 @@ public class UsuarioService {
 
     @Transactional
     public UsuarioMeResponse atualizarConta(UUID usuarioId, AtualizarContaRequest request) {
-        rateLimiterService.check("atualizar-conta:" + usuarioId, 5, Duration.ofMinutes(1));
+        rateLimiterService.check("atualizar-conta:" + usuarioId, 5, Duration.ofMinutes(1), ErrorCode.USUARIO_RATE_LIMITED);
         Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new UnauthenticatedException("Token ausente ou inválido"));
+                .orElseThrow(() -> new UnauthenticatedException(ErrorCode.AUTH_TOKEN_AUSENTE_OU_INVALIDO, "Token ausente ou inválido"));
         boolean apelidoEmUsoPorOutro = !usuario.getApelido().equalsIgnoreCase(request.apelido())
                 && usuarioRepository.existsByApelidoIgnoreCase(request.apelido());
         boolean emailEmUsoPorOutro = !usuario.getEmail().equalsIgnoreCase(request.email())
                 && usuarioRepository.existsByEmailIgnoreCase(request.email());
         if (apelidoEmUsoPorOutro || emailEmUsoPorOutro) {
-            throw new ConflitoDeEstadoException("Não foi possível salvar os dados informados");
+            throw new ConflitoDeEstadoException(ErrorCode.USUARIO_DADOS_EM_USO, "Não foi possível salvar os dados informados");
         }
         usuario.editarConta(request.apelido(), request.email());
         return UsuarioMeResponse.from(usuario);
@@ -97,16 +98,16 @@ public class UsuarioService {
 
     @Transactional
     public MensagemResponse alterarSenha(UUID usuarioId, AlterarSenhaRequest request) {
-        rateLimiterService.check("alterar-senha:" + usuarioId, 5, Duration.ofMinutes(1));
+        rateLimiterService.check("alterar-senha:" + usuarioId, 5, Duration.ofMinutes(1), ErrorCode.USUARIO_RATE_LIMITED);
         if (!request.novaSenha().equals(request.confirmarNovaSenha())) {
-            throw new ValidationException("Nova senha e confirmação não coincidem",
+            throw new ValidationException(ErrorCode.USUARIO_SENHA_CONFIRMACAO_DIVERGENTE, "Nova senha e confirmação não coincidem",
                     List.of(new br.com.jogadoresanonimos.common.dto.ApiError.FieldError(
                             "confirmarNovaSenha", "Deve ser igual à nova senha")));
         }
         Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new UnauthenticatedException("Token ausente ou inválido"));
+                .orElseThrow(() -> new UnauthenticatedException(ErrorCode.AUTH_TOKEN_AUSENTE_OU_INVALIDO, "Token ausente ou inválido"));
         if (!passwordEncoder.matches(request.senhaAtual(), usuario.getSenhaHash())) {
-            throw new UnauthenticatedException("Senha atual incorreta");
+            throw new UnauthenticatedException(ErrorCode.USUARIO_SENHA_ATUAL_INCORRETA, "Senha atual incorreta");
         }
         usuario.setSenhaHash(passwordEncoder.encode(request.novaSenha()));
         return new MensagemResponse("Senha alterada com sucesso.");

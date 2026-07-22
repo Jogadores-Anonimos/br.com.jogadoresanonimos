@@ -27,6 +27,7 @@ Convenções gerais (mesmas do restante do projeto, ver
 `contrato-avisos.md`):
 - Envelope de resposta sempre `{ success, data, error }`.
 - Todos os paths sob `/api/v1`.
+- Catálogo completo de `error.code` em `contrato-erro-padrao.md`.
 - Nenhum token/identificador sensível em query string.
 - `traceId` presente em toda resposta de erro.
 
@@ -109,7 +110,7 @@ tela pública de ajuda.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
 
 ---
 
@@ -134,8 +135,8 @@ Brasil), case-insensitive na entrada (`"ba"` é aceito e normalizado para
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `uf` ausente/inválida (não é uma das 27 UFs) ou `cidade` ausente/fora do tamanho |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 409 | `CONFLICT` | já existe região com essa combinação `uf` + `cidade` (case-insensitive) — mensagem orienta editar a região existente em vez de criar uma nova |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 409 | `HOTLINE_REGIAO_EM_USO` | já existe região com essa combinação `uf` + `cidade` (case-insensitive) — mensagem orienta editar a região existente em vez de criar uma nova |
 
 ---
 
@@ -160,9 +161,9 @@ Brasil), case-insensitive na entrada (`"ba"` é aceito e normalizado para
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `uf` inválida ou `cidade` ausente/fora do tamanho |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
-| 409 | `CONFLICT` | a nova combinação `uf` + `cidade` já pertence a **outra** região (a checagem é ignorada quando a combinação não muda em relação ao valor atual da própria região) |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `HOTLINE_REGIAO_NAO_ENCONTRADA` | id não existe |
+| 409 | `HOTLINE_REGIAO_EM_USO` | a nova combinação `uf` + `cidade` já pertence a **outra** região (a checagem é ignorada quando a combinação não muda em relação ao valor atual da própria região) |
 
 ---
 
@@ -179,8 +180,8 @@ Brasil), case-insensitive na entrada (`"ba"` é aceito e normalizado para
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `HOTLINE_REGIAO_NAO_ENCONTRADA` | id não existe |
 
 ---
 
@@ -203,8 +204,8 @@ para re-buscar a região completa).
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | telefone ausente ou fora do tamanho |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | `regiaoId` não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `HOTLINE_REGIAO_NAO_ENCONTRADA` | `regiaoId` não existe |
 
 ---
 
@@ -225,8 +226,8 @@ contexto da região).
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | telefone ausente ou fora do tamanho |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `HOTLINE_TELEFONE_NAO_ENCONTRADO` | id não existe |
 
 ---
 
@@ -242,8 +243,8 @@ contexto da região).
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `HOTLINE_TELEFONE_NAO_ENCONTRADO` | id não existe |
 
 ---
 

@@ -11,6 +11,7 @@ Convenções gerais (mesmas do restante do projeto, ver
 `contrato-relatos.md`):
 - Envelope de resposta sempre `{ success, data, error }`.
 - Todos os paths sob `/api/v1`.
+- Catálogo completo de `error.code` em `contrato-erro-padrao.md`.
 - Nenhum token/identificador sensível em query string.
 - `traceId` presente em toda resposta de erro.
 - Datas em ISO-8601 UTC.
@@ -121,7 +122,7 @@ admin sinalizar visualmente sem precisar comparar datas no cliente.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
 
 ---
 
@@ -151,7 +152,7 @@ opcional; se informada, deve ser uma data futura no momento da criação
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | título/corpo ausente ou fora do tamanho; `dataExpiracao` no passado |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
 
 ---
 
@@ -172,8 +173,8 @@ opcional; se informada, deve ser uma data futura no momento da criação
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | título/corpo fora do tamanho; `dataExpiracao` no passado |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `AVISO_NAO_ENCONTRADO` | id não existe |
 
 ---
 
@@ -189,8 +190,8 @@ opcional; se informada, deve ser uma data futura no momento da criação
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `AVISO_NAO_ENCONTRADO` | id não existe |
 
 ---
 

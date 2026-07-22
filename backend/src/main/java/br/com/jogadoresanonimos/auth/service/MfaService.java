@@ -7,6 +7,7 @@ import br.com.jogadoresanonimos.auth.dto.MfaDesativarRequest;
 import br.com.jogadoresanonimos.auth.dto.MfaEnrollResponse;
 import br.com.jogadoresanonimos.auth.dto.MensagemResponse;
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
@@ -53,10 +54,10 @@ public class MfaService {
 
     @Transactional
     public MfaEnrollResponse enroll(UUID usuarioId) {
-        rateLimiterService.check("mfa-enroll:" + usuarioId, 5, Duration.ofHours(1));
+        rateLimiterService.check("mfa-enroll:" + usuarioId, 5, Duration.ofHours(1), ErrorCode.MFA_RATE_LIMITED);
         Usuario usuario = buscarUsuario(usuarioId);
         if (usuario.isMfaAtivo()) {
-            throw new ConflitoDeEstadoException("MFA já está ativo para este usuário");
+            throw new ConflitoDeEstadoException(ErrorCode.MFA_JA_ATIVO, "MFA já está ativo para este usuário");
         }
         String secret = totpService.gerarSecretBase32();
         usuario.iniciarEnrollmentMfa(mfaSecretCipher.cifrar(secret));
@@ -68,17 +69,17 @@ public class MfaService {
 
     @Transactional
     public MensagemResponse confirmar(UUID usuarioId, MfaConfirmarRequest request) {
-        rateLimiterService.check("mfa-confirmar:" + usuarioId, 5, Duration.ofMinutes(5));
+        rateLimiterService.check("mfa-confirmar:" + usuarioId, 5, Duration.ofMinutes(5), ErrorCode.MFA_RATE_LIMITED);
         Usuario usuario = buscarUsuario(usuarioId);
         if (usuario.isMfaAtivo()) {
-            throw new ConflitoDeEstadoException("MFA já está ativo para este usuário");
+            throw new ConflitoDeEstadoException(ErrorCode.MFA_JA_ATIVO, "MFA já está ativo para este usuário");
         }
         if (usuario.getMfaSecretCifrado() == null) {
-            throw new RecursoNaoEncontradoException("Nenhum enrollment de MFA pendente");
+            throw new RecursoNaoEncontradoException(ErrorCode.MFA_ENROLLMENT_INEXISTENTE, "Nenhum enrollment de MFA pendente");
         }
         String secret = mfaSecretCipher.decifrar(usuario.getMfaSecretCifrado());
         if (!totpService.validar(secret, request.codigoTotp())) {
-            throw new UnauthenticatedException("Código TOTP inválido");
+            throw new UnauthenticatedException(ErrorCode.MFA_CODIGO_INVALIDO, "Código TOTP inválido");
         }
         usuario.confirmarMfa();
         adminAuditoriaService.registrar(usuarioId, ENTIDADE_MFA, usuarioId, AcaoAuditoria.EDITAR,
@@ -88,14 +89,14 @@ public class MfaService {
 
     @Transactional
     public MensagemResponse desativar(UUID usuarioId, MfaDesativarRequest request) {
-        rateLimiterService.check("mfa-desativar:" + usuarioId, 5, Duration.ofMinutes(5));
+        rateLimiterService.check("mfa-desativar:" + usuarioId, 5, Duration.ofMinutes(5), ErrorCode.MFA_RATE_LIMITED);
         Usuario usuario = buscarUsuario(usuarioId);
         if (!passwordEncoder.matches(request.senha(), usuario.getSenhaHash())) {
-            throw new UnauthenticatedException("Senha incorreta");
+            throw new UnauthenticatedException(ErrorCode.MFA_SENHA_INCORRETA, "Senha incorreta");
         }
         String secret = mfaSecretCipher.decifrar(usuario.getMfaSecretCifrado());
         if (!totpService.validar(secret, request.codigoTotp())) {
-            throw new UnauthenticatedException("Código TOTP inválido");
+            throw new UnauthenticatedException(ErrorCode.MFA_CODIGO_INVALIDO, "Código TOTP inválido");
         }
         usuario.desativarMfa();
         adminAuditoriaService.registrar(usuarioId, ENTIDADE_MFA, usuarioId, AcaoAuditoria.EDITAR,
@@ -105,6 +106,6 @@ public class MfaService {
 
     private Usuario buscarUsuario(UUID usuarioId) {
         return usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.MFA_USUARIO_NAO_ENCONTRADO, "Usuário não encontrado"));
     }
 }

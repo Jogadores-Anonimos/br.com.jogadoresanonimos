@@ -18,10 +18,10 @@ public class RateLimiterService {
     private final ConcurrentMap<String, TokenBucket> buckets = new ConcurrentHashMap<>();
     private final Clock clock = Clock.systemUTC();
 
-    public void check(String key, int capacity, Duration window) {
+    public void check(String key, int capacity, Duration window, String code) {
         TokenBucket bucket = buckets.computeIfAbsent(key, k -> new TokenBucket(capacity, window, clock));
         if (!bucket.tryConsume()) {
-            throw new RateLimitedException("Muitas tentativas, aguarde antes de tentar novamente", bucket.secondsUntilRefill());
+            throw new RateLimitedException(code, "Muitas tentativas, aguarde antes de tentar novamente", bucket.secondsUntilRefill());
         }
     }
 

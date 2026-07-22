@@ -1,5 +1,6 @@
 package br.com.jogadoresanonimos.mural.service;
 
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.imagem.entity.Imagem;
@@ -72,19 +73,19 @@ public class BannerMuralService {
         boolean temImagem = imagemId != null;
         boolean temVideo = videoUrl != null && !videoUrl.isBlank();
         if (temImagem == temVideo) {
-            throw new ValidationException("Informe exatamente um entre imagemId e videoUrl");
+            throw new ValidationException(ErrorCode.MURAL_BANNER_MIDIA_INVALIDA, "Informe exatamente um entre imagemId e videoUrl");
         }
         if (temImagem && !imagemRepository.existsById(imagemId)) {
-            throw new ValidationException("imagemId não corresponde a um upload existente");
+            throw new ValidationException(ErrorCode.MURAL_BANNER_MIDIA_INVALIDA, "imagemId não corresponde a um upload existente");
         }
         if (temVideo && !videoUrl.contains("youtube.com") && !videoUrl.contains("youtu.be")) {
-            throw new ValidationException("videoUrl deve ser um link do YouTube");
+            throw new ValidationException(ErrorCode.MURAL_BANNER_MIDIA_INVALIDA, "videoUrl deve ser um link do YouTube");
         }
     }
 
     private BannerMural buscarOuFalhar(UUID id) {
         return bannerMuralRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Banner não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.MURAL_BANNER_NAO_ENCONTRADO, "Banner não encontrado"));
     }
 
     private String resolverUrl(UUID imagemId) {

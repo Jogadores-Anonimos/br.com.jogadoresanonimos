@@ -5,6 +5,7 @@ import br.com.jogadoresanonimos.auth.entity.PasswordResetToken;
 import br.com.jogadoresanonimos.auth.repository.PasswordResetTokenRepository;
 import br.com.jogadoresanonimos.common.util.HmacHasher;
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
@@ -34,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -81,7 +84,7 @@ class AuthServiceTest {
     @Test
     void registrar_deveFalharQuandoRecaptchaInvalido() {
         RegistroRequest request = new RegistroRequest("novato", "novato@example.com", "senhaForte123", "senhaForte123", "captcha-token");
-        doThrow(new ValidationException("Falha na verificação do reCAPTCHA"))
+        doThrow(new ValidationException(ErrorCode.AUTH_RECAPTCHA_INVALIDO, "Falha na verificação do reCAPTCHA"))
                 .when(recaptchaService).validar("captcha-token");
         assertThatThrownBy(() -> authService.registrar(request))
                 .isInstanceOf(ValidationException.class);
@@ -91,7 +94,7 @@ class AuthServiceTest {
     @Test
     void login_deveFalharQuandoRecaptchaInvalido() {
         LoginRequest request = new LoginRequest("apelido", "senhaCorreta123", "captcha-token");
-        doThrow(new ValidationException("Falha na verificação do reCAPTCHA"))
+        doThrow(new ValidationException(ErrorCode.AUTH_RECAPTCHA_INVALIDO, "Falha na verificação do reCAPTCHA"))
                 .when(recaptchaService).validar("captcha-token");
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(ValidationException.class);
@@ -120,12 +123,35 @@ class AuthServiceTest {
     }
 
     @Test
-    void registrar_deveFalharComConflitoGenericoQuandoApelidoOuEmailJaExiste() {
+    void registrar_deveFalharComMensagemEspecificaQuandoApelidoJaExiste() {
         RegistroRequest request = new RegistroRequest("existente", "novo@example.com", "senhaForte123", "senhaForte123", "captcha-token");
         when(usuarioRepository.existsByApelidoIgnoreCase("existente")).thenReturn(true);
         assertThatThrownBy(() -> authService.registrar(request))
                 .isInstanceOf(ConflitoDeEstadoException.class)
-                .hasMessage("Não foi possível concluir o cadastro com os dados informados");
+                .hasMessage("Esse apelido já está em uso, escolha outro");
+        verify(usuarioRepository, never()).existsByEmailIgnoreCase(anyString());
+    }
+
+    @Test
+    void registrar_deveFalharComMensagemEspecificaQuandoEmailJaExiste() {
+        RegistroRequest request = new RegistroRequest("novato", "existente@example.com", "senhaForte123", "senhaForte123", "captcha-token");
+        when(usuarioRepository.existsByApelidoIgnoreCase("novato")).thenReturn(false);
+        when(usuarioRepository.existsByEmailIgnoreCase("existente@example.com")).thenReturn(true);
+        assertThatThrownBy(() -> authService.registrar(request))
+                .isInstanceOf(ConflitoDeEstadoException.class)
+                .hasMessage("Esse e-mail já está cadastrado");
+    }
+
+    @Test
+    void registrar_deveFalharComConflitoQuandoSaveViolaConstraintUnicaConcorrente() {
+        RegistroRequest request = new RegistroRequest("novato", "novato@example.com", "senhaForte123", "senhaForte123", "captcha-token");
+        when(usuarioRepository.existsByApelidoIgnoreCase("novato")).thenReturn(false);
+        when(usuarioRepository.existsByEmailIgnoreCase("novato@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("senhaForte123")).thenReturn("hash-da-senha");
+        when(usuarioRepository.save(any(Usuario.class))).thenThrow(new DataIntegrityViolationException("duplicate key"));
+        assertThatThrownBy(() -> authService.registrar(request))
+                .isInstanceOf(ConflitoDeEstadoException.class)
+                .hasMessage("Apelido ou e-mail já cadastrado. Tente outro apelido ou recupere sua conta.");
     }
 
     @Test
@@ -133,9 +159,11 @@ class AuthServiceTest {
         LoginRequest request = new LoginRequest("desconhecido", "qualquerSenha", "captcha-token");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase("desconhecido", "desconhecido"))
                 .thenReturn(Optional.empty());
+        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(UnauthenticatedException.class)
                 .hasMessage("Identificador ou senha inválidos");
+        verify(passwordEncoder).matches(eq("qualquerSenha"), anyString());
     }
 
     @Test

@@ -9,6 +9,7 @@ Convenções gerais (mesmas do restante do projeto, ver
 `contrato-relatos.md`):
 - Envelope de resposta sempre `{ success, data, error }`.
 - Todos os paths sob `/api/v1`.
+- Catálogo completo de `error.code` em `contrato-erro-padrao.md`.
 - Nenhum token/identificador sensível em query string.
 - Datas em ISO-8601 UTC.
 
@@ -81,7 +82,7 @@ mais recente primeiro), não pela data de criação do arquivo em si.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 401 | `UNAUTHENTICATED` | token ausente/inválido/expirado |
+| 401 | `AUTH_TOKEN_AUSENTE_OU_INVALIDO` | token ausente/inválido/expirado |
 
 ---
 
@@ -99,8 +100,8 @@ mais recente primeiro), não pela data de criação do arquivo em si.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 401 | `UNAUTHENTICATED` | token ausente/inválido/expirado |
-| 404 | `NOT_FOUND` | `arquivoId` não existe |
+| 401 | `AUTH_TOKEN_AUSENTE_OU_INVALIDO` | token ausente/inválido/expirado |
+| 404 | `BIBLIOTECA_ARQUIVO_NAO_ENCONTRADO` | `arquivoId` não existe |
 
 ---
 
@@ -125,7 +126,7 @@ mais recente primeiro), não pela data de criação do arquivo em si.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 401 | `UNAUTHENTICATED` | token ausente/inválido/expirado |
+| 401 | `AUTH_TOKEN_AUSENTE_OU_INVALIDO` | token ausente/inválido/expirado |
 
 Sem 404 mesmo se `arquivoId` nunca existiu — DELETE idempotente não
 diferencia "nunca existiu" de "já foi removido", ambos resultam no mesmo

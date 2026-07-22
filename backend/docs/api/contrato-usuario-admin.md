@@ -9,6 +9,7 @@
 Convenções gerais (mesmas do restante do projeto, ver `contrato-avisos.md`):
 - Envelope de resposta sempre `{ success, data, error }`.
 - Todos os paths sob `/api/v1`.
+- Catálogo completo de `error.code` em `contrato-erro-padrao.md`.
 - Nenhum token/identificador sensível em query string.
 - `traceId` presente em toda resposta de erro.
 - **Nunca** expor `senhaHash` em nenhum response — nem aqui, nem em
@@ -58,7 +59,7 @@ nova. Nenhuma coluna nova foi necessária para o escopo desta tarefa.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 403 | `FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
 
 ---
 
@@ -99,9 +100,9 @@ role atualizada.
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `role` ausente ou valor fora do enum |
-| 403 | `FORBIDDEN` | sem `ROLE_ADMIN` |
-| 404 | `NOT_FOUND` | id não existe |
-| 409 | `CONFLICT` | tentativa de auto-rebaixamento ou de remover o último admin do sistema |
+| 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 404 | `USUARIO_NAO_ENCONTRADO` | id não existe |
+| 409 | `USUARIO_AUTO_REBAIXAMENTO_ADMIN` / `USUARIO_ULTIMO_ADMIN` | tentativa de auto-rebaixamento ou de remover o último admin do sistema |
 
 ---
 

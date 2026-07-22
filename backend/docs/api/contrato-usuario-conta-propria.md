@@ -10,6 +10,7 @@ Convenções gerais (mesmas do restante do projeto, ver
 `contrato-usuario-admin.md`):
 - Envelope de resposta sempre `{ success, data, error }`.
 - Todos os paths sob `/api/v1`.
+- Catálogo completo de `error.code` em `contrato-erro-padrao.md`.
 - Nenhum token/identificador sensível em query string.
 - `traceId` presente em toda resposta de erro.
 - **Nunca** expor `senhaHash` em nenhum response.
@@ -67,8 +68,8 @@ Reaproveita a entidade `Usuario` já existente (`V1`). Sem migration nova.
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | apelido/e-mail ausente ou fora do formato |
-| 401 | `UNAUTHENTICATED` | token ausente/inválido |
-| 409 | `CONFLICT` | apelido ou e-mail já em uso por outra conta |
+| 401 | `AUTH_TOKEN_AUSENTE_OU_INVALIDO` | token ausente/inválido |
+| 409 | `USUARIO_DADOS_EM_USO` | apelido ou e-mail já em uso por outra conta |
 
 ---
 
@@ -112,7 +113,7 @@ Reaproveita a entidade `Usuario` já existente (`V1`). Sem migration nova.
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | campos ausentes, nova senha curta, ou `novaSenha` ≠ `confirmarNovaSenha` |
-| 401 | `UNAUTHENTICATED` | token ausente/inválido, ou `senhaAtual` incorreta |
+| 401 | `AUTH_TOKEN_AUSENTE_OU_INVALIDO` / `USUARIO_SENHA_ATUAL_INCORRETA` | token ausente/inválido, ou `senhaAtual` incorreta |
 
 `senhaAtual` incorreta usa `UnauthenticatedException` (401), não
 `ValidationException` — mesma decisão de não distinguir "senha errada"

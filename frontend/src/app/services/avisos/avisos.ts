@@ -53,7 +53,7 @@ export class AvisosService {
   listarTodosAdmin(): Observable<ApiEnvelope<AvisoAdmin[]>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<AvisoAdmin[]>>(this.adminUrl).pipe(
-        catchError(() => of(apiError<AvisoAdmin[]>('UPSTREAM_ERROR', 'Não foi possível carregar os avisos.'))),
+        catchError(() => of(apiError<AvisoAdmin[]>('INTERNAL_ERROR', 'Não foi possível carregar os avisos.'))),
       );
     }
 
@@ -63,7 +63,7 @@ export class AvisosService {
   criarAvisoAdmin(req: CriarAvisoRequest): Observable<ApiEnvelope<AvisoAdmin>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<AvisoAdmin>>(this.adminUrl, req).pipe(
-        catchError(() => of(apiError<AvisoAdmin>('UPSTREAM_ERROR', 'Não foi possível criar o aviso agora.'))),
+        catchError(() => of(apiError<AvisoAdmin>('INTERNAL_ERROR', 'Não foi possível criar o aviso agora.'))),
       );
     }
 
@@ -88,13 +88,13 @@ export class AvisosService {
   editarAvisoAdmin(id: string, req: EditarAvisoRequest): Observable<ApiEnvelope<AvisoAdmin>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<AvisoAdmin>>(`${this.adminUrl}/${id}`, req).pipe(
-        catchError(() => of(apiError<AvisoAdmin>('UPSTREAM_ERROR', 'Não foi possível salvar as alterações.'))),
+        catchError(() => of(apiError<AvisoAdmin>('INTERNAL_ERROR', 'Não foi possível salvar as alterações.'))),
       );
     }
 
     const aviso = AVISOS_MOCK.find((a) => a.id === id);
     if (!aviso) {
-      return of(apiError<AvisoAdmin>('NOT_FOUND', 'Aviso não encontrado.')).pipe(delay(300));
+      return of(apiError<AvisoAdmin>('AVISO_NAO_ENCONTRADO', 'Aviso não encontrado.')).pipe(delay(300));
     }
     if (!req.titulo?.trim() || !req.corpo?.trim()) {
       return of(apiError<AvisoAdmin>('VALIDATION_ERROR', 'Título e corpo são obrigatórios.')).pipe(delay(300));
@@ -111,13 +111,13 @@ export class AvisosService {
   excluirAvisoAdmin(id: string): Observable<ApiEnvelope<{ mensagem: string }>> {
     if (!environment.useMocks) {
       return this.http.delete<ApiEnvelope<{ mensagem: string }>>(`${this.adminUrl}/${id}`).pipe(
-        catchError(() => of(apiError<{ mensagem: string }>('UPSTREAM_ERROR', 'Não foi possível remover o aviso agora.'))),
+        catchError(() => of(apiError<{ mensagem: string }>('INTERNAL_ERROR', 'Não foi possível remover o aviso agora.'))),
       );
     }
 
     const indice = AVISOS_MOCK.findIndex((a) => a.id === id);
     if (indice === -1) {
-      return of(apiError<{ mensagem: string }>('NOT_FOUND', 'Aviso não encontrado.')).pipe(delay(300));
+      return of(apiError<{ mensagem: string }>('AVISO_NAO_ENCONTRADO', 'Aviso não encontrado.')).pipe(delay(300));
     }
     AVISOS_MOCK.splice(indice, 1);
     return of(apiSuccess({ mensagem: 'Aviso removido.' })).pipe(delay(400));

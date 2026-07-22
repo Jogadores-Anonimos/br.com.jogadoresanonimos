@@ -1,6 +1,7 @@
 package br.com.jogadoresanonimos.hotline.service;
 
 import br.com.jogadoresanonimos.common.exception.ConflitoDeRegiaoHotlineException;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.escritorio.entity.UnidadeFederativa;
@@ -97,16 +98,16 @@ public class HotlineService {
 
     private HotlineRegiao buscarRegiaoOuFalhar(UUID id) {
         return hotlineRegiaoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Região não encontrada"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.HOTLINE_REGIAO_NAO_ENCONTRADA, "Região não encontrada"));
     }
 
     private HotlineTelefone buscarTelefoneOuFalhar(UUID id) {
         return hotlineTelefoneRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Telefone não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.HOTLINE_TELEFONE_NAO_ENCONTRADO, "Telefone não encontrado"));
     }
 
     private static UnidadeFederativa resolverUf(String uf) {
         return UnidadeFederativa.deSigla(uf)
-                .orElseThrow(() -> new ValidationException("UF inválida: informe uma das 27 UFs do Brasil."));
+                .orElseThrow(() -> new ValidationException(ErrorCode.HOTLINE_UF_INVALIDA, "UF inválida: informe uma das 27 UFs do Brasil."));
     }
 }

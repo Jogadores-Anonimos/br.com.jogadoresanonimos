@@ -1,5 +1,6 @@
 package br.com.jogadoresanonimos.reflexao.service;
 
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.reflexao.dto.ReflexaoDiaDoMesResponse;
@@ -37,7 +38,7 @@ public class ReflexaoDiaService {
     public ReflexaoDiaResponse buscarPorData(int mes, int dia) {
         validarMesEDia(mes, dia);
         ReflexaoDia reflexaoDia = reflexaoDiaRepository.findByMesAndDia(mes, dia)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Reflexão não cadastrada para esta data."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.REFLEXAO_NAO_ENCONTRADA, "Reflexão não cadastrada para esta data."));
         return ReflexaoDiaResponse.from(reflexaoDia);
     }
 
@@ -68,7 +69,7 @@ public class ReflexaoDiaService {
 
     private void validarMes(int mes) {
         if (mes < 1 || mes > 12) {
-            throw new ValidationException("Mês inválido.");
+            throw new ValidationException(ErrorCode.REFLEXAO_DATA_INVALIDA, "Mês inválido.");
         }
     }
 
@@ -76,7 +77,7 @@ public class ReflexaoDiaService {
         validarMes(mes);
         int totalDias = DIAS_POR_MES[mes - 1];
         if (dia < 1 || dia > totalDias) {
-            throw new ValidationException("Dia inválido para o mês informado.");
+            throw new ValidationException(ErrorCode.REFLEXAO_DATA_INVALIDA, "Dia inválido para o mês informado.");
         }
     }
 }

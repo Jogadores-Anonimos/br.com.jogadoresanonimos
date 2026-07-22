@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { QRCodeComponent } from 'angularx-qrcode';
 
 import { Auth } from '../../../services/auth/auth';
+import { MFA_CODIGO_INVALIDO_MENSAGEM, mensagemDeErro } from '../../../services/api-envelope';
 
 @Component({
   selector: 'app-admin-seguranca',
@@ -69,7 +70,7 @@ export class AdminSeguranca implements OnInit {
         this.otpauthUri = resposta.data.otpauthUri;
         this.chaveManual = this.extrairChaveManual(resposta.data.otpauthUri);
       } else {
-        this.enrollErro = resposta.error?.message ?? 'Não foi possível iniciar a configuração do MFA.';
+        this.enrollErro = mensagemDeErro(resposta.error, 'Não foi possível iniciar a configuração do MFA.');
       }
     });
   }
@@ -106,7 +107,7 @@ export class AdminSeguranca implements OnInit {
         this.chaveManual = '';
         this.confirmarCodigoTotp = '';
       } else {
-        this.confirmarErro = resposta.error?.message ?? 'Código inválido. Tente novamente.';
+        this.confirmarErro = mensagemDeErro(resposta.error, MFA_CODIGO_INVALIDO_MENSAGEM);
       }
     });
   }
@@ -126,7 +127,7 @@ export class AdminSeguranca implements OnInit {
           this.desativarCodigoTotp = '';
           this.desativarMensagem = resposta.data?.mensagem ?? 'MFA desativado com sucesso.';
         } else {
-          this.desativarErro = resposta.error?.message ?? 'Não foi possível desativar o MFA.';
+          this.desativarErro = mensagemDeErro(resposta.error, 'Não foi possível desativar o MFA.');
         }
       });
   }

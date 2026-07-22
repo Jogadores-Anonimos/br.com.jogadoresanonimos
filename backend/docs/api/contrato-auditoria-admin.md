@@ -8,6 +8,7 @@ Convenções gerais (mesmas do restante do projeto, ver
 `contrato-relatos.md`):
 - Envelope de resposta sempre `{ success, data, error }`.
 - Todos os paths sob `/api/v1`.
+- Catálogo completo de `error.code` em `contrato-erro-padrao.md`.
 - Nenhum token/identificador sensível em query string.
 - Query params de paginação `pagina`/`tamanho` (não `page`/`size`).
 - Datas em ISO-8601 UTC.
@@ -80,7 +81,7 @@ esconder aqui, diferente do módulo de relato.
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `acao` fora do enum; `dataInicio` > `dataFim` |
-| 403 | `FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
+| 403 | `AUTH_FORBIDDEN` | autenticado sem `ROLE_ADMIN` |
 
 ---
 
