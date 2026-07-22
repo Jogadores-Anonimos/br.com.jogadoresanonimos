@@ -6,16 +6,38 @@
 
 ## Infraestrutura / Deploy (aguardando decisão de hospedagem do cliente)
 
-- **`apiBaseUrl` real de produção e `recaptchaSiteKey` de produção** —
-  `frontend/src/environments/environment.prod.ts` já existe (com
-  `fileReplacements` configurado no `angular.json`), mas `apiBaseUrl` está
-  como `/api/v1` (relativo, assumindo reverse proxy servindo front+back
-  no mesmo domínio) até a hospedagem ser decidida. `recaptchaSiteKey`
-  também está com a mesma chave do dev por não haver chave própria de
-  produção documentada — chave de dev provavelmente só está registrada
-  para `localhost`/domínio de dev no console do Google reCAPTCHA e vai
-  falhar validação em domínio novo. Pré-requisito prático para qualquer
-  outro passo de deploy.
+- **`apiBaseUrl` real de produção e `recaptchaSiteKey`/`RECAPTCHA_SECRET_KEY`
+  de produção** — `frontend/src/environments/environment.prod.ts` já
+  existe (com `fileReplacements` configurado no `angular.json`), mas
+  `apiBaseUrl` está como `/api/v1` (relativo, assumindo reverse proxy
+  servindo front+back no mesmo domínio) até a hospedagem ser decidida.
+  `recaptchaSiteKey` também está com a mesma chave do dev por não haver
+  chave própria de produção documentada — chave de dev provavelmente só
+  está registrada para `localhost`/domínio de dev no console do Google
+  reCAPTCHA e vai falhar validação em domínio novo (site key no
+  frontend E secret key correspondente no backend, via
+  `RECAPTCHA_SECRET_KEY`, precisam ser trocadas juntas, mesmo par
+  gerado no console Google para o domínio real). Pré-requisito prático
+  para qualquer outro passo de deploy. Bloqueado em dado que só o
+  cliente tem (gerar o par de chaves no console Google reCAPTCHA para
+  o domínio de produção real).
+- **Cold start do Render free tier mascarando timeout como falha em
+  login/registro** — investigado em 2026-07-22: causa client-side (
+  timeout de 5s do `HttpClient` do frontend) já corrigida para 60s.
+  Causa adicional identificada no backend: timeout de conexão+leitura
+  do `RestTemplate` usado por `RecaptchaService` (chamada síncrona a
+  `google.com/recaptcha/api/siteverify`) estava em 5s+5s, no limite
+  mínimo tecnicamente aceitável pela documentação do Google (recomendado
+  >=10s) — ajustado para 10s+10s em
+  `JogadoresAnonimosApplication.java`. Isso reduz falso-negativo de rede
+  lenta, mas **não resolve a causa raiz do cold start em si** (instância
+  Render dormente demorando a acordar antes mesmo da requisição chegar
+  ao `RecaptchaService`) — isso é decisão de infraestrutura (`devops`),
+  não de timeout de chamada HTTP interna. Sem retry automático de
+  reCAPTCHA implementado deliberadamente (token é de uso único, retry
+  pode ser rejeitado como replay pelo Google e só adiciona latência ao
+  pior caso); sem fallback de bypass de reCAPTCHA em timeout (abriria
+  brecha de abuso permanente por causa de problema de infra temporário).
 - **Postgres produção** — dev já fechado (container local via compose),
   prod pendente.
 - **Provedor de e-mail real** — `EmailService` hoje só loga, sem

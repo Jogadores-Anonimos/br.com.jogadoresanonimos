@@ -416,6 +416,12 @@ export class Reunioes implements OnInit, OnDestroy {
     this.reservaConfirmada = false;
   }
 
+  fecharDetalhesSeCliqueForaDoPainel(evento: MouseEvent): void {
+    if (evento.target === evento.currentTarget) {
+      this.fecharDetalhes();
+    }
+  }
+
   @HostListener('document:keydown.escape')
   onEscape(): void {
     if (this.reuniaoDetalhe) {

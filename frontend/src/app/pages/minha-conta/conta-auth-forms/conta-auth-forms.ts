@@ -30,7 +30,7 @@ export class ContaAuthForms {
   private readonly recaptchaLoader = inject(RecaptchaLoader);
   private readonly auth = inject(Auth);
 
-  private static readonly TIMEOUT_SUBMIT_MS = 5_000;
+  private static readonly TIMEOUT_SUBMIT_MS = 60_000;
 
   loginUsuarioOuEmail = '';
   loginSenha = '';

@@ -171,14 +171,13 @@
   @if (reuniaoDetalhe) {
     <div
       class="detalhes-overlay"
-      (click)="fecharDetalhes()"
+      (click)="fecharDetalhesSeCliqueForaDoPainel($event)"
     >
       <div
         class="detalhes-painel"
         role="dialog"
         aria-modal="true"
         aria-labelledby="detalhes-titulo"
-        (click)="$event.stopPropagation()"
       >
         <button
           type="button"
