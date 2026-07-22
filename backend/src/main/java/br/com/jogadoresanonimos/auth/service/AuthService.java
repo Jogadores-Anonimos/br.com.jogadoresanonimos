@@ -96,13 +96,18 @@ public class AuthService {
                     "Esse e-mail já está cadastrado",
                     List.of(new ApiError.FieldError("email", "Esse e-mail já está cadastrado")));
         }
+        long inicioHash = System.nanoTime();
         String senhaHash = passwordEncoder.encode(request.senha());
+        log.info("registro_hash_senha duracaoMs={}", duracaoMsDesde(inicioHash));
         Usuario usuario = new Usuario(request.apelido(), request.email(), senhaHash, Role.PARTICIPANTE);
+        long inicioSave = System.nanoTime();
         try {
             usuario = usuarioRepository.save(usuario);
         } catch (DataIntegrityViolationException e) {
             throw new ConflitoDeEstadoException(ErrorCode.AUTH_CADASTRO_CONFLITO,
                     "Apelido ou e-mail já cadastrado. Tente outro apelido ou recupere sua conta.");
+        } finally {
+            log.info("registro_persistencia_usuario duracaoMs={}", duracaoMsDesde(inicioSave));
         }
         return UsuarioResponse.from(usuario);
     }
@@ -112,10 +117,14 @@ public class AuthService {
         String identificadorNormalizado = request.identificador().trim().toLowerCase();
         checarRateLimitConta("login", identificadorNormalizado, ErrorCode.AUTH_RATE_LIMITED);
         recaptchaService.validar(request.recaptchaToken());
+        long inicioBusca = System.nanoTime();
         Optional<Usuario> usuarioOpt = usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(
                 request.identificador(), request.identificador());
+        log.info("login_busca_usuario duracaoMs={}", duracaoMsDesde(inicioBusca));
         String hashParaComparar = usuarioOpt.map(Usuario::getSenhaHash).orElse(HASH_DUMMY_TIMING);
+        long inicioHash = System.nanoTime();
         boolean senhaConfere = passwordEncoder.matches(request.senha(), hashParaComparar);
+        log.info("login_verificacao_senha duracaoMs={}", duracaoMsDesde(inicioHash));
         if (usuarioOpt.isEmpty() || !senhaConfere) {
             log.warn("login_falho identificadorHash={}", hmacHasher.hash(identificadorNormalizado));
             throw new UnauthenticatedException(ErrorCode.AUTH_INVALID_CREDENTIALS, "Identificador ou senha inválidos");
@@ -132,9 +141,14 @@ public class AuthService {
         String identificadorNormalizado = request.identificador().trim().toLowerCase();
         checarRateLimitConta("login-mfa", identificadorNormalizado, ErrorCode.AUTH_RATE_LIMITED);
         recaptchaService.validar(request.recaptchaToken());
+        long inicioBusca = System.nanoTime();
         Optional<Usuario> usuarioOpt = usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(
                 request.identificador(), request.identificador());
-        if (usuarioOpt.isEmpty() || !passwordEncoder.matches(request.senha(), usuarioOpt.get().getSenhaHash())) {
+        log.info("login_mfa_busca_usuario duracaoMs={}", duracaoMsDesde(inicioBusca));
+        long inicioHash = System.nanoTime();
+        boolean senhaConfere = usuarioOpt.isPresent() && passwordEncoder.matches(request.senha(), usuarioOpt.get().getSenhaHash());
+        log.info("login_mfa_verificacao_senha duracaoMs={}", duracaoMsDesde(inicioHash));
+        if (!senhaConfere) {
             log.warn("login_falho identificadorHash={}", hmacHasher.hash(identificadorNormalizado));
             throw new UnauthenticatedException(ErrorCode.AUTH_INVALID_CREDENTIALS, "Identificador ou senha inválidos");
         }
@@ -213,5 +227,9 @@ public class AuthService {
 
     private void checarRateLimitConta(String acao, String identificadorNormalizado, String code) {
         rateLimiterService.check(acao + ":" + hmacHasher.hash(identificadorNormalizado), 5, Duration.ofMinutes(1), code);
+    }
+
+    private static long duracaoMsDesde(long inicioNanoTime) {
+        return (System.nanoTime() - inicioNanoTime) / 1_000_000;
     }
 }

@@ -38,6 +38,13 @@
   pode ser rejeitado como replay pelo Google e só adiciona latência ao
   pior caso); sem fallback de bypass de reCAPTCHA em timeout (abriria
   brecha de abuso permanente por causa de problema de infra temporário).
+- **Keep-alive externo configurado até 2026-07-24** — ping gratuito de
+  terceiro (UptimeRobot/cron-job.org) contra `/actuator/health` a cada
+  ~10-14 min só durante a janela de avaliação do MVP pelo cliente, para
+  reduzir cold start do Render free tier sem custo. Revisar depois do
+  prazo: remover se o projeto ficar parado, ou decidir se continua
+  (ainda mascara sintoma, não resolve causa raiz — ver item de cold
+  start acima) assim que a decisão de hospedagem definitiva for tomada.
 - **Postgres produção** — dev já fechado (container local via compose),
   prod pendente.
 - **Provedor de e-mail real** — `EmailService` hoje só loga, sem

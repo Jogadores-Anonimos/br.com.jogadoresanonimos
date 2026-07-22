@@ -35,6 +35,7 @@ public class RecaptchaService {
 
     public void validar(String token) {
         RecaptchaVerifyResponse resposta;
+        long inicio = System.nanoTime();
         try {
             MultiValueMap<String, String> corpo = new LinkedMultiValueMap<>();
             corpo.add("secret", secretKey);
@@ -44,14 +45,19 @@ public class RecaptchaService {
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(corpo, headers);
             resposta = restTemplate.postForObject(VERIFY_URL, request, RecaptchaVerifyResponse.class);
         } catch (RestClientException e) {
-            log.warn("recaptcha_upstream_falha erro={}", e.getClass().getSimpleName());
+            log.warn("recaptcha_upstream_falha erro={} duracaoMs={}", e.getClass().getSimpleName(), duracaoMsDesde(inicio));
             throw new UpstreamException(ErrorCode.AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL,
                     "Não foi possível validar o reCAPTCHA no momento, tente novamente");
         }
+        log.info("recaptcha_verificacao duracaoMs={}", duracaoMsDesde(inicio));
         if (resposta == null || !resposta.success()) {
             throw new ValidationException(ErrorCode.AUTH_RECAPTCHA_INVALIDO, "Falha na verificação do reCAPTCHA",
                     List.of(new ApiError.FieldError("recaptchaToken",
                             "A verificação \"Não sou um robô\" expirou ou é inválida. Marque novamente e tente outra vez.")));
         }
+    }
+
+    private static long duracaoMsDesde(long inicioNanoTime) {
+        return (System.nanoTime() - inicioNanoTime) / 1_000_000;
     }
 }
