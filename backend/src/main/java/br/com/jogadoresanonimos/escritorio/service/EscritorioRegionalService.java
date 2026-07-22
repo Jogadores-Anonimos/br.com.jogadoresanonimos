@@ -79,9 +79,9 @@ public class EscritorioRegionalService {
         RegiaoIntergrupo regiao = buscarRegiaoOuFalhar(id);
         List<RegiaoIntergrupo> ordenadas = regiaoRepository.findAllByOrderByOrdemAsc();
         if (paraCima) {
-            ReordenacaoUtil.moverParaCima(ordenadas, regiao, RegiaoIntergrupo::getOrdem, RegiaoIntergrupo::reordenar);
+            ReordenacaoUtil.moverParaCima(ordenadas, regiao, this::buscarRegiaoComLock, RegiaoIntergrupo::getId, RegiaoIntergrupo::getOrdem, RegiaoIntergrupo::reordenar);
         } else {
-            ReordenacaoUtil.moverParaBaixo(ordenadas, regiao, RegiaoIntergrupo::getOrdem, RegiaoIntergrupo::reordenar);
+            ReordenacaoUtil.moverParaBaixo(ordenadas, regiao, this::buscarRegiaoComLock, RegiaoIntergrupo::getId, RegiaoIntergrupo::getOrdem, RegiaoIntergrupo::reordenar);
         }
         return RegiaoIntergrupoResponse.semEstados(regiao);
     }
@@ -132,9 +132,9 @@ public class EscritorioRegionalService {
         EstadoIntergrupo estado = buscarEstadoOuFalhar(regiaoId, id);
         List<EstadoIntergrupo> ordenados = estadoRepository.findAllByRegiaoIdOrderByOrdemAsc(regiaoId);
         if (paraCima) {
-            ReordenacaoUtil.moverParaCima(ordenados, estado, EstadoIntergrupo::getOrdem, EstadoIntergrupo::reordenar);
+            ReordenacaoUtil.moverParaCima(ordenados, estado, this::buscarEstadoComLock, EstadoIntergrupo::getId, EstadoIntergrupo::getOrdem, EstadoIntergrupo::reordenar);
         } else {
-            ReordenacaoUtil.moverParaBaixo(ordenados, estado, EstadoIntergrupo::getOrdem, EstadoIntergrupo::reordenar);
+            ReordenacaoUtil.moverParaBaixo(ordenados, estado, this::buscarEstadoComLock, EstadoIntergrupo::getId, EstadoIntergrupo::getOrdem, EstadoIntergrupo::reordenar);
         }
         return EstadoIntergrupoResponse.from(estado);
     }
@@ -204,9 +204,9 @@ public class EscritorioRegionalService {
         GrupoIntergrupo grupo = buscarGrupoOuFalhar(estadoId, id);
         List<GrupoIntergrupo> ordenados = grupoRepository.findAllByEstadoIdOrderByOrdemAsc(estadoId);
         if (paraCima) {
-            ReordenacaoUtil.moverParaCima(ordenados, grupo, GrupoIntergrupo::getOrdem, GrupoIntergrupo::reordenar);
+            ReordenacaoUtil.moverParaCima(ordenados, grupo, this::buscarGrupoComLock, GrupoIntergrupo::getId, GrupoIntergrupo::getOrdem, GrupoIntergrupo::reordenar);
         } else {
-            ReordenacaoUtil.moverParaBaixo(ordenados, grupo, GrupoIntergrupo::getOrdem, GrupoIntergrupo::reordenar);
+            ReordenacaoUtil.moverParaBaixo(ordenados, grupo, this::buscarGrupoComLock, GrupoIntergrupo::getId, GrupoIntergrupo::getOrdem, GrupoIntergrupo::reordenar);
         }
         return GrupoIntergrupoResponse.from(grupo);
     }
@@ -270,9 +270,9 @@ public class EscritorioRegionalService {
         EscritorioServico escritorio = buscarEscritorioServicoOuFalhar(id);
         List<EscritorioServico> ordenados = escritorioServicoRepository.findAllByOrderByOrdemAsc();
         if (paraCima) {
-            ReordenacaoUtil.moverParaCima(ordenados, escritorio, EscritorioServico::getOrdem, EscritorioServico::reordenar);
+            ReordenacaoUtil.moverParaCima(ordenados, escritorio, this::buscarEscritorioServicoComLock, EscritorioServico::getId, EscritorioServico::getOrdem, EscritorioServico::reordenar);
         } else {
-            ReordenacaoUtil.moverParaBaixo(ordenados, escritorio, EscritorioServico::getOrdem, EscritorioServico::reordenar);
+            ReordenacaoUtil.moverParaBaixo(ordenados, escritorio, this::buscarEscritorioServicoComLock, EscritorioServico::getId, EscritorioServico::getOrdem, EscritorioServico::reordenar);
         }
         return EscritorioServicoResponse.from(escritorio);
     }
@@ -282,8 +282,18 @@ public class EscritorioRegionalService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_REGIAO_NAO_ENCONTRADA, "Região não encontrada"));
     }
 
+    private RegiaoIntergrupo buscarRegiaoComLock(UUID id) {
+        return regiaoRepository.buscarPorIdComLock(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_REGIAO_NAO_ENCONTRADA, "Região não encontrada"));
+    }
+
     private EstadoIntergrupo buscarEstadoOuFalhar(UUID id) {
         return estadoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_ESTADO_NAO_ENCONTRADO, "Estado não encontrado"));
+    }
+
+    private EstadoIntergrupo buscarEstadoComLock(UUID id) {
+        return estadoRepository.buscarPorIdComLock(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_ESTADO_NAO_ENCONTRADO, "Estado não encontrado"));
     }
 
@@ -304,8 +314,18 @@ public class EscritorioRegionalService {
         return grupo;
     }
 
+    private GrupoIntergrupo buscarGrupoComLock(UUID id) {
+        return grupoRepository.buscarPorIdComLock(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_GRUPO_NAO_ENCONTRADO, "Grupo não encontrado"));
+    }
+
     private EscritorioServico buscarEscritorioServicoOuFalhar(UUID id) {
         return escritorioServicoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_SERVICO_NAO_ENCONTRADO, "Escritório de serviço não encontrado"));
+    }
+
+    private EscritorioServico buscarEscritorioServicoComLock(UUID id) {
+        return escritorioServicoRepository.buscarPorIdComLock(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_SERVICO_NAO_ENCONTRADO, "Escritório de serviço não encontrado"));
     }
 

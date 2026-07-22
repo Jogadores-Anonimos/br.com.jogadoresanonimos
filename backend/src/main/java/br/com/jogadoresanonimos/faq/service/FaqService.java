@@ -66,15 +66,20 @@ public class FaqService {
         Faq faq = buscarOuFalhar(id);
         List<Faq> ordenadas = faqRepository.findAllByOrderByOrdemAsc();
         if (paraCima) {
-            ReordenacaoUtil.moverParaCima(ordenadas, faq, Faq::getOrdem, Faq::reordenar);
+            ReordenacaoUtil.moverParaCima(ordenadas, faq, this::buscarComLock, Faq::getId, Faq::getOrdem, Faq::reordenar);
         } else {
-            ReordenacaoUtil.moverParaBaixo(ordenadas, faq, Faq::getOrdem, Faq::reordenar);
+            ReordenacaoUtil.moverParaBaixo(ordenadas, faq, this::buscarComLock, Faq::getId, Faq::getOrdem, Faq::reordenar);
         }
         return FaqResponse.from(faq);
     }
 
     private Faq buscarOuFalhar(UUID id) {
         return faqRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.FAQ_NAO_ENCONTRADA, "Pergunta não encontrada"));
+    }
+
+    private Faq buscarComLock(UUID id) {
+        return faqRepository.buscarPorIdComLock(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.FAQ_NAO_ENCONTRADA, "Pergunta não encontrada"));
     }
 }

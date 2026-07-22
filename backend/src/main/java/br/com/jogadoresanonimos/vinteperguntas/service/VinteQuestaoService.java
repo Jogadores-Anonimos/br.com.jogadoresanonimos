@@ -71,9 +71,9 @@ public class VinteQuestaoService {
         VinteQuestao questao = buscarOuFalhar(id);
         List<VinteQuestao> ordenadas = vinteQuestaoRepository.findAllByOrderByOrdemAsc();
         if (paraCima) {
-            ReordenacaoUtil.moverParaCima(ordenadas, questao, VinteQuestao::getOrdem, VinteQuestao::reordenar);
+            ReordenacaoUtil.moverParaCima(ordenadas, questao, this::buscarComLock, VinteQuestao::getId, VinteQuestao::getOrdem, VinteQuestao::reordenar);
         } else {
-            ReordenacaoUtil.moverParaBaixo(ordenadas, questao, VinteQuestao::getOrdem, VinteQuestao::reordenar);
+            ReordenacaoUtil.moverParaBaixo(ordenadas, questao, this::buscarComLock, VinteQuestao::getId, VinteQuestao::getOrdem, VinteQuestao::reordenar);
         }
         int numero = vinteQuestaoRepository.findAllByOrderByOrdemAsc().indexOf(questao) + 1;
         return VinteQuestaoResponse.de(questao, numero);
@@ -81,6 +81,11 @@ public class VinteQuestaoService {
 
     private VinteQuestao buscarOuFalhar(UUID id) {
         return vinteQuestaoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.VINTE_PERGUNTAS_NAO_ENCONTRADA, "Pergunta não encontrada"));
+    }
+
+    private VinteQuestao buscarComLock(UUID id) {
+        return vinteQuestaoRepository.buscarPorIdComLock(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.VINTE_PERGUNTAS_NAO_ENCONTRADA, "Pergunta não encontrada"));
     }
 

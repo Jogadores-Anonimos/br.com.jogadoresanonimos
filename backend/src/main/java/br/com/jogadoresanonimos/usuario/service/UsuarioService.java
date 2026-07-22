@@ -69,7 +69,7 @@ public class UsuarioService {
             throw new ConflitoDeEstadoException(ErrorCode.USUARIO_AUTO_REBAIXAMENTO_ADMIN, "Um admin não pode remover a própria role de admin");
         }
         boolean removendoUltimoAdmin = usuario.getRole() == Role.ADMIN && novaRole != Role.ADMIN
-                && usuarioRepository.countByRole(Role.ADMIN) <= 1;
+                && usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN).size() <= 1;
         if (removendoUltimoAdmin) {
             throw new ConflitoDeEstadoException(ErrorCode.USUARIO_ULTIMO_ADMIN, "Não é possível remover o último admin do sistema");
         }
