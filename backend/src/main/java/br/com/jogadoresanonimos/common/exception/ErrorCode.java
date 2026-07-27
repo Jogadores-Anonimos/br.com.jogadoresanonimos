@@ -36,6 +36,7 @@ public final class ErrorCode {
     public static final String USUARIO_SENHA_CONFIRMACAO_DIVERGENTE = "USUARIO_SENHA_CONFIRMACAO_DIVERGENTE";
     public static final String USUARIO_SENHA_ATUAL_INCORRETA = "USUARIO_SENHA_ATUAL_INCORRETA";
     public static final String USUARIO_RATE_LIMITED = "USUARIO_RATE_LIMITED";
+    public static final String USUARIO_LIMITE_ADMIN_ATINGIDO = "USUARIO_LIMITE_ADMIN_ATINGIDO";
 
     public static final String RELATO_NAO_ENCONTRADO = "RELATO_NAO_ENCONTRADO";
     public static final String RELATO_RATE_LIMITED = "RELATO_RATE_LIMITED";

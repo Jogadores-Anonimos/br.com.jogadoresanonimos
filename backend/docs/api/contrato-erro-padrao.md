@@ -104,6 +104,7 @@ granularizar).
 | `USUARIO_SENHA_CONFIRMACAO_DIVERGENTE` | 400 | alterar senha: nova senha != confirmação |
 | `USUARIO_SENHA_ATUAL_INCORRETA` | 401 | alterar senha: senha atual incorreta |
 | `USUARIO_RATE_LIMITED` | 429 | rate limit de escrita admin/atualizar conta/alterar senha |
+| `USUARIO_LIMITE_ADMIN_ATINGIDO` | 409 | promoção a admin excederia `ADMIN_LIMITE_MAXIMO`; mensagem genérica, não expõe limite configurado nem contagem atual |
 
 ### Relato (`RELATO_`)
 | code | HTTP | quando |

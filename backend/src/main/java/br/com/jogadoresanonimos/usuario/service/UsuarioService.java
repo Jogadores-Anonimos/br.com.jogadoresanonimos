@@ -16,6 +16,7 @@ import br.com.jogadoresanonimos.usuario.dto.UsuarioMeResponse;
 import br.com.jogadoresanonimos.usuario.entity.Role;
 import br.com.jogadoresanonimos.usuario.entity.Usuario;
 import br.com.jogadoresanonimos.usuario.repository.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,13 +34,32 @@ public class UsuarioService {
     private final PasswordEncoder passwordEncoder;
     private final RateLimiterService rateLimiterService;
     private final AdminAuditoriaService adminAuditoriaService;
+    private final int adminLimiteMaximo;
 
     public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
-                           RateLimiterService rateLimiterService, AdminAuditoriaService adminAuditoriaService) {
+                           RateLimiterService rateLimiterService, AdminAuditoriaService adminAuditoriaService,
+                           @Value("${app.admin.limite-maximo}") String adminLimiteMaximoRaw) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.rateLimiterService = rateLimiterService;
         this.adminAuditoriaService = adminAuditoriaService;
+        this.adminLimiteMaximo = parseLimiteMaximo(adminLimiteMaximoRaw);
+    }
+
+    private static int parseLimiteMaximo(String valor) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalStateException("ADMIN_LIMITE_MAXIMO não configurado");
+        }
+        int limite;
+        try {
+            limite = Integer.parseInt(valor.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("ADMIN_LIMITE_MAXIMO deve ser um número inteiro válido");
+        }
+        if (limite <= 0) {
+            throw new IllegalStateException("ADMIN_LIMITE_MAXIMO deve ser maior que zero");
+        }
+        return limite;
     }
 
     public UsuarioMeResponse buscarMe(UUID usuarioId) {
@@ -68,10 +88,13 @@ public class UsuarioService {
         if (autoRebaixamento) {
             throw new ConflitoDeEstadoException(ErrorCode.USUARIO_AUTO_REBAIXAMENTO_ADMIN, "Um admin não pode remover a própria role de admin");
         }
-        boolean removendoUltimoAdmin = usuario.getRole() == Role.ADMIN && novaRole != Role.ADMIN
-                && usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN).size() <= 1;
-        if (removendoUltimoAdmin) {
+        boolean removendoAdmin = usuario.getRole() == Role.ADMIN && novaRole != Role.ADMIN;
+        boolean promovendoAAdmin = usuario.getRole() != Role.ADMIN && novaRole == Role.ADMIN;
+        if (removendoAdmin && usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN).size() <= 1) {
             throw new ConflitoDeEstadoException(ErrorCode.USUARIO_ULTIMO_ADMIN, "Não é possível remover o último admin do sistema");
+        }
+        if (promovendoAAdmin && usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN).size() >= adminLimiteMaximo) {
+            throw new ConflitoDeEstadoException(ErrorCode.USUARIO_LIMITE_ADMIN_ATINGIDO, "Limite máximo de administradores já foi atingido.");
         }
         String roleAnterior = usuario.getRole().name();
         usuario.alterarRole(novaRole);

@@ -52,7 +52,19 @@ class UsuarioServiceTest {
     @BeforeEach
     void setUp() {
         usuarioService = new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
-                adminAuditoriaService);
+                adminAuditoriaService, "5");
+    }
+
+    private List<Usuario> adminsAtivos(int quantidade) throws Exception {
+        return java.util.stream.IntStream.range(0, quantidade)
+                .mapToObj(i -> {
+                    try {
+                        return usuarioComId(UUID.randomUUID(), "admin" + i, Role.ADMIN);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .toList();
     }
 
     private Usuario usuarioComId(UUID id, String apelido, Role role) throws Exception {
@@ -79,6 +91,7 @@ class UsuarioServiceTest {
         UUID solicitanteId = UUID.randomUUID();
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(1));
         UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.ADMIN, solicitanteId);
         assertThat(resultado.role()).isEqualTo(Role.ADMIN);
         verify(adminAuditoriaService).registrar(solicitanteId, "usuario", id, AcaoAuditoria.EDITAR,
@@ -108,7 +121,7 @@ class UsuarioServiceTest {
         UUID solicitanteId = UUID.randomUUID();
         Usuario admin = usuarioComId(id, "admin", Role.ADMIN);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(admin));
-        lenient().when(usuarioRepository.countByRole(Role.ADMIN)).thenReturn(2L);
+        lenient().when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(2));
         UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.PARTICIPANTE, solicitanteId);
         assertThat(resultado.role()).isEqualTo(Role.PARTICIPANTE);
     }
@@ -119,9 +132,55 @@ class UsuarioServiceTest {
         UUID solicitanteId = UUID.randomUUID();
         Usuario admin = usuarioComId(id, "admin", Role.ADMIN);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(admin));
-        when(usuarioRepository.countByRole(Role.ADMIN)).thenReturn(1L);
+        when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(1));
         assertThatThrownBy(() -> usuarioService.editarRole(id, Role.PARTICIPANTE, solicitanteId))
                 .isInstanceOf(ConflitoDeEstadoException.class);
+    }
+
+    @Test
+    void editarRole_devePermitirPromoverQuandoAbaixoDoLimite() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID solicitanteId = UUID.randomUUID();
+        Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(4));
+        UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.ADMIN, solicitanteId);
+        assertThat(resultado.role()).isEqualTo(Role.ADMIN);
+    }
+
+    @Test
+    void editarRole_deveImpedirPromoverQuandoLimiteMaximoAtingido() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID solicitanteId = UUID.randomUUID();
+        Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(5));
+        assertThatThrownBy(() -> usuarioService.editarRole(id, Role.ADMIN, solicitanteId))
+                .isInstanceOf(ConflitoDeEstadoException.class);
+    }
+
+    @Test
+    void construtor_deveFalharQuandoLimiteMaximoAusente() {
+        assertThatThrownBy(() -> new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
+                adminAuditoriaService, ""))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void construtor_deveFalharQuandoLimiteMaximoNaoNumerico() {
+        assertThatThrownBy(() -> new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
+                adminAuditoriaService, "abc"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void construtor_deveFalharQuandoLimiteMaximoZeroOuNegativo() {
+        assertThatThrownBy(() -> new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
+                adminAuditoriaService, "0"))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
+                adminAuditoriaService, "-1"))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test

@@ -144,6 +144,14 @@ Ver `.claude/agents/*.md` para a definição completa de cada um.
 - Contratos de API são documentados **antes** de implementar (ver seção
   SDD no agente `backend`), combinados entre `backend` e
   `frontend-services` para evitar retrabalho.
+- Controle de segurança com múltiplas partes pode ser entregue em
+  rodadas separadas (precedente: limite numérico de admins entregue
+  antes do step-up MFA na promoção, 2026-07-26), desde que o `security`
+  documente explicitamente, na rodada intermediária, o risco residual
+  aceito enquanto a parte seguinte não é implementada, e a parte
+  pendente fique registrada em `PENDENCIAS.md` — não é liberação
+  genérica para adiar segurança, é reconhecer que a parte já entregue
+  reduz risco de forma real e rastreada.
 - Anonimato é requisito de arquitetura, não só de UI: nunca logar,
   persistir ou expor dados que permitam identificar um usuário (nome
   real, IP, e-mail pessoal) junto com dados de participação ou relatos.

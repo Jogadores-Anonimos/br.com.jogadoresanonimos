@@ -54,9 +54,17 @@
 
 - Campo `role` simples na tabela de usuário: `PARTICIPANTE` | `ADMIN`
   (enum via `VARCHAR` + `CHECK`, sem tabela de permissões granulares).
-- Atribuição/revogação de admin é **manual** (migration/script direto no
-  banco), não vira tela de produto — operação rara e de alto impacto;
-  reavaliar só se o número de admins crescer bastante.
+- Atribuição/revogação de admin é feita via tela de produto
+  (`admin-usuarios`) e endpoint `PUT /api/v1/admin/usuarios/{id}/role`
+  (`UsuarioService#editarRole`) — não é mais só manual via script. Regras
+  de proteção: admin não pode se auto-rebaixar; não é possível remover o
+  último admin do sistema; e existe um **limite máximo de admins ativos**
+  (`ADMIN_LIMITE_MAXIMO`, env obrigatória sem default, fail-fast no
+  startup se ausente/inválida) que bloqueia novas promoções acima do
+  teto configurado. Contagem de admins usa lock pessimista
+  (`buscarPorRoleParaAtualizacao`) tanto para remoção do último admin
+  quanto para promoção, fechando race condition de promoções
+  simultâneas. Ver `backend/docs/api/contrato-usuario-admin.md`.
 - Bootstrap do primeiro admin via variável de ambiente/secret, com senha
   forçando troca no primeiro login.
 

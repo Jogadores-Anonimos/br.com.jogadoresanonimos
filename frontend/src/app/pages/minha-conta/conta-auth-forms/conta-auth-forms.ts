@@ -66,6 +66,33 @@ export class ContaAuthForms {
     }
   }
 
+  @ViewChild('loginMensagemEl')
+  set loginMensagemElRef(ref: ElementRef<HTMLElement> | undefined) {
+    this.rolarAteMensagem(ref);
+  }
+
+  @ViewChild('loginMfaMensagemEl')
+  set loginMfaMensagemElRef(ref: ElementRef<HTMLElement> | undefined) {
+    this.rolarAteMensagem(ref);
+  }
+
+  @ViewChild('registroMensagemEl')
+  set registroMensagemElRef(ref: ElementRef<HTMLElement> | undefined) {
+    this.rolarAteMensagem(ref);
+  }
+
+  @ViewChild('registroConfirmacaoEl')
+  set registroConfirmacaoElRef(ref: ElementRef<HTMLElement> | undefined) {
+    this.rolarAteMensagem(ref);
+  }
+
+  private rolarAteMensagem(ref: ElementRef<HTMLElement> | undefined): void {
+    if (!ref) {
+      return;
+    }
+    ref.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   onLoginSubmit(): void {
     this.loginEnviando = true;
     this.loginMensagem = '';

@@ -14,14 +14,16 @@
       </svg>
       <span>Loja de Livros</span>
     </a>
-    <span class="utility-icon-btn utility-cart" aria-label="Itens no carrinho: 0">
-      <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="9" cy="20" r="1"/>
-        <circle cx="18" cy="20" r="1"/>
-        <path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"/>
-      </svg>
-      <span class="cart-count">0</span>
-    </span>
+    @if (showCart) {
+      <span class="utility-icon-btn utility-cart" aria-label="Itens no carrinho: 0">
+        <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="9" cy="20" r="1"/>
+          <circle cx="18" cy="20" r="1"/>
+          <path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"/>
+        </svg>
+        <span class="cart-count">0</span>
+      </span>
+    }
     <button
       type="button"
       class="utility-icon-btn"
@@ -163,14 +165,16 @@
         <line x1="21" y1="21" x2="16.5" y2="16.5"/>
       </svg>
     </button>
-    <span class="utility-icon-btn utility-cart" aria-label="Itens no carrinho: 0">
-      <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="9" cy="20" r="1"/>
-        <circle cx="18" cy="20" r="1"/>
-        <path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"/>
-      </svg>
-      <span class="cart-count">0</span>
-    </span>
+    @if (showCart) {
+      <span class="utility-icon-btn utility-cart" aria-label="Itens no carrinho: 0">
+        <svg class="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="9" cy="20" r="1"/>
+          <circle cx="18" cy="20" r="1"/>
+          <path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"/>
+        </svg>
+        <span class="cart-count">0</span>
+      </span>
+    }
   </div>
 
   <div class="nav-menu" [class.open]="menuAberto">

@@ -75,6 +75,8 @@ export class Navbar implements OnDestroy {
 
   menuAberto = false;
 
+  showCart = false;
+
   isMobileLayout = this.mobileLayoutMql.matches;
 
   buscaAberta = false;

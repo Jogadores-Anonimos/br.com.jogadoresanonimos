@@ -41,6 +41,7 @@ services:
       ADMIN_BOOTSTRAP_APELIDO: ${ADMIN_BOOTSTRAP_APELIDO}
       ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL}
       ADMIN_BOOTSTRAP_SENHA: ${ADMIN_BOOTSTRAP_SENHA}
+      ADMIN_LIMITE_MAXIMO: ${ADMIN_LIMITE_MAXIMO}
     volumes:
       - backend_staging_storage:/app/data/imagens
     networks:

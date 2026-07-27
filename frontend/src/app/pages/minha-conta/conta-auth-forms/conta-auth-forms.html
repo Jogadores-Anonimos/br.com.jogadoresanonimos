@@ -50,7 +50,7 @@
           <a routerLink="/esqueci-senha" class="link-secundario">Esqueci minha senha</a>
 
           @if (loginMensagem) {
-            <p class="mensagem" [class.mensagem-sucesso]="loginSucesso" [class.mensagem-erro]="!loginSucesso">
+            <p #loginMensagemEl class="mensagem" [class.mensagem-sucesso]="loginSucesso" [class.mensagem-erro]="!loginSucesso">
               {{ loginMensagem }}
             </p>
           }
@@ -87,7 +87,7 @@
           </button>
 
           @if (loginMensagem) {
-            <p class="mensagem" [class.mensagem-sucesso]="loginSucesso" [class.mensagem-erro]="!loginSucesso">
+            <p #loginMfaMensagemEl class="mensagem" [class.mensagem-sucesso]="loginSucesso" [class.mensagem-erro]="!loginSucesso">
               {{ loginMensagem }}
             </p>
           }
@@ -198,13 +198,13 @@
           </button>
 
           @if (registroMensagem) {
-            <p class="mensagem mensagem-erro">
+            <p #registroMensagemEl class="mensagem mensagem-erro">
               {{ registroMensagem }}
             </p>
           }
         </form>
       } @else {
-        <div class="registro-confirmacao">
+        <div #registroConfirmacaoEl class="registro-confirmacao">
           <span class="registro-confirmacao__icone" aria-hidden="true">✓</span>
           <h3 class="registro-confirmacao__titulo">Conta criada.</h3>
           <p class="registro-confirmacao__corpo">

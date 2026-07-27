@@ -72,18 +72,34 @@ nova. Nenhuma coluna nova foi necessária para o escopo desta tarefa.
   refletir imediatamente (próxima requisição autenticada do usuário-alvo
   já deve carregar a nova role no JWT reemitido/reautenticado).
 
-**Regras de negócio implementadas** (ambas decididas como necessárias,
-não overengineering, porque previnem o sistema ficar num estado
-irrecuperável sem intervenção manual no banco):
-1. **Um admin não pode remover a própria role de admin**
-   (`solicitanteId == id do alvo` e a mudança é `ADMIN → não-ADMIN`) —
-   evita autoexclusão acidental de acesso.
-2. **Não é possível remover o último `ADMIN` do sistema** — antes de
-   rebaixar um `ADMIN` para `PARTICIPANTE`, o service conta quantos
-   `ADMIN` existem (`countByRole`); se for o único, rejeita. Isso cobre
-   o caso de um segundo admin tentando rebaixar o único outro admin
-   restante (cenário não coberto pela regra 1, que só olha
-   auto-rebaixamento).
+**Regras de negócio implementadas**, checadas nesta ordem dentro do
+mesmo bloco transacional (fail-fast: a primeira que bater já rejeita,
+sem checar as seguintes):
+1. **Auto-rebaixamento** — um admin não pode remover a própria role de
+   admin (`solicitanteId == id do alvo` e a mudança é `ADMIN → não-ADMIN`)
+   — evita autoexclusão acidental de acesso.
+2. **Último admin** — não é possível remover o último `ADMIN` do
+   sistema. Antes de rebaixar um `ADMIN` para `PARTICIPANTE`, o service
+   conta quantos `ADMIN` existem com lock pessimista
+   (`usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)`); se for
+   o único, rejeita. Cobre o caso de um segundo admin tentando rebaixar o
+   único outro admin restante (cenário não coberto pela regra 1, que só
+   olha auto-rebaixamento).
+3. **Limite máximo de admins** (`ADMIN_LIMITE_MAXIMO`, decisão fechada do
+   agente `security`) — só entra quando a mudança é `não-ADMIN → ADMIN`.
+   Reusa o **mesmo** método com lock pessimista da regra 2
+   (`buscarPorRoleParaAtualizacao(Role.ADMIN)`) para contar admins atuais
+   antes de promover, fechando a race condition de duas promoções
+   simultâneas estourando o limite (mesma transação, mesmo lock).
+   `ADMIN_LIMITE_MAXIMO` é env obrigatória, sem default: ausente ou
+   valor não-numérico/`<= 0` derruba a aplicação no startup
+   (`UsuarioService`, fail-fast — nunca silencioso). Mensagem de erro ao
+   cliente é genérica ("Limite máximo de administradores já foi
+   atingido."), sem expor o valor configurado nem a contagem atual (evita
+   vazar informação operacional interna).
+
+**Fora de escopo desta regra 3** (decisão do `security`, outra rodada):
+step-up de MFA/TOTP no momento da promoção a admin.
 
 **Request** (`EditarRoleRequest`):
 ```json
@@ -102,7 +118,7 @@ role atualizada.
 | 400 | `VALIDATION_ERROR` | `role` ausente ou valor fora do enum |
 | 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
 | 404 | `USUARIO_NAO_ENCONTRADO` | id não existe |
-| 409 | `USUARIO_AUTO_REBAIXAMENTO_ADMIN` / `USUARIO_ULTIMO_ADMIN` | tentativa de auto-rebaixamento ou de remover o último admin do sistema |
+| 409 | `USUARIO_AUTO_REBAIXAMENTO_ADMIN` / `USUARIO_ULTIMO_ADMIN` / `USUARIO_LIMITE_ADMIN_ATINGIDO` | tentativa de auto-rebaixamento, de remover o último admin do sistema, ou de promover além do limite configurado |
 
 ---
 
@@ -134,8 +150,11 @@ anterior consumido pelo frontend é afetado.
 - `br.com.jogadoresanonimos.usuario.dto.EditarRoleRequest` — DTO de
   request com `@NotNull`.
 - `br.com.jogadoresanonimos.usuario.service.UsuarioService#listarTodos`,
-  `#editarRole` — regras de negócio (auto-rebaixamento e último admin)
-  ficam no service, não no controller.
+  `#editarRole` — regras de negócio (auto-rebaixamento, último admin,
+  limite máximo de admins) ficam no service, não no controller.
+- `app.admin.limite-maximo` (`application.properties`) mapeia
+  `ADMIN_LIMITE_MAXIMO`, sem valor default — parse e validação fail-fast
+  no construtor de `UsuarioService`.
 - `br.com.jogadoresanonimos.usuario.controller.UsuarioAdminController` —
   novo controller (`/api/v1/admin/usuarios`), separado do
   `UsuarioController` público existente (`/api/v1/usuarios/me`), mesmo
