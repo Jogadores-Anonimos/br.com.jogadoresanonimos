@@ -270,19 +270,26 @@
   CORS aqui é puramente uma trava de segurança contra requisição
   cross-origin feita por *outro site* no browser da vítima — não é
   mecanismo de "permitir integração".
-- **Política: allowlist fechada, nunca wildcard.** `allowedOrigins` é
-  exatamente uma origem (o domínio do site), nunca `*` — e nunca `*`
-  combinado com `allowCredentials(true)` (inválido pelo spec e pelo
-  Spring). `allowedMethods` e `allowedHeaders` restritos ao que é
-  realmente usado (`GET, POST, PUT, PATCH, DELETE` / `Authorization,
-  Content-Type`), não `*`. `maxAge` alto (ex. 3600s) para reduzir
-  preflight, sem abrir mão da política.
-- **Dev vs prod: sim, diferente, via Spring Profiles.** Origem permitida
-  vem de property (`app.cors.allowed-origins`) alimentada por variável de
-  ambiente — `http://localhost:4200` em dev, domínio real em prod (ex.
-  `https://jogadoresanonimos.org.br`). As duas listas nunca convivem no
-  mesmo profile ativo; erro clássico a evitar é deixar `localhost` "por
-  garantia" na lista de prod.
+- **Política: allowlist fechada, nunca wildcard.** `allowedOrigins` é uma
+  lista fechada de origens conhecidas do próprio site (nunca `*` — e
+  nunca `*` combinado com `allowCredentials(true)`, inválido pelo spec e
+  pelo Spring). Em produção a lista cobre o domínio canônico e o de
+  redirect, cada um com e sem `www.`: `https://jogadoresanonimos.com.br`,
+  `https://www.jogadoresanonimos.com.br`, `https://jogadoresanonimos.org.br`,
+  `https://www.jogadoresanonimos.org.br` — o `.org.br` faz redirect HTTP
+  pro `.com.br`, mas antes do redirect completar o browser ainda envia
+  `Origin: https://jogadoresanonimos.org.br` na requisição, por isso ele
+  precisa estar na allowlist também. `allowedMethods` e `allowedHeaders`
+  restritos ao que é realmente usado (`GET, POST, PUT, PATCH, DELETE` /
+  `Authorization, Content-Type`), não `*`. `maxAge` alto (ex. 3600s) para
+  reduzir preflight, sem abrir mão da política.
+- **Dev vs prod: sim, diferente, via Spring Profiles.** Origens permitidas
+  vêm de property (`app.cors.allowed-origins`, tipo `List<String>`)
+  alimentada pela variável de ambiente `CORS_ALLOWED_ORIGINS` (múltiplas
+  origens separadas por vírgula, sem espaço) — `http://localhost:4200` em
+  dev, a lista de domínios reais (ver acima) em prod. As duas listas
+  nunca convivem no mesmo profile ativo; erro clássico a evitar é deixar
+  `localhost` "por garantia" na lista de prod.
 - **Onde centralizar**: um único `@Bean CorsConfigurationSource`
   registrado dentro da `SecurityFilterChain` do Spring Security
   (`http.cors(...)`), **não** via `WebMvcConfigurer#addCorsMappings`.

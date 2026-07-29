@@ -6,21 +6,38 @@
 
 ## Infraestrutura / Deploy (aguardando decisão de hospedagem do cliente)
 
-- **`apiBaseUrl` real de produção e `recaptchaSiteKey`/`RECAPTCHA_SECRET_KEY`
-  de produção** — `frontend/src/environments/environment.prod.ts` já
-  existe (com `fileReplacements` configurado no `angular.json`), mas
-  `apiBaseUrl` está como `/api/v1` (relativo, assumindo reverse proxy
-  servindo front+back no mesmo domínio) até a hospedagem ser decidida.
-  `recaptchaSiteKey` também está com a mesma chave do dev por não haver
-  chave própria de produção documentada — chave de dev provavelmente só
-  está registrada para `localhost`/domínio de dev no console do Google
-  reCAPTCHA e vai falhar validação em domínio novo (site key no
-  frontend E secret key correspondente no backend, via
-  `RECAPTCHA_SECRET_KEY`, precisam ser trocadas juntas, mesmo par
-  gerado no console Google para o domínio real). Pré-requisito prático
-  para qualquer outro passo de deploy. Bloqueado em dado que só o
-  cliente tem (gerar o par de chaves no console Google reCAPTCHA para
-  o domínio de produção real).
+**Domínio de produção FECHADO (2026-07-26):** HostGator (cPanel, "Plano
+M", hospedagem compartilhada tradicional — sem Docker/Java/Postgres,
+serve só domínio/DNS/e-mail). `jogadoresanonimos.com.br` hoje roda
+WordPress em produção real (conteúdo relevante já migrado pelo cliente
+para o site novo) — será desligado/substituído pelo app novo (Render).
+Cutover autorizado a qualquer momento. Dois domínios, ambos já
+registrados na mesma conta: `jogadoresanonimos.com.br` (canônico, mantém
+SEO do WP) e `jogadoresanonimos.org.br` (redirect 301 pro `.com.br`).
+
+- **`apiBaseUrl` de produção** — **AJUSTADO EM CÓDIGO (2026-07-26,
+  `backend`)**. `frontend/src/environments/environment.prod.ts`:
+  `apiBaseUrl` mudou de `/api/v1` relativo para
+  `https://jogadoresanonimos.com.br/api/v1` absoluto (necessário porque
+  `arquivo.ts` já faz `new URL(apiBaseUrl).origin`, que exige URL
+  absoluta). **Suposição não confirmada:** assumiu mesmo domínio do
+  front, sem subdomínio `api.` dedicado — se a infraestrutura definitiva
+  decidir por subdomínio próprio, só trocar esse valor.
+- **`recaptchaSiteKey`/`RECAPTCHA_SECRET_KEY` de produção** — **AÇÃO
+  MANUAL DO CLIENTE, ainda bloqueada.** Análise do `security`
+  (2026-07-26): um único par de chaves reCAPTCHA aceita múltiplos
+  domínios cadastrados no mesmo registro do console Google — não precisa
+  de par por domínio. Cadastrar nesse registro apenas
+  `jogadoresanonimos.com.br` + `www.jogadoresanonimos.com.br`; **não**
+  cadastrar `.org.br` (só existe como redirect 301, nunca renderiza
+  formulário/chama reCAPTCHA). Depois de gerado: `RECAPTCHA_SECRET_KEY`
+  vai no secret do Render (backend) e `recaptchaSiteKey` em
+  `frontend/src/environments/environment.prod.ts` (público, não é
+  secret). É troca pura de valor de config, sem mudança de código —
+  `ProdConfigValidator.java` já falha o boot em produção se a secret
+  ficar vazia ou for a chave de teste do Google (proteção já existe).
+  Pré-requisito prático para o restante do deploy — segue bloqueado até
+  o cliente gerar o par no console Google.
 - **Cold start do Render free tier mascarando timeout como falha em
   login/registro** — investigado em 2026-07-22: causa client-side (
   timeout de 5s do `HttpClient` do frontend) já corrigida para 60s.
@@ -53,40 +70,117 @@
   com folga; melhor deliverability/setup que Gmail SMTP — descartado
   por limite baixo e reputação ruim — e SES — descartado por sandbox
   restritivo; integração via SMTP relay reaproveita `JavaMailSender`/
-  `EmailService` já existente). **Ainda bloqueado (reconfirmado
-  2026-07-26).** Cliente informou o e-mail oficial da associação
-  (`jogadoresanonimossaopaulo@gmail.com`), mas isso **não resolve** o
-  requisito técnico: Resend (e qualquer provedor transacional sério)
-  exige domínio verificado por DNS (SPF/DKIM/DMARC) para enviar e-mail
-  "de" um endereço — não é possível verificar `gmail.com` como domínio
-  próprio, é domínio de terceiro (Google). Esse Gmail fica registrado
-  como **e-mail de contato/reply-to de referência** no conteúdo dos
-  e-mails transacionais (ex: "dúvidas, responda para..."), não como
-  remetente técnico/`from` da integração. Cliente sinalizou que a
-  hospedagem/domínio de produção definitivo fecha ainda esta semana —
-  mantém bloqueado até esse domínio existir. Nenhuma ação de código
-  ainda. Bloqueante para as duas features de e-mail abaixo.
+  `EmailService` já existente). Domínio de produção **já existe agora**
+  (`jogadoresanonimos.com.br`), o que era o bloqueio anterior — mas
+  **AÇÃO MANUAL DO CLIENTE ainda pendente**: criar a conta Resend em si.
+  Depois de criada, os registros DNS reais de SPF/DKIM/DMARC saem lá
+  (ver checklist DNS abaixo, item novo). Cliente informou o e-mail
+  oficial da associação (`jogadoresanonimossaopaulo@gmail.com`) — fica
+  registrado como **e-mail de contato/reply-to de referência** no
+  conteúdo dos e-mails transacionais, não como remetente técnico/`from`
+  (Gmail não pode ser verificado como domínio próprio). Bloqueante para
+  as duas features de e-mail abaixo, até a conta Resend existir.
 - **Onde guardar secrets** (`JWT_SECRET`, `LOG_HMAC_SECRET`,
   `MFA_SECRET_ENCRYPTION_KEY`) — todas já geradas e configuradas em dev
   (`.env` local); falta só o destino final de armazenamento/injeção em
-  produção.
+  produção (Render secrets, ver `render.yaml`).
 - **Dados do primeiro admin real** (apelido/e-mail/senha de bootstrap).
 - **Backup do diretório de storage local** — bloqueante pra produção,
   precisa entrar na rotina de backup do servidor junto com o Postgres.
-- **`SPRING_PROFILES_ACTIVE=prod` no deploy real** — necessário para
-  ativar `ProdConfigValidator` (fail-fast de `RECAPTCHA_SECRET_KEY`
-  insegura) e qualquer outra config futura restrita a produção.
-- **CORS só aceita 1 origem via string simples** (`app.cors.allowed-
-  origins` é `String`, não `List`) — trocar pra suportar múltiplas
-  origens (ex: apex + `www.`) assim que o domínio final de produção for
-  decidido.
+- **`SPRING_PROFILES_ACTIVE=prod` no deploy real** — checklist de envs
+  levantado pelo `backend` (2026-07-26):
+  - Fail-fast **real e já implementado** (`ProdConfigValidator`):
+    `RECAPTCHA_SECRET_KEY` obrigatória, não pode ser vazia nem a chave
+    de teste do Google.
+  - Fail-fast **indireto** (quebra o boot/uso na prática, sem validator
+    dedicado): `JWT_SECRET` (chave curta demais rejeitada pelo JJWT no
+    boot); `ADMIN_LIMITE_MAXIMO` (`UsuarioService` lança
+    `IllegalStateException` se ausente/inválido).
+  - **Falha silenciosa/lazy — risco, não corrigido nesta tarefa**:
+    `MFA_SECRET_ENCRYPTION_KEY` e `LOG_HMAC_SECRET` só quebram no
+    primeiro uso real (cifrar TOTP / gerar hash de log), não no
+    startup; `CORS_ALLOWED_ORIGINS` vazio não quebra o boot, só bloqueia
+    CORS silenciosamente (nenhum browser consegue chamar a API).
+    Recomendação registrada (fora do escopo desta tarefa): expandir
+    `ProdConfigValidator` para cobrir essas 3 envs.
+- **CORS multi-origem — RESOLVIDO EM CÓDIGO (2026-07-26, `backend`).**
+  `app.cors.allowed-origins` (`SecurityConfig.java`) trocado de `String`
+  para `List<String>` (Spring converte CSV automaticamente via
+  `@Value`). Env renomeada `CORS_ALLOWED_ORIGIN` → `CORS_ALLOWED_ORIGINS`
+  (plural) em `application.properties`, `application.properties.example`,
+  `docker-compose.yml`, `docker-compose.staging.yml`, `render.yaml`.
+  Valor de produção a configurar no Render:
+  `https://jogadoresanonimos.com.br,https://www.jogadoresanonimos.com.br,https://jogadoresanonimos.org.br,https://www.jogadoresanonimos.org.br`
+  (sem espaço após vírgula). **Nota do `security`:** `.org.br`/`www.org.br`
+  tecnicamente não precisam estar na allowlist, já que esse domínio só
+  redireciona e nunca chama a API diretamente — mantido na lista mesmo
+  assim porque o browser envia o header `Origin` do domínio original
+  antes do redirect completar (decisão documentada em `Decisoes de
+  Sistemas.md` seção 8). **AÇÃO MANUAL:** reconfigurar a env var no
+  Render com o novo nome/valor antes do deploy.
 - **CDN (Cloudflare ou equivalente) na frente do domínio real** —
   decisão já tomada pelo `system-design` (ver `Decisoes de Sistemas.md`
   seção 5): origin apontando pro próprio backend/disco local, sem
   bucket S3, sem mudar a decisão de storage já fechada. Entra no
-  checklist de deploy assim que hospedagem for decidida — não é questão
-  de volume de tráfego, CDN de assets estáticos é barato mesmo em baixo
-  tráfego.
+  checklist de deploy — domínio já decidido, falta execução.
+
+### Checklist de cutover DNS/backup (levantamento do `devops`, 2026-07-26 — AÇÃO MANUAL DO USUÁRIO no painel HostGator/Render, sem acesso direto do time a esses painéis)
+
+1. **Backup do WordPress antes de qualquer mudança de DNS**: cPanel →
+   Backup Wizard → Full Backup (ou separado: phpMyAdmin export do banco
+   MySQL + compactar/baixar `wp-content/` e `wp-config.php` via File
+   Manager/FTP). Conferir integridade dos arquivos baixados. Guardar
+   fora da HostGator (Drive/disco local), reter por ~90 dias pós-cutover
+   e descartar depois (backup de infra legada do cliente, fora do
+   escopo de retenção LGPD do app novo).
+2. **Custom Domains no Render**: cadastrar `jogadoresanonimos.com.br`,
+   `www.jogadoresanonimos.com.br`, `jogadoresanonimos.org.br` e
+   `www.jogadoresanonimos.org.br` no serviço Render antes de mudar o
+   DNS, para o Let's Encrypt automático já emitir certificado assim que
+   detectar o apontamento correto.
+3. **DNS de `.com.br` no Zone Editor HostGator**: apex sem `www` não
+   aceita CNAME (limitação de protocolo) — usar ANAME/ALIAS se o Zone
+   Editor suportar (apontando pro hostname `.onrender.com`), senão A
+   record pro IP fixo que o Render documenta para apex domains
+   (confirmar o valor exato no dashboard Render no momento da
+   configuração, não usar de memória). `www.jogadoresanonimos.com.br`:
+   CNAME direto pro hostname `.onrender.com` (sem restrição). Reduzir
+   TTL pra 300s antes do corte, voltar a TTL normal depois de confirmado.
+4. **Redirect `.org.br` → `.com.br`**: recomendação do `devops` é tratar
+   no lado do Render/aplicação (não cPanel Redirects) — apontar DNS do
+   `.org.br`/`www` pro Render igual ao `.com.br`, cadastrar como Custom
+   Domain adicional no mesmo serviço, e configurar redirect 301
+   preservando path na camada de roteamento (app/proxy do Render).
+   Centraliza a lógica num único lugar em vez de duplicar em cPanel +
+   app. Definir com `po`/`backend` onde exatamente esse redirect é
+   implementado quando for a hora.
+5. **DNS do Resend (SPF/DKIM/DMARC)** — bloqueado até a conta Resend ser
+   criada (ver pendência de e-mail acima). Pode adiantar só o **DMARC**
+   desde já (`_dmarc.jogadoresanonimos.com.br`, `v=DMARC1; p=none;
+   rua=mailto:<email de monitoramento do cliente>`, modo observação).
+   SPF/DKIM saem exatos só depois de criada a conta — atenção pra não
+   duplicar registro SPF se já existir um (e-mail atual do cPanel):
+   precisa mesclar `include:` num único TXT, SPF não aceita múltiplos
+   registros por domínio.
+6. **Ordem recomendada**: backup confirmado → Custom Domains no Render →
+   DNS `.com.br` (validar propagação + certificado TLS) → DNS `.org.br`
+   → confirmar app respondendo nos dois domínios → desligar/arquivar
+   WordPress na HostGator (não apagar imediatamente, manter como
+   fallback por um tempo) → Resend à parte quando a conta existir.
+
+### Checklist de segurança do multi-domínio (parecer do `security`, 2026-07-26)
+
+- **HSTS não propaga entre domínios diferentes** — `.com.br` e `.org.br`
+  são eTLD+1 distintos, cada um dos 4 hosts precisa do próprio header
+  `Strict-Transport-Security`. Submeter à preload list só o canônico
+  (`.com.br`) — não faz sentido para um domínio que só redireciona.
+- **Certificado TLS deve cobrir os 4 hosts** — confirmar no Render que
+  `.org.br`/`www.org.br` foram adicionados explicitamente como domínios
+  customizados do serviço para entrar na emissão automática (Let's
+  Encrypt não cobre domínio não cadastrado).
+- Redirect sempre HTTPS→HTTPS na borda (nunca passar por HTTP do
+  destino); sem cookie/sessão compartilhada entre os dois domínios (já
+  não há — JWT vai em header/body, não cookie).
 
 ## Feedback do cliente 2026-07-26 (rodada pós-aprovação MVP)
 

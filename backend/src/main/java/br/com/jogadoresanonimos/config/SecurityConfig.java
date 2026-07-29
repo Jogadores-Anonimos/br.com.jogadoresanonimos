@@ -29,15 +29,15 @@ public class SecurityConfig {
     private final JwtService jwtService;
     private final UsuarioRepository usuarioRepository;
     private final JwtDenylistRepository jwtDenylistRepository;
-    private final String allowedOrigin;
+    private final List<String> allowedOrigins;
 
     public SecurityConfig(JwtService jwtService, UsuarioRepository usuarioRepository,
                            JwtDenylistRepository jwtDenylistRepository,
-                           @Value("${app.cors.allowed-origins}") String allowedOrigin) {
+                           @Value("${app.cors.allowed-origins}") List<String> allowedOrigins) {
         this.jwtService = jwtService;
         this.usuarioRepository = usuarioRepository;
         this.jwtDenylistRepository = jwtDenylistRepository;
-        this.allowedOrigin = allowedOrigin;
+        this.allowedOrigins = allowedOrigins;
     }
 
     @Bean
@@ -78,7 +78,7 @@ public class SecurityConfig {
 
     private CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(allowedOrigin));
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
