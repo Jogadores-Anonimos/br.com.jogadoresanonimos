@@ -2,11 +2,15 @@ package br.com.jogadoresanonimos.usuario.service;
 
 import br.com.jogadoresanonimos.auditoria.entity.AcaoAuditoria;
 import br.com.jogadoresanonimos.auditoria.service.AdminAuditoriaService;
+import br.com.jogadoresanonimos.common.exception.ApiException;
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
+import br.com.jogadoresanonimos.security.MfaSecretCipher;
+import br.com.jogadoresanonimos.security.TotpService;
 import br.com.jogadoresanonimos.usuario.dto.AlterarSenhaRequest;
 import br.com.jogadoresanonimos.usuario.dto.AtualizarContaRequest;
 import br.com.jogadoresanonimos.usuario.dto.UsuarioAdminResponse;
@@ -47,12 +51,18 @@ class UsuarioServiceTest {
     @Mock
     AdminAuditoriaService adminAuditoriaService;
 
+    @Mock
+    TotpService totpService;
+
+    @Mock
+    MfaSecretCipher mfaSecretCipher;
+
     UsuarioService usuarioService;
 
     @BeforeEach
     void setUp() {
         usuarioService = new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
-                adminAuditoriaService, "5");
+                adminAuditoriaService, totpService, mfaSecretCipher, "5");
     }
 
     private List<Usuario> adminsAtivos(int quantidade) throws Exception {
@@ -85,14 +95,25 @@ class UsuarioServiceTest {
         assertThat(resultado.get(0).email()).isEqualTo("f***@exemplo.com");
     }
 
+    private Usuario usuarioComMfaAtivo(UUID id, String apelido, Role role) throws Exception {
+        Usuario usuario = usuarioComId(id, apelido, role);
+        usuario.iniciarEnrollmentMfa("secret-cifrado-fake");
+        usuario.confirmarMfa();
+        return usuario;
+    }
+
     @Test
     void editarRole_deveAtualizarQuandoNaoHaConflito() throws Exception {
         UUID id = UUID.randomUUID();
         UUID solicitanteId = UUID.randomUUID();
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        Usuario solicitante = usuarioComMfaAtivo(solicitanteId, "promotor", Role.ADMIN);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById(solicitanteId)).thenReturn(Optional.of(solicitante));
         when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(1));
-        UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.ADMIN, solicitanteId);
+        when(mfaSecretCipher.decifrar("secret-cifrado-fake")).thenReturn("secret-plano");
+        when(totpService.validar("secret-plano", "123456")).thenReturn(true);
+        UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.ADMIN, solicitanteId, "123456");
         assertThat(resultado.role()).isEqualTo(Role.ADMIN);
         verify(adminAuditoriaService).registrar(solicitanteId, "usuario", id, AcaoAuditoria.EDITAR,
                 "PARTICIPANTE", "ADMIN");
@@ -102,7 +123,7 @@ class UsuarioServiceTest {
     void editarRole_deveLancarExcecaoQuandoUsuarioNaoExiste() {
         UUID id = UUID.randomUUID();
         when(usuarioRepository.findById(id)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> usuarioService.editarRole(id, Role.ADMIN, UUID.randomUUID()))
+        assertThatThrownBy(() -> usuarioService.editarRole(id, Role.ADMIN, UUID.randomUUID(), "123456"))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
 
@@ -111,7 +132,7 @@ class UsuarioServiceTest {
         UUID id = UUID.randomUUID();
         Usuario admin = usuarioComId(id, "admin", Role.ADMIN);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(admin));
-        assertThatThrownBy(() -> usuarioService.editarRole(id, Role.PARTICIPANTE, id))
+        assertThatThrownBy(() -> usuarioService.editarRole(id, Role.PARTICIPANTE, id, null))
                 .isInstanceOf(ConflitoDeEstadoException.class);
     }
 
@@ -122,8 +143,20 @@ class UsuarioServiceTest {
         Usuario admin = usuarioComId(id, "admin", Role.ADMIN);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(admin));
         lenient().when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(2));
-        UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.PARTICIPANTE, solicitanteId);
+        UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.PARTICIPANTE, solicitanteId, null);
         assertThat(resultado.role()).isEqualTo(Role.PARTICIPANTE);
+    }
+
+    @Test
+    void editarRole_rebaixamentoNaoExigeTotpMesmoQuandoInformado() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID solicitanteId = UUID.randomUUID();
+        Usuario admin = usuarioComId(id, "admin", Role.ADMIN);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(admin));
+        lenient().when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(2));
+        UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.PARTICIPANTE, solicitanteId, "123456");
+        assertThat(resultado.role()).isEqualTo(Role.PARTICIPANTE);
+        org.mockito.Mockito.verifyNoInteractions(totpService, mfaSecretCipher);
     }
 
     @Test
@@ -133,7 +166,7 @@ class UsuarioServiceTest {
         Usuario admin = usuarioComId(id, "admin", Role.ADMIN);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(admin));
         when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(1));
-        assertThatThrownBy(() -> usuarioService.editarRole(id, Role.PARTICIPANTE, solicitanteId))
+        assertThatThrownBy(() -> usuarioService.editarRole(id, Role.PARTICIPANTE, solicitanteId, null))
                 .isInstanceOf(ConflitoDeEstadoException.class);
     }
 
@@ -142,9 +175,13 @@ class UsuarioServiceTest {
         UUID id = UUID.randomUUID();
         UUID solicitanteId = UUID.randomUUID();
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        Usuario solicitante = usuarioComMfaAtivo(solicitanteId, "promotor", Role.ADMIN);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById(solicitanteId)).thenReturn(Optional.of(solicitante));
         when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(4));
-        UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.ADMIN, solicitanteId);
+        when(mfaSecretCipher.decifrar("secret-cifrado-fake")).thenReturn("secret-plano");
+        when(totpService.validar("secret-plano", "123456")).thenReturn(true);
+        UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.ADMIN, solicitanteId, "123456");
         assertThat(resultado.role()).isEqualTo(Role.ADMIN);
     }
 
@@ -155,31 +192,111 @@ class UsuarioServiceTest {
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
         when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(5));
-        assertThatThrownBy(() -> usuarioService.editarRole(id, Role.ADMIN, solicitanteId))
+        assertThatThrownBy(() -> usuarioService.editarRole(id, Role.ADMIN, solicitanteId, "123456"))
                 .isInstanceOf(ConflitoDeEstadoException.class);
+    }
+
+    @Test
+    void editarRole_devePriorizarLimiteMaximoAntesDoStepUpMfa() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID solicitanteId = UUID.randomUUID();
+        Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(5));
+        assertThatThrownBy(() -> usuarioService.editarRole(id, Role.ADMIN, solicitanteId, "123456"))
+                .isInstanceOfSatisfying(ApiException.class,
+                        e -> assertThat(e.getCode()).isEqualTo(ErrorCode.USUARIO_LIMITE_ADMIN_ATINGIDO));
+        org.mockito.Mockito.verifyNoInteractions(totpService, mfaSecretCipher);
+    }
+
+    @Test
+    void editarRole_devePromoverBloqueandoComMfaNaoConfiguradoNoPromotor() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID solicitanteId = UUID.randomUUID();
+        Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        Usuario solicitante = usuarioComId(solicitanteId, "promotor", Role.ADMIN);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById(solicitanteId)).thenReturn(Optional.of(solicitante));
+        when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(1));
+        assertThatThrownBy(() -> usuarioService.editarRole(id, Role.ADMIN, solicitanteId, "123456"))
+                .isInstanceOfSatisfying(ApiException.class,
+                        e -> assertThat(e.getCode()).isEqualTo(ErrorCode.USUARIO_PROMOCAO_MFA_NAO_CONFIGURADO));
+        org.mockito.Mockito.verifyNoInteractions(totpService, mfaSecretCipher, adminAuditoriaService);
+        assertThat(usuario.getRole()).isEqualTo(Role.PARTICIPANTE);
+    }
+
+    @Test
+    void editarRole_devePromoverBloqueandoComTotpAusente() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID solicitanteId = UUID.randomUUID();
+        Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        Usuario solicitante = usuarioComMfaAtivo(solicitanteId, "promotor", Role.ADMIN);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById(solicitanteId)).thenReturn(Optional.of(solicitante));
+        when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(1));
+        when(mfaSecretCipher.decifrar("secret-cifrado-fake")).thenReturn("secret-plano");
+        when(totpService.validar("secret-plano", null)).thenReturn(false);
+        assertThatThrownBy(() -> usuarioService.editarRole(id, Role.ADMIN, solicitanteId, null))
+                .isInstanceOfSatisfying(ApiException.class,
+                        e -> assertThat(e.getCode()).isEqualTo(ErrorCode.USUARIO_PROMOCAO_TOTP_INVALIDO));
+        org.mockito.Mockito.verifyNoInteractions(adminAuditoriaService);
+        assertThat(usuario.getRole()).isEqualTo(Role.PARTICIPANTE);
+    }
+
+    @Test
+    void editarRole_devePromoverBloqueandoComTotpIncorreto() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID solicitanteId = UUID.randomUUID();
+        Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        Usuario solicitante = usuarioComMfaAtivo(solicitanteId, "promotor", Role.ADMIN);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById(solicitanteId)).thenReturn(Optional.of(solicitante));
+        when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(1));
+        when(mfaSecretCipher.decifrar("secret-cifrado-fake")).thenReturn("secret-plano");
+        when(totpService.validar("secret-plano", "999999")).thenReturn(false);
+        assertThatThrownBy(() -> usuarioService.editarRole(id, Role.ADMIN, solicitanteId, "999999"))
+                .isInstanceOfSatisfying(ApiException.class,
+                        e -> assertThat(e.getCode()).isEqualTo(ErrorCode.USUARIO_PROMOCAO_TOTP_INVALIDO));
+        assertThat(usuario.getRole()).isEqualTo(Role.PARTICIPANTE);
+    }
+
+    @Test
+    void editarRole_devePromoverBloqueandoComTotpFormatoInvalido() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID solicitanteId = UUID.randomUUID();
+        Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        Usuario solicitante = usuarioComMfaAtivo(solicitanteId, "promotor", Role.ADMIN);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById(solicitanteId)).thenReturn(Optional.of(solicitante));
+        when(usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN)).thenReturn(adminsAtivos(1));
+        assertThatThrownBy(() -> usuarioService.editarRole(id, Role.ADMIN, solicitanteId, "12a456"))
+                .isInstanceOfSatisfying(ApiException.class,
+                        e -> assertThat(e.getCode()).isEqualTo(ErrorCode.VALIDATION_ERROR));
+        org.mockito.Mockito.verifyNoInteractions(totpService, mfaSecretCipher, adminAuditoriaService);
+        assertThat(usuario.getRole()).isEqualTo(Role.PARTICIPANTE);
     }
 
     @Test
     void construtor_deveFalharQuandoLimiteMaximoAusente() {
         assertThatThrownBy(() -> new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
-                adminAuditoriaService, ""))
+                adminAuditoriaService, totpService, mfaSecretCipher, ""))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void construtor_deveFalharQuandoLimiteMaximoNaoNumerico() {
         assertThatThrownBy(() -> new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
-                adminAuditoriaService, "abc"))
+                adminAuditoriaService, totpService, mfaSecretCipher, "abc"))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void construtor_deveFalharQuandoLimiteMaximoZeroOuNegativo() {
         assertThatThrownBy(() -> new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
-                adminAuditoriaService, "0"))
+                adminAuditoriaService, totpService, mfaSecretCipher, "0"))
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
-                adminAuditoriaService, "-1"))
+                adminAuditoriaService, totpService, mfaSecretCipher, "-1"))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -188,9 +305,19 @@ class UsuarioServiceTest {
         UUID id = UUID.randomUUID();
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
-        UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.PARTICIPANTE, UUID.randomUUID());
+        UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.PARTICIPANTE, UUID.randomUUID(), null);
         assertThat(resultado.role()).isEqualTo(Role.PARTICIPANTE);
-        org.mockito.Mockito.verifyNoInteractions(adminAuditoriaService);
+        org.mockito.Mockito.verifyNoInteractions(adminAuditoriaService, totpService, mfaSecretCipher);
+    }
+
+    @Test
+    void editarRole_noOpNaoExigeTotpMesmoQuandoInformado() throws Exception {
+        UUID id = UUID.randomUUID();
+        Usuario usuario = usuarioComId(id, "fulano", Role.ADMIN);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        UsuarioAdminResponse resultado = usuarioService.editarRole(id, Role.ADMIN, UUID.randomUUID(), "123456");
+        assertThat(resultado.role()).isEqualTo(Role.ADMIN);
+        org.mockito.Mockito.verifyNoInteractions(adminAuditoriaService, totpService, mfaSecretCipher);
     }
 
     @Test

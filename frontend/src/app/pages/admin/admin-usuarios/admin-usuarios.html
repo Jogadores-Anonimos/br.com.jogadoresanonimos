@@ -85,6 +85,27 @@
                 } @else {
                   <div class="admin-usuarios__confirmacao">
                     <p>Tem certeza que deseja tornar {{ usuario.apelido }} administrador?</p>
+                    <div class="admin-usuarios__campo-totp">
+                      <label [attr.for]="'totp-promocao-' + usuario.id">
+                        Seu código de autenticação em duas etapas
+                      </label>
+                      <input
+                        [id]="'totp-promocao-' + usuario.id"
+                        name="codigoTotpPromocao"
+                        type="text"
+                        inputmode="numeric"
+                        autocomplete="one-time-code"
+                        pattern="\d{6}"
+                        maxlength="6"
+                        [(ngModel)]="codigoTotpPromocao"
+                        [disabled]="salvandoRole === usuario.id"
+                      />
+                    </div>
+                    @if (erroPorUsuario[usuario.id]) {
+                      <p class="admin-usuarios__erro-linha" role="alert">
+                        {{ erroPorUsuario[usuario.id] }}
+                      </p>
+                    }
                     <div class="admin-usuarios__confirmacao-acoes">
                       <button
                         type="button"
@@ -106,7 +127,7 @@
                   </div>
                 }
 
-                @if (erroPorUsuario[usuario.id]) {
+                @if (confirmandoPromocao !== usuario.id && erroPorUsuario[usuario.id]) {
                   <p class="admin-usuarios__erro-linha" role="alert">
                     {{ erroPorUsuario[usuario.id] }}
                   </p>

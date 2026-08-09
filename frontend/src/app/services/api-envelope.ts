@@ -72,6 +72,10 @@ export const ERROR_CODE_MENSAGENS: Record<string, string> = {
   USUARIO_SENHA_CONFIRMACAO_DIVERGENTE: 'As senhas informadas não coincidem.',
   USUARIO_SENHA_ATUAL_INCORRETA: 'Senha atual incorreta.',
   USUARIO_RATE_LIMITED: 'Muitas tentativas. Aguarde alguns instantes e tente novamente.',
+  USUARIO_LIMITE_ADMIN_ATINGIDO: 'Não é possível promover: o limite máximo de administradores já foi atingido.',
+  USUARIO_PROMOCAO_MFA_NAO_CONFIGURADO: 'Configure a autenticação em duas etapas na sua conta antes de promover outro usuário a administrador.',
+  USUARIO_PROMOCAO_TOTP_INVALIDO: 'Código de autenticação em duas etapas ausente ou incorreto.',
+  AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO: 'Link de confirmação inválido ou expirado.',
 };
 
 export function mensagemDeErro(error: ApiError | null | undefined, mensagemFallback: string): string {

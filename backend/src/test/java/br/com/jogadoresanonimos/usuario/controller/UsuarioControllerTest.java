@@ -49,7 +49,7 @@ class UsuarioControllerTest {
         UUID id = UUID.randomUUID();
         AuthenticatedUser principal = new AuthenticatedUser(id, "apelido", "PARTICIPANTE");
         AtualizarContaRequest request = new AtualizarContaRequest("novoApelido", "novo@exemplo.com");
-        UsuarioMeResponse esperado = new UsuarioMeResponse(id, "novoApelido", "novo@exemplo.com", Role.PARTICIPANTE, Instant.now(), false, false);
+        UsuarioMeResponse esperado = new UsuarioMeResponse(id, "novoApelido", "novo@exemplo.com", Role.PARTICIPANTE, Instant.now(), false, false, false);
         when(usuarioService.atualizarConta(id, request)).thenReturn(esperado);
         ResponseEntity<ApiResponse<UsuarioMeResponse>> resposta = usuarioController.atualizarConta(request, principal);
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);

@@ -9,6 +9,8 @@ import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
+import br.com.jogadoresanonimos.security.MfaSecretCipher;
+import br.com.jogadoresanonimos.security.TotpService;
 import br.com.jogadoresanonimos.usuario.dto.AlterarSenhaRequest;
 import br.com.jogadoresanonimos.usuario.dto.AtualizarContaRequest;
 import br.com.jogadoresanonimos.usuario.dto.UsuarioAdminResponse;
@@ -24,25 +26,32 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Service
 public class UsuarioService {
 
     private static final String ENTIDADE_USUARIO = "usuario";
+    private static final Pattern CODIGO_TOTP_FORMATO = Pattern.compile("^[0-9]{6}$");
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final RateLimiterService rateLimiterService;
     private final AdminAuditoriaService adminAuditoriaService;
+    private final TotpService totpService;
+    private final MfaSecretCipher mfaSecretCipher;
     private final int adminLimiteMaximo;
 
     public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
                            RateLimiterService rateLimiterService, AdminAuditoriaService adminAuditoriaService,
+                           TotpService totpService, MfaSecretCipher mfaSecretCipher,
                            @Value("${app.admin.limite-maximo}") String adminLimiteMaximoRaw) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.rateLimiterService = rateLimiterService;
         this.adminAuditoriaService = adminAuditoriaService;
+        this.totpService = totpService;
+        this.mfaSecretCipher = mfaSecretCipher;
         this.adminLimiteMaximo = parseLimiteMaximo(adminLimiteMaximoRaw);
     }
 
@@ -76,7 +85,7 @@ public class UsuarioService {
     }
 
     @Transactional
-    public UsuarioAdminResponse editarRole(UUID id, Role novaRole, UUID solicitanteId) {
+    public UsuarioAdminResponse editarRole(UUID id, Role novaRole, UUID solicitanteId, String codigoTotp) {
         rateLimiterService.check("admin-usuario-escrita:" + solicitanteId, 60, Duration.ofMinutes(1), ErrorCode.USUARIO_RATE_LIMITED);
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.USUARIO_NAO_ENCONTRADO, "Usuário não encontrado"));
@@ -96,11 +105,33 @@ public class UsuarioService {
         if (promovendoAAdmin && usuarioRepository.buscarPorRoleParaAtualizacao(Role.ADMIN).size() >= adminLimiteMaximo) {
             throw new ConflitoDeEstadoException(ErrorCode.USUARIO_LIMITE_ADMIN_ATINGIDO, "Limite máximo de administradores já foi atingido.");
         }
+        if (promovendoAAdmin) {
+            validarStepUpMfaPromocao(solicitanteId, codigoTotp);
+        }
         String roleAnterior = usuario.getRole().name();
         usuario.alterarRole(novaRole);
         adminAuditoriaService.registrar(solicitanteId, ENTIDADE_USUARIO, usuario.getId(), AcaoAuditoria.EDITAR,
                 roleAnterior, novaRole.name());
         return UsuarioAdminResponse.from(usuario);
+    }
+
+    private void validarStepUpMfaPromocao(UUID solicitanteId, String codigoTotp) {
+        Usuario promotor = usuarioRepository.findById(solicitanteId)
+                .orElseThrow(() -> new UnauthenticatedException(ErrorCode.AUTH_TOKEN_AUSENTE_OU_INVALIDO, "Token ausente ou inválido"));
+        if (!promotor.isMfaAtivo()) {
+            throw new ConflitoDeEstadoException(ErrorCode.USUARIO_PROMOCAO_MFA_NAO_CONFIGURADO,
+                    "Configure a autenticação em duas etapas na sua conta antes de promover outro usuário a administrador.");
+        }
+        if (codigoTotp != null && !CODIGO_TOTP_FORMATO.matcher(codigoTotp).matches()) {
+            throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Dados inválidos",
+                    List.of(new br.com.jogadoresanonimos.common.dto.ApiError.FieldError(
+                            "codigoTotp", "Deve conter exatamente 6 dígitos numéricos")));
+        }
+        String secret = mfaSecretCipher.decifrar(promotor.getMfaSecretCifrado());
+        if (!totpService.validar(secret, codigoTotp)) {
+            throw new UnauthenticatedException(ErrorCode.USUARIO_PROMOCAO_TOTP_INVALIDO,
+                    "Código de autenticação em duas etapas ausente ou incorreto.");
+        }
     }
 
     @Transactional

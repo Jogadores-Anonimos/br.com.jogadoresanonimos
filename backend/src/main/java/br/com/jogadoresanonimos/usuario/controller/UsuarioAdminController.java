@@ -34,7 +34,7 @@ public class UsuarioAdminController {
     public ResponseEntity<ApiResponse<UsuarioAdminResponse>> editarRole(@PathVariable UUID id,
                                                                           @Valid @RequestBody EditarRoleRequest request,
                                                                           @AuthenticationPrincipal AuthenticatedUser principal) {
-        UsuarioAdminResponse response = usuarioService.editarRole(id, request.role(), principal.id());
+        UsuarioAdminResponse response = usuarioService.editarRole(id, request.role(), principal.id(), request.codigoTotp());
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 }

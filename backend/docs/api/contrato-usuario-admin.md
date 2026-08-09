@@ -97,17 +97,24 @@ sem checar as seguintes):
    cliente é genérica ("Limite máximo de administradores já foi
    atingido."), sem expor o valor configurado nem a contagem atual (evita
    vazar informação operacional interna).
-
-**Fora de escopo desta regra 3** (decisão do `security`, outra rodada):
-step-up de MFA/TOTP no momento da promoção a admin.
+4. **Step-up MFA na promoção** (`USUARIO_PROMOCAO_MFA_NAO_CONFIGURADO` /
+   `USUARIO_PROMOCAO_TOTP_INVALIDO`) — implementado, ver
+   `contrato-step-up-mfa-promocao-admin.md`. Só entra quando a mudança é
+   `não-ADMIN → ADMIN`, depois das regras 1-3. Exige `codigoTotp` (6
+   dígitos) do admin promotor (`solicitanteId`), validado via
+   `TotpService` (mesmo usado no MFA de login/enrollment). Rebaixamento e
+   no-op não exigem TOTP.
 
 **Request** (`EditarRoleRequest`):
 ```json
 {
-  "role": "ADMIN"
+  "role": "ADMIN",
+  "codigoTotp": "123456"
 }
 ```
 `role` é obrigatório (`@NotNull`), enum `PARTICIPANTE`/`ADMIN`.
+`codigoTotp` é opcional no DTO — só obrigatório em tempo de negócio
+quando a transição é promoção (`não-ADMIN → ADMIN`).
 
 **Response 200** (`UsuarioAdminResponse`): mesmo shape do item 1, com a
 role atualizada.
@@ -115,10 +122,11 @@ role atualizada.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 400 | `VALIDATION_ERROR` | `role` ausente ou valor fora do enum |
+| 400 | `VALIDATION_ERROR` | `role` ausente/fora do enum, ou `codigoTotp` presente com formato inválido (promoção) |
+| 401 | `USUARIO_PROMOCAO_TOTP_INVALIDO` | promoção: `codigoTotp` ausente ou incorreto para o admin promotor |
 | 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
 | 404 | `USUARIO_NAO_ENCONTRADO` | id não existe |
-| 409 | `USUARIO_AUTO_REBAIXAMENTO_ADMIN` / `USUARIO_ULTIMO_ADMIN` / `USUARIO_LIMITE_ADMIN_ATINGIDO` | tentativa de auto-rebaixamento, de remover o último admin do sistema, ou de promover além do limite configurado |
+| 409 | `USUARIO_AUTO_REBAIXAMENTO_ADMIN` / `USUARIO_ULTIMO_ADMIN` / `USUARIO_LIMITE_ADMIN_ATINGIDO` / `USUARIO_PROMOCAO_MFA_NAO_CONFIGURADO` | tentativa de auto-rebaixamento, de remover o último admin, de promover além do limite configurado, ou promotor sem MFA configurado |
 
 ---
 
@@ -148,10 +156,15 @@ anterior consumido pelo frontend é afetado.
   existente (que **não** expõe email) para não misturar contrato público
   com admin.
 - `br.com.jogadoresanonimos.usuario.dto.EditarRoleRequest` — DTO de
-  request com `@NotNull`.
+  request com `@NotNull` em `role`, `codigoTotp` opcional (sem
+  `@NotBlank` — obrigatoriedade é condicional à transição de role,
+  checada no service).
 - `br.com.jogadoresanonimos.usuario.service.UsuarioService#listarTodos`,
   `#editarRole` — regras de negócio (auto-rebaixamento, último admin,
-  limite máximo de admins) ficam no service, não no controller.
+  limite máximo de admins, step-up MFA na promoção) ficam no service,
+  não no controller. Step-up reaproveita `TotpService`/`MfaSecretCipher`
+  já usados em `MfaService` (login/enrollment) — sem lógica de TOTP
+  duplicada.
 - `app.admin.limite-maximo` (`application.properties`) mapeia
   `ADMIN_LIMITE_MAXIMO`, sem valor default — parse e validação fail-fast
   no construtor de `UsuarioService`.

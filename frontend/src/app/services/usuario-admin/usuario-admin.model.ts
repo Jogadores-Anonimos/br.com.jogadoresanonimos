@@ -10,4 +10,5 @@ export interface UsuarioAdmin {
 
 export interface EditarRoleRequest {
   role: Role;
+  codigoTotp?: string;
 }

@@ -22,6 +22,7 @@ public final class ErrorCode {
     public static final String AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL = "AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL";
     public static final String AUTH_RATE_LIMITED = "AUTH_RATE_LIMITED";
     public static final String ADMIN_RESET_CODIGO_INVALIDO = "ADMIN_RESET_CODIGO_INVALIDO";
+    public static final String AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO = "AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO";
 
     public static final String MFA_JA_ATIVO = "MFA_JA_ATIVO";
     public static final String MFA_ENROLLMENT_INEXISTENTE = "MFA_ENROLLMENT_INEXISTENTE";
@@ -38,6 +39,8 @@ public final class ErrorCode {
     public static final String USUARIO_SENHA_ATUAL_INCORRETA = "USUARIO_SENHA_ATUAL_INCORRETA";
     public static final String USUARIO_RATE_LIMITED = "USUARIO_RATE_LIMITED";
     public static final String USUARIO_LIMITE_ADMIN_ATINGIDO = "USUARIO_LIMITE_ADMIN_ATINGIDO";
+    public static final String USUARIO_PROMOCAO_MFA_NAO_CONFIGURADO = "USUARIO_PROMOCAO_MFA_NAO_CONFIGURADO";
+    public static final String USUARIO_PROMOCAO_TOTP_INVALIDO = "USUARIO_PROMOCAO_TOTP_INVALIDO";
 
     public static final String RELATO_NAO_ENCONTRADO = "RELATO_NAO_ENCONTRADO";
     public static final String RELATO_RATE_LIMITED = "RELATO_RATE_LIMITED";

@@ -53,13 +53,14 @@ class UsuarioAdminControllerTest {
         UUID id = UUID.randomUUID();
         UUID solicitanteId = UUID.randomUUID();
         AuthenticatedUser principal = new AuthenticatedUser(solicitanteId, "admin", "ADMIN");
-        EditarRoleRequest request = new EditarRoleRequest(Role.ADMIN);
+        String codigoTotp = "123456";
+        EditarRoleRequest request = new EditarRoleRequest(Role.ADMIN, codigoTotp);
         UsuarioAdminResponse esperado = usuarioAdminResponse(id);
-        when(usuarioService.editarRole(id, Role.ADMIN, solicitanteId)).thenReturn(esperado);
+        when(usuarioService.editarRole(id, Role.ADMIN, solicitanteId, codigoTotp)).thenReturn(esperado);
         ResponseEntity<ApiResponse<UsuarioAdminResponse>> resposta =
                 usuarioAdminController.editarRole(id, request, principal);
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
-        verify(usuarioService).editarRole(id, Role.ADMIN, solicitanteId);
+        verify(usuarioService).editarRole(id, Role.ADMIN, solicitanteId, codigoTotp);
     }
 }

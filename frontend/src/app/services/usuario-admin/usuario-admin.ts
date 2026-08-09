@@ -4,7 +4,7 @@ import { Observable, of } from 'rxjs';
 import { catchError, delay } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
-import { ApiEnvelope, apiError, apiSuccess } from '../api-envelope';
+import { ApiEnvelope, apiError, apiErrorDeHttpError, apiSuccess } from '../api-envelope';
 import { Auth } from '../auth/auth';
 import { EditarRoleRequest, UsuarioAdmin } from './usuario-admin.model';
 import { USUARIOS_ADMIN_MOCK } from './usuario-admin.mock';
@@ -29,7 +29,7 @@ export class UsuarioAdminService {
   editarRole(id: string, req: EditarRoleRequest): Observable<ApiEnvelope<UsuarioAdmin>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<UsuarioAdmin>>(`${this.adminUrl}/${id}/role`, req).pipe(
-        catchError(() => of(apiError<UsuarioAdmin>('INTERNAL_ERROR', 'Não foi possível alterar a role agora.'))),
+        catchError((erro) => of(apiErrorDeHttpError<UsuarioAdmin>(erro, 'INTERNAL_ERROR', 'Não foi possível alterar a role agora.'))),
       );
     }
 
@@ -40,6 +40,7 @@ export class UsuarioAdminService {
 
     const solicitanteId = this.auth.usuarioAtual()?.id;
     const rebaixandoParaNaoAdmin = usuario.role === 'ADMIN' && req.role !== 'ADMIN';
+    const promovendoParaAdmin = usuario.role !== 'ADMIN' && req.role === 'ADMIN';
 
     if (rebaixandoParaNaoAdmin && solicitanteId === id) {
       return of(apiError<UsuarioAdmin>('USUARIO_AUTO_REBAIXAMENTO_ADMIN', 'Você não pode remover sua própria permissão de administrador.')).pipe(delay(300));
@@ -49,6 +50,16 @@ export class UsuarioAdminService {
       const totalAdmins = USUARIOS_ADMIN_MOCK.filter((u) => u.role === 'ADMIN').length;
       if (totalAdmins <= 1) {
         return of(apiError<UsuarioAdmin>('USUARIO_ULTIMO_ADMIN', 'Não é possível remover o último administrador do sistema.')).pipe(delay(300));
+      }
+    }
+
+    if (promovendoParaAdmin) {
+      const solicitanteMfaAtivo = this.auth.usuarioAtualDetalhado()?.mfaAtivo ?? false;
+      if (!solicitanteMfaAtivo) {
+        return of(apiError<UsuarioAdmin>('USUARIO_PROMOCAO_MFA_NAO_CONFIGURADO', 'Configure a autenticação em duas etapas na sua conta antes de promover outro usuário a administrador.')).pipe(delay(300));
+      }
+      if (!req.codigoTotp || req.codigoTotp !== '123456') {
+        return of(apiError<UsuarioAdmin>('USUARIO_PROMOCAO_TOTP_INVALIDO', 'Código de autenticação em duas etapas ausente ou incorreto.')).pipe(delay(300));
       }
     }
 

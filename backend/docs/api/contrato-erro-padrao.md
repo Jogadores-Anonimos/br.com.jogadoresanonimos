@@ -82,8 +82,9 @@ granularizar).
 | `AUTH_TOKEN_AUSENTE_OU_INVALIDO` | 401 | logout sem JWT válido, ou `/usuarios/me` e afins sem `principal` |
 | `AUTH_RECAPTCHA_INVALIDO` | 400 | reCAPTCHA ausente/expirado/inválido (`error.fields` aponta `recaptchaToken`) |
 | `AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL` | 502 | falha de comunicação com o Google ao validar reCAPTCHA |
-| `AUTH_RATE_LIMITED` | 429 | rate limit de login, login-mfa, registro (por conta e varredura global), `/auth/esqueci-senha` (único endpoint de solicitação — comum e admin, por identificador), `/auth/redefinir-senha` (comum, por token), e `/admin/auth/redefinir-senha` (por código) |
+| `AUTH_RATE_LIMITED` | 429 | rate limit de login, login-mfa, registro (por conta e varredura global), `/auth/esqueci-senha` (único endpoint de solicitação — comum e admin, por identificador), `/auth/redefinir-senha` (comum, por token), `/admin/auth/redefinir-senha` (por código), `/auth/confirmar-email` (por hash do token) e `/auth/reenviar-confirmacao-email` (bucket global de varredura) |
 | `ADMIN_RESET_CODIGO_INVALIDO` | 401 | redefinir senha admin: código ausente, expirado ou já utilizado — mensagem genérica única, sem detalhar qual dos três |
+| `AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO` | 401 | confirmar e-mail: token ausente, expirado, ou usuário do token não existe mais — mensagem genérica única |
 
 ### MFA (`MFA_`)
 | code | HTTP | quando |
@@ -106,6 +107,8 @@ granularizar).
 | `USUARIO_SENHA_ATUAL_INCORRETA` | 401 | alterar senha: senha atual incorreta |
 | `USUARIO_RATE_LIMITED` | 429 | rate limit de escrita admin/atualizar conta/alterar senha |
 | `USUARIO_LIMITE_ADMIN_ATINGIDO` | 409 | promoção a admin excederia `ADMIN_LIMITE_MAXIMO`; mensagem genérica, não expõe limite configurado nem contagem atual |
+| `USUARIO_PROMOCAO_MFA_NAO_CONFIGURADO` | 409 | promoção a admin: admin promotor não tem MFA/TOTP configurado (`mfa_ativo = false`) |
+| `USUARIO_PROMOCAO_TOTP_INVALIDO` | 401 | promoção a admin: `codigoTotp` do admin promotor ausente ou incorreto |
 
 ### Relato (`RELATO_`)
 | code | HTTP | quando |

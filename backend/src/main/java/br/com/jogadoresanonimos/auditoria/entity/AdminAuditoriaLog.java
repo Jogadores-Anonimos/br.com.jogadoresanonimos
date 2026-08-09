@@ -26,10 +26,10 @@ public class AdminAuditoriaLog {
     @Column(nullable = false, length = 20)
     private AcaoAuditoria acao;
 
-    @Column(name = "status_anterior", length = 20)
+    @Column(name = "status_anterior", length = 30)
     private String statusAnterior;
 
-    @Column(name = "status_novo", nullable = false, length = 20)
+    @Column(name = "status_novo", nullable = false, length = 30)
     private String statusNovo;
 
     @Column(name = "criado_em", nullable = false)
