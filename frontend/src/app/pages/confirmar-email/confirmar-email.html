@@ -1,0 +1,44 @@
+<app-resource-layout titulo="Confirmação de E-mail" [bannerSrc]="bannerSrc" [mostrarSidebar]="false">
+  <div class="confirmar-email">
+    <div class="confirmar-email__card">
+      @switch (estado()) {
+        @case ('carregando') {
+          <p class="mensagem" role="status">Confirmando seu e-mail...</p>
+        }
+        @case ('sucesso') {
+          <p class="mensagem mensagem-sucesso" role="status">{{ mensagem() }}</p>
+          <a routerLink="/minha-conta" class="link-secundario">Ir para minha conta</a>
+        }
+        @case ('expirado') {
+          <p class="mensagem mensagem-erro" role="alert">{{ mensagem() }}</p>
+          <p class="confirmar-email__intro">
+            Informe seu apelido ou e-mail cadastrado para receber um novo link de confirmação.
+          </p>
+
+          <form (ngSubmit)="reenviarConfirmacao()" #reenvioForm="ngForm">
+            <div class="campo">
+              <label for="confirmar-email-identificador">Apelido ou e-mail</label>
+              <input
+                id="confirmar-email-identificador"
+                name="identificadorReenvio"
+                type="text"
+                autocomplete="username"
+                [(ngModel)]="identificadorReenvio"
+                required
+              />
+            </div>
+            <button type="submit" class="btn-cta" [disabled]="reenviando() || reenvioForm.invalid">
+              {{ reenviando() ? 'Enviando...' : 'Reenviar link de confirmação' }}
+            </button>
+
+            @if (mensagemReenvio()) {
+              <p class="mensagem mensagem-sucesso">{{ mensagemReenvio() }}</p>
+            }
+          </form>
+
+          <a routerLink="/minha-conta" class="link-secundario">Voltar para o login</a>
+        }
+      }
+    </div>
+  </div>
+</app-resource-layout>

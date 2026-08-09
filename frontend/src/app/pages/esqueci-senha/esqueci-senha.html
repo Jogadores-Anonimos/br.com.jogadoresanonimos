@@ -11,6 +11,12 @@
           Informe seu apelido ou e-mail cadastrado. Se existir uma conta
           correspondente, enviaremos um link para você redefinir sua senha.
         </p>
+        <p class="esqueci-senha__aviso" role="note">
+          Este link de redefinição só chega se o e-mail da sua conta já
+          estiver confirmado. Se você ainda não confirmou seu e-mail, acesse
+          sua conta normalmente com apelido e senha e use o reenvio de
+          confirmação disponível por lá.
+        </p>
 
         <form (ngSubmit)="onSubmit()" #esqueciForm="ngForm">
           <div class="campo">
@@ -24,7 +30,6 @@
               required
             />
           </div>
-
           <button type="submit" class="btn-cta" [disabled]="enviando || esqueciForm.invalid">
             {{ enviando ? 'Enviando...' : 'Enviar link de redefinição' }}
           </button>

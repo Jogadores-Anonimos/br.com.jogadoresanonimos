@@ -71,6 +71,7 @@ export interface UsuarioMe extends UsuarioResumo {
   email: string;
   criadoEm: string;
   mfaAtivo: boolean;
+  emailConfirmado: boolean;
 }
 
 export interface AtualizarContaRequest {
@@ -82,4 +83,8 @@ export interface AlterarSenhaRequest {
   senhaAtual: string;
   novaSenha: string;
   confirmarNovaSenha: string;
+}
+
+export interface ReenviarConfirmacaoEmailRequest {
+  identificador: string;
 }

@@ -2,12 +2,15 @@ package br.com.jogadoresanonimos.auth.service;
 
 import br.com.jogadoresanonimos.auth.dto.*;
 import br.com.jogadoresanonimos.auth.entity.AdminResetCodigo;
+import br.com.jogadoresanonimos.auth.entity.EmailConfirmacaoToken;
 import br.com.jogadoresanonimos.auth.entity.PasswordResetToken;
 import br.com.jogadoresanonimos.auth.repository.AdminResetCodigoRepository;
+import br.com.jogadoresanonimos.auth.repository.EmailConfirmacaoTokenRepository;
 import br.com.jogadoresanonimos.auth.repository.PasswordResetTokenRepository;
 import br.com.jogadoresanonimos.common.util.HmacHasher;
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
 import br.com.jogadoresanonimos.common.exception.ErrorCode;
+import br.com.jogadoresanonimos.common.exception.RateLimitedException;
 import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
@@ -24,12 +27,14 @@ import br.com.jogadoresanonimos.usuario.dto.UsuarioResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,6 +55,8 @@ class AuthServiceTest {
     PasswordResetTokenRepository resetTokenRepository;
     @Mock
     AdminResetCodigoRepository adminResetCodigoRepository;
+    @Mock
+    EmailConfirmacaoTokenRepository emailConfirmacaoTokenRepository;
     @Mock
     PasswordEncoder passwordEncoder;
     @Mock
@@ -76,8 +83,8 @@ class AuthServiceTest {
     void setUp() {
         rateLimiterService = new RateLimiterService();
         authService = new AuthService(usuarioRepository, resetTokenRepository, adminResetCodigoRepository,
-                passwordEncoder, jwtService, emailService, rateLimiterService, hmacHasher, recaptchaService,
-                totpService, mfaSecretCipher, jwtDenylistRepository);
+                emailConfirmacaoTokenRepository, passwordEncoder, jwtService, emailService, rateLimiterService,
+                hmacHasher, recaptchaService, totpService, mfaSecretCipher, jwtDenylistRepository);
         lenientHmac();
     }
 
@@ -111,11 +118,77 @@ class AuthServiceTest {
         when(usuarioRepository.existsByApelidoIgnoreCase("novato")).thenReturn(false);
         when(usuarioRepository.existsByEmailIgnoreCase("novato@example.com")).thenReturn(false);
         when(passwordEncoder.encode("senhaForte123")).thenReturn("hash-da-senha");
-        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> {
+            Usuario usuario = inv.getArgument(0);
+            setId(usuario, UUID.randomUUID());
+            return usuario;
+        });
         UsuarioResponse response = authService.registrar(request);
         assertThat(response.apelido()).isEqualTo("novato");
         assertThat(response.role()).isEqualTo(Role.PARTICIPANTE);
         verify(usuarioRepository).save(any(Usuario.class));
+        verify(emailConfirmacaoTokenRepository).save(any(EmailConfirmacaoToken.class));
+        verify(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void registrar_devePersistirTokenDeConfirmacaoDeFormaSincronaAntesDoEnvio() {
+        RegistroRequest request = new RegistroRequest("novato", "novato@example.com", "senhaForte123", "senhaForte123", "captcha-token");
+        when(usuarioRepository.existsByApelidoIgnoreCase("novato")).thenReturn(false);
+        when(usuarioRepository.existsByEmailIgnoreCase("novato@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("senhaForte123")).thenReturn("hash-da-senha");
+        UUID usuarioId = UUID.randomUUID();
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> {
+            Usuario usuario = inv.getArgument(0);
+            setId(usuario, usuarioId);
+            return usuario;
+        });
+        authService.registrar(request);
+        InOrder ordem = inOrder(emailConfirmacaoTokenRepository, emailService);
+        ordem.verify(emailConfirmacaoTokenRepository).save(argThat(token -> token.getUsuarioId().equals(usuarioId)));
+        ordem.verify(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void registrar_naoDevePropagarExcecaoQuandoEnvioAssincronoDeEmailDeConfirmacaoFalha() {
+        RegistroRequest request = new RegistroRequest("novato", "novato@example.com", "senhaForte123", "senhaForte123", "captcha-token");
+        when(usuarioRepository.existsByApelidoIgnoreCase("novato")).thenReturn(false);
+        when(usuarioRepository.existsByEmailIgnoreCase("novato@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("senhaForte123")).thenReturn("hash-da-senha");
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> {
+            Usuario usuario = inv.getArgument(0);
+            setId(usuario, UUID.randomUUID());
+            return usuario;
+        });
+        doThrow(new RuntimeException("falha de envio simulada"))
+                .when(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString());
+        UsuarioResponse response = authService.registrar(request);
+        assertThat(response.apelido()).isEqualTo("novato");
+        verify(emailConfirmacaoTokenRepository).save(any(EmailConfirmacaoToken.class));
+    }
+
+    @Test
+    void registrar_deveGerarTokenDeConfirmacaoComHashSha256ETtlDe24Horas() {
+        RegistroRequest request = new RegistroRequest("novato", "novato@example.com", "senhaForte123", "senhaForte123", "captcha-token");
+        when(usuarioRepository.existsByApelidoIgnoreCase("novato")).thenReturn(false);
+        when(usuarioRepository.existsByEmailIgnoreCase("novato@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("senhaForte123")).thenReturn("hash-da-senha");
+        UUID usuarioId = UUID.randomUUID();
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> {
+            Usuario usuario = inv.getArgument(0);
+            setId(usuario, usuarioId);
+            return usuario;
+        });
+        Instant antes = Instant.now();
+        authService.registrar(request);
+        Instant depois = Instant.now();
+        verify(emailConfirmacaoTokenRepository).save(argThat(token -> {
+            boolean usuarioCorreto = token.getUsuarioId().equals(usuarioId);
+            boolean naoEhHmac = !token.getTokenHash().startsWith("hash:");
+            boolean ttlProximoDe24h = !token.getExpiraEm().isBefore(antes.plus(Duration.ofHours(24)).minusSeconds(5))
+                    && !token.getExpiraEm().isAfter(depois.plus(Duration.ofHours(24)).plusSeconds(5));
+            return usuarioCorreto && naoEhHmac && ttlProximoDe24h;
+        }));
     }
 
     @Test
@@ -209,10 +282,11 @@ class AuthServiceTest {
     }
 
     @Test
-    void esqueciSenha_devePersistirTokenEDispararEmailQuandoUsuarioExiste() {
+    void esqueciSenha_devePersistirTokenEDispararEmailQuandoUsuarioExisteEEmailConfirmado() {
         UUID usuarioId = UUID.randomUUID();
         Usuario usuario = new Usuario("apelido", "email@example.com", "hash", Role.PARTICIPANTE);
         setId(usuario, usuarioId);
+        usuario.confirmarEmail();
         EsqueciSenhaRequest request = new EsqueciSenhaRequest("apelido");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
                 .thenReturn(Optional.of(usuario));
@@ -220,6 +294,37 @@ class AuthServiceTest {
         verify(resetTokenRepository).save(any(PasswordResetToken.class));
         verify(emailService).enviarLinkRedefinicaoSenha(anyString(), anyString(), anyString());
         verifyNoInteractions(adminResetCodigoRepository);
+    }
+
+    @Test
+    void esqueciSenha_naoDeveGerarNemEnviarTokenQuandoUsuarioComumComEmailNaoConfirmado() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("apelido", "email@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, usuarioId);
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("apelido");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
+                .thenReturn(Optional.of(usuario));
+        MensagemResponse response = authService.esqueciSenha(request);
+        assertThat(response.mensagem()).isEqualTo(new MensagemResponse(
+                "Se o apelido ou e-mail existir em nossa base, enviaremos um link de redefinição.").mensagem());
+        verify(resetTokenRepository, never()).save(any());
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void esqueciSenha_respostaEIdenticaComEmailConfirmadoOuNaoParaNaoVazarStatusDeConfirmacao() {
+        Usuario usuarioConfirmado = new Usuario("confirmado", "confirmado@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuarioConfirmado, UUID.randomUUID());
+        usuarioConfirmado.confirmarEmail();
+        Usuario usuarioPendente = new Usuario("pendente", "pendente@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuarioPendente, UUID.randomUUID());
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(eq("confirmado"), eq("confirmado")))
+                .thenReturn(Optional.of(usuarioConfirmado));
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(eq("pendente"), eq("pendente")))
+                .thenReturn(Optional.of(usuarioPendente));
+        MensagemResponse respostaConfirmado = authService.esqueciSenha(new EsqueciSenhaRequest("confirmado"));
+        MensagemResponse respostaPendente = authService.esqueciSenha(new EsqueciSenhaRequest("pendente"));
+        assertThat(respostaConfirmado.mensagem()).isEqualTo(respostaPendente.mensagem());
     }
 
     @Test
@@ -294,6 +399,7 @@ class AuthServiceTest {
     void esqueciSenha_deveEstourarRateLimitPorIdentificadorNaSextaChamadaParaUsuarioComum() {
         Usuario usuario = new Usuario("comum", "comum@example.com", "hash", Role.PARTICIPANTE);
         setId(usuario, UUID.randomUUID());
+        usuario.confirmarEmail();
         EsqueciSenhaRequest request = new EsqueciSenhaRequest("comum");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
                 .thenReturn(Optional.of(usuario));
@@ -432,6 +538,140 @@ class AuthServiceTest {
         assertThat(response.mfaRequerido()).isFalse();
         assertThat(response.token()).isEqualTo("jwt-token");
         assertThat(response.usuario().apelido()).isEqualTo("admin");
+    }
+
+    @Test
+    void confirmarEmail_deveFalharQuandoTokenVazio() {
+        assertThatThrownBy(() -> authService.confirmarEmail(" "))
+                .isInstanceOf(ValidationException.class);
+        verifyNoInteractions(emailConfirmacaoTokenRepository);
+    }
+
+    @Test
+    void confirmarEmail_deveFalharQuandoTokenNaoEncontrado() {
+        when(emailConfirmacaoTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> authService.confirmarEmail("token-inexistente"))
+                .isInstanceOf(UnauthenticatedException.class)
+                .hasMessage("Link de confirmação inválido ou expirado");
+    }
+
+    @Test
+    void confirmarEmail_deveFalharQuandoUsuarioDoTokenNaoExisteMais() {
+        UUID usuarioId = UUID.randomUUID();
+        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuarioId, "hash:token-valido", Instant.now().plusSeconds(3600));
+        when(emailConfirmacaoTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> authService.confirmarEmail("token-valido"))
+                .isInstanceOf(UnauthenticatedException.class)
+                .hasMessage("Link de confirmação inválido ou expirado");
+    }
+
+    @Test
+    void confirmarEmail_deveFalharQuandoTokenExpiradoENuncaUsado() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("apelido", "email@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, usuarioId);
+        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuarioId, "hash:token-expirado", Instant.now().minusSeconds(60));
+        when(emailConfirmacaoTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
+        assertThatThrownBy(() -> authService.confirmarEmail("token-expirado"))
+                .isInstanceOf(UnauthenticatedException.class)
+                .hasMessage("Link de confirmação inválido ou expirado");
+        assertThat(usuario.getEmailConfirmadoEm()).isNull();
+    }
+
+    @Test
+    void confirmarEmail_deveConfirmarEMarcarTokenUsadoQuandoValido() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("apelido", "email@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, usuarioId);
+        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuarioId, "hash:token-valido", Instant.now().plusSeconds(3600));
+        when(emailConfirmacaoTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
+        MensagemResponse response = authService.confirmarEmail("token-valido");
+        assertThat(response.mensagem()).isEqualTo("E-mail confirmado com sucesso.");
+        assertThat(usuario.getEmailConfirmadoEm()).isNotNull();
+        assertThat(token.getUsadoEm()).isNotNull();
+    }
+
+    @Test
+    void confirmarEmail_deveSerIdempotenteQuandoContaJaConfirmadaComTokenJaUsado() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("apelido", "email@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, usuarioId);
+        usuario.confirmarEmail();
+        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuarioId, "hash:token-ja-usado", Instant.now().plusSeconds(3600));
+        token.marcarUsado();
+        when(emailConfirmacaoTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
+        MensagemResponse response = authService.confirmarEmail("token-ja-usado");
+        assertThat(response.mensagem()).isEqualTo("E-mail confirmado com sucesso.");
+    }
+
+    @Test
+    void reenviarConfirmacaoEmail_respostaGenericaQuandoContaNaoExiste() {
+        ReenviarConfirmacaoEmailRequest request = new ReenviarConfirmacaoEmailRequest("naoexiste@example.com");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
+                .thenReturn(Optional.empty());
+        MensagemResponse response = authService.reenviarConfirmacaoEmail(request);
+        assertThat(response.mensagem()).contains("Se o apelido ou e-mail existir");
+        verifyNoInteractions(emailService, emailConfirmacaoTokenRepository);
+    }
+
+    @Test
+    void reenviarConfirmacaoEmail_respostaGenericaQuandoContaJaConfirmada() {
+        Usuario usuario = new Usuario("apelido", "email@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, UUID.randomUUID());
+        usuario.confirmarEmail();
+        ReenviarConfirmacaoEmailRequest request = new ReenviarConfirmacaoEmailRequest("apelido");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
+                .thenReturn(Optional.of(usuario));
+        MensagemResponse response = authService.reenviarConfirmacaoEmail(request);
+        assertThat(response.mensagem()).contains("Se o apelido ou e-mail existir");
+        verifyNoInteractions(emailService, emailConfirmacaoTokenRepository);
+    }
+
+    @Test
+    void reenviarConfirmacaoEmail_disparaNovoTokenQuandoContaPendente() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("apelido", "email@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, usuarioId);
+        ReenviarConfirmacaoEmailRequest request = new ReenviarConfirmacaoEmailRequest("apelido");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
+                .thenReturn(Optional.of(usuario));
+        MensagemResponse response = authService.reenviarConfirmacaoEmail(request);
+        assertThat(response.mensagem()).contains("Se o apelido ou e-mail existir");
+        verify(emailConfirmacaoTokenRepository).save(any(EmailConfirmacaoToken.class));
+        verify(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void reenviarConfirmacaoEmail_respostaGenericaQuandoRateLimitPorUsuarioEstourado() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("apelido", "email@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, usuarioId);
+        ReenviarConfirmacaoEmailRequest request = new ReenviarConfirmacaoEmailRequest("apelido");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
+                .thenReturn(Optional.of(usuario));
+        for (int i = 0; i < 3; i++) {
+            authService.reenviarConfirmacaoEmail(request);
+        }
+        MensagemResponse response = authService.reenviarConfirmacaoEmail(request);
+        assertThat(response.mensagem()).contains("Se o apelido ou e-mail existir");
+        verify(emailConfirmacaoTokenRepository, times(3)).save(any(EmailConfirmacaoToken.class));
+        verify(emailService, times(3)).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void reenviarConfirmacaoEmail_deveEstourarRateLimitGlobalDeVarredura() {
+        ReenviarConfirmacaoEmailRequest request = new ReenviarConfirmacaoEmailRequest("qualquer@example.com");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
+                .thenReturn(Optional.empty());
+        for (int i = 0; i < 30; i++) {
+            authService.reenviarConfirmacaoEmail(request);
+        }
+        assertThatThrownBy(() -> authService.reenviarConfirmacaoEmail(request))
+                .isInstanceOf(RateLimitedException.class);
     }
 
     @Test

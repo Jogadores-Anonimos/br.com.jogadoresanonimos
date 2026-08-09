@@ -13,9 +13,14 @@ export const USUARIOS_MOCK: UsuarioMockInterno[] = [
     criadoEm: '2026-06-01T10:00:00Z',
     deveTrocarSenha: false,
     mfaAtivo: false,
+    emailConfirmado: true,
     senha: 'senhaProvisoria123',
   },
 ];
+
+export const TOKEN_CONFIRMACAO_EMAIL_VALIDO_MOCK = 'mock-token-confirmacao-valido';
+export const TOKEN_CONFIRMACAO_EMAIL_EXPIRADO_MOCK = 'mock-token-confirmacao-expirado';
+export const TOKEN_CONFIRMACAO_EMAIL_JA_CONFIRMADO_MOCK = 'mock-token-confirmacao-usado';
 
 export function encontrarUsuarioMockPorIdentificador(identificador: string): UsuarioMockInterno | undefined {
   const normalizado = identificador.trim().toLowerCase();

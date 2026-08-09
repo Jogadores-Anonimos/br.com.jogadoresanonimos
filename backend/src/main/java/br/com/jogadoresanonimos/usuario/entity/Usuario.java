@@ -40,6 +40,9 @@ public class Usuario {
     @Column(name = "mfa_ativo", nullable = false)
     private boolean mfaAtivo;
 
+    @Column(name = "email_confirmado_em")
+    private Instant emailConfirmadoEm;
+
     protected Usuario() {
     }
 
@@ -124,5 +127,13 @@ public class Usuario {
     public void desativarMfa() {
         this.mfaAtivo = false;
         this.mfaSecretCifrado = null;
+    }
+
+    public Instant getEmailConfirmadoEm() {
+        return emailConfirmadoEm;
+    }
+
+    public void confirmarEmail() {
+        this.emailConfirmadoEm = Instant.now();
     }
 }

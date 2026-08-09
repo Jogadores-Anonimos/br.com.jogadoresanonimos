@@ -17,6 +17,7 @@ import {
   MensagemResponse,
   MfaEnrollResponse,
   RedefinirSenhaRequest,
+  ReenviarConfirmacaoEmailRequest,
   RegistroRequest,
   UsuarioMe,
   UsuarioResponse,
@@ -25,6 +26,9 @@ import {
 import {
   CODIGO_TOTP_MOCK,
   OTPAUTH_URI_MOCK,
+  TOKEN_CONFIRMACAO_EMAIL_EXPIRADO_MOCK,
+  TOKEN_CONFIRMACAO_EMAIL_JA_CONFIRMADO_MOCK,
+  TOKEN_CONFIRMACAO_EMAIL_VALIDO_MOCK,
   USUARIOS_MOCK,
   encontrarUsuarioMockPorIdentificador,
   encontrarUsuarioMockPorToken,
@@ -348,6 +352,56 @@ export class Auth {
     return of(apiSuccess<MensagemResponse>({ mensagem: 'Senha redefinida com sucesso.' })).pipe(delay(500));
   }
 
+  confirmarEmail(token: string): Observable<ApiEnvelope<MensagemResponse>> {
+    if (!environment.useMocks) {
+      return this.http.get<ApiEnvelope<MensagemResponse>>(`${this.baseUrl}/confirmar-email`, { params: { token } }).pipe(
+        catchError((erro) =>
+          of(
+            apiErrorDeHttpError<MensagemResponse>(
+              erro,
+              'AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO',
+              'Não foi possível confirmar seu e-mail. Tente novamente.',
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (!token?.trim()) {
+      return of(apiError<MensagemResponse>('VALIDATION_ERROR', 'Link de confirmação inválido.')).pipe(delay(300));
+    }
+    if (token === TOKEN_CONFIRMACAO_EMAIL_EXPIRADO_MOCK) {
+      return of(
+        apiError<MensagemResponse>('AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO', 'Link de confirmação inválido ou expirado.'),
+      ).pipe(delay(400));
+    }
+    if (token === TOKEN_CONFIRMACAO_EMAIL_VALIDO_MOCK || token === TOKEN_CONFIRMACAO_EMAIL_JA_CONFIRMADO_MOCK) {
+      return of(apiSuccess<MensagemResponse>({ mensagem: 'E-mail confirmado com sucesso.' })).pipe(delay(500));
+    }
+    return of(
+      apiError<MensagemResponse>('AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO', 'Link de confirmação inválido ou expirado.'),
+    ).pipe(delay(400));
+  }
+
+  reenviarConfirmacaoEmail(req: ReenviarConfirmacaoEmailRequest): Observable<ApiEnvelope<MensagemResponse>> {
+    const mensagemGenerica: MensagemResponse = {
+      mensagem: 'Se o apelido ou e-mail existir em nossa base e o e-mail ainda não estiver confirmado, enviaremos um novo link de confirmação.',
+    };
+
+    if (!environment.useMocks) {
+      return this.http.post<ApiEnvelope<MensagemResponse>>(`${this.baseUrl}/reenviar-confirmacao-email`, req).pipe(
+        catchError((erro) =>
+          of(apiErrorDeHttpError<MensagemResponse>(erro, 'INTERNAL_ERROR', 'Não foi possível processar seu pedido. Tente novamente.')),
+        ),
+      );
+    }
+
+    if (!req.identificador?.trim()) {
+      return of(apiError<MensagemResponse>('VALIDATION_ERROR', 'Informe seu apelido ou e-mail.')).pipe(delay(300));
+    }
+    return of(apiSuccess(mensagemGenerica)).pipe(delay(500));
+  }
+
   buscarUsuarioLogado(): Observable<ApiEnvelope<UsuarioMe>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<UsuarioMe>>(`${environment.apiBaseUrl}/usuarios/me`).pipe(
@@ -410,6 +464,7 @@ export class Auth {
       deveTrocarSenha: atual.deveTrocarSenha,
       criadoEm: usuarioMock?.criadoEm ?? new Date().toISOString(),
       mfaAtivo: usuarioMock?.mfaAtivo ?? false,
+      emailConfirmado: usuarioMock?.emailConfirmado ?? false,
     };
     return of(apiSuccess(resposta)).pipe(
       delay(400),

@@ -1,6 +1,14 @@
 <app-resource-layout titulo="Minha Conta" [bannerSrc]="bannerSrc" [mostrarSidebar]="false">
   @if (auth.usuarioAtual(); as usuario) {
     <div class="conta-dashboard">
+      @if (auth.usuarioAtualDetalhado(); as detalhes) {
+        @if (!detalhes.emailConfirmado) {
+          <app-aviso-email-nao-confirmado
+            class="conta-dashboard__aviso-email"
+            mensagemContexto="Confirme para garantir a recuperação da sua conta e o recebimento de pedidos da loja."
+          ></app-aviso-email-nao-confirmado>
+        }
+      }
       @if (!trocaSenhaObrigatoria) {
         <nav class="conta-dashboard__nav" aria-label="Navegação da conta">
           <ul>

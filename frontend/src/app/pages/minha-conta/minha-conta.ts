@@ -6,6 +6,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
+import { AvisoEmailNaoConfirmado } from '../../components/aviso-email-nao-confirmado/aviso-email-nao-confirmado';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 import { Auth } from '../../services/auth/auth';
 import { Arquivo as ArquivoService } from '../../services/arquivo/arquivo';
@@ -27,7 +28,7 @@ interface PedidoConta {
 @Component({
   selector: 'app-minha-conta',
   standalone: true,
-  imports: [FormsModule, RouterLink, ResourceLayout, ContaAuthForms],
+  imports: [FormsModule, RouterLink, ResourceLayout, ContaAuthForms, AvisoEmailNaoConfirmado],
   templateUrl: './minha-conta.html',
   styleUrl: './minha-conta.css',
 })

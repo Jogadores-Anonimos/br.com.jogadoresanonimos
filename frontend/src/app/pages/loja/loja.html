@@ -43,6 +43,14 @@
     </div>
   </ng-container>
 
+  @if (auth.usuarioAtualDetalhado(); as detalhes) {
+    @if (!detalhes.emailConfirmado) {
+      <app-aviso-email-nao-confirmado
+        mensagemContexto="Você vai precisar confirmar seu e-mail antes de finalizar pedidos na loja, para garantir o recebimento dos itens."
+      ></app-aviso-email-nao-confirmado>
+    }
+  }
+
   <div class="loja__em-breve">
     <div class="loja__icone" aria-hidden="true">
       <span class="loja__icone-sacola"></span>

@@ -43,7 +43,7 @@ public class EmailService {
                 <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Se foi você, clique no botão abaixo para criar uma nova senha:</p>
                 <p style="margin: 0 0 16px 0;"><a href="%s" style="background: #D4A843; color: #742C24; text-decoration: none; padding: 12px 24px; border-radius: 6px; display: inline-block; font-size: 15px;">Criar nova senha</a></p>
                 <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Este link é válido por tempo limitado, por segurança.</p>
-                <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Se você não fez essa solicitação, não é necessário fazer nada — pode ignorar este e-mail com tranquilidade, sua conta permanece protegida.</p>
+                <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Se você não fez essa solicitação, não é necessário fazer nada, pode ignorar este e-mail com tranquilidade, sua conta permanece protegida.</p>
                 <p style="font-size: 12px; color: #777777; padding-top: 24px; margin: 0;">Jogadores Anônimos do Brasil</p>
                 <p style="font-size: 12px; color: #777777; margin: 4px 0 0 0;">Dúvidas? Fale conosco pelo site oficial.</p>
                 </div>
@@ -92,6 +92,40 @@ public class EmailService {
                 log.warn("falha_envio_email_admin tentativa={} usuarioHash={} causa={}", tentativa, usuarioIdHash, ex.getClass().getSimpleName());
                 if (tentativa == MAX_TENTATIVAS) {
                     log.error("falha_definitiva_envio_email_admin usuarioHash={}", usuarioIdHash);
+                    return;
+                }
+                sleep(delay);
+                delay *= MULTIPLICADOR;
+            }
+        }
+    }
+
+    @Async
+    public void enviarLinkConfirmacaoEmail(String usuarioIdHash, String emailDestino, String linkComTokenBruto) {
+        String assunto = "Confirme seu e-mail - Jogadores Anônimos do Brasil";
+        String corpoHtml = """
+                <body style="margin: 0; padding: 0; background-color: #ffffff;">
+                <div style="max-width: 560px; margin: 0 auto; padding: 24px; font-family: Arial, sans-serif;">
+                <p style="font-size: 18px; font-weight: 600; color: #742C24; margin: 0 0 24px 0;">Jogadores Anônimos do Brasil</p>
+                <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Olá,</p>
+                <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Recebemos seu cadastro. Para confirmar que este é o seu e-mail, clique no botão abaixo:</p>
+                <p style="margin: 0 0 16px 0;"><a href="%s" style="background: #D4A843; color: #742C24; text-decoration: none; padding: 12px 24px; border-radius: 6px; display: inline-block; font-size: 15px;">Confirmar e-mail</a></p>
+                <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Este link é válido por 24 horas.</p>
+                <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Se você não fez esse cadastro, pode ignorar este e-mail com tranquilidade.</p>
+                <p style="font-size: 12px; color: #777777; padding-top: 24px; margin: 0;">Jogadores Anônimos do Brasil</p>
+                <p style="font-size: 12px; color: #777777; margin: 4px 0 0 0;">Dúvidas? Fale conosco pelo site oficial.</p>
+                </div>
+                </body>
+                """.formatted(linkComTokenBruto);
+        long delay = DELAY_INICIAL_MS;
+        for (int tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+            try {
+                enviarViaProvedor(emailDestino, assunto, corpoHtml);
+                return;
+            } catch (Exception ex) {
+                log.warn("falha_envio_email_confirmacao tentativa={} usuarioHash={} causa={}", tentativa, usuarioIdHash, ex.getClass().getSimpleName());
+                if (tentativa == MAX_TENTATIVAS) {
+                    log.error("falha_definitiva_envio_email_confirmacao usuarioHash={}", usuarioIdHash);
                     return;
                 }
                 sleep(delay);

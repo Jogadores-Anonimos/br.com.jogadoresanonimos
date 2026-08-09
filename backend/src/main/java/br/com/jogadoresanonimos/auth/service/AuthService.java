@@ -2,13 +2,16 @@ package br.com.jogadoresanonimos.auth.service;
 
 import br.com.jogadoresanonimos.auth.dto.*;
 import br.com.jogadoresanonimos.auth.entity.AdminResetCodigo;
+import br.com.jogadoresanonimos.auth.entity.EmailConfirmacaoToken;
 import br.com.jogadoresanonimos.auth.entity.PasswordResetToken;
 import br.com.jogadoresanonimos.auth.repository.AdminResetCodigoRepository;
+import br.com.jogadoresanonimos.auth.repository.EmailConfirmacaoTokenRepository;
 import br.com.jogadoresanonimos.auth.repository.PasswordResetTokenRepository;
 import br.com.jogadoresanonimos.common.dto.ApiError;
 import br.com.jogadoresanonimos.common.util.HmacHasher;
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
 import br.com.jogadoresanonimos.common.exception.ErrorCode;
+import br.com.jogadoresanonimos.common.exception.RateLimitedException;
 import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
@@ -29,6 +32,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
@@ -44,12 +50,17 @@ public class AuthService {
             "Se o apelido ou e-mail existir em nossa base, enviaremos um link de redefinição.";
     private static final String HASH_DUMMY_TIMING =
             "$argon2id$v=19$m=16384,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$b3V0cHV0Zml4b2Zmc2V0Y29uc3RhbnRmb3J0aW1pbmc";
+    private static final String MENSAGEM_REENVIAR_CONFIRMACAO_EMAIL_GENERICA =
+            "Se o apelido ou e-mail existir em nossa base e o e-mail ainda não estiver confirmado, enviaremos um novo link de confirmação.";
     private static final int REGISTRO_VARREDURA_GLOBAL_CAPACIDADE = 30;
+    private static final int REENVIAR_CONFIRMACAO_EMAIL_VARREDURA_GLOBAL_CAPACIDADE = 30;
+    private static final int REENVIAR_CONFIRMACAO_EMAIL_POR_USUARIO_CAPACIDADE = 3;
     private static final int MAX_TENTATIVAS_GERACAO_CODIGO_ADMIN = 5;
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordResetTokenRepository resetTokenRepository;
     private final AdminResetCodigoRepository adminResetCodigoRepository;
+    private final EmailConfirmacaoTokenRepository emailConfirmacaoTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final EmailService emailService;
@@ -62,13 +73,15 @@ public class AuthService {
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UsuarioRepository usuarioRepository, PasswordResetTokenRepository resetTokenRepository,
-                        AdminResetCodigoRepository adminResetCodigoRepository, PasswordEncoder passwordEncoder,
+                        AdminResetCodigoRepository adminResetCodigoRepository,
+                        EmailConfirmacaoTokenRepository emailConfirmacaoTokenRepository, PasswordEncoder passwordEncoder,
                         JwtService jwtService, EmailService emailService, RateLimiterService rateLimiterService,
                         HmacHasher hmacHasher, RecaptchaService recaptchaService, TotpService totpService,
                         MfaSecretCipher mfaSecretCipher, JwtDenylistRepository jwtDenylistRepository) {
         this.usuarioRepository = usuarioRepository;
         this.resetTokenRepository = resetTokenRepository;
         this.adminResetCodigoRepository = adminResetCodigoRepository;
+        this.emailConfirmacaoTokenRepository = emailConfirmacaoTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.emailService = emailService;
@@ -115,6 +128,7 @@ public class AuthService {
         } finally {
             log.info("registro_persistencia_usuario duracaoMs={}", duracaoMsDesde(inicioSave));
         }
+        gerarEEnviarTokenConfirmacaoEmail(usuario);
         return UsuarioResponse.from(usuario);
     }
 
@@ -194,12 +208,19 @@ public class AuthService {
     }
 
     private void gerarEEnviarTokenComum(Usuario usuario) {
+        if (usuario.getEmailConfirmadoEm() == null) {
+            return;
+        }
         String tokenBruto = gerarTokenBruto();
         String tokenHash = hmacHasher.hash(tokenBruto);
         PasswordResetToken resetToken = new PasswordResetToken(usuario.getId(), tokenHash, Instant.now().plus(Duration.ofMinutes(30)));
         resetTokenRepository.save(resetToken);
         String usuarioIdHash = hmacHasher.hash(usuario.getId().toString());
-        emailService.enviarLinkRedefinicaoSenha(usuarioIdHash, usuario.getEmail(), tokenBruto);
+        try {
+            emailService.enviarLinkRedefinicaoSenha(usuarioIdHash, usuario.getEmail(), tokenBruto);
+        } catch (Exception ex) {
+            log.warn("falha_disparo_envio_email_redefinicao_senha usuarioHash={} causa={}", usuarioIdHash, ex.getClass().getSimpleName());
+        }
     }
 
     private void gerarEEnviarCodigoAdmin(Usuario usuario) {
@@ -222,7 +243,11 @@ public class AuthService {
             }
         }
         String usuarioIdHash = hmacHasher.hash(usuario.getId().toString());
-        emailService.enviarCodigoRedefinicaoSenhaAdmin(usuarioIdHash, usuario.getEmail(), codigo);
+        try {
+            emailService.enviarCodigoRedefinicaoSenhaAdmin(usuarioIdHash, usuario.getEmail(), codigo);
+        } catch (Exception ex) {
+            log.warn("falha_disparo_envio_email_codigo_admin usuarioHash={} causa={}", usuarioIdHash, ex.getClass().getSimpleName());
+        }
     }
 
     private String gerarCodigoNumericoAdmin() {
@@ -245,6 +270,72 @@ public class AuthService {
         usuario.setSenhaHash(passwordEncoder.encode(request.novaSenha()));
         resetToken.marcarUsado();
         return new MensagemResponse("Senha redefinida com sucesso.");
+    }
+
+    private void gerarEEnviarTokenConfirmacaoEmail(Usuario usuario) {
+        String tokenBruto = gerarTokenBruto();
+        String tokenHash = sha256Hash(tokenBruto);
+        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuario.getId(), tokenHash, Instant.now().plus(Duration.ofHours(24)));
+        emailConfirmacaoTokenRepository.save(token);
+        String usuarioIdHash = hmacHasher.hash(usuario.getId().toString());
+        try {
+            emailService.enviarLinkConfirmacaoEmail(usuarioIdHash, usuario.getEmail(), tokenBruto);
+        } catch (Exception ex) {
+            log.warn("falha_disparo_envio_email_confirmacao usuarioHash={} causa={}", usuarioIdHash, ex.getClass().getSimpleName());
+        }
+    }
+
+    @Transactional
+    public MensagemResponse confirmarEmail(String token) {
+        if (token == null || token.isBlank()) {
+            throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Token é obrigatório");
+        }
+        String tokenHash = sha256Hash(token);
+        checarRateLimitConta("confirmar-email", tokenHash, ErrorCode.AUTH_RATE_LIMITED);
+        EmailConfirmacaoToken confirmacaoToken = emailConfirmacaoTokenRepository.findByTokenHash(tokenHash)
+                .orElseThrow(() -> new UnauthenticatedException(ErrorCode.AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO,
+                        "Link de confirmação inválido ou expirado"));
+        Usuario usuario = usuarioRepository.findById(confirmacaoToken.getUsuarioId())
+                .orElseThrow(() -> new UnauthenticatedException(ErrorCode.AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO,
+                        "Link de confirmação inválido ou expirado"));
+        if (usuario.getEmailConfirmadoEm() != null) {
+            return new MensagemResponse("E-mail confirmado com sucesso.");
+        }
+        if (confirmacaoToken.getUsadoEm() != null || confirmacaoToken.expirado()) {
+            throw new UnauthenticatedException(ErrorCode.AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO,
+                    "Link de confirmação inválido ou expirado");
+        }
+        usuario.confirmarEmail();
+        confirmacaoToken.marcarUsado();
+        return new MensagemResponse("E-mail confirmado com sucesso.");
+    }
+
+    @Transactional
+    public MensagemResponse reenviarConfirmacaoEmail(ReenviarConfirmacaoEmailRequest request) {
+        rateLimiterService.check("reenviar-confirmacao-email-varredura-global",
+                REENVIAR_CONFIRMACAO_EMAIL_VARREDURA_GLOBAL_CAPACIDADE, Duration.ofMinutes(1), ErrorCode.AUTH_RATE_LIMITED);
+        Optional<Usuario> usuarioOpt = usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(
+                request.identificador(), request.identificador());
+        if (usuarioOpt.isPresent() && usuarioOpt.get().getEmailConfirmadoEm() == null) {
+            Usuario usuario = usuarioOpt.get();
+            try {
+                rateLimiterService.check("reenviar-confirmacao-email:" + hmacHasher.hash(usuario.getId().toString()),
+                        REENVIAR_CONFIRMACAO_EMAIL_POR_USUARIO_CAPACIDADE, Duration.ofMinutes(10), ErrorCode.AUTH_RATE_LIMITED);
+                gerarEEnviarTokenConfirmacaoEmail(usuario);
+            } catch (RateLimitedException ignoradoParaAntiEnumeration) {
+            }
+        }
+        return new MensagemResponse(MENSAGEM_REENVIAR_CONFIRMACAO_EMAIL_GENERICA);
+    }
+
+    private String sha256Hash(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] result = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(result);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Falha ao calcular SHA-256", e);
+        }
     }
 
     @Transactional

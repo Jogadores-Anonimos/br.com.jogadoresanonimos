@@ -7,10 +7,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record UsuarioMeResponse(UUID id, String apelido, String email, Role role, Instant criadoEm,
-                                 boolean deveTrocarSenha, boolean mfaAtivo) {
+                                 boolean deveTrocarSenha, boolean mfaAtivo, boolean emailConfirmado) {
 
     public static UsuarioMeResponse from(Usuario usuario) {
         return new UsuarioMeResponse(usuario.getId(), usuario.getApelido(), usuario.getEmail(),
-                usuario.getRole(), usuario.getCriadoEm(), usuario.isDeveTrocarSenha(), usuario.isMfaAtivo());
+                usuario.getRole(), usuario.getCriadoEm(), usuario.isDeveTrocarSenha(), usuario.isMfaAtivo(),
+                usuario.getEmailConfirmadoEm() != null);
     }
 }

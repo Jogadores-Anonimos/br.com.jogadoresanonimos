@@ -1,0 +1,102 @@
+.confirmar-email {
+  display: flex;
+  justify-content: center;
+}
+
+.confirmar-email__card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-lg);
+  max-width: 460px;
+  width: 100%;
+}
+
+.confirmar-email__intro {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin-bottom: var(--spacing-md);
+}
+
+.campo {
+  margin-bottom: var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.campo label {
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.campo input[type='text'] {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-bg-surface);
+}
+
+.campo input:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 1px;
+}
+
+.btn-cta {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  background: var(--yellow-btn);
+  color: var(--cor-padrao-ja);
+  font-weight: 700;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  padding: 14px 32px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s ease, transform 0.2s ease;
+  margin-top: var(--spacing-xs);
+}
+
+.btn-cta:hover:not(:disabled) {
+  background: var(--yellow-gold);
+  transform: translateY(-2px);
+}
+
+.btn-cta:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 3px;
+}
+
+.btn-cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.mensagem {
+  margin-top: var(--spacing-sm);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.mensagem-sucesso {
+  color: var(--color-success);
+}
+
+.mensagem-erro {
+  color: var(--color-danger);
+}
+
+.link-secundario {
+  display: block;
+  text-align: center;
+  margin-top: var(--spacing-sm);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  text-decoration: underline;
+}

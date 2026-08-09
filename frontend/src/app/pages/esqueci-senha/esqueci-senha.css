@@ -28,6 +28,17 @@
   color: var(--color-success);
 }
 
+.esqueci-senha__aviso {
+  background: var(--color-bg-section);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
 .campo {
   margin-bottom: var(--spacing-sm);
   display: flex;

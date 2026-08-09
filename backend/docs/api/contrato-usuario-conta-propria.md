@@ -58,7 +58,8 @@ Reaproveita a entidade `Usuario` já existente (`V1`). Sem migration nova.
     "role": "PARTICIPANTE",
     "criadoEm": "2026-07-01T10:00:00Z",
     "deveTrocarSenha": false,
-    "mfaAtivo": false
+    "mfaAtivo": false,
+    "emailConfirmado": true
   },
   "error": null
 }
@@ -201,3 +202,16 @@ Nenhuma coluna nova — reaproveita `usuario` (`V1`) integralmente.
 > na sessão/perfil. Mudança aditiva (novo campo em objeto JSON existente)
 > — não é breaking, mas o `frontend-services` deve atualizar a
 > interface/model TypeScript correspondente para consumir o campo.
+
+> **Atualização 2026-08-09 (`backend`)**: `UsuarioMeResponse` ganhou o
+> campo `emailConfirmado` (boolean), derivado de
+> `usuario.email_confirmado_em IS NOT NULL` (coluna existente desde a
+> migration `V5`, ver `contrato-confirmacao-email.md`). Expõe só o
+> booleano, não o timestamp cru — suficiente para o frontend decidir
+> banner de pendência e bloqueio/aviso no fluxo de loja física, sem
+> vazar quando a confirmação aconteceu. Corrige gap identificado pelo
+> `frontend-services`: não havia como a UI saber o estado de confirmação
+> do usuário logado sem esse campo em `GET /usuarios/me`. Mudança
+> aditiva (novo campo em objeto JSON existente) — não é breaking, mas o
+> `frontend-services` deve atualizar a interface/model TypeScript
+> correspondente para consumir o campo.

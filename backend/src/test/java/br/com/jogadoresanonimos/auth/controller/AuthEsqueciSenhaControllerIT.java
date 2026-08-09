@@ -17,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
@@ -25,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("qa-integration")
-@Transactional
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class AuthEsqueciSenhaControllerIT {
 
@@ -81,14 +79,40 @@ class AuthEsqueciSenhaControllerIT {
     }
 
     @Test
-    void deveGerarTokenDeResetComumQuandoUsuarioComum() {
+    void deveGerarTokenDeResetComumQuandoUsuarioComumComEmailConfirmado() {
         Usuario usuario = criarUsuario("qa-esqueci-comum-2", "qa-esqueci-comum-2@example.com", Role.PARTICIPANTE);
+        usuario.confirmarEmail();
+        Usuario usuarioConfirmado = usuarioRepository.saveAndFlush(usuario);
         ResponseEntity<String> resposta = esqueciSenha(bodyEsqueciSenha("qa-esqueci-comum-2"));
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(passwordResetTokenRepository.findAll())
-                .anyMatch(token -> token.getUsuarioId().equals(usuario.getId()));
+                .anyMatch(token -> token.getUsuarioId().equals(usuarioConfirmado.getId()));
         assertThat(adminResetCodigoRepository.findAll())
-                .noneMatch(codigo -> codigo.getUsuarioId().equals(usuario.getId()));
+                .noneMatch(codigo -> codigo.getUsuarioId().equals(usuarioConfirmado.getId()));
+    }
+
+    @Test
+    void naoDeveGerarTokenDeResetQuandoUsuarioComumComEmailNaoConfirmado() {
+        Usuario usuario = criarUsuario("qa-esqueci-naoconf-1", "qa-esqueci-naoconf-1@example.com", Role.PARTICIPANTE);
+        assertThat(usuario.getEmailConfirmadoEm()).isNull();
+        ResponseEntity<String> resposta = esqueciSenha(bodyEsqueciSenha("qa-esqueci-naoconf-1"));
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resposta.getBody()).contains("\"success\":true").contains(MENSAGEM_GENERICA);
+        assertThat(passwordResetTokenRepository.findAll())
+                .noneMatch(token -> token.getUsuarioId().equals(usuario.getId()));
+    }
+
+    @Test
+    void deveRetornarMensagemIdenticaEntreEmailConfirmadoENaoConfirmado() {
+        Usuario confirmado = criarUsuario("qa-esqueci-cmp-conf", "qa-esqueci-cmp-conf@example.com", Role.PARTICIPANTE);
+        confirmado.confirmarEmail();
+        usuarioRepository.saveAndFlush(confirmado);
+        criarUsuario("qa-esqueci-cmp-naoconf", "qa-esqueci-cmp-naoconf@example.com", Role.PARTICIPANTE);
+        ResponseEntity<String> respostaConfirmado = esqueciSenha(bodyEsqueciSenha("qa-esqueci-cmp-conf"));
+        ResponseEntity<String> respostaNaoConfirmado = esqueciSenha(bodyEsqueciSenha("qa-esqueci-cmp-naoconf"));
+        assertThat(respostaConfirmado.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(respostaNaoConfirmado.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(respostaConfirmado.getBody()).isEqualTo(respostaNaoConfirmado.getBody());
     }
 
     @Test

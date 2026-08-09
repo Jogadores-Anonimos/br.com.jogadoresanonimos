@@ -85,6 +85,10 @@
   align-items: start;
 }
 
+.conta-dashboard__aviso-email {
+  grid-column: 1 / -1;
+}
+
 .conta-dashboard__nav ul {
   list-style: none;
   display: flex;

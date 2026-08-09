@@ -47,6 +47,16 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok(authService.redefinirSenha(request)));
     }
 
+    @GetMapping("/confirmar-email")
+    public ResponseEntity<ApiResponse<MensagemResponse>> confirmarEmail(@RequestParam String token) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.confirmarEmail(token)));
+    }
+
+    @PostMapping("/reenviar-confirmacao-email")
+    public ResponseEntity<ApiResponse<MensagemResponse>> reenviarConfirmacaoEmail(@Valid @RequestBody ReenviarConfirmacaoEmailRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.reenviarConfirmacaoEmail(request)));
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<MensagemResponse>> logout(@AuthenticationPrincipal AuthenticatedUser principal) {
         return ResponseEntity.ok(ApiResponse.ok(authService.logout(principal)));

@@ -1,0 +1,23 @@
+<div class="aviso-email" [class.aviso-email--inline]="variante === 'inline'" role="status">
+  <p class="aviso-email__texto">
+    <strong>E-mail não confirmado.</strong>
+    {{ mensagemContexto }}
+  </p>
+  <button
+    type="button"
+    class="aviso-email__botao"
+    [disabled]="enviando()"
+    (click)="reenviarConfirmacao()"
+  >
+    {{ enviando() ? 'Enviando...' : 'Reenviar confirmação' }}
+  </button>
+  @if (mensagemEnvio()) {
+    <p
+      class="aviso-email__resultado"
+      [class.aviso-email__resultado--sucesso]="envioComSucesso()"
+      [class.aviso-email__resultado--erro]="!envioComSucesso()"
+    >
+      {{ mensagemEnvio() }}
+    </p>
+  }
+</div>
