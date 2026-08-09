@@ -314,7 +314,9 @@ export class Auth {
 
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<MensagemResponse>>(`${this.baseUrl}/esqueci-senha`, req).pipe(
-        catchError(() => of(apiSuccess(mensagemGenerica))),
+        catchError((erro) =>
+          of(apiErrorDeHttpError<MensagemResponse>(erro, 'INTERNAL_ERROR', 'Não foi possível processar seu pedido. Tente novamente.')),
+        ),
       );
     }
 

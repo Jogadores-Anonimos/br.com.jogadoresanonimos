@@ -1,7 +1,9 @@
 package br.com.jogadoresanonimos.auth.service;
 
 import br.com.jogadoresanonimos.auth.dto.*;
+import br.com.jogadoresanonimos.auth.entity.AdminResetCodigo;
 import br.com.jogadoresanonimos.auth.entity.PasswordResetToken;
+import br.com.jogadoresanonimos.auth.repository.AdminResetCodigoRepository;
 import br.com.jogadoresanonimos.auth.repository.PasswordResetTokenRepository;
 import br.com.jogadoresanonimos.common.dto.ApiError;
 import br.com.jogadoresanonimos.common.util.HmacHasher;
@@ -43,9 +45,11 @@ public class AuthService {
     private static final String HASH_DUMMY_TIMING =
             "$argon2id$v=19$m=16384,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$b3V0cHV0Zml4b2Zmc2V0Y29uc3RhbnRmb3J0aW1pbmc";
     private static final int REGISTRO_VARREDURA_GLOBAL_CAPACIDADE = 30;
+    private static final int MAX_TENTATIVAS_GERACAO_CODIGO_ADMIN = 5;
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordResetTokenRepository resetTokenRepository;
+    private final AdminResetCodigoRepository adminResetCodigoRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final EmailService emailService;
@@ -58,11 +62,13 @@ public class AuthService {
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UsuarioRepository usuarioRepository, PasswordResetTokenRepository resetTokenRepository,
-                        PasswordEncoder passwordEncoder, JwtService jwtService, EmailService emailService,
-                        RateLimiterService rateLimiterService, HmacHasher hmacHasher, RecaptchaService recaptchaService,
-                        TotpService totpService, MfaSecretCipher mfaSecretCipher, JwtDenylistRepository jwtDenylistRepository) {
+                        AdminResetCodigoRepository adminResetCodigoRepository, PasswordEncoder passwordEncoder,
+                        JwtService jwtService, EmailService emailService, RateLimiterService rateLimiterService,
+                        HmacHasher hmacHasher, RecaptchaService recaptchaService, TotpService totpService,
+                        MfaSecretCipher mfaSecretCipher, JwtDenylistRepository jwtDenylistRepository) {
         this.usuarioRepository = usuarioRepository;
         this.resetTokenRepository = resetTokenRepository;
+        this.adminResetCodigoRepository = adminResetCodigoRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.emailService = emailService;
@@ -179,15 +185,48 @@ public class AuthService {
         checarRateLimitConta("esqueci-senha", identificadorNormalizado, ErrorCode.AUTH_RATE_LIMITED);
         Optional<Usuario> usuarioOpt = usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(
                 request.identificador(), request.identificador());
-        usuarioOpt.ifPresent(usuario -> {
-            String tokenBruto = gerarTokenBruto();
-            String tokenHash = hmacHasher.hash(tokenBruto);
-            PasswordResetToken resetToken = new PasswordResetToken(usuario.getId(), tokenHash, Instant.now().plus(Duration.ofMinutes(30)));
-            resetTokenRepository.save(resetToken);
-            String usuarioIdHash = hmacHasher.hash(usuario.getId().toString());
-            emailService.enviarLinkRedefinicaoSenha(usuarioIdHash, tokenBruto);
-        });
+        if (usuarioOpt.isPresent() && usuarioOpt.get().getRole() == Role.ADMIN) {
+            gerarEEnviarCodigoAdmin(usuarioOpt.get());
+        } else {
+            usuarioOpt.ifPresent(this::gerarEEnviarTokenComum);
+        }
         return new MensagemResponse(MENSAGEM_ESQUECI_SENHA_GENERICA);
+    }
+
+    private void gerarEEnviarTokenComum(Usuario usuario) {
+        String tokenBruto = gerarTokenBruto();
+        String tokenHash = hmacHasher.hash(tokenBruto);
+        PasswordResetToken resetToken = new PasswordResetToken(usuario.getId(), tokenHash, Instant.now().plus(Duration.ofMinutes(30)));
+        resetTokenRepository.save(resetToken);
+        String usuarioIdHash = hmacHasher.hash(usuario.getId().toString());
+        emailService.enviarLinkRedefinicaoSenha(usuarioIdHash, usuario.getEmail(), tokenBruto);
+    }
+
+    private void gerarEEnviarCodigoAdmin(Usuario usuario) {
+        String codigo = gerarCodigoNumericoAdmin();
+        String codigoHash = hmacHasher.hash(codigo);
+        AdminResetCodigo resetCodigo = new AdminResetCodigo(usuario.getId(), codigoHash, Instant.now().plus(Duration.ofMinutes(10)));
+        int tentativa = 0;
+        while (true) {
+            try {
+                adminResetCodigoRepository.save(resetCodigo);
+                break;
+            } catch (DataIntegrityViolationException e) {
+                tentativa++;
+                if (tentativa >= MAX_TENTATIVAS_GERACAO_CODIGO_ADMIN) {
+                    throw e;
+                }
+                codigo = gerarCodigoNumericoAdmin();
+                codigoHash = hmacHasher.hash(codigo);
+                resetCodigo = new AdminResetCodigo(usuario.getId(), codigoHash, Instant.now().plus(Duration.ofMinutes(10)));
+            }
+        }
+        String usuarioIdHash = hmacHasher.hash(usuario.getId().toString());
+        emailService.enviarCodigoRedefinicaoSenhaAdmin(usuarioIdHash, usuario.getEmail(), codigo);
+    }
+
+    private String gerarCodigoNumericoAdmin() {
+        return String.format("%06d", secureRandom.nextInt(1_000_000));
     }
 
     @Transactional

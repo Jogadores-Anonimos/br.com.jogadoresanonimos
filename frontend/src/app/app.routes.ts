@@ -215,6 +215,13 @@ export const routes: Routes = [
       import('./pages/redefinir-senha/redefinir-senha').then((m) => m.RedefinirSenha),
   },
   {
+    path: 'admin/redefinir-senha',
+    loadComponent: () =>
+      import('./pages/admin/admin-redefinir-senha/admin-redefinir-senha').then(
+        (m) => m.AdminRedefinirSenha,
+      ),
+  },
+  {
     path: 'privacidade',
     loadComponent: () => import('./pages/privacidade/privacidade').then((m) => m.Privacidade),
   },

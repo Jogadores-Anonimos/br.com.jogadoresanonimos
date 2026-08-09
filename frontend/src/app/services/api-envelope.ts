@@ -54,6 +54,7 @@ export const ERROR_CODE_MENSAGENS: Record<string, string> = {
   AUTH_CADASTRO_CONFLITO: 'Não foi possível concluir o cadastro. Tente novamente.',
   AUTH_SENHA_CONFIRMACAO_DIVERGENTE: 'As senhas informadas não coincidem.',
   AUTH_RESET_TOKEN_INVALIDO: 'Link inválido ou expirado.',
+  ADMIN_RESET_CODIGO_INVALIDO: 'Código inválido, expirado ou já utilizado.',
   AUTH_TOKEN_AUSENTE_OU_INVALIDO: 'Sessão expirada. Faça login novamente.',
   AUTH_RECAPTCHA_INVALIDO: 'Não foi possível validar o reCAPTCHA. Tente novamente.',
   AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL: 'Não foi possível validar o reCAPTCHA no momento. Tente novamente.',

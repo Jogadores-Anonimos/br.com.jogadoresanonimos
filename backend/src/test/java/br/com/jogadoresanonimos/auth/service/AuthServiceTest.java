@@ -1,7 +1,9 @@
 package br.com.jogadoresanonimos.auth.service;
 
 import br.com.jogadoresanonimos.auth.dto.*;
+import br.com.jogadoresanonimos.auth.entity.AdminResetCodigo;
 import br.com.jogadoresanonimos.auth.entity.PasswordResetToken;
+import br.com.jogadoresanonimos.auth.repository.AdminResetCodigoRepository;
 import br.com.jogadoresanonimos.auth.repository.PasswordResetTokenRepository;
 import br.com.jogadoresanonimos.common.util.HmacHasher;
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
@@ -47,6 +49,8 @@ class AuthServiceTest {
     @Mock
     PasswordResetTokenRepository resetTokenRepository;
     @Mock
+    AdminResetCodigoRepository adminResetCodigoRepository;
+    @Mock
     PasswordEncoder passwordEncoder;
     @Mock
     JwtService jwtService;
@@ -71,9 +75,9 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         rateLimiterService = new RateLimiterService();
-        authService = new AuthService(usuarioRepository, resetTokenRepository, passwordEncoder, jwtService,
-                emailService, rateLimiterService, hmacHasher, recaptchaService, totpService, mfaSecretCipher,
-                jwtDenylistRepository);
+        authService = new AuthService(usuarioRepository, resetTokenRepository, adminResetCodigoRepository,
+                passwordEncoder, jwtService, emailService, rateLimiterService, hmacHasher, recaptchaService,
+                totpService, mfaSecretCipher, jwtDenylistRepository);
         lenientHmac();
     }
 
@@ -201,6 +205,7 @@ class AuthServiceTest {
         assertThat(response.mensagem()).contains("Se o apelido ou e-mail existir");
         verifyNoInteractions(emailService);
         verify(resetTokenRepository, never()).save(any());
+        verifyNoInteractions(adminResetCodigoRepository);
     }
 
     @Test
@@ -213,7 +218,106 @@ class AuthServiceTest {
                 .thenReturn(Optional.of(usuario));
         authService.esqueciSenha(request);
         verify(resetTokenRepository).save(any(PasswordResetToken.class));
-        verify(emailService).enviarLinkRedefinicaoSenha(anyString(), anyString());
+        verify(emailService).enviarLinkRedefinicaoSenha(anyString(), anyString(), anyString());
+        verifyNoInteractions(adminResetCodigoRepository);
+    }
+
+    @Test
+    void esqueciSenha_devePersistirCodigoEEnviarEmailAdminQuandoUsuarioEAdmin() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("admin", "admin@example.com", "hash", Role.ADMIN);
+        setId(usuario, usuarioId);
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("admin");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
+                .thenReturn(Optional.of(usuario));
+        MensagemResponse response = authService.esqueciSenha(request);
+        assertThat(response.mensagem()).contains("Se o apelido ou e-mail existir");
+        verify(adminResetCodigoRepository).save(argThat(codigo ->
+                codigo.getUsuarioId().equals(usuarioId)
+                        && codigo.getCodigoHash() != null
+                        && codigo.getCodigoHash().startsWith("hash:")
+        ));
+        verify(emailService).enviarCodigoRedefinicaoSenhaAdmin(anyString(), anyString(), anyString());
+        verifyNoInteractions(resetTokenRepository);
+        verify(emailService, never()).enviarLinkRedefinicaoSenha(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void esqueciSenha_respostaAdminEComumSaoIdenticasParaNaoVazarQuemEAdmin() {
+        Usuario usuarioComum = new Usuario("comum", "comum@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuarioComum, UUID.randomUUID());
+        Usuario admin = new Usuario("admin", "admin@example.com", "hash", Role.ADMIN);
+        setId(admin, UUID.randomUUID());
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(eq("comum"), eq("comum")))
+                .thenReturn(Optional.of(usuarioComum));
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(eq("admin"), eq("admin")))
+                .thenReturn(Optional.of(admin));
+        MensagemResponse respostaComum = authService.esqueciSenha(new EsqueciSenhaRequest("comum"));
+        MensagemResponse respostaAdmin = authService.esqueciSenha(new EsqueciSenhaRequest("admin"));
+        assertThat(respostaComum.mensagem()).isEqualTo(respostaAdmin.mensagem());
+    }
+
+    @Test
+    void esqueciSenha_deveRetentarGeracaoDeCodigoAdminQuandoColisaoDeHashNaPrimeiraTentativa() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("admin", "admin@example.com", "hash", Role.ADMIN);
+        setId(usuario, usuarioId);
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("admin");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
+                .thenReturn(Optional.of(usuario));
+        when(adminResetCodigoRepository.save(any(AdminResetCodigo.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key"))
+                .thenAnswer(inv -> inv.getArgument(0));
+        MensagemResponse response = authService.esqueciSenha(request);
+        assertThat(response.mensagem()).contains("Se o apelido ou e-mail existir");
+        verify(adminResetCodigoRepository, times(2)).save(any(AdminResetCodigo.class));
+        verify(emailService).enviarCodigoRedefinicaoSenhaAdmin(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void esqueciSenha_devePropagarExcecaoQuandoColisaoDeHashPersisteEmTodasAsTentativas() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("admin", "admin@example.com", "hash", Role.ADMIN);
+        setId(usuario, usuarioId);
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("admin");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
+                .thenReturn(Optional.of(usuario));
+        when(adminResetCodigoRepository.save(any(AdminResetCodigo.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key"));
+        assertThatThrownBy(() -> authService.esqueciSenha(request))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        verify(adminResetCodigoRepository, times(5)).save(any(AdminResetCodigo.class));
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void esqueciSenha_deveEstourarRateLimitPorIdentificadorNaSextaChamadaParaUsuarioComum() {
+        Usuario usuario = new Usuario("comum", "comum@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, UUID.randomUUID());
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("comum");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
+                .thenReturn(Optional.of(usuario));
+        for (int i = 0; i < 5; i++) {
+            authService.esqueciSenha(request);
+        }
+        assertThatThrownBy(() -> authService.esqueciSenha(request))
+                .isInstanceOf(br.com.jogadoresanonimos.common.exception.RateLimitedException.class);
+        verify(resetTokenRepository, times(5)).save(any(PasswordResetToken.class));
+    }
+
+    @Test
+    void esqueciSenha_deveEstourarRateLimitPorIdentificadorNaSextaChamadaParaAdmin() {
+        Usuario usuario = new Usuario("admin", "admin@example.com", "hash", Role.ADMIN);
+        setId(usuario, UUID.randomUUID());
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("admin");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
+                .thenReturn(Optional.of(usuario));
+        for (int i = 0; i < 5; i++) {
+            authService.esqueciSenha(request);
+        }
+        assertThatThrownBy(() -> authService.esqueciSenha(request))
+                .isInstanceOf(br.com.jogadoresanonimos.common.exception.RateLimitedException.class);
+        verify(adminResetCodigoRepository, times(5)).save(any(AdminResetCodigo.class));
     }
 
     @Test

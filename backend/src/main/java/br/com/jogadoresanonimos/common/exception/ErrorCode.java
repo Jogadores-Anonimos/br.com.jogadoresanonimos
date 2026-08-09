@@ -21,6 +21,7 @@ public final class ErrorCode {
     public static final String AUTH_RECAPTCHA_INVALIDO = "AUTH_RECAPTCHA_INVALIDO";
     public static final String AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL = "AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL";
     public static final String AUTH_RATE_LIMITED = "AUTH_RATE_LIMITED";
+    public static final String ADMIN_RESET_CODIGO_INVALIDO = "ADMIN_RESET_CODIGO_INVALIDO";
 
     public static final String MFA_JA_ATIVO = "MFA_JA_ATIVO";
     public static final String MFA_ENROLLMENT_INEXISTENTE = "MFA_ENROLLMENT_INEXISTENTE";

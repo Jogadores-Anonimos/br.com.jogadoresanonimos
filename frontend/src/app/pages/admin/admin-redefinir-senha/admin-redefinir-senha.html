@@ -1,0 +1,88 @@
+<app-resource-layout titulo="Digite o código recebido" [bannerSrc]="bannerSrc" [mostrarSidebar]="false">
+  <div class="admin-redefinir-senha">
+    <div class="admin-redefinir-senha__card">
+      @if (sucesso) {
+        <p class="mensagem mensagem-sucesso" role="status">{{ mensagem }}</p>
+        <p class="admin-redefinir-senha__info">
+          Se você tiver a verificação em duas etapas ativada, ela continuará sendo solicitada normalmente.
+        </p>
+        <a routerLink="/minha-conta" class="link-secundario">Ir para o login</a>
+      } @else {
+        <p class="admin-redefinir-senha__intro">
+          Enviamos um código de 6 dígitos para o e-mail cadastrado a essa conta
+          de administrador. O código expira em alguns minutos.
+        </p>
+
+        <form (ngSubmit)="onSubmit()" #redefinirForm="ngForm">
+          <div class="campo">
+            <label for="admin-redefinir-codigo">Código de verificação</label>
+            <input
+              id="admin-redefinir-codigo"
+              name="codigo"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              pattern="\d{6}"
+              maxlength="6"
+              autofocus
+              [(ngModel)]="codigo"
+              #codigoField="ngModel"
+              required
+            />
+            @if (codigoField.invalid && codigoField.touched) {
+              <span class="campo-erro">Informe o código de 6 dígitos recebido por e-mail.</span>
+            }
+          </div>
+
+          <div class="campo">
+            <label for="admin-redefinir-nova-senha">Nova senha</label>
+            <input
+              id="admin-redefinir-nova-senha"
+              name="novaSenha"
+              type="password"
+              autocomplete="new-password"
+              minlength="10"
+              [(ngModel)]="novaSenha"
+              #novaSenhaField="ngModel"
+              required
+            />
+            <small class="campo-ajuda">Mínimo de 10 caracteres.</small>
+            @if (novaSenhaField.invalid && novaSenhaField.touched) {
+              <span class="campo-erro">Senha deve ter no mínimo 10 caracteres.</span>
+            }
+          </div>
+
+          <div class="campo">
+            <label for="admin-redefinir-confirmar-senha">Confirmar nova senha</label>
+            <input
+              id="admin-redefinir-confirmar-senha"
+              name="confirmarNovaSenha"
+              type="password"
+              autocomplete="new-password"
+              [(ngModel)]="confirmarNovaSenha"
+              #confirmarField="ngModel"
+              required
+            />
+            @if (confirmarField.touched && confirmarNovaSenha !== novaSenha) {
+              <span class="campo-erro">As senhas informadas não coincidem.</span>
+            }
+          </div>
+
+          <button
+            type="submit"
+            class="btn-cta"
+            [disabled]="enviando || redefinirForm.invalid || confirmarNovaSenha !== novaSenha"
+          >
+            {{ enviando ? 'Salvando...' : 'Redefinir senha' }}
+          </button>
+
+          @if (mensagem && !sucesso) {
+            <p class="mensagem mensagem-erro">{{ mensagem }}</p>
+          }
+        </form>
+
+        <a routerLink="/esqueci-senha" class="link-secundario">Não recebeu o código? Solicitar novo</a>
+      }
+    </div>
+  </div>
+</app-resource-layout>

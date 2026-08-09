@@ -4,365 +4,246 @@
 > aqui — histórico de decisão/implementação vive em `Decisoes de
 > Sistemas.md` e `.claude/knowledge/`.
 
-## Infraestrutura / Deploy (aguardando decisão de hospedagem do cliente)
+## Estado atual da infraestrutura (2026-08-08)
 
-**Domínio de produção FECHADO (2026-07-26):** HostGator (cPanel, "Plano
-M", hospedagem compartilhada tradicional — sem Docker/Java/Postgres,
-serve só domínio/DNS/e-mail). `jogadoresanonimos.com.br` hoje roda
-WordPress em produção real (conteúdo relevante já migrado pelo cliente
-para o site novo) — será desligado/substituído pelo app novo (Render).
-Cutover autorizado a qualquer momento. Dois domínios, ambos já
-registrados na mesma conta: `jogadoresanonimos.com.br` (canônico, mantém
-SEO do WP) e `jogadoresanonimos.org.br` (redirect 301 pro `.com.br`).
+- **Decisões de hospedagem: TODAS FECHADAS** (ver histórico em `Decisoes
+  de Sistemas.md`). Não há mais nada de hospedagem esperando decisão do
+  cliente — o que resta é **execução**.
+- **VPS**: acesso SSH recebido e funcionando (2026-08-08) —
+  `eduardo@143.95.219.110`, autenticação por chave já configurada
+  (`ssh-keygen ed25519`, chave copiada pra `~/.ssh/authorized_keys` no
+  servidor). **Bloqueado**: usuário `eduardo` não está no grupo `sudo`
+  nem no grupo `docker` — sem privilégio pra instalar/configurar nada.
+  Existe uma pasta `/srv/infra-site` (dono `eduardo:infra-site`, grupo
+  próprio, vazia) já preparada pelo colega que administra o servidor —
+  sinal de que ele pretende cuidar da parte de sistema (Docker, firewall,
+  Nginx, Certbot) e deixar só a operação de deploy pra nós. **Precisa
+  perguntar pra ele**: (1) ele vai instalar Docker + colocar `eduardo` no
+  grupo `docker` pra rodar `docker compose` sem sudo? (2) ou é só pra
+  colocar os arquivos em `/srv/infra-site` e ele quem sobe? (3) SSH
+  hardening (desligar login por senha, mudar porta) fica só com ele?
+  Até essa resposta, o "Checklist técnico do VPS" abaixo segue pendente
+  de definição de quem executa cada item.
+- **Contas criadas**: Resend, Vercel, GitHub. Domínio é o que já existia
+  na HostGator (site WordPress obsoleto), `jogadoresanonimos.com.br`.
+- **Provedor decidido**: VPS Cloud NVMe HostGator, 2GB RAM (NVMe 2), sem
+  painel. Postgres em container Docker. Split frontend (Vercel) / backend
+  + Postgres (VPS), backend exposto em `api.jogadoresanonimos.com.br`.
 
-- **`apiBaseUrl` de produção** — **AJUSTADO EM CÓDIGO (2026-07-26,
-  `backend`)**. `frontend/src/environments/environment.prod.ts`:
-  `apiBaseUrl` mudou de `/api/v1` relativo para
-  `https://jogadoresanonimos.com.br/api/v1` absoluto (necessário porque
-  `arquivo.ts` já faz `new URL(apiBaseUrl).origin`, que exige URL
-  absoluta). **Suposição não confirmada:** assumiu mesmo domínio do
-  front, sem subdomínio `api.` dedicado — se a infraestrutura definitiva
-  decidir por subdomínio próprio, só trocar esse valor.
-- **`recaptchaSiteKey`/`RECAPTCHA_SECRET_KEY` de produção** — **AÇÃO
-  MANUAL DO CLIENTE, ainda bloqueada.** Análise do `security`
-  (2026-07-26): um único par de chaves reCAPTCHA aceita múltiplos
-  domínios cadastrados no mesmo registro do console Google — não precisa
-  de par por domínio. Cadastrar nesse registro apenas
-  `jogadoresanonimos.com.br` + `www.jogadoresanonimos.com.br`; **não**
-  cadastrar `.org.br` (só existe como redirect 301, nunca renderiza
-  formulário/chama reCAPTCHA). Depois de gerado: `RECAPTCHA_SECRET_KEY`
-  vai no secret do Render (backend) e `recaptchaSiteKey` em
-  `frontend/src/environments/environment.prod.ts` (público, não é
-  secret). É troca pura de valor de config, sem mudança de código —
-  `ProdConfigValidator.java` já falha o boot em produção se a secret
-  ficar vazia ou for a chave de teste do Google (proteção já existe).
-  Pré-requisito prático para o restante do deploy — segue bloqueado até
-  o cliente gerar o par no console Google.
-- **Cold start do Render free tier mascarando timeout como falha em
-  login/registro** — investigado em 2026-07-22: causa client-side (
-  timeout de 5s do `HttpClient` do frontend) já corrigida para 60s.
-  Causa adicional identificada no backend: timeout de conexão+leitura
-  do `RestTemplate` usado por `RecaptchaService` (chamada síncrona a
-  `google.com/recaptcha/api/siteverify`) estava em 5s+5s, no limite
-  mínimo tecnicamente aceitável pela documentação do Google (recomendado
-  >=10s) — ajustado para 10s+10s em
-  `JogadoresAnonimosApplication.java`. Isso reduz falso-negativo de rede
-  lenta, mas **não resolve a causa raiz do cold start em si** (instância
-  Render dormente demorando a acordar antes mesmo da requisição chegar
-  ao `RecaptchaService`) — isso é decisão de infraestrutura (`devops`),
-  não de timeout de chamada HTTP interna. Sem retry automático de
-  reCAPTCHA implementado deliberadamente (token é de uso único, retry
-  pode ser rejeitado como replay pelo Google e só adiciona latência ao
-  pior caso); sem fallback de bypass de reCAPTCHA em timeout (abriria
-  brecha de abuso permanente por causa de problema de infra temporário).
-- **Keep-alive externo configurado até 2026-07-24** — ping gratuito de
-  terceiro (UptimeRobot/cron-job.org) contra `/actuator/health` a cada
-  ~10-14 min só durante a janela de avaliação do MVP pelo cliente, para
-  reduzir cold start do Render free tier sem custo. Revisar depois do
-  prazo: remover se o projeto ficar parado, ou decidir se continua
-  (ainda mascara sintoma, não resolve causa raiz — ver item de cold
-  start acima) assim que a decisão de hospedagem definitiva for tomada.
-- **Postgres produção** — dev já fechado (container local via compose),
-  prod pendente.
-- **Provedor de e-mail real** — `EmailService` hoje só loga, sem
-  SMTP/API real. Decisão do `system-design` (2026-07-26): **Resend**
-  recomendado (free tier 3.000 e-mails/mês cobre o volume do projeto
-  com folga; melhor deliverability/setup que Gmail SMTP — descartado
-  por limite baixo e reputação ruim — e SES — descartado por sandbox
-  restritivo; integração via SMTP relay reaproveita `JavaMailSender`/
-  `EmailService` já existente). Domínio de produção **já existe agora**
-  (`jogadoresanonimos.com.br`), o que era o bloqueio anterior — mas
-  **AÇÃO MANUAL DO CLIENTE ainda pendente**: criar a conta Resend em si.
-  Depois de criada, os registros DNS reais de SPF/DKIM/DMARC saem lá
-  (ver checklist DNS abaixo, item novo). Cliente informou o e-mail
-  oficial da associação (`jogadoresanonimossaopaulo@gmail.com`) — fica
-  registrado como **e-mail de contato/reply-to de referência** no
-  conteúdo dos e-mails transacionais, não como remetente técnico/`from`
-  (Gmail não pode ser verificado como domínio próprio). Bloqueante para
-  as duas features de e-mail abaixo, até a conta Resend existir.
-- **Onde guardar secrets** (`JWT_SECRET`, `LOG_HMAC_SECRET`,
-  `MFA_SECRET_ENCRYPTION_KEY`) — todas já geradas e configuradas em dev
-  (`.env` local); falta só o destino final de armazenamento/injeção em
-  produção (Render secrets, ver `render.yaml`).
-- **Dados do primeiro admin real** (apelido/e-mail/senha de bootstrap).
-- **Backup do diretório de storage local** — bloqueante pra produção,
-  precisa entrar na rotina de backup do servidor junto com o Postgres.
-- **`SPRING_PROFILES_ACTIVE=prod` no deploy real** — checklist de envs
-  levantado pelo `backend` (2026-07-26):
-  - Fail-fast **real e já implementado** (`ProdConfigValidator`):
-    `RECAPTCHA_SECRET_KEY` obrigatória, não pode ser vazia nem a chave
-    de teste do Google.
-  - Fail-fast **indireto** (quebra o boot/uso na prática, sem validator
-    dedicado): `JWT_SECRET` (chave curta demais rejeitada pelo JJWT no
-    boot); `ADMIN_LIMITE_MAXIMO` (`UsuarioService` lança
-    `IllegalStateException` se ausente/inválido).
-  - **Falha silenciosa/lazy — risco, não corrigido nesta tarefa**:
-    `MFA_SECRET_ENCRYPTION_KEY` e `LOG_HMAC_SECRET` só quebram no
-    primeiro uso real (cifrar TOTP / gerar hash de log), não no
-    startup; `CORS_ALLOWED_ORIGINS` vazio não quebra o boot, só bloqueia
-    CORS silenciosamente (nenhum browser consegue chamar a API).
-    Recomendação registrada (fora do escopo desta tarefa): expandir
-    `ProdConfigValidator` para cobrir essas 3 envs.
-- **CORS multi-origem — RESOLVIDO EM CÓDIGO (2026-07-26, `backend`).**
-  `app.cors.allowed-origins` (`SecurityConfig.java`) trocado de `String`
-  para `List<String>` (Spring converte CSV automaticamente via
-  `@Value`). Env renomeada `CORS_ALLOWED_ORIGIN` → `CORS_ALLOWED_ORIGINS`
-  (plural) em `application.properties`, `application.properties.example`,
-  `docker-compose.yml`, `docker-compose.staging.yml`, `render.yaml`.
-  Valor de produção a configurar no Render:
+## Pode fazer agora
+
+### 1. Resend — plugar no app
+1. ~~Adicionar/verificar domínio `jogadoresanonimos.com.br` no Resend~~ —
+   **feito e verificado (2026-08-08)**. 4 registros DNS criados no Zone
+   Editor HostGator: TXT `resend._domainkey` (DKIM), MX `send` (prioridade
+   10), TXT `send` (SPF, subdomínio dedicado do Resend — sem conflito com
+   SPF de outro provedor na raiz), TXT `_dmarc` (`v=DMARC1; p=none;
+   rua=mailto:jogadoresanonimos@yahoo.com.br`). Status Resend: `Verified`,
+   "Your domain is ready to send emails."
+2. ~~API Key do Resend~~ — **feita, gerada e colada no `.env`
+   (2026-08-08)**.
+3. ~~Plugar no `EmailService` (hoje só loga)~~ — **feito e testado com
+   envio real (2026-08-08)**. Envio via API HTTP do Resend (`RestTemplate`
+   já existente no projeto, sem dependência nova), property
+   `app.email.resend-api-key` (env `RESEND_API_KEY`). Cobre os dois
+   e-mails da recuperação de senha (link usuário comum, código admin).
+   Fail-fast no boot em prod no `ProdConfigValidator` — profile `prod`
+   quebra o boot se `RESEND_API_KEY` estiver vazia, junto do recaptcha.
+   **Correção de bug real** (achada só testando com envio de verdade):
+   remetente técnico estava `naoresponda@send.jogadoresanonimos.com.br`
+   (subdomínio usado só pros registros DNS MX/SPF), mas o domínio
+   verificado no Resend é a raiz `jogadoresanonimos.com.br` — corrigido
+   para `naoresponda@jogadoresanonimos.com.br`. Teria quebrado em
+   produção sem o teste real. Copy/visual revisados pelo `ux-ui` (tom
+   acolhedor, sem julgamento) e cores oficiais da JA aplicadas
+   (`#742C24` bordô institucional, `#D4A843` dourado, sem borda). Destrava,
+   de verdade, a recuperação de senha (ver seção "Features de e-mail"
+   abaixo) e é pré-requisito pra verificação de e-mail no cadastro.
+4. **Logo da JA no e-mail — pendente, depende do deploy do frontend no
+   Vercel.** E-mail HTML não pode referenciar caminho relativo do site
+   (`/images/header/logo-jogadores-anonimos-monograma.png`), precisa de
+   URL pública absoluta — hoje não existe porque nada está deployado
+   ainda. Assim que o frontend subir no Vercel, a imagem passa a ter URL
+   real e o logo pode entrar no template.
+5. E-mail oficial da associação (`jogadoresanonimossaopaulo@gmail.com`)
+   entra como contato/reply-to de referência no conteúdo dos e-mails, não
+   como remetente técnico/`from` (Gmail não pode ser verificado como
+   domínio próprio). Rodapé atual usa texto genérico ("fale conosco pelo
+   site oficial") em vez do e-mail explícito — decisão do usuário
+   (2026-08-08), mantida.
+
+## Setup do VPS (executar quando o acesso chegar)
+
+`devops` detalha e executa. Decisões já fechadas — aqui é só o que falta
+fazer.
+
+### Checklist técnico do VPS (do zero)
+- Instalar Docker + Docker Compose no Ubuntu.
+- Postgres em container Docker (decisão fechada) — só executar.
+- Configurar firewall (`ufw`): liberar só `80`/`443`/`22` (ou porta SSH
+  custom, ver abaixo), fechar Postgres pra acesso externo.
+- Configurar SSH: autenticação por chave (não senha), considerar mudar
+  porta padrão.
+- Nginx como reverse proxy só pro backend Spring Boot em
+  `api.jogadoresanonimos.com.br` (Vercel serve o estático, não o VPS).
+- Certbot pra TLS do subdomínio `api.` — renovação automática precisa ser
+  configurada explicitamente (cron/systemd timer).
+- Rotina de backup (Postgres + storage local de imagens) — montada
+  manualmente, sem backup gerenciado de plataforma.
+- Monitoramento básico — uptime check simples (ver "Keep-alive externo"
+  abaixo, decisão adiada até o VPS estar rodando).
+- Decidir se o Docker Compose roda como serviço `systemd`, pra reiniciar
+  sozinho se o VPS reiniciar.
+
+### Envs / config no `.env` do VPS (antes do deploy)
+- `SPRING_PROFILES_ACTIVE=prod`.
+- `RECAPTCHA_SECRET_KEY`: já gerada em `.env` local, colar no `.env` do
+  VPS. `ProdConfigValidator` já falha o boot se vazia ou se for a chave de
+  teste do Google. Site Key de prod já aplicada em `environment.prod.ts`.
+- `JWT_SECRET`, `LOG_HMAC_SECRET`, `MFA_SECRET_ENCRYPTION_KEY`: geradas em
+  dev (`.env` local), destino final é o `.env` do VPS (ou Docker secrets,
+  a decidir com `devops`).
+- `CORS_ALLOWED_ORIGINS` (lista dos hosts do Vercel, sem espaço após
+  vírgula):
   `https://jogadoresanonimos.com.br,https://www.jogadoresanonimos.com.br,https://jogadoresanonimos.org.br,https://www.jogadoresanonimos.org.br`
-  (sem espaço após vírgula). **Nota do `security`:** `.org.br`/`www.org.br`
-  tecnicamente não precisam estar na allowlist, já que esse domínio só
-  redireciona e nunca chama a API diretamente — mantido na lista mesmo
-  assim porque o browser envia o header `Origin` do domínio original
-  antes do redirect completar (decisão documentada em `Decisoes de
-  Sistemas.md` seção 8). **AÇÃO MANUAL:** reconfigurar a env var no
-  Render com o novo nome/valor antes do deploy.
-- **CDN (Cloudflare ou equivalente) na frente do domínio real** —
-  decisão já tomada pelo `system-design` (ver `Decisoes de Sistemas.md`
-  seção 5): origin apontando pro próprio backend/disco local, sem
-  bucket S3, sem mudar a decisão de storage já fechada. Entra no
-  checklist de deploy — domínio já decidido, falta execução.
+  (`.org.br` mantido mesmo só redirecionando, pois o browser envia
+  `Origin` do domínio original antes do redirect completar — ver
+  `Decisoes de Sistemas.md` seção 8).
+- **`apiBaseUrl` de produção**: `environment.prod.ts` hoje tem
+  `https://jogadoresanonimos.com.br/api/v1`, precisa virar
+  `https://api.jogadoresanonimos.com.br/api/v1` (absoluto — `arquivo.ts`
+  usa `new URL(apiBaseUrl).origin`). Execução do `frontend`/
+  `frontend-services` quando chegar a hora.
+- **Dados do primeiro admin real** (apelido/e-mail/senha de bootstrap):
+  pendente.
 
-### Checklist de cutover DNS/backup (levantamento do `devops`, 2026-07-26 — AÇÃO MANUAL DO USUÁRIO no painel HostGator/Render, sem acesso direto do time a esses painéis)
+### Risco aberto do fail-fast de config
+`ProdConfigValidator` cobre `RECAPTCHA_SECRET_KEY` e `RESEND_API_KEY`
+(fail-fast real, boot quebra se vazia); `JWT_SECRET` e
+`ADMIN_LIMITE_MAXIMO` têm fail-fast indireto (quebram no boot/uso).
+**Não corrigido**: `MFA_SECRET_ENCRYPTION_KEY` e `LOG_HMAC_SECRET` só
+quebram no primeiro uso real (não no startup); `CORS_ALLOWED_ORIGINS`
+vazio não quebra boot, só bloqueia CORS silenciosamente. Recomendação
+em aberto: expandir `ProdConfigValidator` para cobrir essas 3 envs.
 
-1. **Backup do WordPress antes de qualquer mudança de DNS**: cPanel →
-   Backup Wizard → Full Backup (ou separado: phpMyAdmin export do banco
-   MySQL + compactar/baixar `wp-content/` e `wp-config.php` via File
-   Manager/FTP). Conferir integridade dos arquivos baixados. Guardar
-   fora da HostGator (Drive/disco local), reter por ~90 dias pós-cutover
-   e descartar depois (backup de infra legada do cliente, fora do
-   escopo de retenção LGPD do app novo).
-2. **Custom Domains no Render**: cadastrar `jogadoresanonimos.com.br`,
-   `www.jogadoresanonimos.com.br`, `jogadoresanonimos.org.br` e
-   `www.jogadoresanonimos.org.br` no serviço Render antes de mudar o
-   DNS, para o Let's Encrypt automático já emitir certificado assim que
-   detectar o apontamento correto.
-3. **DNS de `.com.br` no Zone Editor HostGator**: apex sem `www` não
-   aceita CNAME (limitação de protocolo) — usar ANAME/ALIAS se o Zone
-   Editor suportar (apontando pro hostname `.onrender.com`), senão A
-   record pro IP fixo que o Render documenta para apex domains
-   (confirmar o valor exato no dashboard Render no momento da
-   configuração, não usar de memória). `www.jogadoresanonimos.com.br`:
-   CNAME direto pro hostname `.onrender.com` (sem restrição). Reduzir
-   TTL pra 300s antes do corte, voltar a TTL normal depois de confirmado.
-4. **Redirect `.org.br` → `.com.br`**: recomendação do `devops` é tratar
-   no lado do Render/aplicação (não cPanel Redirects) — apontar DNS do
-   `.org.br`/`www` pro Render igual ao `.com.br`, cadastrar como Custom
-   Domain adicional no mesmo serviço, e configurar redirect 301
-   preservando path na camada de roteamento (app/proxy do Render).
-   Centraliza a lógica num único lugar em vez de duplicar em cPanel +
-   app. Definir com `po`/`backend` onde exatamente esse redirect é
-   implementado quando for a hora.
-5. **DNS do Resend (SPF/DKIM/DMARC)** — bloqueado até a conta Resend ser
-   criada (ver pendência de e-mail acima). Pode adiantar só o **DMARC**
-   desde já (`_dmarc.jogadoresanonimos.com.br`, `v=DMARC1; p=none;
-   rua=mailto:<email de monitoramento do cliente>`, modo observação).
-   SPF/DKIM saem exatos só depois de criada a conta — atenção pra não
-   duplicar registro SPF se já existir um (e-mail atual do cPanel):
-   precisa mesclar `include:` num único TXT, SPF não aceita múltiplos
-   registros por domínio.
-6. **Ordem recomendada**: backup confirmado → Custom Domains no Render →
-   DNS `.com.br` (validar propagação + certificado TLS) → DNS `.org.br`
-   → confirmar app respondendo nos dois domínios → desligar/arquivar
-   WordPress na HostGator (não apagar imediatamente, manter como
-   fallback por um tempo) → Resend à parte quando a conta existir.
+**Decisão de processo em aberto (sugestão do `aprendiz`, 2026-08-08)**:
+já é o segundo caso de env nova com default vazio mascarando falha
+silenciosa até o primeiro uso real (primeiro foi
+`LOG_HMAC_SECRET`/`MFA_SECRET_ENCRYPTION_KEY`, agora achado de novo com
+`RESEND_API_KEY` faltando no `docker-compose.yml` — já corrigido). Regra
+proposta pro `CLAUDE.md`: toda env nova usada via `@Value` deve ser
+fail-fast (sem default vazio) ou ter o default documentado como
+aceitável. Ainda não decidido pelo usuário.
 
-### Checklist de segurança do multi-domínio (parecer do `security`, 2026-07-26)
+~~`docker-compose.yml` não declarava `RESEND_API_KEY` no serviço
+`backend`~~ — **corrigido (2026-08-08)**: env adicionada, mesmo padrão
+de `JWT_SECRET`/`RECAPTCHA_SECRET_KEY`.
 
-- **HSTS não propaga entre domínios diferentes** — `.com.br` e `.org.br`
-  são eTLD+1 distintos, cada um dos 4 hosts precisa do próprio header
-  `Strict-Transport-Security`. Submeter à preload list só o canônico
-  (`.com.br`) — não faz sentido para um domínio que só redireciona.
-- **Certificado TLS deve cobrir os 4 hosts** — confirmar no Render que
-  `.org.br`/`www.org.br` foram adicionados explicitamente como domínios
-  customizados do serviço para entrar na emissão automática (Let's
-  Encrypt não cobre domínio não cadastrado).
-- Redirect sempre HTTPS→HTTPS na borda (nunca passar por HTTP do
-  destino); sem cookie/sessão compartilhada entre os dois domínios (já
-  não há — JWT vai em header/body, não cookie).
+## Deploy / cutover (ordem recomendada)
+1. ~~Backup do WordPress~~ — **feito e confirmado (2026-08-08)**.
+2. **Setup do VPS do zero** (checklist acima) — backend rodando e
+   respondendo no IP antes de tocar em DNS.
+3. **Deploy do frontend no Vercel**: conectar repositório/build Angular,
+   configurar domínio customizado `jogadoresanonimos.com.br` + `www.` no
+   painel Vercel (TLS automático deles).
+4. **Nginx + Certbot no VPS, só pro subdomínio `api.`**: reverse proxy pro
+   backend em `api.jogadoresanonimos.com.br`; emitir TLS via Let's
+   Encrypt/Certbot pra esse host (precisa do host no Nginx antes de rodar
+   o Certbot).
+5. **DNS**: apex `jogadoresanonimos.com.br` + `www.` → CNAME/ALIAS pro
+   Vercel (valor exato no painel Vercel no momento do cutover, não de
+   memória); `api.` → A record pro IP dedicado do VPS. TTL 300s antes do
+   corte, normal depois de confirmado.
+6. **Redirect `.org.br` → `.com.br`**: configurado no Vercel (domain
+   redirect no painel deles), não no Nginx. Apontar DNS do `.org.br`/`www`
+   também pro Vercel como domínio adicional com redirect.
+7. **DNS do Resend** (SPF/DKIM/DMARC) — ver "Pode fazer agora", item 2.
+8. Validar propagação + certificado TLS nos domínios (Vercel + `api.`) →
+   confirmar app respondendo → desligar/arquivar WordPress na HostGator
+   (manter como fallback por um tempo, não apagar).
 
-## Feedback do cliente 2026-07-26 (rodada pós-aprovação MVP)
+### Segurança do multi-domínio (aplicar no cutover)
+- HSTS não propaga entre domínios diferentes (`.com.br`/`.org.br` são
+  eTLD+1 distintos) — cada host relevante precisa do próprio header
+  `Strict-Transport-Security`. Submeter à preload list só o canônico.
+- Certificado TLS: Vercel cobre `.com.br`/`www.` automaticamente; Certbot
+  no VPS cobre só `api.jogadoresanonimos.com.br`. Confirmar os dois lados
+  emitidos/válidos antes do corte de DNS.
+- Redirect sempre HTTPS→HTTPS na borda; sem cookie/sessão compartilhada
+  entre domínios (JWT vai em header/body, não cookie) — relevante entre
+  frontend (Vercel) e backend (`api.` no VPS).
 
-- **Verificação semanal de imagem quebrada** — cliente quer checagem
-  periódica de imagens quebradas no site, válida enquanto durar a
-  mensalidade de hospedagem paga. Dado o volume baixo do projeto (ver
-  "Contexto de escala" no `CLAUDE.md`), tende a ser rotina manual leve
-  (ex: checklist do cliente/admin) em vez de monitoramento automatizado
-  dedicado — mas só decidir com `devops`/`system-design` quando a
-  hospedagem definitiva estiver fechada (hoje ainda bloqueado pelas
-  pendências de "Infraestrutura / Deploy" acima). Registrado, sem ação
-  ainda.
-- **Diretório/guideline de imagem para salas** — **PERGUNTA EM ABERTO
-  PRO CLIENTE antes de implementar (reconfirmado 2026-07-26 — cliente
-  ainda não respondeu esse ponto específico, mesmo respondendo os
-  outros itens desta rodada de feedback).** Nem o usuário (dono do
-  projeto) entendeu com certeza o pedido do cliente sobre "diretório
-  padrão de arquivos (tamanho, cores, fontes)". O `ux-ui` (2026-07-26)
-  descobriu que hoje **sala de reunião (`Reuniao`) não tem campo de
-  imagem nenhum** — nem no model, nem no form de admin, nem no backend. O
-  único upload de imagem de conteúdo que existe hoje é o **Mural de
-  Apoio** (`admin-mural-de-apoio`, via `ImagemService`/`ImagemController`,
-  limite 5MB, sem validação de dimensão/proporção, já tem preview no
-  form). Pergunta exata para o cliente: ele quer dizer o **Mural de
-  Apoio** (já existe, atrito visual pode ocorrer ali hoje), ou está
-  pedindo uma **imagem/capa nova por sala de reunião** (não existe hoje,
-  feature nova — precisa migration + endpoint novo, maior escopo)?
-  **Não avançar em nenhuma implementação até essa resposta.** Guideline
-  já especificado, serve para os dois casos assim que a resposta
-  chegar:
-  - Proporção fixa **16:9**, dimensão mínima **1200x675px**.
-  - Peso máximo: manter **5MB** (mesmo limite do `ImagemService` hoje).
-  - Preview obrigatório no form (já existe no Mural de Apoio — replicar
-    se virar feature nova de sala).
-  - Validação client-side bloqueia `< 1200x675px`; oferecer crop guiado
-    16:9 no client é nice-to-have (custo maior — se desproporcional ao
-    volume do projeto, cortar para v1 e usar `object-fit: cover` fixo
-    como fallback).
-  - Validação server-side de dimensão mínima **deve existir** (não só
-    client) em `ImagemProcessor.java`, novo `ErrorCode`
-    `UPLOAD_DIMENSAO_INSUFICIENTE` no contrato de erro padrão
+### Itens de infra que continuam pendentes de execução
+- **Keep-alive externo** (ping em `/actuator/health` a cada ~10-14min):
+  **decisão adiada deliberadamente pelo cliente (2026-08-04)** — a causa
+  raiz (cold start do Render) deixou de existir com VPS próprio; cliente
+  optou por observar o comportamento real do VPS antes de decidir manter
+  (como uptime check) ou desligar.
+- **Backup do diretório de storage local**: entrar na rotina de backup do
+  servidor junto com o Postgres (já listado no checklist do VPS).
+- **CDN (Cloudflare ou equivalente)**: decisão tomada (`Decisoes de
+  Sistemas.md` seção 5) — origin aponta pro backend/disco local, sem
+  bucket S3. Falta execução. Vercel já cobre CDN do estático; esta
+  pendência é sobre o backend/disco local no VPS.
+
+## Feedback do cliente (rodada pós-aprovação MVP)
+
+- **Verificação semanal de imagem quebrada**: cliente quer checagem
+  periódica. Dado o volume baixo, tende a ser rotina manual (checklist do
+  admin), não monitoramento automatizado. Decidir com `devops`/
+  `system-design` quando o VPS estiver de pé.
+- **Diretório/guideline de imagem para salas** — **pergunta em aberto pro
+  cliente, sem resposta ainda.** Hoje `Reuniao` não tem campo de imagem
+  (nem model, nem form, nem backend); o único upload de imagem de conteúdo
+  existente é o Mural de Apoio (`ImagemService`/`ImagemController`, limite
+  5MB, sem validação de dimensão, preview já no form). Pergunta exata: ele
+  quer dizer o Mural de Apoio (já existe) ou uma imagem/capa nova por sala
+  de reunião (feature nova, precisa migration + endpoint)? **Não avançar
+  implementação até essa resposta.** Guideline já especificado para quando
+  vier a resposta:
+  - Proporção fixa 16:9, mínimo 1200x675px, peso máximo 5MB.
+  - Preview obrigatório no form (replicar padrão do Mural de Apoio).
+  - Validação client-side bloqueia `< 1200x675px`; crop guiado 16:9 é
+    nice-to-have, cortável para v1 com `object-fit: cover` como fallback.
+  - Validação server-side de dimensão mínima obrigatória em
+    `ImagemProcessor.java`, novo `ErrorCode` `UPLOAD_DIMENSAO_INSUFICIENTE`
     (`backend/docs/api/contrato-erro-padrao.md`). Server não valida
     proporção exata.
-  - Se for feature nova de imagem por sala: acionar `po` → `backend`
-    (migration + `CriarReuniaoRequest`/`EditarReuniaoRequest`) antes do
-    `frontend` mexer em `admin-reunioes`.
-  **Nada implementado ainda** — aguardando resposta do cliente sobre
-  qual dos dois casos é.
-- ~~Visibilidade do carrinho de checkout~~ — **CONCLUÍDO (2026-07-26).**
-  Ícone de carrinho da navbar oculto via flag `showCart = false`
-  (`frontend/src/app/components/navbar/navbar.ts` e `navbar.html`,
-  2 blocos `.utility-cart` desktop/mobile). CSS mantido intacto para
-  religar quando checkout existir. Build de produção validado.
-- **Mural de apoio como carrossel automático** — avaliação do `ux-ui`
-  (2026-07-26): **pendente de confirmação do cliente antes de
-  implementar.** A parte de "botões laterais que aceleram a rotação ao
-  clicar" foi sinalizada como problemática — conflita com WCAG 2.2.2
-  (conteúdo em auto-movimento precisa de controle de pausar, não de
-  acelerar) e é dark-pattern-like (usuário quer controle/pausa, não mais
-  velocidade). Recomendação: trocar "botões que aceleram" por navegação
-  manual prev/next (clique pausa o auto-play), manter auto-play só se
-  opcional e pausável (hover/foco/touch/aba oculta/vídeo tocando/
-  `prefers-reduced-motion`), com dots + `aria-live` para leitor de tela.
-  Sem impacto em backend/modelo de dados. Confirmar com o cliente se
-  topa cortar a "aceleração ao clique" antes de acionar o `frontend`.
-- **Limitar quantidade de usuários admin** — **item 1 CONCLUÍDO
-  (2026-07-26).** Limite numérico configurável via env
-  `ADMIN_LIMITE_MAXIMO` implementado em `UsuarioService.editarRole`,
-  fail-fast no startup se a env estiver ausente/inválida (sem default
-  silencioso), reusando o mesmo lock pessimista já existente
-  (`buscarPorRoleParaAtualizacao(Role.ADMIN)`) tanto para "último admin"
-  quanto para o novo limite máximo — fecha race condition de duas
-  promoções simultâneas estourando o limite. Novo `ErrorCode`
-  `USUARIO_LIMITE_ADMIN_ATINGIDO`, mensagem genérica ao cliente, sem
-  expor limite/contagem configurados. Ordem de validação: auto-
-  rebaixamento → último-admin (remoção) → limite-máximo (promoção) →
-  aplicar. Testes unitários atualizados (`UsuarioServiceTest`, 21/21
-  verde). Docs atualizados: `backend/docs/api/contrato-usuario-admin.md`,
-  `backend/docs/api/contrato-erro-padrao.md`. **Divergência de
-  documentação corrigida**: `Decisoes de Sistemas.md` seção 3 não diz
-  mais "manual via script" (código já tinha endpoint/tela
-  `admin-usuarios` fazendo isso via API).
-  **Pendência de ambiente**: falta setar `ADMIN_LIMITE_MAXIMO` real nos
-  `.env`/`.env.staging`/secrets de cada ambiente — sem isso a aplicação
-  não sobe (fail-fast é o comportamento esperado, não é bug).
-  **Item 2 (step-up MFA na promoção) segue em aberto, adiado
-  deliberadamente pelo `security`** (2026-07-26): exigir código TOTP
-  fresco do admin-promotor no momento de promover alguém a admin (não só
-  validar a sessão JWT) — novo campo `codigoTotp` em
-  `EditarRoleRequest`, só quando `novaRole == ADMIN`. Mexe em contrato de
-  API, precisa sync com `frontend-services`/`frontend` (tela pede o TOTP
-  do admin logado antes de confirmar). Motivo do adiamento: risco
-  imediato já é baixo dado o limite numérico + auditoria existente da
-  troca de role; esforço é maior (contrato + 3 camadas). Retomar quando
-  priorizado.
-  Curadoria de quem são as "pessoas-chave" continua decisão manual do
-  cliente/admin — sistema não infere isso sozinho; limite numérico +
-  step-up MFA são os controles técnicos que sustentam a política, não
-  substituem allowlist de negócio. Recomendação do `security` mantida:
-  **não** usar allowlist de apelidos/e-mails hardcoded.
-  Arquivos: `backend/src/main/java/br/com/jogadoresanonimos/usuario/
-  service/UsuarioService.java`, `common/exception/ErrorCode.java`,
-  `resources/application.properties`, `test/.../UsuarioServiceTest.java`,
-  `docker-compose.yml`, `docker-compose.staging.yml`.
-- **"Esqueci minha senha" do login ADM com código de 4-6 dígitos por
-  e-mail (não link)** — cliente pediu especificamente esse formato para
-  o fluxo de admin. **Não implementar agora.** Quando a feature de
-  "recuperação de senha por e-mail" (já registrada abaixo, em andamento
-  em outra tarefa em paralelo) for implementada: (1) o fluxo de ADM deve
-  usar código numérico curto (4-6 dígitos), não link; (2) verificar com
-  quem estiver implementando aquele trabalho se dá para reaproveitar a
-  mesma infraestrutura de token/e-mail para os dois casos (usuário comum
-  e admin) ou se precisa de tratamento separado, dado que ADM já tem MFA
-  TOTP (evitar duas etapas de segundo fator conflitantes/redundantes no
-  login de admin).
-- **Atenção reforçada nos 3 primeiros dias pós-deploy** — lembrete
-  operacional do cliente para observar comportamento do site de perto
-  logo após o deploy real. Vincular à seção "Roteiro à frente" abaixo
-  (item de Deploy) quando a data de deploy for marcada.
+  - Se virar feature nova: `po` → `backend` (migration +
+    `CriarReuniaoRequest`/`EditarReuniaoRequest`) antes do `frontend`
+    mexer em `admin-reunioes`.
+- **Atenção reforçada nos 3 primeiros dias pós-deploy**: lembrete
+  operacional do cliente, vincular à data de deploy quando marcada.
 
-## Feature nova: verificação de e-mail válido/existente no cadastro
+## Features de e-mail
 
-- Cliente quer confirmar que o e-mail informado no cadastro existe de
-  fato (não só formato via regex) — hoje não há verificação nenhuma
-  além de formato. Pré-requisitos a levantar antes de implementar:
-  provedor de e-mail real (`EmailService` hoje só loga, ver pendência de
-  infra acima — bloqueante), fluxo de confirmação (provável e-mail com
-  link/código que o usuário precisa clicar/inserir antes da conta virar
-  ativa), decisão de UX de conta "pendente de confirmação" (`ux-ui`),
-  rate limit de reenvio de confirmação (`security`). Sem decisão de
-  arquitetura ainda — só registrado como pedido do cliente.
+### Recuperação de senha — completa, incluindo envio real
+Implementada ponta a ponta (backend + frontend + testes escritos),
+desenho V2 unificado (endpoint único `POST /api/v1/auth/esqueci-senha`,
+branch server-side por `role`, anti-enumeration, reset de admin nunca pula
+MFA). Detalhe de implementação/decisão foi para `.claude/knowledge/` e
+`backend/docs/api/contrato-recuperacao-senha.md`. Envio real de e-mail via
+Resend plugado (2026-08-08, ver "Pode fazer agora", item 3) — feature
+destravada de ponta a ponta. Testes escritos mas não executados
+(Docker/Testcontainers com problema conhecido nesta máquina Windows).
 
-## Feature nova: recuperação de senha por e-mail
+### Verificação de e-mail válido/existente no cadastro
+Cliente quer confirmar que o e-mail existe de fato (não só formato via
+regex). Ainda **sem decisão de arquitetura** — só o pedido registrado.
+Pré-requisitos antes de implementar:
+- ~~Envio real de e-mail plugado (Resend no `EmailService`)~~ — feito.
+- Fluxo de confirmação (e-mail com link/código antes da conta ativar).
+- Decisão de UX de conta "pendente de confirmação" (`ux-ui`).
+- Rate limit de reenvio de confirmação (`security`).
 
-- Cliente pediu recuperação de senha via e-mail (usuário esqueceu senha,
-  recebe código/link no e-mail cadastrado, redefine senha). Hoje não
-  existe esse fluxo no sistema. Pré-requisitos a levantar antes de
-  implementar:
-  - **Provedor de e-mail real** — mesma dependência do item de
-    verificação de e-mail acima, `EmailService` hoje só loga
-    (bloqueante, é infraestrutura, ver pendência já registrada).
-  - **Contrato de fluxo** (`backend` + `security`, SDD antes de
-    implementar): endpoint de solicitar recuperação (por e-mail ou
-    apelido, sem revelar se existe conta — mesma lógica de
-    anti-enumeration já usada no login), geração de código/token de uso
-    único com expiração curta, endpoint de validar código + definir
-    nova senha, invalidação do token após uso, rate limit de solicitação
-    (`security`).
-  - **Estilização com identidade visual da JA** no e-mail enviado
-    (`ux-ui` define o conteúdo/tom, `frontend`/`backend` decidem se é
-    HTML de e-mail com o padrão visual do site ou texto simples — a
-    definir).
-  - Ainda sem decisão de arquitetura tomada — só registrado o pedido e
-    os pré-requisitos conhecidos até aqui, falta detalhar com
-    `system-design`/`security`/`backend`/`ux-ui` quando for priorizado.
-  - **Análise do `security` (2026-07-26):** fluxo de usuário comum já
-    parece pronto do ponto de vista de arquitetura — falta só o
-    provedor de e-mail real (Resend, bloqueado aguardando domínio, ver
-    pendência de infra acima). **Alerta de segurança para quando for
-    implementado:** o reset por código curto (4-6 dígitos) pedido pelo
-    cliente para o login ADM **não pode virar bypass do MFA TOTP** já
-    existente para admin — resetar a senha de um admin não pode, sob
-    hipótese nenhuma, pular a etapa MFA no login seguinte. Deixar isso
-    explícito no contrato/implementação quando essa feature for
-    priorizada.
-
-## Roteiro à frente (não são bugs, é o plano combinado em 2026-07-14)
-
-1. Deploy — bloqueado até fechar "Infraestrutura / Deploy" (Postgres
-   produção, provedor de e-mail real, onde guardar secrets, dados do
-   admin real, backup de storage), tudo dependente de decisão de
-   hospedagem do cliente. Antes de ir: checagem final de performance
-   front/back, code review e testes.
-
-## Pendente: literatura em PDF
-
-- [ ] Cliente vai enviar PDFs de literatura institucional (menciona
-  também 3 links repetidos pra `gamblersanonymous.org/gamblers-
-  anonymous-literature-digital/` — possivelmente referência de formato
-  pra página de Literatura, a confirmar quando o material chegar). Sem
-  previsão de data. Quando chegar: mesmo processo desta sessão (upload
-  real via admin se for arquivo binário — PDF passa por
-  `ArquivoService`, validação de magic bytes/anti-polyglot — não dá pra
-  inserir referência de arquivo direto via migration, precisa do fluxo
-  real de upload).
+## Backlog (não trava deploy)
+- **Step-up MFA na promoção de admin** — adiado deliberadamente pelo
+  `security` (risco imediato baixo dado limite numérico + auditoria já
+  existentes; retomar quando priorizado).
+- **Literatura em PDF** — cliente vai enviar PDFs de literatura
+  institucional (menciona 3 links de
+  `gamblersanonymous.org/gamblers-anonymous-literature-digital/`, possível
+  referência de formato pra página de Literatura). Sem previsão. Quando
+  chegar: upload real via admin (PDF passa por `ArquivoService`, validação
+  de magic bytes/anti-polyglot) — não dá pra inserir referência de arquivo
+  direto via migration.
