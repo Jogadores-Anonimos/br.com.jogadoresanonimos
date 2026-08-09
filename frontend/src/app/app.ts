@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { Navbar } from './components/navbar/navbar';
@@ -6,6 +6,7 @@ import { Footer } from './components/footer/footer';
 import { BarraDeslizante } from './components/barra-deslizante/barra-deslizante';
 import { WhatsappFlutuante } from './components/whatsapp-flutuante/whatsapp-flutuante';
 import { VoltarAoTopo } from './components/voltar-ao-topo/voltar-ao-topo';
+import { Seo } from './services/seo';
 
 @Component({
   selector: 'app-root',
@@ -18,6 +19,7 @@ export class AppComponent {
   private readonly PREFIXOS_SEM_BARRA_DESLIZANTE = ['/minha-conta', '/login', '/dashboard', '/admin'];
 
   mostrarBarraDeslizante = signal(true);
+  private readonly seo = inject(Seo);
 
   constructor(private router: Router) {
     this.router.events
