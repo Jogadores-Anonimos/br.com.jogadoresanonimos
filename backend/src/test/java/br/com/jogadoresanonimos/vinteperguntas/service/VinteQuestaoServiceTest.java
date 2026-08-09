@@ -122,6 +122,8 @@ class VinteQuestaoServiceTest {
         setId(segunda, id);
         when(vinteQuestaoRepository.findById(id)).thenReturn(Optional.of(segunda));
         when(vinteQuestaoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
+        when(vinteQuestaoRepository.buscarPorIdComLock(primeira.getId())).thenReturn(Optional.of(primeira));
+        when(vinteQuestaoRepository.buscarPorIdComLock(segunda.getId())).thenReturn(Optional.of(segunda));
         VinteQuestaoResponse resultado = vinteQuestaoService.moverParaCima(id);
         assertThat(resultado.ordem()).isEqualTo(0);
         assertThat(primeira.getOrdem()).isEqualTo(1);
@@ -136,6 +138,8 @@ class VinteQuestaoServiceTest {
         setId(segunda, UUID.randomUUID());
         when(vinteQuestaoRepository.findById(id)).thenReturn(Optional.of(primeira));
         when(vinteQuestaoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
+        when(vinteQuestaoRepository.buscarPorIdComLock(primeira.getId())).thenReturn(Optional.of(primeira));
+        when(vinteQuestaoRepository.buscarPorIdComLock(segunda.getId())).thenReturn(Optional.of(segunda));
         VinteQuestaoResponse resultado = vinteQuestaoService.moverParaBaixo(id);
         assertThat(resultado.ordem()).isEqualTo(1);
         assertThat(segunda.getOrdem()).isEqualTo(0);

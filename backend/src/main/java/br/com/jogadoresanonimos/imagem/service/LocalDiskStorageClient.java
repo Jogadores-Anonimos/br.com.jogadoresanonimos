@@ -41,7 +41,7 @@ public class LocalDiskStorageClient implements StorageClient {
     public void upload(String chave, byte[] conteudo, String contentType) {
         try {
             criarDiretorioBaseSeNecessario();
-            Path destino = baseDir.resolve(chave);
+            Path destino = resolverDentroDoBaseDir(chave);
             Files.write(destino, conteudo);
             aplicarPermissoesRestritivas(destino);
         } catch (IOException e) {
@@ -53,7 +53,7 @@ public class LocalDiskStorageClient implements StorageClient {
     @Override
     public void delete(String chave) {
         try {
-            Files.deleteIfExists(baseDir.resolve(chave));
+            Files.deleteIfExists(resolverDentroDoBaseDir(chave));
         } catch (IOException e) {
             log.error("falha_delete_storage_local");
             throw new UpstreamException(ErrorCode.UPLOAD_STORAGE_INDISPONIVEL, "Não foi possível remover a imagem no momento");
@@ -68,15 +68,20 @@ public class LocalDiskStorageClient implements StorageClient {
     @Override
     public byte[] download(String chave) {
         try {
-            Path caminho = baseDir.resolve(chave).normalize();
-            if (!caminho.startsWith(baseDir.normalize())) {
-                throw new UpstreamException(ErrorCode.UPLOAD_STORAGE_INDISPONIVEL, "Arquivo não encontrado");
-            }
-            return Files.readAllBytes(caminho);
+            return Files.readAllBytes(resolverDentroDoBaseDir(chave));
         } catch (IOException e) {
             log.error("falha_download_storage_local");
             throw new UpstreamException(ErrorCode.UPLOAD_STORAGE_INDISPONIVEL, "Não foi possível ler o arquivo no momento");
         }
+    }
+
+    private Path resolverDentroDoBaseDir(String chave) {
+        Path baseNormalizado = baseDir.normalize();
+        Path caminho = baseNormalizado.resolve(chave).normalize();
+        if (!caminho.startsWith(baseNormalizado)) {
+            throw new UpstreamException(ErrorCode.UPLOAD_STORAGE_INDISPONIVEL, "Arquivo não encontrado");
+        }
+        return caminho;
     }
 
     private void criarDiretorioBaseSeNecessario() throws IOException {

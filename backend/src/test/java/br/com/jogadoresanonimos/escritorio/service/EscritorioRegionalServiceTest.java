@@ -90,9 +90,12 @@ class EscritorioRegionalServiceTest {
         UUID id = UUID.randomUUID();
         RegiaoIntergrupo primeira = novaRegiao();
         RegiaoIntergrupo segunda = new RegiaoIntergrupo("Região Sul", 1);
+        setId(primeira, UUID.randomUUID());
         setId(segunda, id);
         when(regiaoRepository.findById(id)).thenReturn(Optional.of(segunda));
         when(regiaoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
+        when(regiaoRepository.buscarPorIdComLock(primeira.getId())).thenReturn(Optional.of(primeira));
+        when(regiaoRepository.buscarPorIdComLock(segunda.getId())).thenReturn(Optional.of(segunda));
         RegiaoIntergrupoResponse resultado = service.moverRegiaoParaCima(id);
         assertThat(resultado.ordem()).isEqualTo(0);
         assertThat(primeira.getOrdem()).isEqualTo(1);
@@ -213,9 +216,12 @@ class EscritorioRegionalServiceTest {
         setId(regiao, regiaoId);
         EstadoIntergrupo primeiro = new EstadoIntergrupo(regiao, UnidadeFederativa.RJ, 0);
         EstadoIntergrupo segundo = new EstadoIntergrupo(regiao, UnidadeFederativa.SP, 1);
+        setId(primeiro, UUID.randomUUID());
         setId(segundo, id);
         when(estadoRepository.findById(id)).thenReturn(Optional.of(segundo));
         when(estadoRepository.findAllByRegiaoIdOrderByOrdemAsc(regiaoId)).thenReturn(List.of(primeiro, segundo));
+        when(estadoRepository.buscarPorIdComLock(primeiro.getId())).thenReturn(Optional.of(primeiro));
+        when(estadoRepository.buscarPorIdComLock(segundo.getId())).thenReturn(Optional.of(segundo));
         EstadoIntergrupoResponse resultado = service.moverEstadoParaCima(regiaoId, id);
         assertThat(resultado.ordem()).isEqualTo(0);
         assertThat(primeiro.getOrdem()).isEqualTo(1);
@@ -314,8 +320,11 @@ class EscritorioRegionalServiceTest {
         setId(primeiro, id);
         GrupoIntergrupo segundo = new GrupoIntergrupo(estado, "Grupo 2", "Rua", null, "Cidade",
                 List.of(new AgendaItemGrupo(DiaSemana.TERCA, "19h")), 1);
+        setId(segundo, UUID.randomUUID());
         when(grupoRepository.findById(id)).thenReturn(Optional.of(primeiro));
         when(grupoRepository.findAllByEstadoIdOrderByOrdemAsc(estadoId)).thenReturn(List.of(primeiro, segundo));
+        when(grupoRepository.buscarPorIdComLock(primeiro.getId())).thenReturn(Optional.of(primeiro));
+        when(grupoRepository.buscarPorIdComLock(segundo.getId())).thenReturn(Optional.of(segundo));
         GrupoIntergrupoResponse resultado = service.moverGrupoParaBaixo(estadoId, id);
         assertThat(resultado.ordem()).isEqualTo(1);
         assertThat(segundo.getOrdem()).isEqualTo(0);

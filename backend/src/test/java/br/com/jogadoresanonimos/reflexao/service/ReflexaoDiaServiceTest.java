@@ -82,7 +82,7 @@ class ReflexaoDiaServiceTest {
         ReflexaoDia reflexaoDia = new ReflexaoDia(2, 5, "texto do dia 5");
         when(reflexaoDiaRepository.findAllByMesOrderByDiaAsc(2)).thenReturn(List.of(reflexaoDia));
         List<ReflexaoDiaDoMesResponse> resultado = reflexaoDiaService.listarMes(2);
-        assertThat(resultado).hasSize(28);
+        assertThat(resultado).hasSize(29);
         assertThat(resultado.get(4).dia()).isEqualTo(5);
         assertThat(resultado.get(4).texto()).isEqualTo("texto do dia 5");
         assertThat(resultado.get(0).texto()).isNull();

@@ -1,11 +1,10 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { Component, ElementRef, OnInit, PLATFORM_ID, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { catchError, of } from 'rxjs';
 import type * as L from 'leaflet';
 
 import { mapearErrosCampo } from '../../../services/api-envelope';
+import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
 import { ReuniaoService } from '../../../services/reuniao/reuniao';
 import { CategoriaReuniao, CriarReuniaoRequest, Reuniao } from '../../../services/reuniao/reuniao.model';
 
@@ -52,19 +51,6 @@ function periodoParaHorario(horario: string): 'Manhã' | 'Tarde' | 'Noite' {
   return 'Noite';
 }
 
-interface EnderecoViaCep {
-  logradouro?: string;
-  bairro?: string;
-  localidade?: string;
-  uf?: string;
-  erro?: boolean;
-}
-
-interface ResultadoNominatim {
-  lat: string;
-  lon: string;
-}
-
 const CENTRO_PADRAO: L.LatLngTuple = [-23.55, -46.62];
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
@@ -78,7 +64,7 @@ const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'
 })
 export class AdminReunioes implements OnInit {
   private readonly reuniaoService = inject(ReuniaoService);
-  private readonly http = inject(HttpClient);
+  private readonly enderecoLookupService = inject(EnderecoLookupService);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   readonly horarios = gerarHorarios();
@@ -217,39 +203,31 @@ export class AdminReunioes implements OnInit {
     this.buscandoCep = true;
     this.erroCep = '';
 
-    this.http
-      .get<EnderecoViaCep>(`https://viacep.com.br/ws/${cepLimpo}/json/`)
-      .pipe(catchError(() => of(null)))
-      .subscribe((endereco) => {
-        if (!endereco || endereco.erro) {
-          this.buscandoCep = false;
-          this.erroCep = 'CEP não encontrado.';
+    this.enderecoLookupService.buscarCep(cepLimpo).subscribe((endereco) => {
+      if (!endereco || endereco.erro) {
+        this.buscandoCep = false;
+        this.erroCep = 'CEP não encontrado.';
+        return;
+      }
+
+      const logradouroComNumero = [endereco.logradouro, this.numero.trim()].filter(Boolean).join(', ');
+      const enderecoBase = [logradouroComNumero, endereco.bairro, endereco.localidade, endereco.uf]
+        .filter(Boolean)
+        .join(', ');
+      this.formulario.local = enderecoBase || this.formulario.local;
+
+      this.enderecoLookupService.geocodificar(enderecoBase).subscribe((resultados) => {
+        this.buscandoCep = false;
+        const primeiro = resultados[0];
+        if (!primeiro) {
+          this.erroCep = 'Endereço encontrado, mas não foi possível obter as coordenadas — preencha manualmente se precisar.';
           return;
         }
-
-        const logradouroComNumero = [endereco.logradouro, this.numero.trim()].filter(Boolean).join(', ');
-        const enderecoBase = [logradouroComNumero, endereco.bairro, endereco.localidade, endereco.uf]
-          .filter(Boolean)
-          .join(', ');
-        this.formulario.local = enderecoBase || this.formulario.local;
-
-        this.http
-          .get<ResultadoNominatim[]>('https://nominatim.openstreetmap.org/search', {
-            params: { format: 'json', q: enderecoBase, limit: '1' },
-          })
-          .pipe(catchError(() => of([])))
-          .subscribe((resultados) => {
-            this.buscandoCep = false;
-            const primeiro = resultados[0];
-            if (!primeiro) {
-              this.erroCep = 'Endereço encontrado, mas não foi possível obter as coordenadas — preencha manualmente se precisar.';
-              return;
-            }
-            this.formulario.latitude = primeiro.lat;
-            this.formulario.longitude = primeiro.lon;
-            this.atualizarMapaPreview();
-          });
+        this.formulario.latitude = primeiro.lat;
+        this.formulario.longitude = primeiro.lon;
+        this.atualizarMapaPreview();
       });
+    });
   }
 
   atualizarMapaPreview(): void {

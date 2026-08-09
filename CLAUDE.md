@@ -44,6 +44,11 @@ O site é feito em Angular, com backend em Spring Boot e banco em PostgreSQL.
 - Testes frontend: `npm test` (equivalente a `ng test`)
 - Build backend: `./mvnw clean package` (Windows: `mvnw.cmd clean package`)
 - Build frontend: `npm run build` (`ng build --configuration production`)
+- Pré-requisito de ambiente para `qa-backend-integration`: exige
+  `DB_PASSWORD`/Postgres local configurado na máquina. Sem isso, teste
+  de integração falha ao iniciar o contexto Spring — já bloqueou
+  execução local no Windows repetidas vezes. Não é falha de código;
+  configurar a variável/instância antes de rodar.
 
 ## Estrutura do projeto
 - `backend/` — Spring Boot, ainda sem nada implementado
@@ -133,6 +138,15 @@ Ver `.claude/agents/*.md` para a definição completa de cada um.
   tabelas, índices, constraints) e um `V2` só de conteúdo/seed (DML —
   INSERT de dado). Nunca um único arquivo misturando schema e seed,
   nunca mais que esses 2 arquivos.
+- Toda env nova usada via `@Value` no backend deve ser fail-fast (sem
+  default vazio, quebrando o boot em prod via `ProdConfigValidator` ou
+  equivalente) por padrão. Um default vazio só é aceitável se
+  documentado explicitamente, no código ou na tarefa que a introduziu,
+  como intencional (ex: feature opcional que degrada sem quebrar o
+  boot). Origem: env nova com default vazio mascarando falha silenciosa
+  até o primeiro uso real já aconteceu 2x no projeto
+  (`LOG_HMAC_SECRET`/`MFA_SECRET_ENCRYPTION_KEY` e depois
+  `RESEND_API_KEY`).
 - Sempre delegue as tarefas de frontend, frontend-services, backend,
   security e devops para o agente correspondente — não misture
   responsabilidades entre eles.

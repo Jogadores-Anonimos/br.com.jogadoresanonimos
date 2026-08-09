@@ -114,6 +114,8 @@ class FaqServiceTest {
         setId(segunda, id);
         when(faqRepository.findById(id)).thenReturn(Optional.of(segunda));
         when(faqRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
+        when(faqRepository.buscarPorIdComLock(primeira.getId())).thenReturn(Optional.of(primeira));
+        when(faqRepository.buscarPorIdComLock(segunda.getId())).thenReturn(Optional.of(segunda));
         FaqResponse resultado = faqService.moverParaCima(id);
         assertThat(resultado.ordem()).isEqualTo(0);
         assertThat(primeira.getOrdem()).isEqualTo(1);
@@ -141,6 +143,8 @@ class FaqServiceTest {
         setId(segunda, UUID.randomUUID());
         when(faqRepository.findById(id)).thenReturn(Optional.of(primeira));
         when(faqRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
+        when(faqRepository.buscarPorIdComLock(primeira.getId())).thenReturn(Optional.of(primeira));
+        when(faqRepository.buscarPorIdComLock(segunda.getId())).thenReturn(Optional.of(segunda));
         FaqResponse resultado = faqService.moverParaBaixo(id);
         assertThat(resultado.ordem()).isEqualTo(1);
         assertThat(segunda.getOrdem()).isEqualTo(0);

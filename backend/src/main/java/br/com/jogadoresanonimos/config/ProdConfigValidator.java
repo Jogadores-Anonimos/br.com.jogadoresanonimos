@@ -11,15 +11,25 @@ import org.springframework.stereotype.Component;
 public class ProdConfigValidator implements ApplicationRunner {
 
     private static final String RECAPTCHA_TEST_SECRET_KEY = "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe";
+    private static final String CORS_ALLOWED_ORIGINS_DEFAULT = "http://localhost:4200";
 
     private final String recaptchaSecretKey;
     private final String resendApiKey;
+    private final String mfaSecretEncryptionKey;
+    private final String logHmacSecret;
+    private final String corsAllowedOrigins;
 
     public ProdConfigValidator(
             @Value("${app.recaptcha.secret-key}") String recaptchaSecretKey,
-            @Value("${app.email.resend-api-key}") String resendApiKey) {
+            @Value("${app.email.resend-api-key}") String resendApiKey,
+            @Value("${app.mfa.secret-encryption-key}") String mfaSecretEncryptionKey,
+            @Value("${app.log.hmac-secret}") String logHmacSecret,
+            @Value("${app.cors.allowed-origins}") String corsAllowedOrigins) {
         this.recaptchaSecretKey = recaptchaSecretKey;
         this.resendApiKey = resendApiKey;
+        this.mfaSecretEncryptionKey = mfaSecretEncryptionKey;
+        this.logHmacSecret = logHmacSecret;
+        this.corsAllowedOrigins = corsAllowedOrigins;
     }
 
     @Override
@@ -33,6 +43,20 @@ public class ProdConfigValidator implements ApplicationRunner {
         if (resendApiKey == null || resendApiKey.isBlank()) {
             throw new IllegalStateException(
                     "RESEND_API_KEY não configurada para o profile prod");
+        }
+        if (mfaSecretEncryptionKey == null || mfaSecretEncryptionKey.isBlank()) {
+            throw new IllegalStateException(
+                    "MFA_SECRET_ENCRYPTION_KEY não configurada para o profile prod");
+        }
+        if (logHmacSecret == null || logHmacSecret.isBlank()) {
+            throw new IllegalStateException(
+                    "LOG_HMAC_SECRET não configurada para o profile prod");
+        }
+        if (corsAllowedOrigins == null
+                || corsAllowedOrigins.isBlank()
+                || corsAllowedOrigins.equals(CORS_ALLOWED_ORIGINS_DEFAULT)) {
+            throw new IllegalStateException(
+                    "CORS_ALLOWED_ORIGINS não configurada com uma origem real de produção");
         }
     }
 }
