@@ -257,9 +257,153 @@
   de conexão modesto (Hikari 5-10 conexões); logs estruturados em stdout
   sem dado pessoal; imagem Docker multi-stage rodando como usuário
   não-root.
-- Observability inicial: só health check + métricas básicas
-  (Micrometer) — nada de stack pesada (Prometheus/Grafana/ELK) até
-  haver necessidade concreta.
+- Observabilidade: ver seção 12-B (decisão fechada).
+
+### 7-B. Orquestrador real do VPS: Docker Swarm (descoberto em 2026-08-09)
+
+- **Fato novo, não decisão nossa**: o colega já havia configurado o VPS
+  com **Docker Swarm** (node único, hostname `ja`, role Leader) antes de
+  qualquer deploy do projeto — não é Nginx/Certbot manual (já descartado
+  antes) nem docker-compose simples direto na VPS. Isso muda a forma de
+  deploy documentada anteriormente neste arquivo/`PENDENCIAS.md`, não a
+  arquitetura de aplicação (monolito único, Postgres único continuam
+  válidos).
+- **Stacks já rodando no Swarm**:
+  - `traefik` (`traefik:v3.5.3`) — reverse proxy com
+    `--providers.swarm=true`, `--providers.docker.network=ja`,
+    `--providers.docker.exposedbydefault=false` (só expõe serviço com
+    label `traefik.enable=true` explícito), resolver ACME
+    `letsencryptresolver` via HTTP challenge (e-mail
+    `umdiadecadavez.ja@gmail.com`), redirect HTTP→HTTPS já ativo.
+    **Substitui de fato o plano antigo de Nginx manual + Certbot manual**
+    — Traefik cobre roteamento e emissão/renovação de TLS via labels
+    Docker, sem Certbot separado.
+  - `portainer` (2 serviços) — painel de gestão de container via web;
+    escopo de uso pro nosso projeto (gerenciar backend/Postgres por lá ou
+    só uso do colega) **não confirmado ainda**, ver `PENDENCIAS.md`.
+- **Redes overlay existentes**:
+  - `ja` (10.0.1.0/24) — tem Portainer + Traefik hoje; é a rede que o
+    backend precisa entrar para ser roteado (Traefik só descobre serviço
+    que esteja *na rede `ja`* **e** com `traefik.enable=true` — as duas
+    condições, não uma ou outra).
+  - `infra-site-proxy` (10.0.2.0/24) — só Traefik conectado hoje,
+    propósito não confirmado com o colega; **não usar sem confirmar**.
+- **Firewall (`ufw`) já ativo**: libera só `22` (SSH `eduardo`), `22022`
+  (SSH legado do colega), `80`, `443`. Postgres não é exposto
+  externamente — no nosso stack ele fica em rede overlay própria,
+  `internal: true`, nunca na rede `ja` nem com porta publicada.
+- `eduardo` já está no grupo `docker`; Docker roda como serviço `systemd`
+  habilitado (sobe sozinho se o VPS reiniciar) — item que antes estava
+  como "a decidir" no checklist do VPS fica coberto por isso.
+- **Forma de deploy do projeto**: `docker stack deploy -c stack.prod.yml
+  <nome-da-stack>` na VPS, usando o Swarm já existente — não
+  `docker-compose up` em produção. `docker-compose.yml` (raiz do repo)
+  continua servindo só para desenvolvimento local (hot reload, volume de
+  código montado); não é usado no VPS. Arquivo do stack de produção:
+  `stack.prod.yml` (raiz do repo).
+- **Decisões de infraestrutura do `stack.prod.yml`**:
+  - Backend na rede overlay `ja` (`external: true`, criada fora do
+    stack) + rede overlay própria `backend-internal` (`internal: true`,
+    sem saída para a rede pública) compartilhada só com o Postgres —
+    Postgres nunca entra na rede `ja`, então nunca é alcançável pelo
+    Traefik nem por qualquer outro serviço fora do próprio stack.
+  - Labels Traefik no nível `deploy.labels` do serviço `backend` (não
+    `labels` de topo — em modo Swarm o Traefik só lê labels de serviço
+    dentro de `deploy`, não do container): `traefik.enable=true`,
+    `traefik.docker.network=ja` (desambigua qual rede o Traefik deve usar
+    quando o serviço está em mais de uma), router com
+    `` Host(`api.jogadoresanonimos.com.br`) ``, entrypoint `websecure`,
+    certresolver `letsencryptresolver` (mesmo resolver ACME já
+    configurado na stack `traefik` existente).
+  - Secrets sensíveis (`DB_PASSWORD`, `JWT_SECRET`, `LOG_HMAC_SECRET`,
+    `MFA_SECRET_ENCRYPTION_KEY`, `RECAPTCHA_SECRET_KEY`,
+    `RESEND_API_KEY`, `ADMIN_BOOTSTRAP_SENHA`) continuam via variável de
+    ambiente injetada no `deploy` (mesmo padrão de nome já usado em
+    `docker-compose.yml`/`docker-compose.staging.yml`), não Docker
+    Secrets nativo (`/run/secrets/...`) — o backend hoje só lê
+    `@Value`/property direto de env var, sem suporte a sufixo `_FILE`
+    nem leitura de arquivo montado; introduzir Docker Secrets nativo
+    exigiria mudança de código Spring, fora do escopo desta tarefa de
+    infra. `docker stack deploy` não faz interpolação de `.env` sozinho
+    (diferente de `docker-compose up`) — variáveis precisam estar
+    exportadas no shell que roda o `deploy` (ex: `set -a; source
+    .env.vps; set +a; docker stack deploy -c stack.prod.yml ja-app`).
+    Gatilho de revisão: se algum dia quisermos Docker Secrets nativo de
+    verdade, o backend precisaria aprender a ler `*_FILE`/arquivo, não é
+    automático.
+  - Volume single-node (`postgres_data`, `backend_storage`, sem driver
+    distribuído) e `replicas: 1` nos dois serviços — coerente com node
+    único e 2GB RAM; **nunca subir `replicas > 1` do Postgres** (dado não
+    replicado, split-brain garantido) e não há indício de tráfego que
+    justifique mais de 1 réplica do backend agora (ver "Contexto de
+    escala" no `CLAUDE.md`).
+  - `resources.limits`/`reservations` de CPU/memória definidos nos dois
+    serviços — protege o node único de 2GB de um serviço consumir
+    memória a ponto de derrubar o outro (ex: Postgres e backend
+    competindo sem limite).
+  - `update_config.order: start-first` + `rollback_config` no backend —
+    Swarm sobe o container novo antes de derrubar o antigo (minimiza
+    downtime de deploy) e tem rollback automático se o healthcheck da
+    nova versão falhar (`failure_action: rollback`). Postgres usa
+    `stop-first` (não faz sentido rodar 2 Postgres apontando pro mesmo
+    volume ao mesmo tempo).
+  - `depends_on`/`condition: service_healthy` **não é suportado em modo
+    Swarm** (Compose ignora silenciosamente) — diferente do
+    `docker-compose.yml` de dev, que usa isso. Mitigado por
+    `restart_policy: on-failure` no backend: se ele subir antes do
+    Postgres estar pronto e falhar a conexão, reinicia sozinho até
+    conseguir.
+- **Rollback de imagem — processo definido em 2026-08-09**: sem CI/CD
+  completo (não se justifica ainda pela cadência de deploy manual), a
+  imagem do backend passa a ser buildada com duas tags a cada rebuild
+  manual no VPS — `latest` (a que o `stack.prod.yml` referencia) e o SHA
+  curto do commit (`git rev-parse --short HEAD`), preservando a imagem
+  anterior sob sua própria tag:
+  ```
+  cd ~/deploy/backend
+  git rev-parse --short HEAD
+  docker build -t jogadoresanonimos/backend:latest \
+    -t jogadoresanonimos/backend:<sha-curto> .
+  docker stack deploy -c stack.prod.yml jaa
+  ```
+  Rollback consiste em reapontar `stack.prod.yml` para a tag do SHA
+  anterior (`image: jogadoresanonimos/backend:<sha-anterior>`) e rodar
+  `docker stack deploy` de novo — nunca apagar a imagem antiga do
+  rebuild seguinte sem antes confirmar que o novo deploy está estável.
+  `docker image ls jogadoresanonimos/backend` lista as versões
+  disponíveis localmente no VPS a qualquer momento. Reavaliar CI/CD de
+  verdade (build automatizado + registry) só se a cadência de deploy
+  manual aumentar a ponto de o processo manual virar gargalo.
+- **Quando (não) migrar para Kubernetes**: Swarm já cobre o que o
+  projeto precisa hoje (single node, rolling update simples, restart
+  automático) sem a complexidade operacional de um cluster K8s (etcd,
+  control plane, mais de um tipo de manifesto). Gatilho de revisão:
+  necessidade real de múltiplos nodes/auto-scaling/múltiplos serviços
+  independentes — nenhum desses existe ainda neste projeto (ver
+  "Contexto de escala" no `CLAUDE.md`).
+
+### 7-C. Hardening de SSH (VPS compartilhado) — mantido `PasswordAuthentication yes` (decisão fechada em 2026-08-09)
+
+- **Contexto**: tentativa de hardening de SSH no VPS HostGator
+  (`PasswordAuthentication no` + `PermitRootLogin prohibit-password`)
+  funcionou para `eduardo`/`root` via chave `eduardo-ja-vps`, mas travou
+  o colega administrador — ele acessa root pela porta legada `22022`
+  usando senha, nunca teve chave própria cadastrada em
+  `authorized_keys`. Revertido no mesmo dia (restauração de backup do
+  `sshd_config` e do drop-in `50-cloud-init.conf`).
+- **Decisão**: este VPS mantém `PasswordAuthentication yes` e
+  `PermitRootLogin yes` — não reaplicar o hardening por ora.
+- **Motivo**: servidor é compartilhado com o colega, que não tem chave
+  própria; desligar autenticação por senha o trava sem alternativa de
+  acesso. Decisão deliberada do usuário (2026-08-09) de priorizar não
+  travar o colega sobre reduzir a superfície de ataque de força bruta
+  nesse servidor específico.
+- **Condição para reabrir**: colega gera/cadastra chave pública própria
+  em `authorized_keys` do root e confirma login por chave funcionando;
+  só então reaplicar `PasswordAuthentication no` +
+  `PermitRootLogin prohibit-password` (nos dois lugares — `sshd_config`
+  principal e o drop-in do cloud-init, ver achado técnico em
+  `.claude/knowledge/devops.md`).
 
 ## 8. CORS
 
@@ -496,6 +640,50 @@ recurso, nunca por conteúdo.
 - Sem endpoint de "contato" server-side no projeto (fluxo de contato é
   estático, WhatsApp/telefone) — não há superfície de spam de formulário
   de contato para limitar.
+
+## 12-B. Observabilidade — decisão fechada em 2026-08-09 (`system-design`)
+
+- **Cenário**: `PENDENCIAS.md` tinha item aberto de observabilidade —
+  cobrir performance, requisições e acessos do backend em produção.
+- **Decisão**: caminho mínimo, sem serviço externo gerenciado.
+  - **Spring Boot Actuator** com os endpoints de métricas builtin
+    (`/actuator/health`, `/actuator/metrics`, `/actuator/httpexchanges`),
+    restrito à rede interna/admin autenticado — nunca exposto
+    publicamente além do `/health` já previsto na seção 7.
+  - **Log estruturado local** (já coberto pela seção 10 — Logs e
+    auditoria), sem novo pipeline de coleta.
+  - **Painel simples** consumindo esses dados localmente (ex.: dashboard
+    leve on-box ou visualização direta dos endpoints do Actuator), sem
+    stack de série temporal dedicada.
+  - **Fora deste escopo**: checagem de imagem quebrada (já decidido
+    separadamente, não é alterada por esta decisão).
+- **Explicitamente descartado**: Datadog, New Relic, Better Stack ou
+  qualquer APM/observability-as-a-service equivalente.
+- **Por quê**: dois motivos, não só um.
+  - **Soberania de dado**: serviço externo gerenciado significa enviar
+    dado operacional (potencialmente log de requisição, IP de
+    infraestrutura, padrão de acesso) para fora do ambiente controlado
+    pelo projeto — tensiona com a postura de anonimato/minimização de
+    dado que já rege o restante do sistema (ver seção 10).
+  - **Volume**: ~2.500 requisições/dia é tráfego baixo; a
+    funcionalidade adicional de um APM completo (tracing distribuído,
+    alerting avançado, correlação entre serviços) resolve problema de
+    escala/observabilidade que este projeto não tem — é monolito único,
+    sem múltiplos serviços para correlacionar. Actuator + log estruturado
+    já respondem "a aplicação está no ar, está lenta, está recebendo
+    quanto tráfego" com custo operacional e financeiro próximo de zero.
+- **Trade-off aceito conscientemente**: abre mão de features de um APM
+  completo (dashboards prontos, alerting sofisticado, retenção histórica
+  de métricas de longo prazo, correlação automática entre erro e
+  requisição) em troca de simplicidade operacional e de não depender de
+  terceiro para dado de infraestrutura. Aceitável hoje porque não há
+  necessidade concreta que o justifique — não é economia às cegas.
+- **Gatilho de revisão**: se o volume crescer ordens de grandeza, se o
+  sistema deixar de ser monolito único, ou se a equipe/`devops` sentir
+  necessidade concreta de alerting proativo que Actuator não cobre bem,
+  revisitar — nesse momento uma stack tipo Prometheus/Grafana
+  self-hosted (ainda sem enviar dado a terceiro) é o próximo degrau
+  antes de considerar um SaaS de observabilidade.
 
 ## 13. Pendências
 
