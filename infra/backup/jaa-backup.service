@@ -1,0 +1,9 @@
+[Unit]
+Description=Backup diario Postgres + storage de imagens (JA Brasil)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=eduardo
+ExecStart=/home/eduardo/deploy/infra/backup/backup.sh
