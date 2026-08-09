@@ -43,5 +43,13 @@ server.error.include-message=never
 server.error.include-exception=false
 server.error.include-binding-errors=never
 
-management.endpoints.web.exposure.include=health
+management.endpoints.web.exposure.include=health,metrics,httpexchanges,info
 management.endpoint.health.show-details=never
+management.endpoint.env.enabled=false
+management.endpoint.beans.enabled=false
+management.endpoint.configprops.enabled=false
+management.endpoint.threaddump.enabled=false
+management.endpoint.heapdump.enabled=false
+management.endpoint.shutdown.enabled=false
+management.httpexchanges.recording.request-headers=false
+management.httpexchanges.recording.response-headers=false
