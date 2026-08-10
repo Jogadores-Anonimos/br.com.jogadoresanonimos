@@ -6,6 +6,7 @@ import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
 import br.com.jogadoresanonimos.security.AuthenticatedUser;
 import br.com.jogadoresanonimos.usuario.dto.AlterarSenhaRequest;
 import br.com.jogadoresanonimos.usuario.dto.AtualizarContaRequest;
+import br.com.jogadoresanonimos.usuario.dto.SolicitarTrocaEmailRequest;
 import br.com.jogadoresanonimos.usuario.dto.UsuarioMeResponse;
 import br.com.jogadoresanonimos.usuario.entity.Role;
 import br.com.jogadoresanonimos.usuario.service.UsuarioService;
@@ -48,7 +49,7 @@ class UsuarioControllerTest {
     void atualizarConta_deveRetornarOkComRespostaDoService() {
         UUID id = UUID.randomUUID();
         AuthenticatedUser principal = new AuthenticatedUser(id, "apelido", "PARTICIPANTE");
-        AtualizarContaRequest request = new AtualizarContaRequest("novoApelido", "novo@exemplo.com");
+        AtualizarContaRequest request = new AtualizarContaRequest("novoApelido");
         UsuarioMeResponse esperado = new UsuarioMeResponse(id, "novoApelido", "novo@exemplo.com", Role.PARTICIPANTE, Instant.now(), false, false, false);
         when(usuarioService.atualizarConta(id, request)).thenReturn(esperado);
         ResponseEntity<ApiResponse<UsuarioMeResponse>> resposta = usuarioController.atualizarConta(request, principal);
@@ -59,7 +60,7 @@ class UsuarioControllerTest {
 
     @Test
     void atualizarConta_deveLancarUnauthenticatedQuandoPrincipalNulo() {
-        AtualizarContaRequest request = new AtualizarContaRequest("apelido", "email@exemplo.com");
+        AtualizarContaRequest request = new AtualizarContaRequest("apelido");
         assertThatThrownBy(() -> usuarioController.atualizarConta(request, null))
                 .isInstanceOf(UnauthenticatedException.class);
     }
@@ -81,6 +82,26 @@ class UsuarioControllerTest {
     void alterarSenha_deveLancarUnauthenticatedQuandoPrincipalNulo() {
         AlterarSenhaRequest request = new AlterarSenhaRequest("senhaAtual123", "senhaNova12345", "senhaNova12345");
         assertThatThrownBy(() -> usuarioController.alterarSenha(request, null))
+                .isInstanceOf(UnauthenticatedException.class);
+    }
+
+    @Test
+    void solicitarTrocaEmail_deveRetornarOkComRespostaDoService() {
+        UUID id = UUID.randomUUID();
+        AuthenticatedUser principal = new AuthenticatedUser(id, "apelido", "PARTICIPANTE");
+        SolicitarTrocaEmailRequest request = new SolicitarTrocaEmailRequest("senhaAtual123", "novo@exemplo.com");
+        MensagemResponse esperado = new MensagemResponse("Enviamos um link de confirmação para o seu e-mail atual. Clique nele para concluir a troca.");
+        when(usuarioService.solicitarTrocaEmail(id, request)).thenReturn(esperado);
+        ResponseEntity<ApiResponse<MensagemResponse>> resposta = usuarioController.solicitarTrocaEmail(request, principal);
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resposta.getBody().data()).isEqualTo(esperado);
+        verify(usuarioService).solicitarTrocaEmail(id, request);
+    }
+
+    @Test
+    void solicitarTrocaEmail_deveLancarUnauthenticatedQuandoPrincipalNulo() {
+        SolicitarTrocaEmailRequest request = new SolicitarTrocaEmailRequest("senhaAtual123", "novo@exemplo.com");
+        assertThatThrownBy(() -> usuarioController.solicitarTrocaEmail(request, null))
                 .isInstanceOf(UnauthenticatedException.class);
     }
 }

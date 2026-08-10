@@ -1,14 +1,6 @@
 <app-resource-layout titulo="Minha Conta" [bannerSrc]="bannerSrc" [mostrarSidebar]="false">
   @if (auth.usuarioAtual(); as usuario) {
     <div class="conta-dashboard">
-      @if (auth.usuarioAtualDetalhado(); as detalhes) {
-        @if (!detalhes.emailConfirmado) {
-          <app-aviso-email-nao-confirmado
-            class="conta-dashboard__aviso-email"
-            mensagemContexto="Confirme para garantir a recuperação da sua conta e o recebimento de pedidos da loja."
-          ></app-aviso-email-nao-confirmado>
-        }
-      }
       @if (!trocaSenhaObrigatoria) {
         <nav class="conta-dashboard__nav" aria-label="Navegação da conta">
           <ul>
@@ -247,7 +239,7 @@
             <form (ngSubmit)="onSalvarDetalhes()" #detalhesForm="ngForm" class="conta-form-detalhes">
               <div class="conta-form-detalhes__grid">
                 @if (!trocaSenhaObrigatoria) {
-                  <div class="campo">
+                  <div class="campo campo--full">
                     <label for="detalhes-nome">Nome de exibição</label>
                     <input
                       id="detalhes-nome"
@@ -256,17 +248,6 @@
                       [(ngModel)]="nomeExibicao"
                     />
                     <small class="campo-ajuda">Assim seu apelido aparece nesta seção da conta.</small>
-                  </div>
-
-                  <div class="campo">
-                    <label for="detalhes-email">E-mail</label>
-                    <input
-                      id="detalhes-email"
-                      name="emailDetalhes"
-                      type="email"
-                      autocomplete="email"
-                      [(ngModel)]="emailDetalhes"
-                    />
                   </div>
                 }
 
@@ -326,6 +307,52 @@
                 </p>
               }
             </form>
+
+            @if (!trocaSenhaObrigatoria) {
+              <h3 class="conta-form-detalhes__subtitulo">Trocar e-mail</h3>
+              <p class="conta-form-detalhes__ajuda-secao">
+                Seu e-mail atual é <strong>{{ emailDetalhes }}</strong>. Por segurança, a troca só é
+                concluída após você confirmar pelo link enviado ao seu e-mail atual.
+              </p>
+
+              <form (ngSubmit)="onSolicitarTrocaEmail()" #emailForm="ngForm" class="conta-form-detalhes">
+                <div class="conta-form-detalhes__grid">
+                  <div class="campo">
+                    <label for="detalhes-novo-email">Novo e-mail</label>
+                    <input
+                      id="detalhes-novo-email"
+                      name="novoEmailDetalhes"
+                      type="email"
+                      autocomplete="email"
+                      required
+                      [(ngModel)]="novoEmailDetalhes"
+                    />
+                  </div>
+
+                  <div class="campo">
+                    <label for="detalhes-senha-atual-email">Senha atual</label>
+                    <input
+                      id="detalhes-senha-atual-email"
+                      name="senhaAtualParaEmail"
+                      type="password"
+                      autocomplete="current-password"
+                      required
+                      [(ngModel)]="senhaAtualParaEmail"
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" class="btn-cta" [disabled]="emailEnviando || emailForm.invalid">
+                  {{ emailEnviando ? 'Enviando...' : 'Solicitar troca de e-mail' }}
+                </button>
+
+                @if (emailMensagem) {
+                  <p class="mensagem" [class.mensagem-sucesso]="emailSucesso" [class.mensagem-erro]="!emailSucesso" role="alert">
+                    {{ emailMensagem }}
+                  </p>
+                }
+              </form>
+            }
           }
         }
       </div>

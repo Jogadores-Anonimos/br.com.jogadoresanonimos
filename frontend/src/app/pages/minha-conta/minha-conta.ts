@@ -6,7 +6,6 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
-import { AvisoEmailNaoConfirmado } from '../../components/aviso-email-nao-confirmado/aviso-email-nao-confirmado';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 import { Auth } from '../../services/auth/auth';
 import { Arquivo as ArquivoService } from '../../services/arquivo/arquivo';
@@ -28,7 +27,7 @@ interface PedidoConta {
 @Component({
   selector: 'app-minha-conta',
   standalone: true,
-  imports: [FormsModule, RouterLink, ResourceLayout, ContaAuthForms, AvisoEmailNaoConfirmado],
+  imports: [FormsModule, RouterLink, ResourceLayout, ContaAuthForms],
   templateUrl: './minha-conta.html',
   styleUrl: './minha-conta.css',
 })
@@ -159,7 +158,7 @@ export class MinhaConta {
     }
 
     this.auth
-      .atualizarConta({ apelido: this.nomeExibicao, email: this.emailDetalhes })
+      .atualizarConta({ apelido: this.nomeExibicao })
       .subscribe((resposta) => {
         if (!resposta.success) {
           this.detalhesEnviando = false;
@@ -168,6 +167,32 @@ export class MinhaConta {
         }
 
         this.salvarSenhaSeInformada();
+      });
+  }
+
+  novoEmailDetalhes = '';
+  senhaAtualParaEmail = '';
+  emailMensagem = '';
+  emailSucesso = false;
+  emailEnviando = false;
+
+  onSolicitarTrocaEmail(): void {
+    this.emailEnviando = true;
+    this.emailMensagem = '';
+    this.emailSucesso = false;
+
+    this.auth
+      .solicitarTrocaEmail({ senhaAtual: this.senhaAtualParaEmail, novoEmail: this.novoEmailDetalhes })
+      .subscribe((resposta) => {
+        this.emailEnviando = false;
+        this.emailSucesso = resposta.success;
+        if (resposta.success) {
+          this.senhaAtualParaEmail = '';
+          this.novoEmailDetalhes = '';
+          this.emailMensagem = resposta.data?.mensagem ?? 'Verifique seu e-mail atual para confirmar a troca.';
+        } else {
+          this.emailMensagem = resposta.error?.message ?? 'Não foi possível solicitar a troca de e-mail.';
+        }
       });
   }
 

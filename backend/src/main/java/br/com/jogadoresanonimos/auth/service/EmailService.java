@@ -5,13 +5,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class EmailService {
@@ -22,13 +26,18 @@ public class EmailService {
     private static final long MULTIPLICADOR = 3;
     private static final String RESEND_URL = "https://api.resend.com/emails";
     private static final String REMETENTE = "Jogadores Anônimos do Brasil <naoresponda@jogadoresanonimos.com.br>";
+    private static final String LOGO_PATH = "/images/header/logo-jogadores-anonimos-monograma.png";
 
     private final RestTemplate restTemplate;
     private final String resendApiKey;
+    private final String logoUrl;
 
-    public EmailService(RestTemplate restTemplate, @Value("${app.email.resend-api-key}") String resendApiKey) {
+    public EmailService(RestTemplate restTemplate,
+                         @Value("${app.email.resend-api-key}") String resendApiKey,
+                         @Value("${app.frontend-url}") String frontendUrl) {
         this.restTemplate = restTemplate;
         this.resendApiKey = resendApiKey;
+        this.logoUrl = UriComponentsBuilder.fromUriString(frontendUrl).replacePath(LOGO_PATH).toUriString();
     }
 
     @Async
@@ -37,6 +46,7 @@ public class EmailService {
         String corpoHtml = """
                 <body style="margin: 0; padding: 0; background-color: #ffffff;">
                 <div style="max-width: 560px; margin: 0 auto; padding: 24px; font-family: Arial, sans-serif;">
+                <p style="text-align: center; margin: 0 0 24px 0;"><img src="%s" alt="Jogadores Anônimos do Brasil" width="72" style="max-width: 72px; height: auto;"></p>
                 <p style="font-size: 18px; font-weight: 600; color: #742C24; margin: 0 0 24px 0;">Jogadores Anônimos do Brasil</p>
                 <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Olá,</p>
                 <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Recebemos uma solicitação para redefinir a senha da sua conta.</p>
@@ -48,16 +58,19 @@ public class EmailService {
                 <p style="font-size: 12px; color: #777777; margin: 4px 0 0 0;">Dúvidas? Fale conosco pelo site oficial.</p>
                 </div>
                 </body>
-                """.formatted(linkComTokenBruto);
+                """.formatted(logoUrl, linkComTokenBruto);
+        String chamadaId = UUID.randomUUID().toString();
         long delay = DELAY_INICIAL_MS;
         for (int tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+            log.info("resend_chamada_disparada fluxo=redefinicao_senha chamadaId={} tentativa={} usuarioHash={}", chamadaId, tentativa, usuarioIdHash);
             try {
-                enviarViaProvedor(emailDestino, assunto, corpoHtml);
+                HttpStatusCode status = enviarViaProvedor(emailDestino, assunto, corpoHtml);
+                log.info("resend_chamada_sucesso fluxo=redefinicao_senha chamadaId={} tentativa={} usuarioHash={} statusHttp={}", chamadaId, tentativa, usuarioIdHash, status.value());
                 return;
             } catch (Exception ex) {
-                log.warn("falha_envio_email tentativa={} usuarioHash={} causa={}", tentativa, usuarioIdHash, ex.getClass().getSimpleName());
+                log.warn("resend_chamada_falha fluxo=redefinicao_senha chamadaId={} tentativa={} usuarioHash={} causa={} statusHttp={}", chamadaId, tentativa, usuarioIdHash, ex.getClass().getSimpleName(), statusHttpDe(ex));
                 if (tentativa == MAX_TENTATIVAS) {
-                    log.error("falha_definitiva_envio_email usuarioHash={}", usuarioIdHash);
+                    log.error("resend_chamada_falha_definitiva fluxo=redefinicao_senha chamadaId={} usuarioHash={}", chamadaId, usuarioIdHash);
                     return;
                 }
                 sleep(delay);
@@ -72,6 +85,7 @@ public class EmailService {
         String corpoHtml = """
                 <body style="margin: 0; padding: 0; background-color: #ffffff;">
                 <div style="max-width: 560px; margin: 0 auto; padding: 24px; font-family: Arial, sans-serif;">
+                <p style="text-align: center; margin: 0 0 24px 0;"><img src="%s" alt="Jogadores Anônimos do Brasil" width="72" style="max-width: 72px; height: auto;"></p>
                 <p style="font-size: 18px; font-weight: 600; color: #742C24; margin: 0 0 24px 0;">Jogadores Anônimos do Brasil — Administração</p>
                 <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Olá,</p>
                 <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Foi solicitada a redefinição de senha da sua conta de administrador. Use o código abaixo para continuar:</p>
@@ -82,7 +96,7 @@ public class EmailService {
                 <p style="font-size: 12px; color: #777777; margin: 4px 0 0 0;">Fale conosco pelo site oficial.</p>
                 </div>
                 </body>
-                """.formatted(codigo);
+                """.formatted(logoUrl, codigo);
         long delay = DELAY_INICIAL_MS;
         for (int tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
             try {
@@ -106,6 +120,7 @@ public class EmailService {
         String corpoHtml = """
                 <body style="margin: 0; padding: 0; background-color: #ffffff;">
                 <div style="max-width: 560px; margin: 0 auto; padding: 24px; font-family: Arial, sans-serif;">
+                <p style="text-align: center; margin: 0 0 24px 0;"><img src="%s" alt="Jogadores Anônimos do Brasil" width="72" style="max-width: 72px; height: auto;"></p>
                 <p style="font-size: 18px; font-weight: 600; color: #742C24; margin: 0 0 24px 0;">Jogadores Anônimos do Brasil</p>
                 <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Olá,</p>
                 <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Recebemos seu cadastro. Para confirmar que este é o seu e-mail, clique no botão abaixo:</p>
@@ -116,7 +131,7 @@ public class EmailService {
                 <p style="font-size: 12px; color: #777777; margin: 4px 0 0 0;">Dúvidas? Fale conosco pelo site oficial.</p>
                 </div>
                 </body>
-                """.formatted(linkComTokenBruto);
+                """.formatted(logoUrl, linkComTokenBruto);
         long delay = DELAY_INICIAL_MS;
         for (int tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
             try {
@@ -134,7 +149,7 @@ public class EmailService {
         }
     }
 
-    private void enviarViaProvedor(String emailDestino, String assunto, String corpoHtml) {
+    private HttpStatusCode enviarViaProvedor(String emailDestino, String assunto, String corpoHtml) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(resendApiKey);
@@ -144,7 +159,15 @@ public class EmailService {
                 "subject", assunto,
                 "html", corpoHtml);
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(corpo, headers);
-        restTemplate.postForObject(RESEND_URL, request, String.class);
+        ResponseEntity<String> resposta = restTemplate.postForEntity(RESEND_URL, request, String.class);
+        return resposta.getStatusCode();
+    }
+
+    private String statusHttpDe(Exception ex) {
+        if (ex instanceof org.springframework.web.client.RestClientResponseException responseEx) {
+            return String.valueOf(responseEx.getStatusCode().value());
+        }
+        return "indisponivel";
     }
 
     private void sleep(long millis) {

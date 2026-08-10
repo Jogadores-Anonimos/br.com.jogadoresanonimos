@@ -85,10 +85,6 @@
   align-items: start;
 }
 
-.conta-dashboard__aviso-email {
-  grid-column: 1 / -1;
-}
-
 .conta-dashboard__nav ul {
   list-style: none;
   display: flex;
@@ -389,6 +385,22 @@
 }
 
 .conta-form-detalhes {
+  max-width: 680px;
+}
+
+.conta-form-detalhes__subtitulo {
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: var(--font-weight-heading);
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-xs);
+}
+
+.conta-form-detalhes__ajuda-secao {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: var(--spacing-sm);
   max-width: 680px;
 }
 

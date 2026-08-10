@@ -45,6 +45,24 @@ Não é um endpoint novo: acontece dentro de
 
 Response do registro **não muda de contrato** (mesmo shape de hoje).
 
+## 1.1 Atualização 2026-08-10 (`backend`) — segundo motivo de emissão de token: troca de e-mail
+
+`email_confirmacao_token` ganhou `tipo` (`CADASTRO` | `TROCA_EMAIL`) e
+`novo_email` (nullable, só preenchido quando `tipo = TROCA_EMAIL`) —
+migration `V7`. Motivo: fechar achado de segurança em que
+`PUT /api/v1/usuarios/me` trocava `usuario.email` direto, sem senha nem
+confirmação (qualquer requisição autenticada sequestrava o canal de
+recuperação de conta). Ver
+`contrato-usuario-conta-propria.md`, seção 4, para o endpoint que agora
+gera token `tipo = TROCA_EMAIL`
+(`POST /api/v1/usuarios/me/email/solicitar-troca`).
+
+Diferença de destino do e-mail: token `CADASTRO` é enviado para o único
+e-mail que a conta tem (o que está sendo confirmado). Token
+`TROCA_EMAIL` é enviado para o e-mail **atual/antigo** da conta — nunca
+para `novo_email` — porque a prova de posse que interessa aqui é "o dono
+da caixa atual autoriza a troca", não "o dono da caixa nova existe".
+
 ## 2. `GET /api/v1/auth/confirmar-email`
 
 - **Autenticação**: nenhuma (rota pública, prova de posse é o token).
@@ -71,6 +89,23 @@ Response do registro **não muda de contrato** (mesmo shape de hoje).
   `redefinir-senha`.
 - **Consistência**: forte, síncrona.
 
+> **Atualização 2026-08-10 (`backend`)**: comportamento agora ramifica
+> por `tipo` da linha do token encontrada por `token_hash`:
+> - `tipo = CADASTRO` (default): comportamento inalterado, marca
+>   `usuario.email_confirmado_em = now()`.
+> - `tipo = TROCA_EMAIL`: copia `token.novo_email` para `usuario.email`
+>   **e** marca `usuario.email_confirmado_em = now()` — é o único momento
+>   em que `usuario.email` muda nesse fluxo, nunca no passo de
+>   solicitação (`POST /usuarios/me/email/solicitar-troca`). Antes de
+>   copiar, revalida que `novo_email` ainda não está em uso por outra
+>   conta (409 `USUARIO_DADOS_EM_USO`) — outra conta pode ter registrado
+>   esse e-mail no intervalo entre a solicitação e o clique no link.
+>
+> Idempotência do endpoint (token já usado + conta já no estado
+> esperado → 200) vale igual para os dois tipos: se `tipo = TROCA_EMAIL`
+> e `usuario.email` já é igual a `token.novo_email`, responde sucesso sem
+> reprocessar.
+
 **Request**: query param `token` (string, obrigatório).
 
 **Response 200 (sucesso ou já confirmado antes — mesmo shape)**:
@@ -87,6 +122,7 @@ Response do registro **não muda de contrato** (mesmo shape de hoje).
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `token` ausente/vazio |
 | 401 | `AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO` | token inexistente, expirado, ou usuário do token não existe mais |
+| 409 | `USUARIO_DADOS_EM_USO` | `tipo = TROCA_EMAIL`: `novo_email` do token já está em uso por outra conta no momento da confirmação |
 | 429 | `AUTH_RATE_LIMITED` | excesso de tentativas para o mesmo token |
 
 Caso "já confirmado antes" **não é erro**: se o token já foi usado
@@ -222,7 +258,20 @@ CREATE TABLE email_confirmacao_token (
 CREATE INDEX idx_email_confirmacao_token_usuario ON email_confirmacao_token USING btree (usuario_id);
 ```
 
-Coluna nova em `usuario` (mesma migration, expand puro — aditiva,
+> **Atualização 2026-08-10 (`backend`)**, migration `V7` (só DDL, expand
+> puro): `email_confirmacao_token` ganhou 2 colunas.
+> ```sql
+> ALTER TABLE email_confirmacao_token ADD COLUMN tipo character varying(20) NOT NULL DEFAULT 'CADASTRO';
+> ALTER TABLE email_confirmacao_token ADD COLUMN novo_email character varying(255);
+> ```
+> `tipo` fica com `DEFAULT 'CADASTRO'` permanentemente (não é removido
+> numa migration de contração): linhas históricas e o fluxo de cadastro
+> continuam a fazer sentido com esse default, diferente de uma coluna
+> que precisaria virar obrigatória sem default depois — aqui o default
+> é semanticamente correto para sempre, não é um remendo temporário.
+> `novo_email` fica nullable (só preenchido quando `tipo = TROCA_EMAIL`).
+
+Coluna nova em `usuario` (mesma migration `V5`, expand puro — aditiva,
 nullable, sem default forçado):
 ```sql
 ALTER TABLE usuario ADD COLUMN email_confirmado_em timestamp with time zone;
@@ -242,6 +291,10 @@ implementar essa parte.
 `AUTH_RATE_LIMITED` (já existente) passa a cobrir também
 `/auth/confirmar-email` (por hash do token) e
 `/auth/reenviar-confirmacao-email` (bucket global de varredura).
+
+`USUARIO_DADOS_EM_USO` (já existente, catálogo de `usuario`) passa a
+também poder ser retornado por `GET /auth/confirmar-email` quando
+`tipo = TROCA_EMAIL` (ver seção 2, 2026-08-10).
 
 ## 7. Observabilidade
 

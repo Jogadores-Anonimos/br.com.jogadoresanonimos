@@ -3,6 +3,7 @@ package br.com.jogadoresanonimos.usuario.service;
 import br.com.jogadoresanonimos.auditoria.entity.AcaoAuditoria;
 import br.com.jogadoresanonimos.auditoria.service.AdminAuditoriaService;
 import br.com.jogadoresanonimos.auth.dto.MensagemResponse;
+import br.com.jogadoresanonimos.auth.service.AuthService;
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
 import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
@@ -13,6 +14,7 @@ import br.com.jogadoresanonimos.security.MfaSecretCipher;
 import br.com.jogadoresanonimos.security.TotpService;
 import br.com.jogadoresanonimos.usuario.dto.AlterarSenhaRequest;
 import br.com.jogadoresanonimos.usuario.dto.AtualizarContaRequest;
+import br.com.jogadoresanonimos.usuario.dto.SolicitarTrocaEmailRequest;
 import br.com.jogadoresanonimos.usuario.dto.UsuarioAdminResponse;
 import br.com.jogadoresanonimos.usuario.dto.UsuarioMeResponse;
 import br.com.jogadoresanonimos.usuario.entity.Role;
@@ -40,11 +42,12 @@ public class UsuarioService {
     private final AdminAuditoriaService adminAuditoriaService;
     private final TotpService totpService;
     private final MfaSecretCipher mfaSecretCipher;
+    private final AuthService authService;
     private final int adminLimiteMaximo;
 
     public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
                            RateLimiterService rateLimiterService, AdminAuditoriaService adminAuditoriaService,
-                           TotpService totpService, MfaSecretCipher mfaSecretCipher,
+                           TotpService totpService, MfaSecretCipher mfaSecretCipher, AuthService authService,
                            @Value("${app.admin.limite-maximo}") String adminLimiteMaximoRaw) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
@@ -52,6 +55,7 @@ public class UsuarioService {
         this.adminAuditoriaService = adminAuditoriaService;
         this.totpService = totpService;
         this.mfaSecretCipher = mfaSecretCipher;
+        this.authService = authService;
         this.adminLimiteMaximo = parseLimiteMaximo(adminLimiteMaximoRaw);
     }
 
@@ -141,13 +145,31 @@ public class UsuarioService {
                 .orElseThrow(() -> new UnauthenticatedException(ErrorCode.AUTH_TOKEN_AUSENTE_OU_INVALIDO, "Token ausente ou inválido"));
         boolean apelidoEmUsoPorOutro = !usuario.getApelido().equalsIgnoreCase(request.apelido())
                 && usuarioRepository.existsByApelidoIgnoreCase(request.apelido());
-        boolean emailEmUsoPorOutro = !usuario.getEmail().equalsIgnoreCase(request.email())
-                && usuarioRepository.existsByEmailIgnoreCase(request.email());
-        if (apelidoEmUsoPorOutro || emailEmUsoPorOutro) {
+        if (apelidoEmUsoPorOutro) {
             throw new ConflitoDeEstadoException(ErrorCode.USUARIO_DADOS_EM_USO, "Não foi possível salvar os dados informados");
         }
-        usuario.editarConta(request.apelido(), request.email());
+        usuario.editarConta(request.apelido(), usuario.getEmail());
         return UsuarioMeResponse.from(usuario);
+    }
+
+    @Transactional
+    public MensagemResponse solicitarTrocaEmail(UUID usuarioId, SolicitarTrocaEmailRequest request) {
+        rateLimiterService.check("troca-email:" + usuarioId, 3, Duration.ofMinutes(10), ErrorCode.USUARIO_RATE_LIMITED);
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new UnauthenticatedException(ErrorCode.AUTH_TOKEN_AUSENTE_OU_INVALIDO, "Token ausente ou inválido"));
+        if (!passwordEncoder.matches(request.senhaAtual(), usuario.getSenhaHash())) {
+            throw new UnauthenticatedException(ErrorCode.USUARIO_SENHA_ATUAL_INCORRETA, "Senha atual incorreta");
+        }
+        if (usuario.getEmail().equalsIgnoreCase(request.novoEmail())) {
+            throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Dados inválidos",
+                    List.of(new br.com.jogadoresanonimos.common.dto.ApiError.FieldError(
+                            "novoEmail", "Deve ser diferente do e-mail atual")));
+        }
+        if (usuarioRepository.existsByEmailIgnoreCase(request.novoEmail())) {
+            throw new ConflitoDeEstadoException(ErrorCode.USUARIO_DADOS_EM_USO, "Esse e-mail já está em uso por outra conta");
+        }
+        authService.gerarEEnviarTokenTrocaEmail(usuario, request.novoEmail());
+        return new MensagemResponse("Enviamos um link de confirmação para o seu e-mail atual. Clique nele para concluir a troca.");
     }
 
     @Transactional
@@ -162,6 +184,11 @@ public class UsuarioService {
                 .orElseThrow(() -> new UnauthenticatedException(ErrorCode.AUTH_TOKEN_AUSENTE_OU_INVALIDO, "Token ausente ou inválido"));
         if (!passwordEncoder.matches(request.senhaAtual(), usuario.getSenhaHash())) {
             throw new UnauthenticatedException(ErrorCode.USUARIO_SENHA_ATUAL_INCORRETA, "Senha atual incorreta");
+        }
+        if (passwordEncoder.matches(request.novaSenha(), usuario.getSenhaHash())) {
+            throw new ValidationException(ErrorCode.USUARIO_SENHA_IGUAL_ATUAL, "A nova senha não pode ser igual à senha atual",
+                    List.of(new br.com.jogadoresanonimos.common.dto.ApiError.FieldError(
+                            "novaSenha", "Deve ser diferente da senha atual")));
         }
         usuario.setSenhaHash(passwordEncoder.encode(request.novaSenha()));
         return new MensagemResponse("Senha alterada com sucesso.");

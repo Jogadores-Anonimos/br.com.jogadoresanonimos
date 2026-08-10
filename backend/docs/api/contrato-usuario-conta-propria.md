@@ -23,38 +23,51 @@ Reaproveita a entidade `Usuario` já existente (`V1`). Sem migration nova.
 
 ---
 
-## 1. `PUT /api/v1/usuarios/me` (editar apelido/e-mail da própria conta)
+## 1. `PUT /api/v1/usuarios/me` (editar apelido da própria conta)
+
+> **Mudança breaking em 2026-08-10 (`backend`, achado de `security`)**:
+> este endpoint **não aceita mais `email` no payload**. Troca de e-mail
+> exige senha atual + confirmação por link (endpoint #4 abaixo). Motivo:
+> antes desta mudança, qualquer requisição autenticada trocava o e-mail
+> da conta sem nenhuma prova adicional (sem senha, sem confirmação) —
+> sequestro de sessão (XSS, token vazado) virava sequestro de conta via
+> fluxo de recuperação de senha. Consumido hoje por
+> `frontend/src/app/services/auth/auth.ts` (`atualizarConta`) e
+> `frontend/src/app/pages/minha-conta/minha-conta.ts`
+> (`onSalvarDetalhes`) — **o `frontend-services` precisa remover `email`
+> de `AtualizarContaRequest` e separar a UI de troca de e-mail para o
+> fluxo novo antes de considerar esta entrega completa no cliente**.
 
 - **Autenticação**: obrigatória, qualquer role (`@AuthenticationPrincipal
   AuthenticatedUser`) — não exige `ROLE_ADMIN`.
 - **Autorização adicional**: nenhuma — o alvo da edição é sempre o
   próprio usuário do token, nunca um id arbitrário via path/body.
-- **Idempotente**: sim — reenviar os mesmos valores é no-op.
+- **Idempotente**: sim — reenviar o mesmo valor é no-op.
 - **Consistência**: forte, síncrona (escrita no primário). Usuário espera
-  ver o apelido/e-mail novo refletido imediatamente ao voltar pra tela.
-- **Sem exigência de senha atual**: alterar apelido/e-mail é considerado
-  baixo risco (não muda credencial de acesso). Troca de senha é endpoint
-  separado (#2), que exige confirmação de senha atual.
+  ver o apelido novo refletido imediatamente ao voltar pra tela.
+- **Sem exigência de senha atual**: alterar apelido é considerado baixo
+  risco (não muda credencial de acesso nem canal de recuperação de
+  conta). Troca de senha é endpoint separado (#2); troca de e-mail é o
+  endpoint separado #4, que exige senha atual + confirmação por link.
 
 **Request** (`AtualizarContaRequest`):
 ```json
 {
-  "apelido": "novoApelido",
-  "email": "novo@exemplo.com"
+  "apelido": "novoApelido"
 }
 ```
 - `apelido`: obrigatório, 3-30 chars, sem espaços (mesma regra de
   `RegistroRequest`).
-- `email`: obrigatório, formato válido (mesma regra de `RegistroRequest`).
 
-**Response 200** (`UsuarioMeResponse`, mesmo shape já usado em `GET /me`):
+**Response 200** (`UsuarioMeResponse`, mesmo shape já usado em `GET /me`,
+inclui `email` — só não é mais possível editá-lo por aqui):
 ```json
 {
   "success": true,
   "data": {
     "id": "uuid",
     "apelido": "novoApelido",
-    "email": "novo@exemplo.com",
+    "email": "email-nao-muda-por-aqui@exemplo.com",
     "role": "PARTICIPANTE",
     "criadoEm": "2026-07-01T10:00:00Z",
     "deveTrocarSenha": false,
@@ -68,9 +81,9 @@ Reaproveita a entidade `Usuario` já existente (`V1`). Sem migration nova.
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 400 | `VALIDATION_ERROR` | apelido/e-mail ausente ou fora do formato |
+| 400 | `VALIDATION_ERROR` | apelido ausente ou fora do formato |
 | 401 | `AUTH_TOKEN_AUSENTE_OU_INVALIDO` | token ausente/inválido |
-| 409 | `USUARIO_DADOS_EM_USO` | apelido ou e-mail já em uso por outra conta |
+| 409 | `USUARIO_DADOS_EM_USO` | apelido já em uso por outra conta |
 
 ---
 
@@ -87,6 +100,10 @@ Reaproveita a entidade `Usuario` já existente (`V1`). Sem migration nova.
 - **Exige senha atual**: sim — valida via `PasswordEncoder.matches`
   (mesmo mecanismo usado no login/`AuthService`), antes de gravar o novo
   hash.
+- **Rejeita nova senha igual à atual**: sim — mesmo `PasswordEncoder.matches`
+  aplicado a `novaSenha` contra o hash vigente, antes de gravar o novo
+  hash. Reuso da senha atual é rejeitado como erro de validação de campo
+  (`novaSenha`), não como erro de autenticação.
 
 **Request** (`AlterarSenhaRequest`):
 ```json
@@ -114,6 +131,7 @@ Reaproveita a entidade `Usuario` já existente (`V1`). Sem migration nova.
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | campos ausentes, nova senha curta, ou `novaSenha` ≠ `confirmarNovaSenha` |
+| 400 | `USUARIO_SENHA_IGUAL_ATUAL` | `novaSenha` é igual à senha atual (checado após confirmar `senhaAtual`) |
 | 401 | `AUTH_TOKEN_AUSENTE_OU_INVALIDO` / `USUARIO_SENHA_ATUAL_INCORRETA` | token ausente/inválido, ou `senhaAtual` incorreta |
 
 `senhaAtual` incorreta usa `UnauthenticatedException` (401), não
@@ -121,6 +139,82 @@ Reaproveita a entidade `Usuario` já existente (`V1`). Sem migration nova.
 de "usuário errado" no login (`AuthService.login`), para não dar pista
 de enumeração a quem tiver o token de outra pessoa (cenário de
 token roubado tentando confirmar a senha por força bruta).
+
+---
+
+## 4. `POST /api/v1/usuarios/me/email/solicitar-troca` (solicitar troca do próprio e-mail)
+
+Endpoint novo, 2026-08-10. Design fechado com `security`: o servidor
+nunca troca `usuario.email` neste passo — só emite um token de
+confirmação, enviado ao e-mail **atual/antigo** (não ao novo). O e-mail
+só muda quando o link é clicado (ver seção 4 de
+`contrato-confirmacao-email.md`, ramificação por `tipo = TROCA_EMAIL`).
+Enviar ao e-mail antigo (não ao novo) é a defesa central: se o e-mail
+novo pertence a um atacante que sequestrou a sessão, o dono legítimo da
+caixa antiga recebe o alerta e pode reagir (redefinir senha, contatar
+suporte) antes da troca se concretizar.
+
+- **Autenticação**: obrigatória, qualquer role.
+- **Autorização adicional**: nenhuma — sempre o usuário do token.
+- **Idempotente**: não — cada chamada bem-sucedida invalida o token
+  `TROCA_EMAIL` pendente anterior da mesma conta (se existir) e cria um
+  novo, mesmo padrão de `reenviar-confirmacao-email`.
+- **Consistência**: forte, síncrona na escrita do token (mesma transação
+  da checagem de senha/unicidade); envio do e-mail é assíncrono
+  (`EmailService`, já `@Async` com retry, mesmo padrão dos outros fluxos
+  de e-mail transacional deste projeto) — atraso de alguns segundos no
+  envio é aceitável, o dado que precisa de consistência forte é a
+  existência do token no banco antes de responder 200 ao cliente.
+- **Exige senha atual**: sim, via `PasswordEncoder.matches` (mesmo
+  mecanismo de `UsuarioService.alterarSenha`).
+- **Rate limit**: 3 por 10 minutos por `usuario_id`
+  (`RateLimiterService`, chave `troca-email:hash(usuarioId)` — mesmo
+  padrão de hash de identificador já usado no projeto para não persistir
+  UUID em claro em estrutura de rate limit teoricamente logável).
+
+**Request**:
+```json
+{
+  "senhaAtual": "string",
+  "novoEmail": "novo@exemplo.com"
+}
+```
+- `senhaAtual`: obrigatória.
+- `novoEmail`: obrigatório, formato válido (mesma regra `@Email` de
+  `RegistroRequest`), deve ser diferente do e-mail atual da conta, não
+  pode já estar em uso por outra conta.
+
+**Response 200** (`MensagemResponse`):
+```json
+{
+  "success": true,
+  "data": { "mensagem": "Enviamos um link de confirmação para o seu e-mail atual. Clique nele para concluir a troca." },
+  "error": null
+}
+```
+Mensagem não genérica (diferente do padrão anti-enumeration de
+`reenviar-confirmacao-email`) porque aqui o chamador já está autenticado
+como o próprio dono da conta — não há enumeration a proteger contra o
+próprio usuário logado.
+
+**Erros**:
+| Código HTTP | `error.code` | Motivo |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | `novoEmail` ausente, formato inválido, ou igual ao e-mail atual |
+| 401 | `AUTH_TOKEN_AUSENTE_OU_INVALIDO` | token ausente/inválido |
+| 401 | `USUARIO_SENHA_ATUAL_INCORRETA` | `senhaAtual` não confere |
+| 409 | `USUARIO_DADOS_EM_USO` | `novoEmail` já em uso por outra conta |
+| 429 | `USUARIO_RATE_LIMITED` | excesso de tentativas para a mesma conta |
+
+`senhaAtual` incorreta usa `UnauthenticatedException` (401), mesmo
+racional já documentado no endpoint #2 (não distinguir motivo de forma
+mais específica que "senha incorreta" para não facilitar brute force
+contra token de sessão roubado).
+
+Checagem de unicidade de `novoEmail` roda de novo no momento da
+confirmação (`GET /auth/confirmar-email`), porque outra conta pode
+registrar o mesmo e-mail no intervalo entre a solicitação e o clique no
+link (TTL do token é o mesmo dos demais tokens de confirmação, 24h).
 
 ---
 
@@ -157,27 +251,40 @@ diferente do próprio apelido de conta desde o início.
   na primeira requisição seguinte; o comportamento esperado no frontend
   é deslogar o usuário após sucesso em `PUT /me/senha`.
 - Exclusão de conta.
-- Reenvio de e-mail de verificação ao trocar e-mail (o projeto não exige
-  e-mail verificado, ver `CLAUDE.md`).
 
-## Mudança breaking sinalizada — nenhuma
+## Mudança breaking sinalizada — sim, `PUT /api/v1/usuarios/me`
 
-Endpoints novos, não alteram `GET /api/v1/usuarios/me` nem nenhum
-contrato já consumido pelo frontend.
+Ver aviso na seção 1. `email` removido do request; response continua
+tendo `email` (somente leitura pela via deste endpoint). Frontend precisa
+adaptar `AtualizarContaRequest`/`onSalvarDetalhes` e apontar a troca de
+e-mail para o endpoint novo #4. Endpoint #4 e a ramificação em
+`GET /auth/confirmar-email` (`contrato-confirmacao-email.md`) são
+aditivos, sem impacto em contrato já consumido.
 
 ## Implementação (backend)
 
-- `br.com.jogadoresanonimos.usuario.dto.AtualizarContaRequest` — novo DTO.
-- `br.com.jogadoresanonimos.usuario.dto.AlterarSenhaRequest` — novo DTO.
-- `br.com.jogadoresanonimos.usuario.service.UsuarioService#atualizarConta`,
-  `#alterarSenha` — regra de unicidade reaproveitada
-  (`existsByApelidoIgnoreCase`/`existsByEmailIgnoreCase`, mas excluindo o
-  próprio id da checagem — diferente do registro, que não tem id prévio).
+- `br.com.jogadoresanonimos.usuario.dto.AtualizarContaRequest` — perdeu
+  `email` (2026-08-10).
+- `br.com.jogadoresanonimos.usuario.dto.AlterarSenhaRequest` — DTO já
+  existente.
+- `br.com.jogadoresanonimos.usuario.dto.SolicitarTrocaEmailRequest` —
+  novo DTO (2026-08-10).
+- `br.com.jogadoresanonimos.usuario.service.UsuarioService#atualizarConta`
+  — checagem de unicidade só de apelido agora.
+  `#alterarSenha` — inalterado.
+  `#solicitarTrocaEmail` — novo (2026-08-10): valida senha, valida
+  `novoEmail`, invalida token `TROCA_EMAIL` pendente anterior, cria token
+  novo, dispara envio assíncrono ao e-mail atual.
 - `br.com.jogadoresanonimos.usuario.controller.UsuarioController` —
-  ganhou os dois endpoints novos, mesmo controller do `GET /me` (mesmo
-  recurso `/usuarios/me`).
+  ganhou o endpoint `POST /me/email/solicitar-troca` (2026-08-10), além
+  dos dois já existentes, mesmo controller do `GET /me`.
 - `PasswordEncoder` injetado no `UsuarioService` (mesmo bean já
   configurado e usado por `AuthService`).
+- Geração/persistência de token de troca de e-mail reaproveita
+  `EmailConfirmacaoToken`/`EmailConfirmacaoTokenRepository` (`auth`
+  package) via novo método de serviço compartilhado em `AuthService`,
+  para não duplicar a lógica de hash SHA-256/TTL/envio já usada no fluxo
+  de cadastro — ver `contrato-confirmacao-email.md`.
 - Testes unitários em
   `backend/src/test/java/br/com/jogadoresanonimos/usuario/`.
 
@@ -215,3 +322,15 @@ Nenhuma coluna nova — reaproveita `usuario` (`V1`) integralmente.
 > aditiva (novo campo em objeto JSON existente) — não é breaking, mas o
 > `frontend-services` deve atualizar a interface/model TypeScript
 > correspondente para consumir o campo.
+
+> **Atualização 2026-08-10 (`backend`)**: `PUT /api/v1/usuarios/me/senha`
+> passou a rejeitar `novaSenha` igual à senha atual, checando via
+> `PasswordEncoder.matches(novaSenha, hashAtual)` — mesmo verificador já
+> usado para validar `senhaAtual`. Corrige bug reportado em
+> `PENDENCIAS.md` (fluxo de troca de senha aceitava reuso da senha
+> vigente). Erro novo: `USUARIO_SENHA_IGUAL_ATUAL` (400, ver tabela de
+> erros do endpoint 2). Mudança aditiva de contrato — endpoint já
+> existente ganha só mais um `error.code` possível, nenhum shape de
+> request/response muda; frontend que já trata erro genérico de
+> `VALIDATION_ERROR`/campo não quebra, mas pode opcionalmente mostrar
+> mensagem específica para esse código.

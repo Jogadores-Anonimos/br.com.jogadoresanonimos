@@ -7,12 +7,14 @@ import br.com.jogadoresanonimos.common.exception.UnauthenticatedException;
 import br.com.jogadoresanonimos.security.AuthenticatedUser;
 import br.com.jogadoresanonimos.usuario.dto.AlterarSenhaRequest;
 import br.com.jogadoresanonimos.usuario.dto.AtualizarContaRequest;
+import br.com.jogadoresanonimos.usuario.dto.SolicitarTrocaEmailRequest;
 import br.com.jogadoresanonimos.usuario.dto.UsuarioMeResponse;
 import br.com.jogadoresanonimos.usuario.service.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -54,5 +56,15 @@ public class UsuarioController {
             throw new UnauthenticatedException(ErrorCode.AUTH_TOKEN_AUSENTE_OU_INVALIDO, "Token ausente ou inválido");
         }
         return ResponseEntity.ok(ApiResponse.ok(usuarioService.alterarSenha(principal.id(), request)));
+    }
+
+    @PostMapping("/me/email/solicitar-troca")
+    public ResponseEntity<ApiResponse<MensagemResponse>> solicitarTrocaEmail(
+            @Valid @RequestBody SolicitarTrocaEmailRequest request,
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        if (principal == null) {
+            throw new UnauthenticatedException(ErrorCode.AUTH_TOKEN_AUSENTE_OU_INVALIDO, "Token ausente ou inválido");
+        }
+        return ResponseEntity.ok(ApiResponse.ok(usuarioService.solicitarTrocaEmail(principal.id(), request)));
     }
 }

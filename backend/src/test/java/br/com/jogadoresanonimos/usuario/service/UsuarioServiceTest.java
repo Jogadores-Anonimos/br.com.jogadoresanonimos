@@ -2,6 +2,8 @@ package br.com.jogadoresanonimos.usuario.service;
 
 import br.com.jogadoresanonimos.auditoria.entity.AcaoAuditoria;
 import br.com.jogadoresanonimos.auditoria.service.AdminAuditoriaService;
+import br.com.jogadoresanonimos.auth.dto.MensagemResponse;
+import br.com.jogadoresanonimos.auth.service.AuthService;
 import br.com.jogadoresanonimos.common.exception.ApiException;
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
 import br.com.jogadoresanonimos.common.exception.ErrorCode;
@@ -13,6 +15,7 @@ import br.com.jogadoresanonimos.security.MfaSecretCipher;
 import br.com.jogadoresanonimos.security.TotpService;
 import br.com.jogadoresanonimos.usuario.dto.AlterarSenhaRequest;
 import br.com.jogadoresanonimos.usuario.dto.AtualizarContaRequest;
+import br.com.jogadoresanonimos.usuario.dto.SolicitarTrocaEmailRequest;
 import br.com.jogadoresanonimos.usuario.dto.UsuarioAdminResponse;
 import br.com.jogadoresanonimos.usuario.dto.UsuarioMeResponse;
 import br.com.jogadoresanonimos.usuario.entity.Role;
@@ -57,12 +60,15 @@ class UsuarioServiceTest {
     @Mock
     MfaSecretCipher mfaSecretCipher;
 
+    @Mock
+    AuthService authService;
+
     UsuarioService usuarioService;
 
     @BeforeEach
     void setUp() {
         usuarioService = new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
-                adminAuditoriaService, totpService, mfaSecretCipher, "5");
+                adminAuditoriaService, totpService, mfaSecretCipher, authService, "5");
     }
 
     private List<Usuario> adminsAtivos(int quantidade) throws Exception {
@@ -279,24 +285,24 @@ class UsuarioServiceTest {
     @Test
     void construtor_deveFalharQuandoLimiteMaximoAusente() {
         assertThatThrownBy(() -> new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
-                adminAuditoriaService, totpService, mfaSecretCipher, ""))
+                adminAuditoriaService, totpService, mfaSecretCipher, authService, ""))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void construtor_deveFalharQuandoLimiteMaximoNaoNumerico() {
         assertThatThrownBy(() -> new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
-                adminAuditoriaService, totpService, mfaSecretCipher, "abc"))
+                adminAuditoriaService, totpService, mfaSecretCipher, authService, "abc"))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void construtor_deveFalharQuandoLimiteMaximoZeroOuNegativo() {
         assertThatThrownBy(() -> new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
-                adminAuditoriaService, totpService, mfaSecretCipher, "0"))
+                adminAuditoriaService, totpService, mfaSecretCipher, authService, "0"))
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> new UsuarioService(usuarioRepository, passwordEncoder, rateLimiterService,
-                adminAuditoriaService, totpService, mfaSecretCipher, "-1"))
+                adminAuditoriaService, totpService, mfaSecretCipher, authService, "-1"))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -321,25 +327,22 @@ class UsuarioServiceTest {
     }
 
     @Test
-    void atualizarConta_deveAtualizarQuandoApelidoEEmailDisponiveis() throws Exception {
+    void atualizarConta_deveAtualizarApelidoQuandoDisponivel() throws Exception {
         UUID id = UUID.randomUUID();
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
         when(usuarioRepository.existsByApelidoIgnoreCase("novoApelido")).thenReturn(false);
-        when(usuarioRepository.existsByEmailIgnoreCase("novo@exemplo.com")).thenReturn(false);
-        UsuarioMeResponse resultado = usuarioService.atualizarConta(id,
-                new AtualizarContaRequest("novoApelido", "novo@exemplo.com"));
+        UsuarioMeResponse resultado = usuarioService.atualizarConta(id, new AtualizarContaRequest("novoApelido"));
         assertThat(resultado.apelido()).isEqualTo("novoApelido");
-        assertThat(resultado.email()).isEqualTo("novo@exemplo.com");
+        assertThat(resultado.email()).isEqualTo("fulano@exemplo.com");
     }
 
     @Test
-    void atualizarConta_devePermitirReenviarOsMesmosDadosSemChecarUnicidadeContraSiMesmo() throws Exception {
+    void atualizarConta_devePermitirReenviarOMesmoApelidoSemChecarUnicidadeContraSiMesmo() throws Exception {
         UUID id = UUID.randomUUID();
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
-        UsuarioMeResponse resultado = usuarioService.atualizarConta(id,
-                new AtualizarContaRequest("fulano", "fulano@exemplo.com"));
+        UsuarioMeResponse resultado = usuarioService.atualizarConta(id, new AtualizarContaRequest("fulano"));
         assertThat(resultado.apelido()).isEqualTo("fulano");
     }
 
@@ -349,20 +352,7 @@ class UsuarioServiceTest {
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
         when(usuarioRepository.existsByApelidoIgnoreCase("ocupado")).thenReturn(true);
-        assertThatThrownBy(() -> usuarioService.atualizarConta(id,
-                new AtualizarContaRequest("ocupado", "fulano@exemplo.com")))
-                .isInstanceOf(ConflitoDeEstadoException.class);
-    }
-
-    @Test
-    void atualizarConta_deveLancarConflitoQuandoEmailJaEstaEmUsoPorOutraConta() throws Exception {
-        UUID id = UUID.randomUUID();
-        Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
-        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
-        lenient().when(usuarioRepository.existsByApelidoIgnoreCase("fulano")).thenReturn(false);
-        when(usuarioRepository.existsByEmailIgnoreCase("ocupado@exemplo.com")).thenReturn(true);
-        assertThatThrownBy(() -> usuarioService.atualizarConta(id,
-                new AtualizarContaRequest("fulano", "ocupado@exemplo.com")))
+        assertThatThrownBy(() -> usuarioService.atualizarConta(id, new AtualizarContaRequest("ocupado")))
                 .isInstanceOf(ConflitoDeEstadoException.class);
     }
 
@@ -370,9 +360,90 @@ class UsuarioServiceTest {
     void atualizarConta_deveLancarUnauthenticatedQuandoUsuarioNaoExiste() {
         UUID id = UUID.randomUUID();
         when(usuarioRepository.findById(id)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> usuarioService.atualizarConta(id,
-                new AtualizarContaRequest("fulano", "fulano@exemplo.com")))
+        assertThatThrownBy(() -> usuarioService.atualizarConta(id, new AtualizarContaRequest("fulano")))
                 .isInstanceOf(UnauthenticatedException.class);
+    }
+
+    @Test
+    void solicitarTrocaEmail_deveGerarTokenQuandoSenhaEEmailValidos() throws Exception {
+        UUID id = UUID.randomUUID();
+        Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("senhaAtual123", "hash")).thenReturn(true);
+        when(usuarioRepository.existsByEmailIgnoreCase("novo@exemplo.com")).thenReturn(false);
+        MensagemResponse resultado = usuarioService.solicitarTrocaEmail(id,
+                new SolicitarTrocaEmailRequest("senhaAtual123", "novo@exemplo.com"));
+        assertThat(resultado.mensagem()).isNotBlank();
+        verify(authService).gerarEEnviarTokenTrocaEmail(usuario, "novo@exemplo.com");
+    }
+
+    @Test
+    void solicitarTrocaEmail_deveChecarRateLimitComChaveEParametrosCorretos() throws Exception {
+        UUID id = UUID.randomUUID();
+        Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("senhaAtual123", "hash")).thenReturn(true);
+        when(usuarioRepository.existsByEmailIgnoreCase("novo@exemplo.com")).thenReturn(false);
+        usuarioService.solicitarTrocaEmail(id, new SolicitarTrocaEmailRequest("senhaAtual123", "novo@exemplo.com"));
+        verify(rateLimiterService).check("troca-email:" + id, 3, java.time.Duration.ofMinutes(10),
+                ErrorCode.USUARIO_RATE_LIMITED);
+    }
+
+    @Test
+    void solicitarTrocaEmail_deveLancarRateLimitedQuandoLimiteExcedido() {
+        UUID id = UUID.randomUUID();
+        org.mockito.Mockito.doThrow(new br.com.jogadoresanonimos.common.exception.RateLimitedException(
+                        ErrorCode.USUARIO_RATE_LIMITED, "Muitas tentativas", 60L))
+                .when(rateLimiterService).check("troca-email:" + id, 3, java.time.Duration.ofMinutes(10),
+                        ErrorCode.USUARIO_RATE_LIMITED);
+        assertThatThrownBy(() -> usuarioService.solicitarTrocaEmail(id,
+                new SolicitarTrocaEmailRequest("senhaAtual123", "novo@exemplo.com")))
+                .isInstanceOf(br.com.jogadoresanonimos.common.exception.RateLimitedException.class);
+        org.mockito.Mockito.verifyNoInteractions(usuarioRepository, authService);
+    }
+
+    @Test
+    void solicitarTrocaEmail_deveLancarUnauthenticatedQuandoUsuarioNaoExiste() {
+        UUID id = UUID.randomUUID();
+        when(usuarioRepository.findById(id)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> usuarioService.solicitarTrocaEmail(id,
+                new SolicitarTrocaEmailRequest("senhaAtual123", "novo@exemplo.com")))
+                .isInstanceOf(UnauthenticatedException.class);
+        org.mockito.Mockito.verifyNoInteractions(authService);
+    }
+
+    @Test
+    void solicitarTrocaEmail_deveLancarUnauthenticatedQuandoSenhaAtualIncorreta() throws Exception {
+        UUID id = UUID.randomUUID();
+        Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("senhaErrada12", "hash")).thenReturn(false);
+        assertThatThrownBy(() -> usuarioService.solicitarTrocaEmail(id,
+                new SolicitarTrocaEmailRequest("senhaErrada12", "novo@exemplo.com")))
+                .isInstanceOf(UnauthenticatedException.class);
+    }
+
+    @Test
+    void solicitarTrocaEmail_deveLancarValidationExceptionQuandoNovoEmailIgualAtual() throws Exception {
+        UUID id = UUID.randomUUID();
+        Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("senhaAtual123", "hash")).thenReturn(true);
+        assertThatThrownBy(() -> usuarioService.solicitarTrocaEmail(id,
+                new SolicitarTrocaEmailRequest("senhaAtual123", "fulano@exemplo.com")))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void solicitarTrocaEmail_deveLancarConflitoQuandoNovoEmailJaEmUso() throws Exception {
+        UUID id = UUID.randomUUID();
+        Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("senhaAtual123", "hash")).thenReturn(true);
+        when(usuarioRepository.existsByEmailIgnoreCase("ocupado@exemplo.com")).thenReturn(true);
+        assertThatThrownBy(() -> usuarioService.solicitarTrocaEmail(id,
+                new SolicitarTrocaEmailRequest("senhaAtual123", "ocupado@exemplo.com")))
+                .isInstanceOf(ConflitoDeEstadoException.class);
     }
 
     @Test
@@ -381,9 +452,21 @@ class UsuarioServiceTest {
         Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("senhaAtual123", "hash")).thenReturn(true);
+        when(passwordEncoder.matches("senhaNova12345", "hash")).thenReturn(false);
         when(passwordEncoder.encode("senhaNova12345")).thenReturn("novoHash");
         usuarioService.alterarSenha(id, new AlterarSenhaRequest("senhaAtual123", "senhaNova12345", "senhaNova12345"));
         assertThat(usuario.getSenhaHash()).isEqualTo("novoHash");
+    }
+
+    @Test
+    void alterarSenha_deveLancarValidationExceptionQuandoNovaSenhaIgualAtual() throws Exception {
+        UUID id = UUID.randomUUID();
+        Usuario usuario = usuarioComId(id, "fulano", Role.PARTICIPANTE);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("senhaAtual123", "hash")).thenReturn(true);
+        assertThatThrownBy(() -> usuarioService.alterarSenha(id,
+                new AlterarSenhaRequest("senhaAtual123", "senhaAtual123", "senhaAtual123")))
+                .isInstanceOf(ValidationException.class);
     }
 
     @Test

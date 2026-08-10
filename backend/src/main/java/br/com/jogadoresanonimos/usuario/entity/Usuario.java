@@ -136,4 +136,9 @@ public class Usuario {
     public void confirmarEmail() {
         this.emailConfirmadoEm = Instant.now();
     }
+
+    public void trocarEmailConfirmado(String novoEmail) {
+        this.email = novoEmail;
+        this.emailConfirmadoEm = Instant.now();
+    }
 }

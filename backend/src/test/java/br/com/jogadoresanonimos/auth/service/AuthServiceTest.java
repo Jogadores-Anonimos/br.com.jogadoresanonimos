@@ -4,6 +4,7 @@ import br.com.jogadoresanonimos.auth.dto.*;
 import br.com.jogadoresanonimos.auth.entity.AdminResetCodigo;
 import br.com.jogadoresanonimos.auth.entity.EmailConfirmacaoToken;
 import br.com.jogadoresanonimos.auth.entity.PasswordResetToken;
+import br.com.jogadoresanonimos.auth.entity.TipoEmailConfirmacaoToken;
 import br.com.jogadoresanonimos.auth.repository.AdminResetCodigoRepository;
 import br.com.jogadoresanonimos.auth.repository.EmailConfirmacaoTokenRepository;
 import br.com.jogadoresanonimos.auth.repository.PasswordResetTokenRepository;
@@ -607,6 +608,84 @@ class AuthServiceTest {
         when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
         MensagemResponse response = authService.confirmarEmail("token-ja-usado");
         assertThat(response.mensagem()).isEqualTo("E-mail confirmado com sucesso.");
+    }
+
+    @Test
+    void confirmarEmail_deveTrocarEmailQuandoTipoTrocaEmailEValido() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("apelido", "antigo@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, usuarioId);
+        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuarioId, "hash:token-valido", Instant.now().plusSeconds(3600),
+                TipoEmailConfirmacaoToken.TROCA_EMAIL, "novo@example.com");
+        when(emailConfirmacaoTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.existsByEmailIgnoreCase("novo@example.com")).thenReturn(false);
+        MensagemResponse response = authService.confirmarEmail("token-valido");
+        assertThat(response.mensagem()).isEqualTo("E-mail confirmado com sucesso.");
+        assertThat(usuario.getEmail()).isEqualTo("novo@example.com");
+        assertThat(usuario.getEmailConfirmadoEm()).isNotNull();
+        assertThat(token.getUsadoEm()).isNotNull();
+    }
+
+    @Test
+    void confirmarEmail_deveFalharQuandoTipoTrocaEmailComNovoEmailJaEmUso() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("apelido", "antigo@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, usuarioId);
+        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuarioId, "hash:token-valido", Instant.now().plusSeconds(3600),
+                TipoEmailConfirmacaoToken.TROCA_EMAIL, "novo@example.com");
+        when(emailConfirmacaoTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.existsByEmailIgnoreCase("novo@example.com")).thenReturn(true);
+        assertThatThrownBy(() -> authService.confirmarEmail("token-valido"))
+                .isInstanceOf(ConflitoDeEstadoException.class);
+        assertThat(usuario.getEmail()).isEqualTo("antigo@example.com");
+    }
+
+    @Test
+    void confirmarEmail_deveFalharQuandoTipoTrocaEmailComTokenExpiradoENuncaUsado() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("apelido", "antigo@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, usuarioId);
+        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuarioId, "hash:token-expirado", Instant.now().minusSeconds(60),
+                TipoEmailConfirmacaoToken.TROCA_EMAIL, "novo@example.com");
+        when(emailConfirmacaoTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
+        assertThatThrownBy(() -> authService.confirmarEmail("token-expirado"))
+                .isInstanceOf(UnauthenticatedException.class)
+                .hasMessage("Link de confirmação inválido ou expirado");
+        assertThat(usuario.getEmail()).isEqualTo("antigo@example.com");
+        verify(usuarioRepository, never()).existsByEmailIgnoreCase(anyString());
+    }
+
+    @Test
+    void confirmarEmail_trocaEmailDeveSerIdempotenteQuandoEmailJaIgualAoNovoEmail() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("apelido", "novo@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, usuarioId);
+        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuarioId, "hash:token-ja-usado", Instant.now().plusSeconds(3600),
+                TipoEmailConfirmacaoToken.TROCA_EMAIL, "novo@example.com");
+        token.marcarUsado();
+        when(emailConfirmacaoTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
+        MensagemResponse response = authService.confirmarEmail("token-ja-usado");
+        assertThat(response.mensagem()).isEqualTo("E-mail confirmado com sucesso.");
+    }
+
+    @Test
+    void gerarEEnviarTokenTrocaEmail_deveInvalidarTokenPendenteAnteriorEDispararNovoEnvio() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("apelido", "atual@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, usuarioId);
+        EmailConfirmacaoToken tokenAnterior = new EmailConfirmacaoToken(usuarioId, "hash:token-anterior", Instant.now().plusSeconds(3600),
+                TipoEmailConfirmacaoToken.TROCA_EMAIL, "outro@example.com");
+        when(emailConfirmacaoTokenRepository.findByUsuarioIdAndTipoAndUsadoEmIsNull(usuarioId, TipoEmailConfirmacaoToken.TROCA_EMAIL))
+                .thenReturn(java.util.List.of(tokenAnterior));
+        authService.gerarEEnviarTokenTrocaEmail(usuario, "novo@example.com");
+        assertThat(tokenAnterior.getUsadoEm()).isNotNull();
+        verify(emailConfirmacaoTokenRepository).save(argThat(token ->
+                token.getTipo() == TipoEmailConfirmacaoToken.TROCA_EMAIL && "novo@example.com".equals(token.getNovoEmail())));
+        verify(emailService).enviarLinkConfirmacaoEmail(anyString(), eq("atual@example.com"), anyString());
     }
 
     @Test

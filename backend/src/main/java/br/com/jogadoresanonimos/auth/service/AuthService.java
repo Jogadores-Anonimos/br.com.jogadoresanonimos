@@ -4,6 +4,7 @@ import br.com.jogadoresanonimos.auth.dto.*;
 import br.com.jogadoresanonimos.auth.entity.AdminResetCodigo;
 import br.com.jogadoresanonimos.auth.entity.EmailConfirmacaoToken;
 import br.com.jogadoresanonimos.auth.entity.PasswordResetToken;
+import br.com.jogadoresanonimos.auth.entity.TipoEmailConfirmacaoToken;
 import br.com.jogadoresanonimos.auth.repository.AdminResetCodigoRepository;
 import br.com.jogadoresanonimos.auth.repository.EmailConfirmacaoTokenRepository;
 import br.com.jogadoresanonimos.auth.repository.PasswordResetTokenRepository;
@@ -293,6 +294,24 @@ public class AuthService {
     }
 
     @Transactional
+    public void gerarEEnviarTokenTrocaEmail(Usuario usuario, String novoEmail) {
+        emailConfirmacaoTokenRepository.findByUsuarioIdAndTipoAndUsadoEmIsNull(usuario.getId(), TipoEmailConfirmacaoToken.TROCA_EMAIL)
+                .forEach(EmailConfirmacaoToken::marcarUsado);
+        String tokenBruto = gerarTokenBruto();
+        String tokenHash = sha256Hash(tokenBruto);
+        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuario.getId(), tokenHash, Instant.now().plus(Duration.ofHours(24)),
+                TipoEmailConfirmacaoToken.TROCA_EMAIL, novoEmail);
+        emailConfirmacaoTokenRepository.save(token);
+        String usuarioIdHash = hmacHasher.hash(usuario.getId().toString());
+        String link = construirLink("/confirmar-email", tokenBruto);
+        try {
+            emailService.enviarLinkConfirmacaoEmail(usuarioIdHash, usuario.getEmail(), link);
+        } catch (Exception ex) {
+            log.warn("falha_disparo_envio_email_troca_email usuarioHash={} causa={}", usuarioIdHash, ex.getClass().getSimpleName());
+        }
+    }
+
+    @Transactional
     public MensagemResponse confirmarEmail(String token) {
         if (token == null || token.isBlank()) {
             throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Token é obrigatório");
@@ -305,6 +324,9 @@ public class AuthService {
         Usuario usuario = usuarioRepository.findById(confirmacaoToken.getUsuarioId())
                 .orElseThrow(() -> new UnauthenticatedException(ErrorCode.AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO,
                         "Link de confirmação inválido ou expirado"));
+        if (confirmacaoToken.getTipo() == TipoEmailConfirmacaoToken.TROCA_EMAIL) {
+            return confirmarTrocaEmail(usuario, confirmacaoToken);
+        }
         if (usuario.getEmailConfirmadoEm() != null) {
             return new MensagemResponse("E-mail confirmado com sucesso.");
         }
@@ -313,6 +335,22 @@ public class AuthService {
                     "Link de confirmação inválido ou expirado");
         }
         usuario.confirmarEmail();
+        confirmacaoToken.marcarUsado();
+        return new MensagemResponse("E-mail confirmado com sucesso.");
+    }
+
+    private MensagemResponse confirmarTrocaEmail(Usuario usuario, EmailConfirmacaoToken confirmacaoToken) {
+        if (usuario.getEmail().equalsIgnoreCase(confirmacaoToken.getNovoEmail())) {
+            return new MensagemResponse("E-mail confirmado com sucesso.");
+        }
+        if (confirmacaoToken.getUsadoEm() != null || confirmacaoToken.expirado()) {
+            throw new UnauthenticatedException(ErrorCode.AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO,
+                    "Link de confirmação inválido ou expirado");
+        }
+        if (usuarioRepository.existsByEmailIgnoreCase(confirmacaoToken.getNovoEmail())) {
+            throw new ConflitoDeEstadoException(ErrorCode.USUARIO_DADOS_EM_USO, "Esse e-mail já está em uso por outra conta");
+        }
+        usuario.trocarEmailConfirmado(confirmacaoToken.getNovoEmail());
         confirmacaoToken.marcarUsado();
         return new MensagemResponse("E-mail confirmado com sucesso.");
     }
