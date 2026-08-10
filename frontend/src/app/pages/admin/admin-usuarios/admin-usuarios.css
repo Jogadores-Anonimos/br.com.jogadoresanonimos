@@ -286,3 +286,17 @@
   border-radius: var(--radius-sm);
   font-size: 1rem;
 }
+
+.admin-usuarios__total {
+  align-self: flex-end;
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+@media (max-width: 700px) {
+  .admin-usuarios__total {
+    margin-left: 0;
+  }
+}
