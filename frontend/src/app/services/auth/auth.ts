@@ -19,6 +19,7 @@ import {
   RedefinirSenhaRequest,
   ReenviarConfirmacaoEmailRequest,
   RegistroRequest,
+  SolicitarTrocaEmailRequest,
   UsuarioMe,
   UsuarioResponse,
   UsuarioResumo,
@@ -445,7 +446,7 @@ export class Auth {
       return of(apiError<UsuarioMe>('AUTH_TOKEN_AUSENTE_OU_INVALIDO', 'Sessão expirada. Faça login novamente.')).pipe(delay(300));
     }
 
-    const conflito = encontrarUsuarioMockPorIdentificador(req.apelido) ?? encontrarUsuarioMockPorIdentificador(req.email);
+    const conflito = encontrarUsuarioMockPorIdentificador(req.apelido);
     if (conflito && conflito.id !== atual.id) {
       return of(apiError<UsuarioMe>('USUARIO_DADOS_EM_USO', 'Não foi possível salvar os dados informados')).pipe(delay(400));
     }
@@ -453,13 +454,12 @@ export class Auth {
     const usuarioMock = USUARIOS_MOCK.find((u) => u.id === atual.id);
     if (usuarioMock) {
       usuarioMock.apelido = req.apelido;
-      usuarioMock.email = req.email;
     }
 
     const resposta: UsuarioMe = {
       id: atual.id,
       apelido: req.apelido,
-      email: req.email,
+      email: usuarioMock?.email ?? atual.apelido,
       role: atual.role,
       deveTrocarSenha: atual.deveTrocarSenha,
       criadoEm: usuarioMock?.criadoEm ?? new Date().toISOString(),
@@ -550,14 +550,64 @@ export class Auth {
     if (!req.apelido || req.apelido.includes(' ') || req.apelido.length < APELIDO_MIN || req.apelido.length > APELIDO_MAX) {
       fields.push({ campo: 'apelido', mensagem: `Apelido deve ter entre ${APELIDO_MIN} e ${APELIDO_MAX} caracteres, sem espaços.` });
     }
-    if (!req.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(req.email)) {
-      fields.push({ campo: 'email', mensagem: 'E-mail inválido.' });
-    }
 
     if (fields.length === 0) {
       return null;
     }
     return apiError<UsuarioMe>('VALIDATION_ERROR', 'Verifique os campos informados.', fields);
+  }
+
+  solicitarTrocaEmail(req: SolicitarTrocaEmailRequest): Observable<ApiEnvelope<MensagemResponse>> {
+    if (!environment.useMocks) {
+      return this.http.post<ApiEnvelope<MensagemResponse>>(`${environment.apiBaseUrl}/usuarios/me/email/solicitar-troca`, req).pipe(
+        catchError((erro) =>
+          of(apiErrorDeHttpError<MensagemResponse>(erro, 'INTERNAL_ERROR', 'Não foi possível solicitar a troca de e-mail. Tente novamente.')),
+        ),
+      );
+    }
+
+    const validacao = this.validarSolicitarTrocaEmail(req);
+    if (validacao) {
+      return of(validacao).pipe(delay(300));
+    }
+
+    const atual = this.usuarioAtualSignal();
+    const usuarioMock = atual ? USUARIOS_MOCK.find((u) => u.id === atual.id) : undefined;
+    if (!atual || !usuarioMock) {
+      return of(apiError<MensagemResponse>('AUTH_TOKEN_AUSENTE_OU_INVALIDO', 'Sessão expirada. Faça login novamente.')).pipe(delay(300));
+    }
+    if (usuarioMock.senha !== req.senhaAtual) {
+      return of(apiError<MensagemResponse>('USUARIO_SENHA_ATUAL_INCORRETA', 'Senha atual incorreta.')).pipe(delay(400));
+    }
+    if (req.novoEmail.toLowerCase() === usuarioMock.email.toLowerCase()) {
+      return of(apiError<MensagemResponse>('VALIDATION_ERROR', 'O novo e-mail deve ser diferente do e-mail atual.')).pipe(delay(300));
+    }
+    const conflito = encontrarUsuarioMockPorIdentificador(req.novoEmail);
+    if (conflito && conflito.id !== atual.id) {
+      return of(apiError<MensagemResponse>('USUARIO_DADOS_EM_USO', 'Não foi possível salvar os dados informados')).pipe(delay(400));
+    }
+
+    return of(
+      apiSuccess<MensagemResponse>({
+        mensagem: 'Enviamos um link de confirmação para o seu e-mail atual. Clique nele para concluir a troca.',
+      }),
+    ).pipe(delay(500));
+  }
+
+  private validarSolicitarTrocaEmail(req: SolicitarTrocaEmailRequest): ApiEnvelope<MensagemResponse> | null {
+    const fields: ApiFieldError[] = [];
+
+    if (!req.senhaAtual) {
+      fields.push({ campo: 'senhaAtual', mensagem: 'Informe a senha atual.' });
+    }
+    if (!req.novoEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(req.novoEmail)) {
+      fields.push({ campo: 'novoEmail', mensagem: 'E-mail inválido.' });
+    }
+
+    if (fields.length === 0) {
+      return null;
+    }
+    return apiError<MensagemResponse>('VALIDATION_ERROR', 'Verifique os campos informados.', fields);
   }
 
   private validarRegistro(req: RegistroRequest): ApiEnvelope<UsuarioResponse> | null {

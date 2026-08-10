@@ -10,6 +10,11 @@
     ></app-barra-deslizante>
   }
 </header>
+@if (auth.usuarioAtual() && auth.usuarioAtualDetalhado()?.emailConfirmado === false) {
+  <app-aviso-email-nao-confirmado
+    mensagemContexto="Confirme seu e-mail para garantir a recuperação da sua conta."
+  ></app-aviso-email-nao-confirmado>
+}
 <main>
   <router-outlet></router-outlet>
 </main>

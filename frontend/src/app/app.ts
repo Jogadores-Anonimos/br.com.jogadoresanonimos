@@ -7,11 +7,13 @@ import { BarraDeslizante } from './components/barra-deslizante/barra-deslizante'
 import { WhatsappFlutuante } from './components/whatsapp-flutuante/whatsapp-flutuante';
 import { VoltarAoTopo } from './components/voltar-ao-topo/voltar-ao-topo';
 import { Seo } from './services/seo';
+import { Auth } from './services/auth/auth';
+import { AvisoEmailNaoConfirmado } from './components/aviso-email-nao-confirmado/aviso-email-nao-confirmado';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, Navbar, Footer, BarraDeslizante, WhatsappFlutuante, VoltarAoTopo],
+  imports: [RouterOutlet, Navbar, Footer, BarraDeslizante, WhatsappFlutuante, VoltarAoTopo, AvisoEmailNaoConfirmado],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -20,6 +22,7 @@ export class AppComponent {
 
   mostrarBarraDeslizante = signal(true);
   private readonly seo = inject(Seo);
+  readonly auth = inject(Auth);
 
   constructor(private router: Router) {
     this.router.events

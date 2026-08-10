@@ -76,6 +76,7 @@ export const ERROR_CODE_MENSAGENS: Record<string, string> = {
   USUARIO_PROMOCAO_MFA_NAO_CONFIGURADO: 'Configure a autenticação em duas etapas na sua conta antes de promover outro usuário a administrador.',
   USUARIO_PROMOCAO_TOTP_INVALIDO: 'Código de autenticação em duas etapas ausente ou incorreto.',
   AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO: 'Link de confirmação inválido ou expirado.',
+  USUARIO_SENHA_IGUAL_ATUAL: 'A nova senha não pode ser igual à senha atual.',
 };
 
 export function mensagemDeErro(error: ApiError | null | undefined, mensagemFallback: string): string {

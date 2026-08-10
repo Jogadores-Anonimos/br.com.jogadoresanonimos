@@ -76,7 +76,11 @@ export interface UsuarioMe extends UsuarioResumo {
 
 export interface AtualizarContaRequest {
   apelido: string;
-  email: string;
+}
+
+export interface SolicitarTrocaEmailRequest {
+  senhaAtual: string;
+  novoEmail: string;
 }
 
 export interface AlterarSenhaRequest {
