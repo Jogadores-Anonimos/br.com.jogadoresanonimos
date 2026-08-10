@@ -27,10 +27,12 @@ import br.com.jogadoresanonimos.usuario.repository.UsuarioRepository;
 import br.com.jogadoresanonimos.usuario.dto.UsuarioResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -70,6 +72,7 @@ public class AuthService {
     private final TotpService totpService;
     private final MfaSecretCipher mfaSecretCipher;
     private final JwtDenylistRepository jwtDenylistRepository;
+    private final String frontendUrl;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UsuarioRepository usuarioRepository, PasswordResetTokenRepository resetTokenRepository,
@@ -77,7 +80,8 @@ public class AuthService {
                         EmailConfirmacaoTokenRepository emailConfirmacaoTokenRepository, PasswordEncoder passwordEncoder,
                         JwtService jwtService, EmailService emailService, RateLimiterService rateLimiterService,
                         HmacHasher hmacHasher, RecaptchaService recaptchaService, TotpService totpService,
-                        MfaSecretCipher mfaSecretCipher, JwtDenylistRepository jwtDenylistRepository) {
+                        MfaSecretCipher mfaSecretCipher, JwtDenylistRepository jwtDenylistRepository,
+                        @Value("${app.frontend-url}") String frontendUrl) {
         this.usuarioRepository = usuarioRepository;
         this.resetTokenRepository = resetTokenRepository;
         this.adminResetCodigoRepository = adminResetCodigoRepository;
@@ -91,6 +95,7 @@ public class AuthService {
         this.totpService = totpService;
         this.mfaSecretCipher = mfaSecretCipher;
         this.jwtDenylistRepository = jwtDenylistRepository;
+        this.frontendUrl = frontendUrl;
     }
 
     @Transactional
@@ -216,8 +221,9 @@ public class AuthService {
         PasswordResetToken resetToken = new PasswordResetToken(usuario.getId(), tokenHash, Instant.now().plus(Duration.ofMinutes(30)));
         resetTokenRepository.save(resetToken);
         String usuarioIdHash = hmacHasher.hash(usuario.getId().toString());
+        String link = construirLink("/redefinir-senha", tokenBruto);
         try {
-            emailService.enviarLinkRedefinicaoSenha(usuarioIdHash, usuario.getEmail(), tokenBruto);
+            emailService.enviarLinkRedefinicaoSenha(usuarioIdHash, usuario.getEmail(), link);
         } catch (Exception ex) {
             log.warn("falha_disparo_envio_email_redefinicao_senha usuarioHash={} causa={}", usuarioIdHash, ex.getClass().getSimpleName());
         }
@@ -278,8 +284,9 @@ public class AuthService {
         EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuario.getId(), tokenHash, Instant.now().plus(Duration.ofHours(24)));
         emailConfirmacaoTokenRepository.save(token);
         String usuarioIdHash = hmacHasher.hash(usuario.getId().toString());
+        String link = construirLink("/confirmar-email", tokenBruto);
         try {
-            emailService.enviarLinkConfirmacaoEmail(usuarioIdHash, usuario.getEmail(), tokenBruto);
+            emailService.enviarLinkConfirmacaoEmail(usuarioIdHash, usuario.getEmail(), link);
         } catch (Exception ex) {
             log.warn("falha_disparo_envio_email_confirmacao usuarioHash={} causa={}", usuarioIdHash, ex.getClass().getSimpleName());
         }
@@ -347,6 +354,14 @@ public class AuthService {
             jwtDenylistRepository.save(new JwtDenylistEntry(principal.jti(), principal.expiraEm()));
         }
         return new MensagemResponse("Sessão encerrada com sucesso.");
+    }
+
+    private String construirLink(String path, String tokenBruto) {
+        return UriComponentsBuilder.fromUriString(frontendUrl)
+                .path(path)
+                .queryParam("token", tokenBruto)
+                .build()
+                .toUriString();
     }
 
     private String gerarTokenBruto() {

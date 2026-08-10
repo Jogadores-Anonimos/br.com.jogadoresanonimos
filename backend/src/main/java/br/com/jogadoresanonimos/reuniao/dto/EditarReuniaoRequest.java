@@ -5,6 +5,7 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record EditarReuniaoRequest(
@@ -14,7 +15,7 @@ public record EditarReuniaoRequest(
         @NotBlank @Size(max = 100) String dia,
         @NotBlank @Size(max = 50) String horario,
         @NotBlank @Size(max = 300) String local,
-        @Size(max = 20) String whatsapp,
+        @Size(max = 20) @Pattern(regexp = "^$|^(\\+?55)?\\s?\\(?\\d{2}\\)?[\\s-]?\\d{4,5}[\\s-]?\\d{4}$", message = "WhatsApp deve ser um número de telefone brasileiro válido") String whatsapp,
         @Size(max = 20) String diaSemana,
         @Size(max = 20) String periodo,
         @DecimalMin("-90.0") @DecimalMax("90.0") Double latitude,

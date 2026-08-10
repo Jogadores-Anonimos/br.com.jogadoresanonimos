@@ -84,7 +84,8 @@ class AuthServiceTest {
         rateLimiterService = new RateLimiterService();
         authService = new AuthService(usuarioRepository, resetTokenRepository, adminResetCodigoRepository,
                 emailConfirmacaoTokenRepository, passwordEncoder, jwtService, emailService, rateLimiterService,
-                hmacHasher, recaptchaService, totpService, mfaSecretCipher, jwtDenylistRepository);
+                hmacHasher, recaptchaService, totpService, mfaSecretCipher, jwtDenylistRepository,
+                "http://localhost:4200");
         lenientHmac();
     }
 

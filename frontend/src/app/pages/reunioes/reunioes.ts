@@ -17,6 +17,7 @@ import type * as L from 'leaflet';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 import { ReuniaoService } from '../../services/reuniao/reuniao';
 import { CategoriaReuniao, Reuniao } from '../../services/reuniao/reuniao.model';
+import { montarLinkWhatsapp } from '../../config/whatsapp.config';
 
 type DiaSemana = 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo';
 type Periodo = 'Manhã' | 'Tarde' | 'Noite';
@@ -131,7 +132,6 @@ export class Reunioes implements OnInit, OnDestroy {
   localizacaoCarregando = signal(false);
 
   reuniaoDetalhe: Reuniao | null = null;
-  reservaConfirmada = false;
 
   private leaflet?: typeof L;
   private mapa?: L.Map;
@@ -260,8 +260,7 @@ export class Reunioes implements OnInit, OnDestroy {
   }
 
   whatsappLink(reuniao: Reuniao): string {
-    const digitos = reuniao.whatsapp?.replace(/\D/g, '') || WHATSAPP_PLACEHOLDER;
-    return `https://wa.me/${digitos}`;
+    return montarLinkWhatsapp(reuniao.whatsapp || WHATSAPP_PLACEHOLDER);
   }
 
   private get diaSemanaAtual(): DiaSemana {
@@ -408,12 +407,10 @@ export class Reunioes implements OnInit, OnDestroy {
 
   abrirDetalhes(reuniao: Reuniao): void {
     this.reuniaoDetalhe = reuniao;
-    this.reservaConfirmada = false;
   }
 
   fecharDetalhes(): void {
     this.reuniaoDetalhe = null;
-    this.reservaConfirmada = false;
   }
 
   fecharDetalhesSeCliqueForaDoPainel(evento: MouseEvent): void {
@@ -427,10 +424,6 @@ export class Reunioes implements OnInit, OnDestroy {
     if (this.reuniaoDetalhe) {
       this.fecharDetalhes();
     }
-  }
-
-  reservarLugarLocal(): void {
-    this.reservaConfirmada = true;
   }
 
   private async carregarLeafletECriarMapa(container: HTMLDivElement): Promise<void> {

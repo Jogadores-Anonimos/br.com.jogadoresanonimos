@@ -279,7 +279,16 @@
 
         <div class="admin-reunioes__campo">
           <label for="reuniao-whatsapp">WhatsApp (opcional)</label>
-          <input id="reuniao-whatsapp" type="text" name="whatsapp" placeholder="Ex: 5599999999999" [(ngModel)]="formulario.whatsapp" />
+          <input
+            id="reuniao-whatsapp"
+            type="text"
+            name="whatsapp"
+            placeholder="Ex: 5599999999999"
+            [(ngModel)]="formulario.whatsapp"
+            (blur)="validarWhatsapp()"
+            [class.campo-invalido]="errosCampo['whatsapp']"
+            [attr.aria-invalid]="errosCampo['whatsapp'] ? 'true' : null"
+          />
         </div>
 
         <div class="admin-reunioes__campo-linha">

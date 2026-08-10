@@ -146,12 +146,34 @@ Decisão de produto: toda reunião sem contato próprio direciona para o
 número institucional. Normalização ocorre no service
 (`ReuniaoService.normalizarWhatsapp`), não no banco/DTO.
 
+**Validação de formato** (`CriarReuniaoRequest`/`EditarReuniaoRequest`,
+`@Pattern`, adicionada em 2026-08-10):
+```
+^$|^(\+?55)?\s?\(?\d{2}\)?[\s-]?\d{4,5}[\s-]?\d{4}$
+```
+Campo continua opcional — `^$` no início da alternância aceita string
+vazia (o valor chega vazio quando o admin não preenche; `null` já é
+ignorado pelo Bean Validation por padrão, não precisa de tratamento
+especial no regex). Quando preenchido, exige DDD de 2 dígitos seguido de
+8 ou 9 dígitos do número, com DDI `55` opcional (com ou sem `+`) e
+formatação opcional (espaço, hífen, parênteses no DDD).
+
+Válidos: `11994721933`, `+5511994721933`, `5511994721933`,
+`(11) 99472-1933`, `11 9947-1933`, `11 3333-4444`, `""` (vazio).
+
+Inválidos: `123` (poucos dígitos), `abc11994721933` (letras),
+`11 994721933999` (dígitos demais), `+1 555 123 4567` (DDI não-BR).
+
+Só valida formato de entrada em novos cadastros/edições — não migra nem
+revalida os registros já existentes no banco (alguns podem ter ficado
+fora desse padrão antes desta validação existir).
+
 **Response 201**: `ReuniaoResponse` criado.
 
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 400 | `VALIDATION_ERROR` | campo obrigatório ausente/fora do tamanho; `categoria` inválida; lat/long fora do range |
+| 400 | `VALIDATION_ERROR` | campo obrigatório ausente/fora do tamanho; `categoria` inválida; lat/long fora do range; `whatsapp` fora do formato de telefone BR |
 | 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
 
 ---

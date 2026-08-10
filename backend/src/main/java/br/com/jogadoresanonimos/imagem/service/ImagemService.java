@@ -9,6 +9,7 @@ import br.com.jogadoresanonimos.cms.repository.CmsBlocoRepository;
 import br.com.jogadoresanonimos.imagem.dto.ImagemResponse;
 import br.com.jogadoresanonimos.imagem.entity.Imagem;
 import br.com.jogadoresanonimos.imagem.repository.ImagemRepository;
+import br.com.jogadoresanonimos.mural.repository.BannerMuralRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,15 +25,17 @@ public class ImagemService {
 
     private final ImagemRepository imagemRepository;
     private final CmsBlocoRepository cmsBlocoRepository;
+    private final BannerMuralRepository bannerMuralRepository;
     private final ImagemProcessor imagemProcessor;
     private final StorageClient storageClient;
     private final RateLimiterService rateLimiterService;
 
     public ImagemService(ImagemRepository imagemRepository, CmsBlocoRepository cmsBlocoRepository,
-                          ImagemProcessor imagemProcessor, StorageClient storageClient,
-                          RateLimiterService rateLimiterService) {
+                          BannerMuralRepository bannerMuralRepository, ImagemProcessor imagemProcessor,
+                          StorageClient storageClient, RateLimiterService rateLimiterService) {
         this.imagemRepository = imagemRepository;
         this.cmsBlocoRepository = cmsBlocoRepository;
+        this.bannerMuralRepository = bannerMuralRepository;
         this.imagemProcessor = imagemProcessor;
         this.storageClient = storageClient;
         this.rateLimiterService = rateLimiterService;
@@ -69,7 +72,7 @@ public class ImagemService {
     public void remover(UUID id) {
         Imagem imagem = imagemRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.IMAGEM_NAO_ENCONTRADA, "Imagem não encontrada"));
-        boolean referenciada = cmsBlocoRepository.existsByImagemId(id);
+        boolean referenciada = cmsBlocoRepository.existsByImagemId(id) || bannerMuralRepository.existsByImagemId(id);
         if (referenciada) {
             throw new ConflitoDeEstadoException(ErrorCode.IMAGEM_EM_USO, "Imagem ainda está em uso em uma página e não pode ser removida");
         }

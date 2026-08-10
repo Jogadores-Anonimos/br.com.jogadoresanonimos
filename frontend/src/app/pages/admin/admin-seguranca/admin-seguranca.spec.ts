@@ -15,6 +15,7 @@ function usuarioFake(overrides: Partial<UsuarioMe> = {}): UsuarioMe {
     deveTrocarSenha: false,
     criadoEm: '2026-01-01T00:00:00.000Z',
     mfaAtivo: false,
+    emailConfirmado: true,
     ...overrides,
   };
 }
@@ -137,7 +138,7 @@ describe('AdminSeguranca', () => {
     });
 
     it('mostra erro e mantém o formulário quando o código de confirmação é inválido', () => {
-      authSpy['confirmarMfa'].mockReturnValue(of(apiError('AUTH_MFA_INVALID', 'Código inválido.')));
+      authSpy['confirmarMfa'].mockReturnValue(of(apiError('MFA_CODIGO_INVALIDO', 'Código inválido.')));
       component.iniciarEnrollment();
       component.confirmarCodigoTotp = '000000';
 

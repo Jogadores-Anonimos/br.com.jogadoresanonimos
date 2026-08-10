@@ -55,6 +55,13 @@ const CENTRO_PADRAO: L.LatLngTuple = [-23.55, -46.62];
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
+const WHATSAPP_DIGITOS_REGEX = /^(?:55)?\d{10,11}$/;
+
+function whatsappFormatoValido(valor: string): boolean {
+  const digitos = valor.replace(/\D/g, '');
+  return WHATSAPP_DIGITOS_REGEX.test(digitos);
+}
+
 @Component({
   selector: 'app-admin-reunioes',
   standalone: true,
@@ -230,6 +237,19 @@ export class AdminReunioes implements OnInit {
     });
   }
 
+  validarWhatsapp(): void {
+    const valor = this.formulario.whatsapp.trim();
+    if (!valor) {
+      delete this.errosCampo['whatsapp'];
+      return;
+    }
+    if (!whatsappFormatoValido(valor)) {
+      this.errosCampo['whatsapp'] = 'Número de WhatsApp inválido — use DDD + número, com ou sem o 55 do Brasil.';
+      return;
+    }
+    delete this.errosCampo['whatsapp'];
+  }
+
   atualizarMapaPreview(): void {
     if (!this.isBrowser || !this.mapaPreview || !this.leaflet) {
       return;
@@ -281,6 +301,12 @@ export class AdminReunioes implements OnInit {
     }
     if (Object.keys(this.errosCampo).length > 0) {
       this.erroFormulario = 'Nome, descrição, dia da semana, horário e local são obrigatórios.';
+      return;
+    }
+
+    this.validarWhatsapp();
+    if (this.errosCampo['whatsapp']) {
+      this.erroFormulario = this.errosCampo['whatsapp'];
       return;
     }
 

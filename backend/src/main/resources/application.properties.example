@@ -18,6 +18,7 @@ app.jwt.secret=${JWT_SECRET:}
 app.jwt.ttl-minutes=${JWT_TTL_MINUTES:60}
 app.log.hmac-secret=${LOG_HMAC_SECRET:}
 app.cors.allowed-origins=${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+app.frontend-url=${FRONTEND_URL:http://localhost:4200}
 
 # Chave secreta do reCAPTCHA v2. Valor padrao abaixo e a chave publica de
 # teste do Google (sempre aprova, nunca usar em producao) - trocar por
