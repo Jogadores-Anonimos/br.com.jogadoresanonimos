@@ -68,11 +68,31 @@
             </p>
           }
         </div>
+      }
 
-        <div class="filtros" role="group" aria-label="Filtrar reuniões presenciais">
-          <span class="filtros-titulo">Filtrar reuniões</span>
+      <div class="filtros" role="group" aria-label="Filtrar reuniões">
+        <span class="filtros-titulo">Filtrar reuniões</span>
 
-          <div class="filtros-campos">
+        <div class="filtros-campos">
+          <label class="filtro-campo filtro-campo--busca">
+            <span>Buscar</span>
+            <span class="filtro-busca-wrapper">
+              <svg class="utility-icon filtro-busca-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"/>
+                <line x1="21" y1="21" x2="16.5" y2="16.5"/>
+              </svg>
+              <input
+                type="search"
+                name="filtroTexto"
+                [ngModel]="filtroTexto()"
+                (ngModelChange)="aplicarFiltroTexto($event)"
+                placeholder="Nome do grupo, bairro ou cidade"
+                aria-label="Buscar reunião por nome, local ou descrição"
+              />
+            </span>
+          </label>
+
+          @if (categoriaSelecionada() === 'presencial') {
             <label class="filtro-campo">
               <span>Dia da semana</span>
               <select
@@ -117,9 +137,9 @@
                 }
               </select>
             </label>
-          </div>
+          }
         </div>
-      }
+      </div>
 
       <div class="reunioes-lista">
         @for (reuniao of reunioesPaginadas(); track reuniao.id) {

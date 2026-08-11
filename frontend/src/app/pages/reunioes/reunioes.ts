@@ -40,6 +40,7 @@ const MAXIMO_REUNIOES_VIZINHANCA = 15;
 const ITENS_POR_PAGINA = 10;
 
 const WHATSAPP_PLACEHOLDER = '5599999999999';
+const DEBOUNCE_FILTRO_TEXTO_MS = 200;
 
 let ICONE_GRUPO: L.DivIcon;
 let ICONE_USUARIO: L.DivIcon;
@@ -122,6 +123,9 @@ export class Reunioes implements OnInit, OnDestroy {
   readonly filtroDiaSemana = signal<FiltroDia>('todos');
   readonly filtroPeriodo = signal<Periodo | 'todos'>('todos');
   readonly filtroRaioKm = signal<number | 'todos'>('todos');
+  readonly filtroTexto = signal('');
+  private readonly filtroTextoDebounced = signal('');
+  private debounceFiltroTextoId?: ReturnType<typeof setTimeout>;
 
   readonly itensVisiveis = signal(ITENS_POR_PAGINA);
 
@@ -176,6 +180,7 @@ export class Reunioes implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    clearTimeout(this.debounceFiltroTextoId);
     this.destruirMapa();
   }
 
@@ -184,6 +189,9 @@ export class Reunioes implements OnInit, OnDestroy {
     this.filtroDiaSemana.set('todos');
     this.filtroPeriodo.set('todos');
     this.filtroRaioKm.set('todos');
+    this.filtroTexto.set('');
+    this.filtroTextoDebounced.set('');
+    clearTimeout(this.debounceFiltroTextoId);
     this.itensVisiveis.set(ITENS_POR_PAGINA);
     this.fecharDetalhes();
   }
@@ -204,6 +212,16 @@ export class Reunioes implements OnInit, OnDestroy {
     this.filtroRaioKm.set(valor);
     this.itensVisiveis.set(ITENS_POR_PAGINA);
     this.atualizarMarcadores();
+  }
+
+  aplicarFiltroTexto(valor: string): void {
+    this.filtroTexto.set(valor);
+    this.itensVisiveis.set(ITENS_POR_PAGINA);
+    clearTimeout(this.debounceFiltroTextoId);
+    this.debounceFiltroTextoId = setTimeout(() => {
+      this.filtroTextoDebounced.set(valor);
+      this.atualizarMarcadores();
+    }, DEBOUNCE_FILTRO_TEXTO_MS);
   }
 
   carregarMaisReunioes(): void {
@@ -275,6 +293,16 @@ export class Reunioes implements OnInit, OnDestroy {
 
     const userCoords = this.userCoords();
     let resultado = this.reunioes().filter((r) => r.categoria === categoriaSelecionada);
+
+    const textoFiltro = this.filtroTextoDebounced().trim().toLowerCase();
+    if (textoFiltro !== '') {
+      resultado = resultado.filter(
+        (r) =>
+          r.nome.toLowerCase().includes(textoFiltro) ||
+          r.local.toLowerCase().includes(textoFiltro) ||
+          r.descricao.toLowerCase().includes(textoFiltro),
+      );
+    }
 
     if (categoriaSelecionada === 'presencial') {
       const filtroDiaSemana = this.filtroDiaSemana();
