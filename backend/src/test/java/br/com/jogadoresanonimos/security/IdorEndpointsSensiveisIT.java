@@ -25,6 +25,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
@@ -61,6 +63,9 @@ class IdorEndpointsSensiveisIT {
     @Autowired
     JwtService jwtService;
 
+    @Autowired
+    PlatformTransactionManager transactionManager;
+
     private final RestTemplate restTemplate = new RestTemplate(new JdkClientHttpRequestFactory());
     private final List<UUID> usuariosCriadosNoTeste = new ArrayList<>();
     private final List<UUID> relatosCriadosNoTeste = new ArrayList<>();
@@ -68,15 +73,17 @@ class IdorEndpointsSensiveisIT {
 
     @AfterEach
     void limparDadosDeTeste() {
-        relatosCriadosNoTeste.forEach(relatoRepository::deleteById);
-        relatosCriadosNoTeste.clear();
-        arquivosCriadosNoTeste.forEach(id -> {
-            usuariosCriadosNoTeste.forEach(usuarioId ->
-                    usuarioArquivoRepository.deleteById_UsuarioIdAndId_ArquivoId(usuarioId, id));
-            arquivoRepository.deleteById(id);
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            relatosCriadosNoTeste.forEach(relatoRepository::deleteById);
+            arquivosCriadosNoTeste.forEach(id -> {
+                usuariosCriadosNoTeste.forEach(usuarioId ->
+                        usuarioArquivoRepository.deleteById_UsuarioIdAndId_ArquivoId(usuarioId, id));
+                arquivoRepository.deleteById(id);
+            });
+            usuariosCriadosNoTeste.forEach(usuarioRepository::deleteById);
         });
+        relatosCriadosNoTeste.clear();
         arquivosCriadosNoTeste.clear();
-        usuariosCriadosNoTeste.forEach(usuarioRepository::deleteById);
         usuariosCriadosNoTeste.clear();
     }
 
