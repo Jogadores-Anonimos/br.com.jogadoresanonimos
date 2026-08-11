@@ -46,7 +46,7 @@ class EscritorioRegionalAdminControllerTest {
     void editarRegiao_deveRetornarOkSemAceitarOrdem() {
         UUID id = UUID.randomUUID();
         EditarRegiaoRequest request = new EditarRegiaoRequest("Região Sul");
-        RegiaoIntergrupoResponse esperado = new RegiaoIntergrupoResponse(id, "Região Sul", 1, List.of(),
+        RegiaoIntergrupoResponse esperado = new RegiaoIntergrupoResponse(id, "Região Sul", "SUL", 1, List.of(),
                 Instant.now(), Instant.now());
         when(escritorioRegionalService.editarRegiao(id, request)).thenReturn(esperado);
         ResponseEntity<ApiResponse<RegiaoIntergrupoResponse>> resposta = controller.editarRegiao(id, request);
@@ -57,7 +57,7 @@ class EscritorioRegionalAdminControllerTest {
     @Test
     void moverRegiaoParaCima_deveRetornarOkComRespostaDoService() {
         UUID id = UUID.randomUUID();
-        RegiaoIntergrupoResponse esperado = new RegiaoIntergrupoResponse(id, "Região Sul", 0, List.of(),
+        RegiaoIntergrupoResponse esperado = new RegiaoIntergrupoResponse(id, "Região Sul", "SUL", 0, List.of(),
                 Instant.now(), Instant.now());
         when(escritorioRegionalService.moverRegiaoParaCima(id)).thenReturn(esperado);
         ResponseEntity<ApiResponse<RegiaoIntergrupoResponse>> resposta = controller.moverRegiaoParaCima(id);
@@ -68,7 +68,7 @@ class EscritorioRegionalAdminControllerTest {
     @Test
     void moverRegiaoParaBaixo_deveRetornarOkComRespostaDoService() {
         UUID id = UUID.randomUUID();
-        RegiaoIntergrupoResponse esperado = new RegiaoIntergrupoResponse(id, "Região Sul", 1, List.of(),
+        RegiaoIntergrupoResponse esperado = new RegiaoIntergrupoResponse(id, "Região Sul", "SUL", 1, List.of(),
                 Instant.now(), Instant.now());
         when(escritorioRegionalService.moverRegiaoParaBaixo(id)).thenReturn(esperado);
         ResponseEntity<ApiResponse<RegiaoIntergrupoResponse>> resposta = controller.moverRegiaoParaBaixo(id);

@@ -82,26 +82,40 @@
     }
 
     @if (regiaoAtual) {
-      @for (estado of regiaoAtual.estados; track estado.id) {
+      @for (item of estadosRegiaoAtual; track item.nome) {
         <div class="estado-bloco">
           <div class="estado-header">
-            <h3>{{ estado.nome }}</h3>
+            <h3>{{ item.nome }}</h3>
           </div>
 
-          <div class="grupos-grid">
-            @for (grupo of estado.grupos; track grupo.id) {
-              <div class="grupo-card">
-                <h4>{{ grupo.nome }}</h4>
+          @if (item.tipo === 'com-grupo') {
+            <div class="grupos-grid">
+              @for (grupo of item.estado.grupos; track grupo.id) {
+                <div class="grupo-card">
+                  <h4>{{ grupo.nome }}</h4>
+                  <p class="grupo-endereco">
+                    {{ grupo.endereco }}@if (grupo.bairro) {, {{ grupo.bairro }}}, {{ grupo.cidade }}
+                  </p>
+                  @if (grupo.telefones.length) {
+                    <p class="grupo-telefone">Tel: {{ formatarTelefones(grupo.telefones) }}</p>
+                  }
+                  <span class="grupo-horario">{{ formatarAgenda(grupo.agenda) }}</span>
+                </div>
+              }
+            </div>
+          }
+
+          @if (item.tipo === 'sem-grupo') {
+            <div class="grupos-grid">
+              <div class="grupo-card grupo-card--sem-grupo">
                 <p class="grupo-endereco">
-                  {{ grupo.endereco }}@if (grupo.bairro) {, {{ grupo.bairro }}}, {{ grupo.cidade }}
+                  Ainda não temos um grupo presencial aqui, mas já formamos grupos de apoio pelo
+                  WhatsApp — e é assim que os grupos físicos começam. Fale com a Linha de Ajuda:
+                  <a [href]="linkWhatsappGrupoInexistente()" target="_blank" rel="noopener">21 99472-1933</a>
                 </p>
-                @if (grupo.telefones.length) {
-                  <p class="grupo-telefone">Tel: {{ formatarTelefones(grupo.telefones) }}</p>
-                }
-                <span class="grupo-horario">{{ formatarAgenda(grupo.agenda) }}</span>
               </div>
-            }
-          </div>
+            </div>
+          }
         </div>
       }
     }

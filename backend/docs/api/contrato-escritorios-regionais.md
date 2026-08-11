@@ -62,6 +62,31 @@
 >    os endpoints de leitura/reordenação continuam existindo.
 >
 > Ver seção "Revisão 2026-07-14 (2ª)" abaixo para o detalhe completo.
+>
+> **Revisão 2026-08-11 — novo endpoint público `GET
+> /api/v1/unidades-federativas` (aditivo, não-breaking)**: requisito do
+> cliente — a página pública de Endereços precisa indicar, para as UFs
+> sem grupo físico cadastrado, que o contato deve ser feito via
+> WhatsApp da Linha de Ajuda. O backend não guarda "estado sem grupo"
+> como registro (ver decisão de modelagem original, `estado_intergrupo`
+> só existe quando há ao menos 1 grupo) — o novo endpoint só expõe o
+> mapeamento estático UF → região (IBGE) para o frontend calcular a
+> diferença entre as 27 UFs e as UFs que vieram populadas em
+> `GET /api/v1/escritorios-regionais`. Ver seção "Revisão 2026-08-11"
+> abaixo para o detalhe completo.
+>
+> **Revisão 2026-08-12 — corrige o vínculo UF↔região para código fixo
+> (não-breaking, complementa e corrige o risco documentado na Revisão
+> 2026-08-11)**: `regiao_intergrupo` ganha coluna `codigo` (um dos 5
+> valores fixos `NORTE`, `NORDESTE`, `CENTRO_OESTE`, `SUDESTE`, `SUL`,
+> nunca editável via API). `GET /api/v1/unidades-federativas` passa a
+> devolver `codigoRegiao` no lugar de `regiao` (nome livre); `GET
+> /api/v1/escritorios-regionais` e o CRUD de região passam a incluir
+> `codigo` em `RegiaoIntergrupoResponse`. O vínculo UF→região deixa de
+> depender de igualdade de texto contra `RegiaoIntergrupo.nome` — editar
+> o nome de exibição via `PUT /regioes/{id}` não quebra mais o
+> cruzamento. Ver seção "Revisão 2026-08-12" abaixo para o detalhe
+> completo.
 
 Convenções gerais (mesmas do restante do projeto, ver `contrato-avisos.md`):
 - Envelope de resposta sempre `{ success, data, error }`.
@@ -937,6 +962,224 @@ baixo e a idade recente do módulo). Pontos de atenção para
 
 ---
 
+## Revisão 2026-08-11 — `GET /api/v1/unidades-federativas` (UF → região)
+
+### Motivação
+
+Requisito do cliente: a página pública de Endereços precisa informar,
+para os estados brasileiros **sem** grupo físico cadastrado, que o
+contato deve ser feito via WhatsApp da Linha de Ajuda (a Linha de Ajuda
+usa esse canal para formar grupos de WhatsApp que depois viram grupos
+físicos). É só exibição de dado faltante — sem fluxo de criação/gestão
+admin por trás.
+
+### Levantamento que motivou a decisão
+
+`estado_intergrupo` só existe quando há pelo menos 1 grupo físico
+cadastrado na UF (criado via `POST /regioes/{regiaoId}/estados` ou
+automaticamente via `POST /regioes/{regiaoId}/enderecos`) — decisão de
+modelagem original deste módulo, não alterada aqui. Isso significa que
+"UFs sem grupo" nunca é um registro no banco, é a ausência de um.
+`RegiaoIntergrupo` só tem `nome` + `ordem` — não existe hoje nenhum
+mapeamento persistido de "quais UFs pertencem a qual das 5 regiões". Se
+o frontend precisar comparar as 27 UFs do Brasil contra as UFs que
+vieram populadas em cada região (para descobrir as que faltam), ele
+precisa saber a que região cada UF pertence — e nada no backend expunha
+isso antes desta revisão.
+
+### Decisão de modelagem
+
+**Duas opções avaliadas**:
+- (a) Mudar `estado_intergrupo` para sempre ter as 27 UFs como registro
+  por região, com `grupos: []` quando não há grupo físico. Rejeitada:
+  exige migration de schema/seed maior (27 estados × grupos vazios),
+  ajuste de índice de unicidade e mudança de contrato já consumido pelo
+  frontend, para resolver um problema que é puramente de apresentação —
+  o frontend não precisa de um "estado vazio" persistido, só precisa
+  saber a que região cada UF pertence para montar o diff no cliente.
+- (b) **Escolhida** — manter o modelo como está (estado só existe com
+  grupo) e expor UF → região como dado estático, para o frontend
+  derivar "estados sem grupo" comparando a lista fixa de 27 UFs contra
+  as UFs que vieram populadas no `GET /api/v1/escritorios-regionais`.
+
+**Implementação da opção (b)**: campo `codigoRegiao` (`String`, um dos 5
+códigos fixos `NORTE`, `NORDESTE`, `CENTRO_OESTE`, `SUDESTE`, `SUL`)
+adicionado ao enum Java `UnidadeFederativa`, mesmo padrão já usado no
+módulo (enum fixo, sem tabela de referência no banco — ver justificativa
+já documentada na Revisão 2026-07-13: a divisão geográfica UF→região é
+fato do mundo real imutável, o volume é 27 valores estáticos, uma
+tabela só adicionaria uma junção sem ganho real). Novo endpoint público
+`GET /api/v1/unidades-federativas` devolve as 27 UFs com `uf`, `nome`
+(por extenso) e `codigoRegiao`.
+
+**Vínculo entre `codigoRegiao` do enum e `RegiaoIntergrupo.nome` do
+banco — risco documentado nesta revisão, eliminado na Revisão
+2026-08-12**: na implementação original desta revisão, o vínculo era
+por **igualdade de texto** (o valor do campo `regiao` do enum precisava
+bater exatamente com `RegiaoIntergrupo.nome` seedado em
+`V2__baseline_conteudo.sql`) — editar o nome de uma região via `PUT
+/regioes/{id}` quebrava esse vínculo silenciosamente. Esse risco foi
+corrigido na Revisão 2026-08-12 (ver seção abaixo), que introduz um
+código fixo e não-editável em `regiao_intergrupo`, eliminando a
+dependência de igualdade de texto. O texto desta subseção permanece
+apenas como histórico da decisão original — a implementação atual do
+endpoint já usa o `codigo` fixo, não mais o `nome`.
+
+**UUID de região não é usado como chave de vínculo**: os UUIDs de
+`regiao_intergrupo` são gerados em `INSERT` (`gen_random_uuid()`) e
+variam por ambiente/deploy (dev, staging, produção têm UUIDs
+diferentes para a mesma região "Sudeste") — não podem ser hardcoded no
+enum Java. `ordem` também não serve (é reordenável pelo admin). A partir
+da Revisão 2026-08-12, a chave de vínculo é o `codigo` fixo (`NORTE`,
+`NORDESTE`, `CENTRO_OESTE`, `SUDESTE`, `SUL`), não mais o nome.
+
+### Contrato do endpoint
+
+**`GET /api/v1/unidades-federativas`**
+- **Autenticação**: nenhuma.
+- **Idempotente**: sim.
+- **Consistência**: dado estático em memória (enum Java) — não lê
+  banco, não há questão de réplica/lag aqui.
+
+**Request**: sem parâmetros.
+
+**Response 200** (`List<UnidadeFederativaResponse>`) — shape atualizado
+na Revisão 2026-08-12 (`regiao` → `codigoRegiao`, ver seção abaixo):
+```json
+{
+  "success": true,
+  "data": [
+    { "uf": "SP", "nome": "São Paulo", "codigoRegiao": "SUDESTE" },
+    { "uf": "AC", "nome": "Acre", "codigoRegiao": "NORTE" }
+  ],
+  "error": null
+}
+```
+Lista sempre com as 27 UFs, na ordem de declaração do enum (mesma ordem
+já usada em `UnidadeFederativa.values()`, não alfabética).
+
+**Erros**: nenhum específico (não há input, não há caso de falha além
+de erro genérico de infraestrutura).
+
+### Mudança breaking desta revisão
+
+**Não é breaking** — endpoint novo, não altera nenhum contrato
+existente. O shape do response foi ajustado um dia depois (Revisão
+2026-08-12, `regiao` → `codigoRegiao`) antes de qualquer client em
+produção consumir o endpoint (implementado nesta mesma revisão, ainda
+não commitado) — ver detalhe e nota de compatibilidade na seção
+"Revisão 2026-08-12" abaixo.
+
+---
+
+## Revisão 2026-08-12 — vínculo UF↔região por código fixo (corrige risco da Revisão 2026-08-11)
+
+### Motivação
+
+A Revisão 2026-08-11 documentou um risco conhecido: o vínculo entre
+`UnidadeFederativa` (Java) e `RegiaoIntergrupo` (banco) era feito
+comparando o nome de exibição da região (`RegiaoIntergrupo.nome`)
+contra um texto fixo no enum Java. Como `PUT /regioes/{id}` permite ao
+admin editar `nome` livremente, esse vínculo podia quebrar
+silenciosamente (sem erro, sem validação — o cruzamento simplesmente
+deixava de encontrar a região). Esta revisão elimina essa dependência
+de texto.
+
+### Decisão de modelagem
+
+**Código fixo em vez de nome como chave de vínculo**: nova coluna
+`regiao_intergrupo.codigo` (`VARCHAR(20)`, `NOT NULL`, `UNIQUE`), um dos
+5 valores do novo enum Java `RegiaoCodigo` (`NORTE`, `NORDESTE`,
+`CENTRO_OESTE`, `SUDESTE`, `SUL`). `UnidadeFederativa` passa a carregar
+`RegiaoCodigo` (era `String regiao` livre) e `RegiaoIntergrupo` passa a
+carregar o mesmo `RegiaoCodigo` como campo `codigo`, definido apenas no
+construtor (seed) — **não existe setter/método de edição para
+`codigo`**, `editar(String nome)` continua só alterando `nome`. Editar o
+nome de exibição de uma região via `PUT /regioes/{id}` não afeta mais o
+vínculo de forma alguma; o vínculo passa a ser `enum == enum`
+(comparação de identidade Java, não string), eliminando a classe inteira
+de bug (erro de acentuação, espaço, prefixo "Região", capitalização
+etc. no nome já não tinha influência sobre o código, e agora sequer é
+possível quebrar o vínculo por edição de nome).
+
+**Por que não reaproveitar `RegiaoCodigo` como enum "burro" (sem
+tabela) igual `UnidadeFederativa`**: diferente de UF→região (fato do
+mundo real, nunca precisa ser uma linha do banco), `RegiaoIntergrupo` já
+é uma entidade JPA existente com CRUD parcial (edição de nome,
+reordenação) — o código só precisa ser **mais uma coluna** dela, não
+uma tabela de referência nova. `@Enumerated(EnumType.STRING)` no campo
+`codigo` da entidade já resolve a persistência sem overhead de junção.
+
+### Migration — `V8__adiciona_codigo_regiao_intergrupo.sql`
+
+Migration pontual (não é caso de V1 schema / V2 seed — é uma correção
+posterior e específica), aditiva com preenchimento imediato das 5 linhas
+já existentes (produção já tem essas 5 regiões reais seedadas por
+`V2__baseline_conteudo.sql`, então a coluna nunca fica sem valor em
+nenhuma linha, mesmo durante o deploy):
+
+```sql
+ALTER TABLE regiao_intergrupo ADD COLUMN codigo VARCHAR(20);
+
+UPDATE regiao_intergrupo SET codigo = 'NORTE' WHERE nome = 'Norte';
+UPDATE regiao_intergrupo SET codigo = 'NORDESTE' WHERE nome = 'Nordeste';
+UPDATE regiao_intergrupo SET codigo = 'CENTRO_OESTE' WHERE nome = 'Centro-Oeste';
+UPDATE regiao_intergrupo SET codigo = 'SUDESTE' WHERE nome = 'Sudeste';
+UPDATE regiao_intergrupo SET codigo = 'SUL' WHERE nome = 'Sul';
+
+ALTER TABLE regiao_intergrupo ALTER COLUMN codigo SET NOT NULL;
+
+CREATE UNIQUE INDEX idx_regiao_intergrupo_codigo ON regiao_intergrupo(codigo);
+```
+
+O `UPDATE` por `nome` só é usado nesta migration pontual, para popular o
+dado histórico (os 5 nomes atuais em produção, conferidos em
+`V2__baseline_conteudo.sql`: `Norte`, `Nordeste`, `Centro-Oeste`,
+`Sudeste`, `Sul`). Depois desta migration, `codigo` nunca mais é escrito
+a partir de `nome` — é fixo por linha, nunca recalculado.
+
+### Contrato revisado
+
+- `GET /api/v1/unidades-federativas`: `UnidadeFederativaResponse.regiao`
+  (`String` livre, ex: `"Sudeste"`) é **substituído** por
+  `codigoRegiao` (`String`, um dos 5 valores fixos `NORTE`, `NORDESTE`,
+  `CENTRO_OESTE`, `SUDESTE`, `SUL`). Não é mantido lado a lado com
+  `regiao` — o campo antigo não tinha uso de exibição própria (servia
+  só para o vínculo, que agora é feito por código), então manter os dois
+  seria redundância sem propósito.
+- `GET /api/v1/escritorios-regionais` e todo endpoint admin que retorna
+  `RegiaoIntergrupoResponse` (CRUD por nível, reordenação): DTO ganha o
+  campo `codigo` (`String`, ex: `"SUDESTE"`), como **adição** — `nome`
+  continua existindo e sendo o único campo editável de exibição.
+- `PUT /regioes/{id}` (`EditarRegiaoRequest`): sem mudança de request —
+  continua recebendo só `{ "nome": "string" }`. Documentado
+  explicitamente: **`codigo` nunca é aceito nem editável via API**, é
+  fixo desde o seed (`V2__baseline_conteudo.sql` + `V8` desta revisão).
+  Uma futura 6ª região (se algum dia existir) exigiria nova migration
+  Flyway com `codigo` definido no `INSERT`, não uma edição via endpoint.
+
+### Mudança breaking desta revisão
+
+**Não é breaking para `GET /api/v1/escritorios-regionais`** e para o
+CRUD/reordenação de região — `codigo` é campo aditivo no response,
+`nome`/`ordem`/demais campos inalterados, nenhum request muda de shape.
+
+**Ajuste de shape em `GET /api/v1/unidades-federativas` sem ser breaking
+formal**: o endpoint foi implementado na Revisão 2026-08-11 (um dia
+antes desta correção) e ainda não tinha sido commitado nem consumido
+por nenhum client real — `regiao` vira `codigoRegiao` diretamente,
+sem período de transição com os dois campos coexistindo. Pontos de
+atenção para `frontend-services` (consumo ainda não implementado):
+- Ler `codigoRegiao` (não `regiao`) em `UnidadeFederativaResponse`.
+- Ao cruzar `GET /api/v1/unidades-federativas` com `GET
+  /api/v1/escritorios-regionais` para calcular "UFs sem grupo físico"
+  (ver pendência da Revisão 2026-08-11 abaixo), comparar
+  `unidadeFederativa.codigoRegiao` contra `regiao.codigo` (novo campo em
+  `RegiaoIntergrupoResponse`) — **não mais contra `regiao.nome`**. Isso
+  já resolve o risco antes mesmo de a integração do frontend começar.
+
+---
+
 ## Mudança breaking sinalizada
 
 **Sim — revisão 2026-07-13 altera contrato já consumido pelo
@@ -967,6 +1210,33 @@ consumido pelo frontend (mock puro). O shape do JSON público reflete
 fielmente as interfaces `EscritorioServico` e
 `RegiaoIntergrupos`/`EstadoIntergrupos`/`GrupoIntergrupo` já usadas no
 componente, com adição de `id`/`ordem`/timestamps em cada nível.
+
+## Pendências para outros agentes (Revisão 2026-08-11 — UF sem grupo → WhatsApp Linha de Ajuda, contrato final já corrigido pela Revisão 2026-08-12)
+
+- `frontend-services`: criar método novo (ex: `listarUnidadesFederativas()`)
+  consumindo `GET /api/v1/unidades-federativas` (público, sem
+  paginação, retorna as 27 UFs com `uf`/`nome`/`codigoRegiao`). No
+  client, cruzar essa lista com `regioes[].codigo` +
+  `regioes[].estados[].uf` que já vêm de `GET
+  /api/v1/escritorios-regionais`: para cada região retornada nesse
+  segundo endpoint, filtrar as UFs de `unidades-federativas` cujo campo
+  `codigoRegiao` bate com o `codigo` da região (comparação de código
+  fixo, não mais de nome — risco de vínculo por texto já eliminado na
+  Revisão 2026-08-12) e que **não aparecem** em `estados[].uf` daquela
+  região — essas são as "UFs sem grupo físico".
+- `frontend`/`ux-ui`: na página pública de Endereços, dentro de cada
+  card de região, exibir as UFs sem grupo (calculadas pelo
+  `frontend-services` acima) com uma mensagem indicando que o contato
+  deve ser feito via WhatsApp da Linha de Ajuda — o número/link de
+  WhatsApp da Linha de Ajuda em si **não faz parte deste contrato**
+  (não existe hoje nenhuma entidade de "Linha de Ajuda" no backend;
+  confirmar com o `po`/cliente se esse número já existe como conteúdo
+  estático em outro lugar do site — ex: rodapé — ou se precisa de uma
+  nova fonte de dado, o que seria uma tarefa separada, não coberta por
+  esta revisão).
+- `qa-backend`: teste unitário simples cobrindo que
+  `GET /api/v1/unidades-federativas` retorna exatamente 27 itens e que
+  cada `regiao` retornada é um dos 5 valores esperados.
 
 ## Pendências explícitas para outros agentes
 
@@ -1005,7 +1275,20 @@ componente, com adição de `id`/`ordem`/timestamps em cada nível.
   toda a lógica de CRUD por nível, leitura da estrutura completa e
   reordenação (método privado compartilhado de swap de `ordem`).
 - `br.com.jogadoresanonimos.escritorio.controller.EscritorioRegionalController` —
-  `GET /api/v1/escritorios-regionais`.
+  `GET /api/v1/escritorios-regionais` e `GET /api/v1/unidades-federativas`
+  (Revisão 2026-08-11).
+- `UnidadeFederativa` (enum) ganha campo `codigoRegiao` (era `regiao`
+  livre na Revisão 2026-08-11, tipado como `RegiaoCodigo` a partir da
+  Revisão 2026-08-12). `UnidadeFederativaResponse` (DTO novo) +
+  `EscritorioRegionalService.listarUnidadesFederativas`. `SecurityConfig`
+  libera `GET /api/v1/unidades-federativas` como público.
+- Novo enum `br.com.jogadoresanonimos.escritorio.entity.RegiaoCodigo`
+  (`NORTE`, `NORDESTE`, `CENTRO_OESTE`, `SUDESTE`, `SUL`) — Revisão
+  2026-08-12. `RegiaoIntergrupo` ganha campo `codigo`
+  (`@Enumerated(EnumType.STRING)`, `updatable = false`, definido só no
+  construtor), sem método de edição — `editar(String nome)` continua
+  intocado. `RegiaoIntergrupoResponse` ganha `codigo` no response.
+  Migration `V8__adiciona_codigo_regiao_intergrupo.sql`.
 - `br.com.jogadoresanonimos.escritorio.controller.EscritorioRegionalAdminController` —
   20 endpoints admin (1 leitura + CRUD por nível, sem
   criar/excluir região + 8 de reordenação +

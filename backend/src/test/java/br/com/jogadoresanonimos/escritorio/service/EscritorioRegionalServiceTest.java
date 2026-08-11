@@ -10,6 +10,7 @@ import br.com.jogadoresanonimos.escritorio.entity.EscritorioServico;
 import br.com.jogadoresanonimos.escritorio.entity.EscritorioServicoTelefone;
 import br.com.jogadoresanonimos.escritorio.entity.EstadoIntergrupo;
 import br.com.jogadoresanonimos.escritorio.entity.GrupoIntergrupo;
+import br.com.jogadoresanonimos.escritorio.entity.RegiaoCodigo;
 import br.com.jogadoresanonimos.escritorio.entity.RegiaoIntergrupo;
 import br.com.jogadoresanonimos.escritorio.entity.UnidadeFederativa;
 import br.com.jogadoresanonimos.escritorio.repository.EscritorioServicoRepository;
@@ -56,7 +57,7 @@ class EscritorioRegionalServiceTest {
     }
 
     private RegiaoIntergrupo novaRegiao() {
-        return new RegiaoIntergrupo("Região Sudeste", 0);
+        return new RegiaoIntergrupo("Região Sudeste", RegiaoCodigo.SUDESTE, 0);
     }
 
     private EstadoIntergrupo novoEstado(RegiaoIntergrupo regiao) {
@@ -89,7 +90,7 @@ class EscritorioRegionalServiceTest {
     void moverRegiaoParaCima_deveTrocarOrdemComVizinhoAnterior() {
         UUID id = UUID.randomUUID();
         RegiaoIntergrupo primeira = novaRegiao();
-        RegiaoIntergrupo segunda = new RegiaoIntergrupo("Região Sul", 1);
+        RegiaoIntergrupo segunda = new RegiaoIntergrupo("Região Sul", RegiaoCodigo.SUL, 1);
         setId(primeira, UUID.randomUUID());
         setId(segunda, id);
         when(regiaoRepository.findById(id)).thenReturn(Optional.of(segunda));
@@ -106,7 +107,7 @@ class EscritorioRegionalServiceTest {
         UUID id = UUID.randomUUID();
         RegiaoIntergrupo primeira = novaRegiao();
         setId(primeira, id);
-        RegiaoIntergrupo segunda = new RegiaoIntergrupo("Região Sul", 1);
+        RegiaoIntergrupo segunda = new RegiaoIntergrupo("Região Sul", RegiaoCodigo.SUL, 1);
         when(regiaoRepository.findById(id)).thenReturn(Optional.of(primeira));
         when(regiaoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));
         RegiaoIntergrupoResponse resultado = service.moverRegiaoParaCima(id);
@@ -118,7 +119,7 @@ class EscritorioRegionalServiceTest {
     void moverRegiaoParaBaixo_deveSerNoOpQuandoJaEhUltima() {
         UUID id = UUID.randomUUID();
         RegiaoIntergrupo primeira = novaRegiao();
-        RegiaoIntergrupo segunda = new RegiaoIntergrupo("Região Sul", 1);
+        RegiaoIntergrupo segunda = new RegiaoIntergrupo("Região Sul", RegiaoCodigo.SUL, 1);
         setId(segunda, id);
         when(regiaoRepository.findById(id)).thenReturn(Optional.of(segunda));
         when(regiaoRepository.findAllByOrderByOrdemAsc()).thenReturn(List.of(primeira, segunda));

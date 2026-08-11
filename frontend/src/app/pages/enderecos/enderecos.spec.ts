@@ -9,6 +9,7 @@ import {
   EscritorioServico,
   EstadoIntergrupo,
   RegiaoIntergrupo,
+  UnidadeFederativaComRegiao,
 } from '../../services/escritorio-regional/escritorio-regional.model';
 import { apiError, apiSuccess } from '../../services/api-envelope';
 
@@ -29,6 +30,7 @@ function estadoFake(overrides: Partial<EstadoIntergrupo> = {}): EstadoIntergrupo
 function regiaoFake(overrides: Partial<RegiaoIntergrupo> = {}): RegiaoIntergrupo {
   return {
     id: 'regiao-1',
+    codigo: 'SUDESTE',
     nome: 'Região Fake',
     ordem: 0,
     estados: [],
@@ -70,6 +72,13 @@ describe('Enderecos', () => {
     };
   }
 
+  function unidadesFederativasFake(): UnidadeFederativaComRegiao[] {
+    return [
+      { uf: 'SP', nome: 'São Paulo', codigoRegiao: 'SUDESTE' },
+      { uf: 'BA', nome: 'Bahia', codigoRegiao: 'NORDESTE' },
+    ];
+  }
+
   async function criarComponente(): Promise<void> {
     await TestBed.configureTestingModule({
       imports: [Enderecos],
@@ -85,6 +94,7 @@ describe('Enderecos', () => {
     beforeEach(async () => {
       serviceSpy = {
         listarEstrutura: vi.fn().mockReturnValue(of(apiSuccess(estruturaCompleta()))),
+        listarUnidadesFederativas: vi.fn().mockReturnValue(of(apiSuccess(unidadesFederativasFake()))),
       };
       await criarComponente();
     });
@@ -132,6 +142,7 @@ describe('Enderecos', () => {
     beforeEach(async () => {
       serviceSpy = {
         listarEstrutura: vi.fn().mockReturnValue(of(apiSuccess({ escritorios: [], regioes: [] }))),
+        listarUnidadesFederativas: vi.fn().mockReturnValue(of(apiSuccess(unidadesFederativasFake()))),
       };
       await criarComponente();
     });
@@ -148,6 +159,7 @@ describe('Enderecos', () => {
     beforeEach(async () => {
       serviceSpy = {
         listarEstrutura: vi.fn().mockReturnValue(of(apiError('UPSTREAM_ERROR', 'Não foi possível carregar os endereços.'))),
+        listarUnidadesFederativas: vi.fn().mockReturnValue(of(apiSuccess(unidadesFederativasFake()))),
       };
       await criarComponente();
     });
@@ -164,6 +176,7 @@ describe('Enderecos', () => {
     beforeEach(async () => {
       serviceSpy = {
         listarEstrutura: vi.fn().mockReturnValue(throwError(() => new Error('network error'))),
+        listarUnidadesFederativas: vi.fn().mockReturnValue(of(apiSuccess(unidadesFederativasFake()))),
       };
       await criarComponente();
     });

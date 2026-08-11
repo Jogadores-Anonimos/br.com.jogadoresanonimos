@@ -37,6 +37,7 @@ describe('EscritorioRegionalService', () => {
   function regiaoFake(overrides: Partial<RegiaoIntergrupo> = {}): RegiaoIntergrupo {
     return {
       id: 'regiao-fake-1',
+      codigo: 'SUDESTE',
       nome: 'Região Fake',
       ordem: 0,
       estados: [],

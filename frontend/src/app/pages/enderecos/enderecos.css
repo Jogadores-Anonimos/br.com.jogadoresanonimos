@@ -155,6 +155,20 @@
   margin-bottom: var(--spacing-xs);
 }
 
+.grupo-card--sem-grupo {
+  grid-column: 1 / -1;
+}
+
+.grupo-card--sem-grupo .grupo-endereco {
+  margin-bottom: 0;
+}
+
+.grupo-card--sem-grupo a {
+  color: var(--cor-padrao-ja);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
 .grupo-horario {
   display: inline-block;
   background: var(--color-bg-section);

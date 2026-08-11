@@ -3,6 +3,12 @@ export interface UnidadeFederativa {
   nome: string;
 }
 
+export interface UnidadeFederativaComRegiao {
+  uf: string;
+  nome: string;
+  codigoRegiao: string;
+}
+
 export const UNIDADES_FEDERATIVAS: UnidadeFederativa[] = [
   { sigla: 'AC', nome: 'Acre' },
   { sigla: 'AL', nome: 'Alagoas' },
@@ -93,6 +99,7 @@ export interface EstadoIntergrupo {
 
 export interface RegiaoIntergrupo {
   id: string;
+  codigo: string;
   nome: string;
   ordem: number;
   estados: EstadoIntergrupo[];

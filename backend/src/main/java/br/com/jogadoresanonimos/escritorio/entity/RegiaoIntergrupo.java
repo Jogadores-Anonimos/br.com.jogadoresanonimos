@@ -18,6 +18,10 @@ public class RegiaoIntergrupo {
     @Column(nullable = false, length = 100, unique = true)
     private String nome;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20, unique = true, updatable = false)
+    private RegiaoCodigo codigo;
+
     @Column(nullable = false)
     private int ordem;
 
@@ -34,8 +38,9 @@ public class RegiaoIntergrupo {
     protected RegiaoIntergrupo() {
     }
 
-    public RegiaoIntergrupo(String nome, int ordem) {
+    public RegiaoIntergrupo(String nome, RegiaoCodigo codigo, int ordem) {
         this.nome = nome;
+        this.codigo = codigo;
         this.ordem = ordem;
         this.criadoEm = Instant.now();
         this.atualizadoEm = Instant.now();
@@ -57,6 +62,10 @@ public class RegiaoIntergrupo {
 
     public String getNome() {
         return nome;
+    }
+
+    public RegiaoCodigo getCodigo() {
+        return codigo;
     }
 
     public int getOrdem() {

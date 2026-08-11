@@ -69,10 +69,11 @@ function estado(regiaoId: string, ordem: number, uf: string, seeds: GrupoSeed[])
   };
 }
 
-function regiao(ordem: number, nome: string, estadosSeed: [string, GrupoSeed[]][]): RegiaoIntergrupo {
+function regiao(ordem: number, codigo: string, nome: string, estadosSeed: [string, GrupoSeed[]][]): RegiaoIntergrupo {
   const regiaoId = proximoId('regiao');
   return {
     id: regiaoId,
+    codigo,
     nome,
     ordem,
     estados: estadosSeed.map(([uf, grupos], indice) => estado(regiaoId, indice, uf, grupos)),
@@ -82,7 +83,7 @@ function regiao(ordem: number, nome: string, estadosSeed: [string, GrupoSeed[]][
 }
 
 const REGIOES_SEED: RegiaoIntergrupo[] = [
-  regiao(0, 'Região Sudeste', [
+  regiao(0, 'SUDESTE', 'Região Sudeste', [
     [
       'SP',
       [
@@ -186,7 +187,7 @@ const REGIOES_SEED: RegiaoIntergrupo[] = [
       ],
     ],
   ]),
-  regiao(1, 'Região Sul', [
+  regiao(1, 'SUL', 'Região Sul', [
     [
       'RS',
       [
@@ -238,7 +239,7 @@ const REGIOES_SEED: RegiaoIntergrupo[] = [
       ],
     ],
   ]),
-  regiao(2, 'Região Centro-Oeste', [
+  regiao(2, 'CENTRO_OESTE', 'Região Centro-Oeste', [
     [
       'MS',
       [
@@ -294,7 +295,7 @@ const REGIOES_SEED: RegiaoIntergrupo[] = [
       ],
     ],
   ]),
-  regiao(3, 'Região Nordeste', [
+  regiao(3, 'NORDESTE', 'Região Nordeste', [
     [
       'BA',
       [
@@ -346,7 +347,7 @@ const REGIOES_SEED: RegiaoIntergrupo[] = [
       ],
     ],
   ]),
-  regiao(4, 'Região Norte', [
+  regiao(4, 'NORTE', 'Região Norte', [
     [
       'PA',
       [

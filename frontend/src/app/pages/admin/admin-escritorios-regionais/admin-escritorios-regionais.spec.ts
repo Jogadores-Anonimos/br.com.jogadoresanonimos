@@ -48,6 +48,7 @@ function estadoFake(overrides: Partial<EstadoIntergrupo> = {}): EstadoIntergrupo
 function regiaoFake(overrides: Partial<RegiaoIntergrupo> = {}): RegiaoIntergrupo {
   return {
     id: 'regiao-1',
+    codigo: 'SUDESTE',
     nome: 'Região Fake',
     ordem: 0,
     estados: [],

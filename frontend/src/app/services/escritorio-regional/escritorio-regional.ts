@@ -20,6 +20,7 @@ import {
   GrupoIntergrupo,
   RegiaoIntergrupo,
   UNIDADES_FEDERATIVAS,
+  UnidadeFederativaComRegiao,
 } from './escritorio-regional.model';
 import { ESCRITORIOS_REGIONAIS_MOCK } from './escritorio-regional.mock';
 
@@ -42,6 +43,13 @@ export class EscritorioRegionalService {
   private readonly http = inject(HttpClient);
   private readonly publicaUrl = `${environment.apiBaseUrl}/escritorios-regionais`;
   private readonly adminUrl = `${environment.apiBaseUrl}/admin/escritorios-regionais`;
+  private readonly unidadesFederativasUrl = `${environment.apiBaseUrl}/unidades-federativas`;
+
+  listarUnidadesFederativas(): Observable<ApiEnvelope<UnidadeFederativaComRegiao[]>> {
+    return this.http.get<ApiEnvelope<UnidadeFederativaComRegiao[]>>(this.unidadesFederativasUrl).pipe(
+      catchError((erro) => of(apiErrorDeHttpError<UnidadeFederativaComRegiao[]>(erro, 'INTERNAL_ERROR', 'Não foi possível carregar as unidades federativas.'))),
+    );
+  }
 
   listarEstrutura(): Observable<ApiEnvelope<EscritoriosRegionais>> {
     if (!environment.useMocks) {
@@ -458,6 +466,27 @@ export class EscritorioRegionalService {
     const item = trocarOrdem(lista, indice, direcao);
     return of(apiSuccess(item)).pipe(delay(300));
   }
+}
+
+export function derivarUfsFaltantesPorRegiao(
+  regioes: RegiaoIntergrupo[],
+  unidadesFederativas: UnidadeFederativaComRegiao[],
+): Map<string, UnidadeFederativaComRegiao[]> {
+  const ufsPorRegiao = new Map<string, Set<string>>();
+  for (const regiao of regioes) {
+    ufsPorRegiao.set(regiao.codigo, new Set(regiao.estados.map((estado) => estado.uf)));
+  }
+  const faltantesPorRegiao = new Map<string, UnidadeFederativaComRegiao[]>();
+  for (const unidade of unidadesFederativas) {
+    const ufsCadastradas = ufsPorRegiao.get(unidade.codigoRegiao);
+    if (ufsCadastradas?.has(unidade.uf)) {
+      continue;
+    }
+    const listaAtual = faltantesPorRegiao.get(unidade.codigoRegiao) ?? [];
+    listaAtual.push(unidade);
+    faltantesPorRegiao.set(unidade.codigoRegiao, listaAtual);
+  }
+  return faltantesPorRegiao;
 }
 
 function trocarOrdem<T extends { ordem: number }>(lista: T[], indice: number, direcao: 'cima' | 'baixo'): T {

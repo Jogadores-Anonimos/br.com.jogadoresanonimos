@@ -1,6 +1,7 @@
 package br.com.jogadoresanonimos.escritorio.repository;
 
 import br.com.jogadoresanonimos.escritorio.entity.EstadoIntergrupo;
+import br.com.jogadoresanonimos.escritorio.entity.RegiaoCodigo;
 import br.com.jogadoresanonimos.escritorio.entity.RegiaoIntergrupo;
 import br.com.jogadoresanonimos.escritorio.entity.UnidadeFederativa;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,7 @@ class EstadoIntergrupoRepositoryIT {
 
     @Test
     void contextoJpaValidaSchemaPosV29_semMismatchDeTipoNaColunaUf() {
-        RegiaoIntergrupo regiao = entityManager.persistAndFlush(new RegiaoIntergrupo("Sudeste", 1));
+        RegiaoIntergrupo regiao = entityManager.persistAndFlush(new RegiaoIntergrupo("Sudeste", RegiaoCodigo.SUDESTE, 1));
         EstadoIntergrupo estado = entityManager.persistAndFlush(new EstadoIntergrupo(regiao, UnidadeFederativa.SP, 1));
         entityManager.clear();
         EstadoIntergrupo recarregado = estadoIntergrupoRepository.findById(estado.getId()).orElseThrow();
@@ -47,7 +48,7 @@ class EstadoIntergrupoRepositoryIT {
 
     @Test
     void ufPersistida_naoDeveTerPaddingOuTruncamentoAposMigrationParaVarchar() {
-        RegiaoIntergrupo regiao = entityManager.persistAndFlush(new RegiaoIntergrupo("Nordeste", 1));
+        RegiaoIntergrupo regiao = entityManager.persistAndFlush(new RegiaoIntergrupo("Nordeste", RegiaoCodigo.NORDESTE, 1));
         entityManager.persistAndFlush(new EstadoIntergrupo(regiao, UnidadeFederativa.BA, 1));
         entityManager.clear();
         String ufBruta = (String) entityManager.getEntityManager()
