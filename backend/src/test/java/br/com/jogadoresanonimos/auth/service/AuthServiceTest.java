@@ -130,7 +130,7 @@ class AuthServiceTest {
         assertThat(response.role()).isEqualTo(Role.PARTICIPANTE);
         verify(usuarioRepository).save(any(Usuario.class));
         verify(emailConfirmacaoTokenRepository).save(any(EmailConfirmacaoToken.class));
-        verify(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString());
+        verify(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString(), eq(TipoEmailConfirmacaoToken.CADASTRO));
     }
 
     @Test
@@ -148,7 +148,7 @@ class AuthServiceTest {
         authService.registrar(request);
         InOrder ordem = inOrder(emailConfirmacaoTokenRepository, emailService);
         ordem.verify(emailConfirmacaoTokenRepository).save(argThat(token -> token.getUsuarioId().equals(usuarioId)));
-        ordem.verify(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString());
+        ordem.verify(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString(), eq(TipoEmailConfirmacaoToken.CADASTRO));
     }
 
     @Test
@@ -163,7 +163,7 @@ class AuthServiceTest {
             return usuario;
         });
         doThrow(new RuntimeException("falha de envio simulada"))
-                .when(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString());
+                .when(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString(), any(TipoEmailConfirmacaoToken.class));
         UsuarioResponse response = authService.registrar(request);
         assertThat(response.apelido()).isEqualTo("novato");
         verify(emailConfirmacaoTokenRepository).save(any(EmailConfirmacaoToken.class));
@@ -272,8 +272,29 @@ class AuthServiceTest {
     }
 
     @Test
+    void esqueciSenha_deveFalharQuandoRecaptchaInvalido() {
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("apelido", "captcha-token-invalido");
+        doThrow(new ValidationException(ErrorCode.AUTH_RECAPTCHA_INVALIDO, "Falha na verificação do reCAPTCHA"))
+                .when(recaptchaService).validar("captcha-token-invalido");
+        assertThatThrownBy(() -> authService.esqueciSenha(request))
+                .isInstanceOf(ValidationException.class);
+        verifyNoInteractions(usuarioRepository, emailService, resetTokenRepository, adminResetCodigoRepository);
+    }
+
+    @Test
+    void esqueciSenha_deveValidarRecaptchaAntesDeBuscarUsuario() {
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("apelido", "captcha-token");
+        when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
+                .thenReturn(Optional.empty());
+        authService.esqueciSenha(request);
+        InOrder ordem = inOrder(recaptchaService, usuarioRepository);
+        ordem.verify(recaptchaService).validar("captcha-token");
+        ordem.verify(usuarioRepository).findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString());
+    }
+
+    @Test
     void esqueciSenha_deveRetornarMensagemGenericaMesmoSemUsuarioEncontrado() {
-        EsqueciSenhaRequest request = new EsqueciSenhaRequest("naoexiste@example.com");
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("naoexiste@example.com", "captcha-token");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
                 .thenReturn(Optional.empty());
         MensagemResponse response = authService.esqueciSenha(request);
@@ -289,7 +310,7 @@ class AuthServiceTest {
         Usuario usuario = new Usuario("apelido", "email@example.com", "hash", Role.PARTICIPANTE);
         setId(usuario, usuarioId);
         usuario.confirmarEmail();
-        EsqueciSenhaRequest request = new EsqueciSenhaRequest("apelido");
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("apelido", "captcha-token");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
                 .thenReturn(Optional.of(usuario));
         authService.esqueciSenha(request);
@@ -303,7 +324,7 @@ class AuthServiceTest {
         UUID usuarioId = UUID.randomUUID();
         Usuario usuario = new Usuario("apelido", "email@example.com", "hash", Role.PARTICIPANTE);
         setId(usuario, usuarioId);
-        EsqueciSenhaRequest request = new EsqueciSenhaRequest("apelido");
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("apelido", "captcha-token");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
                 .thenReturn(Optional.of(usuario));
         MensagemResponse response = authService.esqueciSenha(request);
@@ -324,8 +345,8 @@ class AuthServiceTest {
                 .thenReturn(Optional.of(usuarioConfirmado));
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(eq("pendente"), eq("pendente")))
                 .thenReturn(Optional.of(usuarioPendente));
-        MensagemResponse respostaConfirmado = authService.esqueciSenha(new EsqueciSenhaRequest("confirmado"));
-        MensagemResponse respostaPendente = authService.esqueciSenha(new EsqueciSenhaRequest("pendente"));
+        MensagemResponse respostaConfirmado = authService.esqueciSenha(new EsqueciSenhaRequest("confirmado", "captcha-token"));
+        MensagemResponse respostaPendente = authService.esqueciSenha(new EsqueciSenhaRequest("pendente", "captcha-token"));
         assertThat(respostaConfirmado.mensagem()).isEqualTo(respostaPendente.mensagem());
     }
 
@@ -334,7 +355,7 @@ class AuthServiceTest {
         UUID usuarioId = UUID.randomUUID();
         Usuario usuario = new Usuario("admin", "admin@example.com", "hash", Role.ADMIN);
         setId(usuario, usuarioId);
-        EsqueciSenhaRequest request = new EsqueciSenhaRequest("admin");
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("admin", "captcha-token");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
                 .thenReturn(Optional.of(usuario));
         MensagemResponse response = authService.esqueciSenha(request);
@@ -359,8 +380,8 @@ class AuthServiceTest {
                 .thenReturn(Optional.of(usuarioComum));
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(eq("admin"), eq("admin")))
                 .thenReturn(Optional.of(admin));
-        MensagemResponse respostaComum = authService.esqueciSenha(new EsqueciSenhaRequest("comum"));
-        MensagemResponse respostaAdmin = authService.esqueciSenha(new EsqueciSenhaRequest("admin"));
+        MensagemResponse respostaComum = authService.esqueciSenha(new EsqueciSenhaRequest("comum", "captcha-token"));
+        MensagemResponse respostaAdmin = authService.esqueciSenha(new EsqueciSenhaRequest("admin", "captcha-token"));
         assertThat(respostaComum.mensagem()).isEqualTo(respostaAdmin.mensagem());
     }
 
@@ -369,7 +390,7 @@ class AuthServiceTest {
         UUID usuarioId = UUID.randomUUID();
         Usuario usuario = new Usuario("admin", "admin@example.com", "hash", Role.ADMIN);
         setId(usuario, usuarioId);
-        EsqueciSenhaRequest request = new EsqueciSenhaRequest("admin");
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("admin", "captcha-token");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
                 .thenReturn(Optional.of(usuario));
         when(adminResetCodigoRepository.save(any(AdminResetCodigo.class)))
@@ -386,7 +407,7 @@ class AuthServiceTest {
         UUID usuarioId = UUID.randomUUID();
         Usuario usuario = new Usuario("admin", "admin@example.com", "hash", Role.ADMIN);
         setId(usuario, usuarioId);
-        EsqueciSenhaRequest request = new EsqueciSenhaRequest("admin");
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("admin", "captcha-token");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
                 .thenReturn(Optional.of(usuario));
         when(adminResetCodigoRepository.save(any(AdminResetCodigo.class)))
@@ -402,7 +423,7 @@ class AuthServiceTest {
         Usuario usuario = new Usuario("comum", "comum@example.com", "hash", Role.PARTICIPANTE);
         setId(usuario, UUID.randomUUID());
         usuario.confirmarEmail();
-        EsqueciSenhaRequest request = new EsqueciSenhaRequest("comum");
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("comum", "captcha-token");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
                 .thenReturn(Optional.of(usuario));
         for (int i = 0; i < 5; i++) {
@@ -417,7 +438,7 @@ class AuthServiceTest {
     void esqueciSenha_deveEstourarRateLimitPorIdentificadorNaSextaChamadaParaAdmin() {
         Usuario usuario = new Usuario("admin", "admin@example.com", "hash", Role.ADMIN);
         setId(usuario, UUID.randomUUID());
-        EsqueciSenhaRequest request = new EsqueciSenhaRequest("admin");
+        EsqueciSenhaRequest request = new EsqueciSenhaRequest("admin", "captcha-token");
         when(usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(anyString(), anyString()))
                 .thenReturn(Optional.of(usuario));
         for (int i = 0; i < 5; i++) {
@@ -685,7 +706,7 @@ class AuthServiceTest {
         assertThat(tokenAnterior.getUsadoEm()).isNotNull();
         verify(emailConfirmacaoTokenRepository).save(argThat(token ->
                 token.getTipo() == TipoEmailConfirmacaoToken.TROCA_EMAIL && "novo@example.com".equals(token.getNovoEmail())));
-        verify(emailService).enviarLinkConfirmacaoEmail(anyString(), eq("atual@example.com"), anyString());
+        verify(emailService).enviarLinkConfirmacaoEmail(anyString(), eq("atual@example.com"), anyString(), eq(TipoEmailConfirmacaoToken.TROCA_EMAIL));
     }
 
     @Test
@@ -722,7 +743,7 @@ class AuthServiceTest {
         MensagemResponse response = authService.reenviarConfirmacaoEmail(request);
         assertThat(response.mensagem()).contains("Se o apelido ou e-mail existir");
         verify(emailConfirmacaoTokenRepository).save(any(EmailConfirmacaoToken.class));
-        verify(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString());
+        verify(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString(), eq(TipoEmailConfirmacaoToken.CADASTRO));
     }
 
     @Test
@@ -739,7 +760,7 @@ class AuthServiceTest {
         MensagemResponse response = authService.reenviarConfirmacaoEmail(request);
         assertThat(response.mensagem()).contains("Se o apelido ou e-mail existir");
         verify(emailConfirmacaoTokenRepository, times(3)).save(any(EmailConfirmacaoToken.class));
-        verify(emailService, times(3)).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString());
+        verify(emailService, times(3)).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString(), eq(TipoEmailConfirmacaoToken.CADASTRO));
     }
 
     @Test

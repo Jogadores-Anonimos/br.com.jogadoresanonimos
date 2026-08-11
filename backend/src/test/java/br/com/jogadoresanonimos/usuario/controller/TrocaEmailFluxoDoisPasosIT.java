@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 
@@ -151,7 +152,7 @@ class TrocaEmailFluxoDoisPasosIT {
 
     @Test
     void solicitarTroca_comSenhaCertaGeraTokenENaoAlteraEmailAinda() {
-        doNothing().when(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString());
+        doNothing().when(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString(), any(TipoEmailConfirmacaoToken.class));
         Usuario usuario = criarUsuario(sufixoCurto());
         String emailOriginal = usuario.getEmail();
         String novoEmail = "novo-" + sufixoCurto() + "@example.com";
@@ -302,7 +303,7 @@ class TrocaEmailFluxoDoisPasosIT {
 
     @Test
     void fluxoCompleto_solicitarTrocaEDepoisConfirmarViaTokenGeradoNoPasso1() {
-        doNothing().when(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString());
+        doNothing().when(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString(), any(TipoEmailConfirmacaoToken.class));
         Usuario usuario = criarUsuario(sufixoCurto());
         String novoEmail = "fluxo-completo-" + sufixoCurto() + "@example.com";
 

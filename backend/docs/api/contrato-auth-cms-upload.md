@@ -235,13 +235,20 @@ contrato de API é o mesmo independente da estratégia SQL escolhida.
 - **Rate limit**: sim — mesmo bucket duplo (usuario_id resolvido +
   identificador bruto normalizado) do login, para não virar canal de
   enumeration nem de spam de e-mail.
+- **reCAPTCHA**: sim, `recaptchaToken` obrigatório, validado logo após o
+  rate limit (mesma ordem de `login`) — alinhado retroativamente
+  (2026-08-10) com o padrão já usado em 1.1/1.2, que este endpoint
+  divergia até então.
 - **Consistência**: forte na escrita do token; o disparo do e-mail em
   si pode ser assíncrono (fila) sem prejuízo — usuário não espera o
   e-mail chegar na mesma tela, só espera a resposta HTTP.
 
 **Request**:
 ```json
-{ "identificador": "string, apelido OU e-mail" }
+{
+  "identificador": "string, apelido OU e-mail",
+  "recaptchaToken": "string, obrigatório, token retornado pelo widget reCAPTCHA v2 checkbox"
+}
 ```
 
 **Response 200 (sempre, exista ou não a conta)**:
@@ -257,9 +264,17 @@ contrato de API é o mesmo independente da estratégia SQL escolhida.
 Nunca retorna 404 nem diferencia conta existente/inexistente — regra
 de anti-enumeration já estabelecida no projeto.
 
-**Erros**: só `429 AUTH_RATE_LIMITED` e `400 VALIDATION_ERROR` (corpo ausente)
-chegam a existir; qualquer outra falha de negócio é absorvida no 200
+**Erros**: `429 AUTH_RATE_LIMITED`, `400 VALIDATION_ERROR` (corpo ausente
+ou `recaptchaToken` ausente/inválido/expirado — `error.fields` aponta
+`recaptchaToken`) e `502 AUTH_RECAPTCHA_UPSTREAM_INDISPONIVEL` (Google
+fora do ar); qualquer outra falha de negócio é absorvida no 200
 genérico acima.
+
+**Breaking change (2026-08-10)**: contrato passa a exigir
+`recaptchaToken`, que antes não existia neste endpoint. Requer que o
+frontend envie o campo na tela de "esqueci minha senha" — se a tela
+ainda não tiver o widget/token, o endpoint passa a rejeitar com 400
+até o frontend ser atualizado.
 
 **Efeito colateral assíncrono documentado**: geração do token de reset
 (hash armazenado, TTL ~30min) é síncrona; envio do e-mail é enfileirado.

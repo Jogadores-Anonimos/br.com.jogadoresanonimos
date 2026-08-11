@@ -2,6 +2,9 @@ package br.com.jogadoresanonimos.auth.controller;
 
 import br.com.jogadoresanonimos.auth.repository.AdminResetCodigoRepository;
 import br.com.jogadoresanonimos.auth.repository.PasswordResetTokenRepository;
+import br.com.jogadoresanonimos.auth.service.RecaptchaService;
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
+import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.usuario.entity.Role;
 import br.com.jogadoresanonimos.usuario.entity.Usuario;
 import br.com.jogadoresanonimos.usuario.repository.UsuarioRepository;
@@ -17,10 +20,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("qa-integration")
@@ -45,6 +53,9 @@ class AuthEsqueciSenhaControllerIT {
     @Autowired
     PasswordEncoder passwordEncoder;
 
+    @MockitoBean
+    RecaptchaService recaptchaService;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     private String esqueciSenhaUrl() {
@@ -62,7 +73,7 @@ class AuthEsqueciSenhaControllerIT {
     }
 
     private String bodyEsqueciSenha(String identificador) {
-        return "{\"identificador\":\"" + identificador + "\"}";
+        return "{\"identificador\":\"" + identificador + "\",\"recaptchaToken\":\"token-valido\"}";
     }
 
     private Usuario criarUsuario(String apelido, String email, Role role) {
@@ -163,6 +174,40 @@ class AuthEsqueciSenhaControllerIT {
         ResponseEntity<String> resposta = esqueciSenha("{\"identificador\":\"\"}");
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(resposta.getBody()).contains("\"success\":false").contains("VALIDATION_ERROR");
+    }
+
+    @Test
+    void deveRetornarValidationErrorQuandoRecaptchaTokenAusente() {
+        ResponseEntity<String> resposta = esqueciSenha("{\"identificador\":\"qa-esqueci-sem-recaptcha\"}");
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(resposta.getBody()).contains("\"success\":false").contains("VALIDATION_ERROR");
+        verifyNoInteractions(recaptchaService);
+    }
+
+    @Test
+    void deveRetornarErroQuandoRecaptchaTokenInvalido() {
+        doThrow(new ValidationException(ErrorCode.AUTH_RECAPTCHA_INVALIDO, "Falha na verificação do reCAPTCHA"))
+                .when(recaptchaService).validar("token-invalido");
+        Usuario usuario = criarUsuario("qa-esqueci-recaptcha-invalido", "qa-esqueci-recaptcha-invalido@example.com", Role.PARTICIPANTE);
+        ResponseEntity<String> resposta = esqueciSenha(
+                "{\"identificador\":\"qa-esqueci-recaptcha-invalido\",\"recaptchaToken\":\"token-invalido\"}");
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(resposta.getBody()).contains("\"success\":false").contains("AUTH_RECAPTCHA_INVALIDO");
+        assertThat(passwordResetTokenRepository.findAll())
+                .noneMatch(token -> token.getUsuarioId().equals(usuario.getId()));
+    }
+
+    @Test
+    void deveSeguirFluxoNormalQuandoRecaptchaTokenValido() {
+        doNothing().when(recaptchaService).validar(anyString());
+        Usuario usuario = criarUsuario("qa-esqueci-recaptcha-valido", "qa-esqueci-recaptcha-valido@example.com", Role.PARTICIPANTE);
+        usuario.confirmarEmail();
+        Usuario usuarioConfirmado = usuarioRepository.saveAndFlush(usuario);
+        ResponseEntity<String> resposta = esqueciSenha(bodyEsqueciSenha("qa-esqueci-recaptcha-valido"));
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resposta.getBody()).contains("\"success\":true").contains(MENSAGEM_GENERICA);
+        assertThat(passwordResetTokenRepository.findAll())
+                .anyMatch(token -> token.getUsuarioId().equals(usuarioConfirmado.getId()));
     }
 
     @Test

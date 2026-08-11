@@ -30,7 +30,9 @@
               required
             />
           </div>
-          <button type="submit" class="btn-cta" [disabled]="enviando || esqueciForm.invalid">
+          <div class="conta-captcha" #captchaEsqueciSenha></div>
+
+          <button type="submit" class="btn-cta" [disabled]="enviando || esqueciForm.invalid || !captchaOk">
             {{ enviando ? 'Enviando...' : 'Enviar link de redefinição' }}
           </button>
 

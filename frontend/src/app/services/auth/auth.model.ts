@@ -55,6 +55,7 @@ export interface DesativarMfaRequest {
 
 export interface EsqueciSenhaRequest {
   identificador: string;
+  recaptchaToken: string;
 }
 
 export interface MensagemResponse {

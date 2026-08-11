@@ -1,5 +1,6 @@
 package br.com.jogadoresanonimos.auth.service;
 
+import br.com.jogadoresanonimos.auth.entity.TipoEmailConfirmacaoToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -115,32 +116,45 @@ public class EmailService {
     }
 
     @Async
-    public void enviarLinkConfirmacaoEmail(String usuarioIdHash, String emailDestino, String linkComTokenBruto) {
-        String assunto = "Confirme seu e-mail - Jogadores Anônimos do Brasil";
+    public void enviarLinkConfirmacaoEmail(String usuarioIdHash, String emailDestino, String linkComTokenBruto,
+                                            TipoEmailConfirmacaoToken tipo) {
+        String fluxo = tipo == TipoEmailConfirmacaoToken.TROCA_EMAIL ? "troca_email" : "confirmacao_cadastro";
+        String assunto = tipo == TipoEmailConfirmacaoToken.TROCA_EMAIL
+                ? "Confirme seu novo e-mail - Jogadores Anônimos do Brasil"
+                : "Confirme seu e-mail - Jogadores Anônimos do Brasil";
+        String textoIntroducao = tipo == TipoEmailConfirmacaoToken.TROCA_EMAIL
+                ? "Recebemos uma solicitação para trocar o e-mail da sua conta para este endereço. Para confirmar a troca, clique no botão abaixo:"
+                : "Recebemos seu cadastro. Para confirmar que este é o seu e-mail, clique no botão abaixo:";
+        String textoIgnorar = tipo == TipoEmailConfirmacaoToken.TROCA_EMAIL
+                ? "Se você não solicitou essa troca, não é necessário fazer nada, pode ignorar este e-mail com tranquilidade, seu e-mail atual permanece inalterado."
+                : "Se você não fez esse cadastro, pode ignorar este e-mail com tranquilidade.";
         String corpoHtml = """
                 <body style="margin: 0; padding: 0; background-color: #ffffff;">
                 <div style="max-width: 560px; margin: 0 auto; padding: 24px; font-family: Arial, sans-serif;">
                 <p style="text-align: center; margin: 0 0 24px 0;"><img src="%s" alt="Jogadores Anônimos do Brasil" width="72" style="max-width: 72px; height: auto;"></p>
                 <p style="font-size: 18px; font-weight: 600; color: #742C24; margin: 0 0 24px 0;">Jogadores Anônimos do Brasil</p>
                 <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Olá,</p>
-                <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Recebemos seu cadastro. Para confirmar que este é o seu e-mail, clique no botão abaixo:</p>
+                <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">%s</p>
                 <p style="margin: 0 0 16px 0;"><a href="%s" style="background: #D4A843; color: #742C24; text-decoration: none; padding: 12px 24px; border-radius: 6px; display: inline-block; font-size: 15px;">Confirmar e-mail</a></p>
                 <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Este link é válido por 24 horas.</p>
-                <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">Se você não fez esse cadastro, pode ignorar este e-mail com tranquilidade.</p>
+                <p style="font-size: 15px; line-height: 1.6; color: #000000; margin: 0 0 16px 0;">%s</p>
                 <p style="font-size: 12px; color: #777777; padding-top: 24px; margin: 0;">Jogadores Anônimos do Brasil</p>
                 <p style="font-size: 12px; color: #777777; margin: 4px 0 0 0;">Dúvidas? Fale conosco pelo site oficial.</p>
                 </div>
                 </body>
-                """.formatted(logoUrl, linkComTokenBruto);
+                """.formatted(logoUrl, textoIntroducao, linkComTokenBruto, textoIgnorar);
+        String chamadaId = UUID.randomUUID().toString();
         long delay = DELAY_INICIAL_MS;
         for (int tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+            log.info("resend_chamada_disparada fluxo={} chamadaId={} tentativa={} usuarioHash={}", fluxo, chamadaId, tentativa, usuarioIdHash);
             try {
-                enviarViaProvedor(emailDestino, assunto, corpoHtml);
+                HttpStatusCode status = enviarViaProvedor(emailDestino, assunto, corpoHtml);
+                log.info("resend_chamada_sucesso fluxo={} chamadaId={} tentativa={} usuarioHash={} statusHttp={}", fluxo, chamadaId, tentativa, usuarioIdHash, status.value());
                 return;
             } catch (Exception ex) {
-                log.warn("falha_envio_email_confirmacao tentativa={} usuarioHash={} causa={}", tentativa, usuarioIdHash, ex.getClass().getSimpleName());
+                log.warn("resend_chamada_falha fluxo={} chamadaId={} tentativa={} usuarioHash={} causa={} statusHttp={}", fluxo, chamadaId, tentativa, usuarioIdHash, ex.getClass().getSimpleName(), statusHttpDe(ex));
                 if (tentativa == MAX_TENTATIVAS) {
-                    log.error("falha_definitiva_envio_email_confirmacao usuarioHash={}", usuarioIdHash);
+                    log.error("resend_chamada_falha_definitiva fluxo={} chamadaId={} usuarioHash={}", fluxo, chamadaId, usuarioIdHash);
                     return;
                 }
                 sleep(delay);

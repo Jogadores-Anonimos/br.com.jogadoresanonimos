@@ -284,7 +284,7 @@ class AuthConfirmacaoEmailControllerIT {
     void registro_naoDeveMudarContratoDeRespostaQuandoEnvioDeEmailFalha() {
         doNothing().when(recaptchaService).validar(anyString());
         doThrow(new RuntimeException("falha simulada de envio"))
-                .when(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString());
+                .when(emailService).enviarLinkConfirmacaoEmail(anyString(), anyString(), anyString(), any());
         String apelido = "qa-reg-falha-" + sufixoCurto();
         String corpo = "{\"apelido\":\"" + apelido + "\",\"email\":\"" + apelido + "@example.com\"," +
                 "\"senha\":\"senhaValida123\",\"confirmarSenha\":\"senhaValida123\",\"recaptchaToken\":\"qualquer\"}";

@@ -203,6 +203,7 @@ public class AuthService {
     public MensagemResponse esqueciSenha(EsqueciSenhaRequest request) {
         String identificadorNormalizado = request.identificador().trim().toLowerCase();
         checarRateLimitConta("esqueci-senha", identificadorNormalizado, ErrorCode.AUTH_RATE_LIMITED);
+        recaptchaService.validar(request.recaptchaToken());
         Optional<Usuario> usuarioOpt = usuarioRepository.findByApelidoIgnoreCaseOrEmailIgnoreCase(
                 request.identificador(), request.identificador());
         if (usuarioOpt.isPresent() && usuarioOpt.get().getRole() == Role.ADMIN) {
@@ -287,7 +288,7 @@ public class AuthService {
         String usuarioIdHash = hmacHasher.hash(usuario.getId().toString());
         String link = construirLink("/confirmar-email", tokenBruto);
         try {
-            emailService.enviarLinkConfirmacaoEmail(usuarioIdHash, usuario.getEmail(), link);
+            emailService.enviarLinkConfirmacaoEmail(usuarioIdHash, usuario.getEmail(), link, TipoEmailConfirmacaoToken.CADASTRO);
         } catch (Exception ex) {
             log.warn("falha_disparo_envio_email_confirmacao usuarioHash={} causa={}", usuarioIdHash, ex.getClass().getSimpleName());
         }
@@ -305,7 +306,7 @@ public class AuthService {
         String usuarioIdHash = hmacHasher.hash(usuario.getId().toString());
         String link = construirLink("/confirmar-email", tokenBruto);
         try {
-            emailService.enviarLinkConfirmacaoEmail(usuarioIdHash, usuario.getEmail(), link);
+            emailService.enviarLinkConfirmacaoEmail(usuarioIdHash, usuario.getEmail(), link, TipoEmailConfirmacaoToken.TROCA_EMAIL);
         } catch (Exception ex) {
             log.warn("falha_disparo_envio_email_troca_email usuarioHash={} causa={}", usuarioIdHash, ex.getClass().getSimpleName());
         }

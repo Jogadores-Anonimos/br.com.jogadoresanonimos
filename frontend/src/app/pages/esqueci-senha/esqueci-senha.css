@@ -66,6 +66,17 @@
   outline-offset: 1px;
 }
 
+.conta-captcha {
+  margin: var(--spacing-sm) 0;
+  min-height: 78px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.conta-captcha > div {
+  transform-origin: 0 0;
+}
+
 .btn-cta {
   display: inline-block;
   width: 100%;
@@ -115,4 +126,14 @@
   color: var(--color-text-muted);
   font-size: 0.9rem;
   text-decoration: underline;
+}
+
+@media (max-width: 350px) {
+  .conta-captcha {
+    min-height: 68px;
+  }
+
+  .conta-captcha > div {
+    transform: scale(0.85);
+  }
 }
