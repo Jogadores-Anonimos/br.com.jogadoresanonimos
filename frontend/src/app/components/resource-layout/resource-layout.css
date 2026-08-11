@@ -276,12 +276,19 @@
   }
 
   .resource-layout {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
     padding: var(--spacing-md) var(--spacing-sm) var(--spacing-xl);
     gap: var(--spacing-lg);
   }
 
+  .resource-main {
+    order: 1;
+  }
+
   .resource-sidebar {
+    order: 2;
     position: static;
     max-height: none;
     overflow-y: visible;
@@ -289,7 +296,7 @@
 
   .resource-sidebar-cta {
     padding: var(--spacing-lg);
-    min-height: 300px;
+    min-height: auto;
   }
 
   .resource-sidebar-cta h2 {
@@ -299,11 +306,19 @@
   .resource-sidebar-cta__btn {
     font-size: 0.9rem;
   }
+
+  .resource-card__body {
+    padding: 0 var(--spacing-sm) var(--spacing-md);
+  }
 }
 
 @media (max-width: 600px) {
   .resource-banner {
     min-height: 160px;
     border-radius: var(--radius-sm);
+  }
+
+  .resource-card__body {
+    padding: 0 var(--spacing-xs) var(--spacing-sm);
   }
 }

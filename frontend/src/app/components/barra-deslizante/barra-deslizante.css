@@ -2,11 +2,12 @@
   display: block;
 }
 
-.ticker-outer { width: 100%; overflow: hidden; }
-.ticker-wrapper { overflow: hidden; }
+.ticker-outer { width: 100%; max-width: 100%; overflow: hidden; min-height: var(--ticker-height, 39px); }
+.ticker-wrapper { min-width: 0; overflow: hidden; min-height: var(--ticker-height, 39px); display: flex; align-items: center; }
 
 .ticker-track {
   display: flex;
+  min-width: 0;
   white-space: nowrap;
   animation: scroll 30s linear infinite;
 }
@@ -38,15 +39,12 @@
 }
 
 @media (max-width: 900px) {
-  :host {
-    --ticker-height: 26px;
-  }
-
   .ticker-item {
     font-size: 10px;
     padding: 6px 16px;
   }
   .ticker-sep {
+    font-size: 10px;
     padding: 6px 4px;
   }
 }

@@ -1,7 +1,7 @@
 .reflexao {
   background: var(--color-bg-section);
   color: var(--color-text);
-  padding: var(--spacing-lg) var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-sm);
   border-radius: var(--radius-md);
 }
 
@@ -124,7 +124,7 @@
   background: var(--color-bg-surface);
   color: var(--color-text);
   border-radius: var(--radius-md);
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-sm);
   min-height: 140px;
 }
 
@@ -165,6 +165,10 @@
 @media (min-width: 700px) {
   .reflexao {
     padding: var(--spacing-xl) var(--spacing-lg);
+  }
+
+  .reflexao__texto-box {
+    padding: var(--spacing-lg);
   }
 
   .reflexao__grade-meses {
