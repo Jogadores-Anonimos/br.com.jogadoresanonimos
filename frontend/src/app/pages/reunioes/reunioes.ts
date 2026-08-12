@@ -141,6 +141,8 @@ export class Reunioes implements OnInit, OnDestroy {
   private mapa?: L.Map;
   private marcadoresGrupo: L.Marker[] = [];
   private marcadorUsuario?: L.Marker;
+  private resizeObserver?: ResizeObserver;
+  private mapaInitToken = 0;
 
   @ViewChild('mapaContainer')
   set mapaContainerRef(ref: ElementRef<HTMLDivElement> | undefined) {
@@ -455,9 +457,13 @@ export class Reunioes implements OnInit, OnDestroy {
   }
 
   private async carregarLeafletECriarMapa(container: HTMLDivElement): Promise<void> {
+    const token = ++this.mapaInitToken;
     if (!this.leaflet) {
       const mod = await import('leaflet');
       this.leaflet = (mod as unknown as { default?: typeof L }).default ?? (mod as unknown as typeof L);
+    }
+    if (token !== this.mapaInitToken) {
+      return;
     }
     this.criarMapa(container);
   }
@@ -496,7 +502,15 @@ export class Reunioes implements OnInit, OnDestroy {
 
     this.atualizarMarcadores();
 
-    setTimeout(() => this.mapa?.invalidateSize(), 0);
+    this.resizeObserver = new ResizeObserver(() => {
+      if (!this.mapa) {
+        return;
+      }
+      this.mapa.invalidateSize();
+      this.mapa.panBy([1, 0], { animate: false });
+      this.mapa.panBy([-1, 0], { animate: false });
+    });
+    this.resizeObserver.observe(container);
 
     if (this.userCoords()) {
       this.atualizarMapaComLocalizacao();
@@ -504,6 +518,9 @@ export class Reunioes implements OnInit, OnDestroy {
   }
 
   private destruirMapa(): void {
+    this.mapaInitToken++;
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = undefined;
     this.marcadoresGrupo.forEach((marcador) => marcador.remove());
     this.marcadoresGrupo = [];
     this.marcadorUsuario?.remove();

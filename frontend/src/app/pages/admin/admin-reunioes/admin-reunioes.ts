@@ -128,6 +128,8 @@ export class AdminReunioes implements OnInit {
   private leaflet?: typeof L;
   private mapaPreview?: L.Map;
   private marcadorPreview?: L.Marker;
+  private resizeObserver?: ResizeObserver;
+  private mapaInitToken = 0;
 
   @ViewChild('mapaPreviewContainer')
   set mapaPreviewContainerRef(ref: ElementRef<HTMLDivElement> | undefined) {
@@ -394,9 +396,13 @@ export class AdminReunioes implements OnInit {
   }
 
   private async carregarLeafletECriarMapaPreview(container: HTMLDivElement): Promise<void> {
+    const token = ++this.mapaInitToken;
     if (!this.leaflet) {
       const mod = await import('leaflet');
       this.leaflet = (mod as unknown as { default?: typeof L }).default ?? (mod as unknown as typeof L);
+    }
+    if (token !== this.mapaInitToken) {
+      return;
     }
     this.criarMapaPreview(container);
   }
@@ -423,11 +429,23 @@ export class AdminReunioes implements OnInit {
       })
       .addTo(this.mapaPreview);
 
-    setTimeout(() => this.mapaPreview?.invalidateSize(), 0);
     this.atualizarMapaPreview();
+
+    this.resizeObserver = new ResizeObserver(() => {
+      if (!this.mapaPreview) {
+        return;
+      }
+      this.mapaPreview.invalidateSize();
+      this.mapaPreview.panBy([1, 0], { animate: false });
+      this.mapaPreview.panBy([-1, 0], { animate: false });
+    });
+    this.resizeObserver.observe(container);
   }
 
   private destruirMapaPreview(): void {
+    this.mapaInitToken++;
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = undefined;
     this.marcadorPreview?.remove();
     this.marcadorPreview = undefined;
     this.mapaPreview?.remove();
