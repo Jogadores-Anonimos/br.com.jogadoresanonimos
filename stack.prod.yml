@@ -17,6 +17,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL}
       STORAGE_STUB_DIR: /app/data/imagens
       STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL}
+      LOG_FILE_PATH: /app/logs
       ADMIN_BOOTSTRAP_APELIDO: ${ADMIN_BOOTSTRAP_APELIDO}
       ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL}
       ADMIN_LIMITE_MAXIMO: ${ADMIN_LIMITE_MAXIMO}
@@ -31,12 +32,13 @@ services:
       - admin_bootstrap_senha
     volumes:
       - backend_storage:/app/data/imagens
+      - backend_logs:/app/logs
     deploy:
       replicas: 1
       resources:
         limits:
           cpus: "1.0"
-          memory: 400M
+          memory: 460M
         reservations:
           cpus: "0.25"
           memory: 256M
@@ -101,6 +103,7 @@ networks:
 volumes:
   postgres_data:
   backend_storage:
+  backend_logs:
 
 secrets:
   db_password:
