@@ -4,8 +4,7 @@
 > fechadas (backend, admin, infraestrutura, segurança), organizadas por
 > tema/componente, não por ordem cronológica. Onde uma decisão substituiu
 > outra, só a decisão final aparece; o raciocínio de descartar a opção
-> anterior é mantido em uma frase quando ensina algo útil. Pendências
-> reais em aberto ficam em `PENDENCIAS.md`, não aqui.
+> anterior é mantido em uma frase quando ensina algo útil.
 
 ## 1. Visão geral da arquitetura
 
