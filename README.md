@@ -201,4 +201,4 @@ operação, não deste repositório.
   em PDF.
 - Nenhum log ou rate limiter usa IP ou dado pessoal identificável.
 
-Detalhamento completo em `Decisoes de Sistemas.md`.
+Detalhamento completo em [`Decisoes de Sistemas.md`](https://github.com/Eduardo-Salvador/br.com.jogadoresanonimos/blob/main/Decisoes%20de%20Sistemas.md).
