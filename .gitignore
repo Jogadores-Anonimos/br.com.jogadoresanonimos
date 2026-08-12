@@ -6,8 +6,9 @@
 .claude
 CLAUDE.md
 PENDENCIAS.md
-Decisoes de Sistemas.md
 Manual-de-Uso-Admin.md
 Documentacao-Tecnica-Cliente.md
 Servicos-Externos-e-Contas.md
+Fluxo-Ponta-a-Ponta.md
+*.docx
 hs_err_pid*.log
