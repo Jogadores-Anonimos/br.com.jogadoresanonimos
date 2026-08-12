@@ -59,6 +59,8 @@ public class AuthService {
     private static final int REENVIAR_CONFIRMACAO_EMAIL_VARREDURA_GLOBAL_CAPACIDADE = 30;
     private static final int REENVIAR_CONFIRMACAO_EMAIL_POR_USUARIO_CAPACIDADE = 3;
     private static final int MAX_TENTATIVAS_GERACAO_CODIGO_ADMIN = 5;
+    private static final Duration TTL_TOKEN_CONFIRMACAO_CADASTRO = Duration.ofHours(24);
+    private static final Duration TTL_TOKEN_TROCA_EMAIL = Duration.ofMinutes(30);
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordResetTokenRepository resetTokenRepository;
@@ -283,7 +285,7 @@ public class AuthService {
     private void gerarEEnviarTokenConfirmacaoEmail(Usuario usuario) {
         String tokenBruto = gerarTokenBruto();
         String tokenHash = sha256Hash(tokenBruto);
-        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuario.getId(), tokenHash, Instant.now().plus(Duration.ofHours(24)));
+        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuario.getId(), tokenHash, Instant.now().plus(TTL_TOKEN_CONFIRMACAO_CADASTRO));
         emailConfirmacaoTokenRepository.save(token);
         String usuarioIdHash = hmacHasher.hash(usuario.getId().toString());
         String link = construirLink("/confirmar-email", tokenBruto);
@@ -300,7 +302,7 @@ public class AuthService {
                 .forEach(EmailConfirmacaoToken::marcarUsado);
         String tokenBruto = gerarTokenBruto();
         String tokenHash = sha256Hash(tokenBruto);
-        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuario.getId(), tokenHash, Instant.now().plus(Duration.ofHours(24)),
+        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuario.getId(), tokenHash, Instant.now().plus(TTL_TOKEN_TROCA_EMAIL),
                 TipoEmailConfirmacaoToken.TROCA_EMAIL, novoEmail);
         emailConfirmacaoTokenRepository.save(token);
         String usuarioIdHash = hmacHasher.hash(usuario.getId().toString());
@@ -352,6 +354,11 @@ public class AuthService {
             throw new ConflitoDeEstadoException(ErrorCode.USUARIO_DADOS_EM_USO, "Esse e-mail já está em uso por outra conta");
         }
         usuario.trocarEmailConfirmado(confirmacaoToken.getNovoEmail());
+        try {
+            usuarioRepository.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new ConflitoDeEstadoException(ErrorCode.USUARIO_DADOS_EM_USO, "Esse e-mail já está em uso por outra conta");
+        }
         confirmacaoToken.marcarUsado();
         return new MensagemResponse("E-mail confirmado com sucesso.");
     }

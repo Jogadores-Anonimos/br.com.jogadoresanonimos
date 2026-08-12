@@ -20,7 +20,8 @@ o segredo do servidor mitiga adivinhação de um espaço pequeno (senha,
 código de 6 dígitos); aqui o próprio token já tem 256 bits de entropia
 CSPRNG, então SHA-256 simples já é suficiente para impedir que o valor
 em claro seja recuperado a partir do que está no banco — não precisa de
-segredo adicional de servidor. TTL 24h, single-use.
+segredo adicional de servidor. TTL 24h para `tipo = CADASTRO`, single-use
+(ver seção 1.1 para o TTL diferenciado de `tipo = TROCA_EMAIL`).
 
 ## 1. Geração e envio — integrado ao cadastro existente
 
@@ -62,6 +63,16 @@ e-mail que a conta tem (o que está sendo confirmado). Token
 `TROCA_EMAIL` é enviado para o e-mail **atual/antigo** da conta — nunca
 para `novo_email` — porque a prova de posse que interessa aqui é "o dono
 da caixa atual autoriza a troca", não "o dono da caixa nova existe".
+
+**Atualização 2026-08-12 (`backend`) — TTL diferenciado por `tipo`**:
+token `TROCA_EMAIL` usa TTL de 30 minutos, não mais 24h. Motivo: troca de
+e-mail é ação mais sensível que confirmação de cadastro novo — o token
+vai em query string (mesma exceção deliberada da seção 2), e uma janela
+de 24h amplia demais o risco de um vazamento em log de proxy permitir
+que outra pessoa confirme a troca dentro da validade. Token `CADASTRO`
+mantém 24h (risco menor: não muda o e-mail de uma conta já existente,
+só ativa a conta nova). Constantes em `AuthService`:
+`TTL_TOKEN_CONFIRMACAO_CADASTRO` (24h) e `TTL_TOKEN_TROCA_EMAIL` (30min).
 
 ## 2. `GET /api/v1/auth/confirmar-email`
 

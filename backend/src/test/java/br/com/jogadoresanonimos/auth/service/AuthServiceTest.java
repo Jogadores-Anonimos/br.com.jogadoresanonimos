@@ -664,6 +664,23 @@ class AuthServiceTest {
     }
 
     @Test
+    void confirmarEmail_deveFalharComConflitoQuandoFlushViolaConstraintUnicaConcorrente() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("apelido", "antigo@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, usuarioId);
+        EmailConfirmacaoToken token = new EmailConfirmacaoToken(usuarioId, "hash:token-valido", Instant.now().plusSeconds(3600),
+                TipoEmailConfirmacaoToken.TROCA_EMAIL, "novo@example.com");
+        when(emailConfirmacaoTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.existsByEmailIgnoreCase("novo@example.com")).thenReturn(false);
+        doThrow(new DataIntegrityViolationException("duplicate key")).when(usuarioRepository).flush();
+        assertThatThrownBy(() -> authService.confirmarEmail("token-valido"))
+                .isInstanceOf(ConflitoDeEstadoException.class)
+                .hasMessage("Esse e-mail já está em uso por outra conta");
+        assertThat(token.getUsadoEm()).isNull();
+    }
+
+    @Test
     void confirmarEmail_deveFalharQuandoTipoTrocaEmailComTokenExpiradoENuncaUsado() {
         UUID usuarioId = UUID.randomUUID();
         Usuario usuario = new Usuario("apelido", "antigo@example.com", "hash", Role.PARTICIPANTE);
@@ -707,6 +724,21 @@ class AuthServiceTest {
         verify(emailConfirmacaoTokenRepository).save(argThat(token ->
                 token.getTipo() == TipoEmailConfirmacaoToken.TROCA_EMAIL && "novo@example.com".equals(token.getNovoEmail())));
         verify(emailService).enviarLinkConfirmacaoEmail(anyString(), eq("atual@example.com"), anyString(), eq(TipoEmailConfirmacaoToken.TROCA_EMAIL));
+    }
+
+    @Test
+    void gerarEEnviarTokenTrocaEmail_deveGerarTokenComTtlDe30Minutos() {
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = new Usuario("apelido", "atual@example.com", "hash", Role.PARTICIPANTE);
+        setId(usuario, usuarioId);
+        when(emailConfirmacaoTokenRepository.findByUsuarioIdAndTipoAndUsadoEmIsNull(usuarioId, TipoEmailConfirmacaoToken.TROCA_EMAIL))
+                .thenReturn(java.util.List.of());
+        Instant antes = Instant.now();
+        authService.gerarEEnviarTokenTrocaEmail(usuario, "novo@example.com");
+        Instant depois = Instant.now();
+        verify(emailConfirmacaoTokenRepository).save(argThat(token ->
+                !token.getExpiraEm().isBefore(antes.plus(Duration.ofMinutes(30)).minusSeconds(5))
+                        && !token.getExpiraEm().isAfter(depois.plus(Duration.ofMinutes(30)).plusSeconds(5))));
     }
 
     @Test
