@@ -668,6 +668,23 @@ Dois tipos de log, com propósito, conteúdo, retenção e acesso diferentes.
   novo não muda o que é logado, só onde persiste; a disciplina de excluir
   payload de rota sensível continua no filtro de log HTTP.
 
+### 5C-bis. Risco residual conhecido: permissão do volume `backend_logs`
+ **Achado de `devops`**: o `chown -R app:app /app` aplicado no Dockerfile
+  é frágil sempre que o volume nomeado `backend_logs` é recriado do zero
+   um named volume vazio do Docker é montado por cima do diretório da
+  imagem, sobrepondo a permissão que o `chown` da imagem já tinha
+  setado, e o container sobe sem permissão de escrita em `/app/logs`.
+  Já aconteceu 2 vezes em produção.
+ **Não corrigido ainda  registrado como risco residual conhecido**,
+  não implementado nesta rodada.
+ **Sugestão já dada por `devops` para quando alguém for mexer nisso**:
+  mover o ajuste de permissão para um entrypoint do container (rodando
+  como root só nesse passo, antes de trocar para o usuário `app` não-
+  root) que garanta a permissão correta do diretório de log **no boot**,
+  em vez de depender só do `chown` estático da build da imagem  cobre o
+  caso do volume ser recriado do zero, que o `chown` da imagem não
+  alcança.
+
 ### 5D. Por que a separação importa neste projeto
 Log operacional tende a vazar dado pessoal por descuido (é o que captura
 request/response bruto)  por isso a disciplina de excluir payload de
