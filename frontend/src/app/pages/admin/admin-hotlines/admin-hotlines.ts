@@ -1,17 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Observable, forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Observable, forkJoin } from 'rxjs';
 
 import { ApiEnvelope, mapearErrosCampo } from '../../../services/api-envelope';
+import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
 import { HotlineService } from '../../../services/hotline/hotline';
 import { HotlineRegiao, HotlineTelefone, UNIDADES_FEDERATIVAS } from '../../../services/hotline/hotline.model';
-
-interface MunicipioIbge {
-  nome: string;
-}
 
 interface FormularioTelefone {
   id: string;
@@ -51,7 +46,7 @@ function ordenarRegioes(regioes: HotlineRegiao[]): HotlineRegiao[] {
 })
 export class AdminHotlines implements OnInit {
   private readonly hotlineService = inject(HotlineService);
-  private readonly http = inject(HttpClient);
+  private readonly enderecoLookupService = inject(EnderecoLookupService);
 
   readonly unidadesFederativas = UNIDADES_FEDERATIVAS;
 
@@ -124,9 +119,8 @@ export class AdminHotlines implements OnInit {
       return;
     }
     this.carregandoCidades = true;
-    this.http
-      .get<MunicipioIbge[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`)
-      .pipe(catchError(() => of(null)))
+    this.enderecoLookupService
+      .buscarMunicipiosPorUf(uf)
       .subscribe((municipios) => {
         this.carregandoCidades = false;
         if (!municipios) {

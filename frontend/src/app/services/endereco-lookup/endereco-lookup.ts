@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
-import { EnderecoViaCep, ResultadoNominatim } from './endereco-lookup.model';
+import { EnderecoViaCep, MunicipioIbge, ResultadoNominatim } from './endereco-lookup.model';
 
 @Injectable({ providedIn: 'root' })
 export class EnderecoLookupService {
@@ -21,5 +21,11 @@ export class EnderecoLookupService {
         params: { format: 'json', q: endereco, limit: '1' },
       })
       .pipe(catchError(() => of([])));
+  }
+
+  buscarMunicipiosPorUf(uf: string): Observable<MunicipioIbge[] | null> {
+    return this.http
+      .get<MunicipioIbge[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`)
+      .pipe(catchError(() => of(null)));
   }
 }

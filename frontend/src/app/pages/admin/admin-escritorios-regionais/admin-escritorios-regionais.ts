@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { catchError, of } from 'rxjs';
 
 import { mapearErrosCampo } from '../../../services/api-envelope';
+import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
+import { EnderecoViaCep } from '../../../services/endereco-lookup/endereco-lookup.model';
 import { EscritorioRegionalService } from '../../../services/escritorio-regional/escritorio-regional';
 import {
   AgendaItemGrupo,
@@ -83,14 +83,6 @@ type ExclusaoAlvo =
   | { tipo: 'estado'; estado: EstadoIntergrupo }
   | { tipo: 'grupo'; grupo: GrupoIntergrupo };
 
-interface EnderecoViaCep {
-  logradouro?: string;
-  bairro?: string;
-  localidade?: string;
-  uf?: string;
-  erro?: boolean;
-}
-
 const DIAS_SEMANA: { valor: DiaSemana; rotulo: string }[] = [
   { valor: 'DOMINGO', rotulo: 'Domingo' },
   { valor: 'SEGUNDA', rotulo: 'Segunda' },
@@ -136,7 +128,7 @@ function proximoIdAgendaFormulario(): string {
 })
 export class AdminEscritoriosRegionais implements OnInit {
   private readonly service = inject(EscritorioRegionalService);
-  private readonly http = inject(HttpClient);
+  private readonly enderecoLookupService = inject(EnderecoLookupService);
 
   readonly unidadesFederativas = UNIDADES_FEDERATIVAS;
   readonly diasSemana = DIAS_SEMANA;
@@ -781,9 +773,8 @@ export class AdminEscritoriosRegionais implements OnInit {
     setBuscando(true);
     setErro('');
 
-    this.http
-      .get<EnderecoViaCep>(`https://viacep.com.br/ws/${cepLimpo}/json/`)
-      .pipe(catchError(() => of(null)))
+    this.enderecoLookupService
+      .buscarCep(cepLimpo)
       .subscribe((endereco) => {
         setBuscando(false);
 

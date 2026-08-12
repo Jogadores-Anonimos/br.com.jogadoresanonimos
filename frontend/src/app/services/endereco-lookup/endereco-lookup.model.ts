@@ -10,3 +10,7 @@ export interface ResultadoNominatim {
   lat: string;
   lon: string;
 }
+
+export interface MunicipioIbge {
+  nome: string;
+}

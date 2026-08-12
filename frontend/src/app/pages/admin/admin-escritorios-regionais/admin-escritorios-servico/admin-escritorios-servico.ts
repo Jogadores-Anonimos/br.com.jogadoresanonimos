@@ -1,10 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { catchError, of } from 'rxjs';
 
 import { mapearErrosCampo } from '../../../../services/api-envelope';
+import { EnderecoLookupService } from '../../../../services/endereco-lookup/endereco-lookup';
 import { EscritorioRegionalService } from '../../../../services/escritorio-regional/escritorio-regional';
 import { EscritorioServico } from '../../../../services/escritorio-regional/escritorio-regional.model';
 
@@ -22,14 +21,6 @@ interface FormularioEscritorio {
   cidade: string;
   emailsTexto: string;
   telefones: FormularioTelefone[];
-}
-
-interface EnderecoViaCep {
-  logradouro?: string;
-  bairro?: string;
-  localidade?: string;
-  uf?: string;
-  erro?: boolean;
 }
 
 function formularioEscritorioVazio(): FormularioEscritorio {
@@ -51,7 +42,7 @@ function proximoIdTelefoneFormulario(): string {
 })
 export class AdminEscritoriosServico {
   private readonly service = inject(EscritorioRegionalService);
-  private readonly http = inject(HttpClient);
+  private readonly enderecoLookupService = inject(EnderecoLookupService);
 
   @Input({ required: true }) escritorios: EscritorioServico[] = [];
   @Output() readonly escritorioSalvo = new EventEmitter<EscritorioServico>();
@@ -119,9 +110,8 @@ export class AdminEscritoriosServico {
     this.buscandoCepEscritorio = true;
     this.erroCepEscritorio = '';
 
-    this.http
-      .get<EnderecoViaCep>(`https://viacep.com.br/ws/${cepLimpo}/json/`)
-      .pipe(catchError(() => of(null)))
+    this.enderecoLookupService
+      .buscarCep(cepLimpo)
       .subscribe((endereco) => {
         this.buscandoCepEscritorio = false;
 
