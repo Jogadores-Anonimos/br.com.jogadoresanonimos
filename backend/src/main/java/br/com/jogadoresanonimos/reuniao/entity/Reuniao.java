@@ -45,6 +45,27 @@ public class Reuniao {
 
     private Double longitude;
 
+    @Column(length = 9)
+    private String cep;
+
+    @Column(length = 20)
+    private String numero;
+
+    @Column(length = 200)
+    private String logradouro;
+
+    @Column(length = 100)
+    private String bairro;
+
+    @Column(length = 100)
+    private String cidade;
+
+    @Column(length = 2)
+    private String estado;
+
+    @Column(name = "link_reuniao", length = 500)
+    private String linkReuniao;
+
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
 
@@ -56,7 +77,8 @@ public class Reuniao {
 
     public Reuniao(String nome, CategoriaReuniao categoria, String descricao, String dia, String horario,
                     String local, String whatsapp, String diaSemana, String periodo,
-                    Double latitude, Double longitude) {
+                    Double latitude, Double longitude, String cep, String numero, String logradouro,
+                    String bairro, String cidade, String estado, String linkReuniao) {
         this.nome = nome;
         this.categoria = categoria;
         this.descricao = descricao;
@@ -68,13 +90,21 @@ public class Reuniao {
         this.periodo = periodo;
         this.latitude = latitude;
         this.longitude = longitude;
+        this.cep = cep;
+        this.numero = numero;
+        this.logradouro = logradouro;
+        this.bairro = bairro;
+        this.cidade = cidade;
+        this.estado = estado;
+        this.linkReuniao = linkReuniao;
         this.criadoEm = Instant.now();
         this.atualizadoEm = Instant.now();
     }
 
     public void editar(String nome, CategoriaReuniao categoria, String descricao, String dia, String horario,
                         String local, String whatsapp, String diaSemana, String periodo,
-                        Double latitude, Double longitude) {
+                        Double latitude, Double longitude, String cep, String numero, String logradouro,
+                        String bairro, String cidade, String estado, String linkReuniao) {
         this.nome = nome;
         this.categoria = categoria;
         this.descricao = descricao;
@@ -86,6 +116,20 @@ public class Reuniao {
         this.periodo = periodo;
         this.latitude = latitude;
         this.longitude = longitude;
+        this.cep = cep;
+        this.numero = numero;
+        this.logradouro = logradouro;
+        this.bairro = bairro;
+        this.cidade = cidade;
+        this.estado = estado;
+        this.linkReuniao = linkReuniao;
+        this.atualizadoEm = Instant.now();
+    }
+
+    public void preencherEnderecoGeocodificado(String estado, String cidade, String bairro) {
+        this.estado = estado;
+        this.cidade = cidade;
+        this.bairro = bairro;
         this.atualizadoEm = Instant.now();
     }
 
@@ -135,6 +179,34 @@ public class Reuniao {
 
     public Double getLongitude() {
         return longitude;
+    }
+
+    public String getCep() {
+        return cep;
+    }
+
+    public String getNumero() {
+        return numero;
+    }
+
+    public String getLogradouro() {
+        return logradouro;
+    }
+
+    public String getBairro() {
+        return bairro;
+    }
+
+    public String getCidade() {
+        return cidade;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public String getLinkReuniao() {
+        return linkReuniao;
     }
 
     public Instant getCriadoEm() {
