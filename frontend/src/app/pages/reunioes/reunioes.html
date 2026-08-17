@@ -137,36 +137,115 @@
                 }
               </select>
             </label>
+
+            <label class="filtro-campo">
+              <span>Estado</span>
+              <select
+                name="filtroEstado"
+                [ngModel]="filtroEstado()"
+                (ngModelChange)="aplicarFiltroEstado($event)"
+              >
+                <option value="todos">Todos os estados</option>
+                @for (estado of estadosDisponiveis(); track estado) {
+                  <option [value]="estado">{{ estado }}</option>
+                }
+              </select>
+            </label>
+
+            <label class="filtro-campo">
+              <span>Cidade</span>
+              <select
+                name="filtroCidade"
+                [ngModel]="filtroCidade()"
+                (ngModelChange)="aplicarFiltroCidade($event)"
+                [disabled]="cidadesDisponiveis().length === 0"
+              >
+                <option value="todos">Todas as cidades</option>
+                @for (cidade of cidadesDisponiveis(); track cidade) {
+                  <option [value]="cidade">{{ cidade }}</option>
+                }
+              </select>
+            </label>
+
+            <label class="filtro-campo">
+              <span>Bairro</span>
+              <select
+                name="filtroBairro"
+                [ngModel]="filtroBairro()"
+                (ngModelChange)="aplicarFiltroBairro($event)"
+                [disabled]="bairrosDisponiveis().length === 0"
+              >
+                <option value="todos">Todos os bairros</option>
+                @for (bairro of bairrosDisponiveis(); track bairro) {
+                  <option [value]="bairro">{{ bairro }}</option>
+                }
+              </select>
+            </label>
           }
         </div>
       </div>
 
-      <div class="reunioes-lista">
-        @for (reuniao of reunioesPaginadas(); track reuniao.id) {
-          <div class="reuniao-card">
-            <h3>{{ reuniao.nome }}</h3>
-            <p class="reuniao-descricao">{{ reuniao.descricao }}</p>
-            <p class="reuniao-dado"><strong>Dia:</strong> {{ reuniao.dia }}</p>
-            <p class="reuniao-dado"><strong>Horário:</strong> {{ reuniao.horario }}</p>
-            <p class="reuniao-dado"><strong>Local:</strong> {{ reuniao.local }}</p>
-            @if (distanciaKm(reuniao) !== null) {
-              <p class="reuniao-dado reuniao-distancia">
-                <strong>Distância até você:</strong> {{ distanciaKm(reuniao) }} km
-              </p>
-            }
-            <div class="reuniao-card-acoes">
-              <button type="button" class="btn-detalhes" (click)="abrirDetalhes(reuniao)">
-                Ver detalhes
-              </button>
-              @if (reuniao.categoria === 'virtual') {
-                <a
-                  class="btn-cta btn-whatsapp"
-                  [href]="whatsappLink(reuniao)"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  Falar no WhatsApp
-                </a>
+      @if (categoriaSelecionada() === 'presencial') {
+        <div class="reunioes-lista">
+          @for (reuniao of reunioesPaginadas(); track reuniao.id) {
+            <div class="reuniao-card">
+              <h3>{{ reuniao.nome }}</h3>
+              <p class="reuniao-descricao">{{ reuniao.descricao }}</p>
+              <p class="reuniao-dado"><strong>Dia:</strong> {{ reuniao.dia }}</p>
+              <p class="reuniao-dado"><strong>Horário:</strong> {{ reuniao.horario }}</p>
+              <p class="reuniao-dado"><strong>Local:</strong> {{ reuniao.local }}</p>
+              @if (distanciaKm(reuniao) !== null) {
+                <p class="reuniao-dado reuniao-distancia">
+                  <strong>Distância até você:</strong> {{ distanciaKm(reuniao) }} km
+                </p>
+              }
+              <div class="reuniao-card-acoes">
+                <button type="button" class="btn-detalhes" (click)="abrirDetalhes(reuniao)">
+                  Ver detalhes
+                </button>
+              </div>
+            </div>
+          } @empty {
+            <p class="reunioes-vazio">
+              Nenhuma reunião cadastrada nesta categoria no momento.
+            </p>
+          }
+        </div>
+
+        @if (itensVisiveis() < reunioesFiltradas().length) {
+          <div class="reunioes-carregar-mais">
+            <button type="button" class="btn-detalhes" (click)="carregarMaisReunioes()">
+              Carregar mais
+            </button>
+          </div>
+        }
+      }
+
+      @if (categoriaSelecionada() === 'virtual') {
+        @for (grupo of reunioesVirtuaisAgrupadas(); track grupo.dia) {
+          <div class="dia-secao">
+            <h3 class="dia-secao-titulo">{{ grupo.dia }}</h3>
+            <div class="reunioes-lista">
+              @for (reuniao of grupo.reunioes; track reuniao.id) {
+                <div class="reuniao-card">
+                  <h4>{{ reuniao.nome }}</h4>
+                  <p class="reuniao-descricao">{{ reuniao.descricao }}</p>
+                  <p class="reuniao-dado"><strong>Horário:</strong> {{ reuniao.horario }}</p>
+                  <p class="reuniao-dado"><strong>Local:</strong> {{ reuniao.local }}</p>
+                  <div class="reuniao-card-acoes">
+                    <button type="button" class="btn-detalhes" (click)="abrirDetalhes(reuniao)">
+                      Ver detalhes
+                    </button>
+                    <a
+                      class="btn-cta btn-whatsapp"
+                      [href]="whatsappLink(reuniao)"
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      Falar no WhatsApp
+                    </a>
+                  </div>
+                </div>
               }
             </div>
           </div>
@@ -175,14 +254,6 @@
             Nenhuma reunião cadastrada nesta categoria no momento.
           </p>
         }
-      </div>
-
-      @if (itensVisiveis() < reunioesFiltradas().length) {
-        <div class="reunioes-carregar-mais">
-          <button type="button" class="btn-detalhes" (click)="carregarMaisReunioes()">
-            Carregar mais
-          </button>
-        </div>
       }
     </section>
 

@@ -29,6 +29,11 @@ interface FiltroCategoria {
   descricao: string;
 }
 
+interface GrupoDiaVirtual {
+  dia: DiaSemana | 'Sem dia definido';
+  reunioes: Reuniao[];
+}
+
 const RAIO_TERRA_KM = 6371;
 
 const CENTRO_PADRAO: L.LatLngTuple = [-23.55, -46.62];
@@ -123,6 +128,9 @@ export class Reunioes implements OnInit, OnDestroy {
   readonly filtroDiaSemana = signal<FiltroDia>('todos');
   readonly filtroPeriodo = signal<Periodo | 'todos'>('todos');
   readonly filtroRaioKm = signal<number | 'todos'>('todos');
+  readonly filtroEstado = signal<string | 'todos'>('todos');
+  readonly filtroCidade = signal<string | 'todos'>('todos');
+  readonly filtroBairro = signal<string | 'todos'>('todos');
   readonly filtroTexto = signal('');
   private readonly filtroTextoDebounced = signal('');
   private debounceFiltroTextoId?: ReturnType<typeof setTimeout>;
@@ -191,6 +199,9 @@ export class Reunioes implements OnInit, OnDestroy {
     this.filtroDiaSemana.set('todos');
     this.filtroPeriodo.set('todos');
     this.filtroRaioKm.set('todos');
+    this.filtroEstado.set('todos');
+    this.filtroCidade.set('todos');
+    this.filtroBairro.set('todos');
     this.filtroTexto.set('');
     this.filtroTextoDebounced.set('');
     clearTimeout(this.debounceFiltroTextoId);
@@ -212,6 +223,27 @@ export class Reunioes implements OnInit, OnDestroy {
 
   aplicarFiltroRaioKm(valor: number | 'todos'): void {
     this.filtroRaioKm.set(valor);
+    this.itensVisiveis.set(ITENS_POR_PAGINA);
+    this.atualizarMarcadores();
+  }
+
+  aplicarFiltroEstado(valor: string | 'todos'): void {
+    this.filtroEstado.set(valor);
+    this.filtroCidade.set('todos');
+    this.filtroBairro.set('todos');
+    this.itensVisiveis.set(ITENS_POR_PAGINA);
+    this.atualizarMarcadores();
+  }
+
+  aplicarFiltroCidade(valor: string | 'todos'): void {
+    this.filtroCidade.set(valor);
+    this.filtroBairro.set('todos');
+    this.itensVisiveis.set(ITENS_POR_PAGINA);
+    this.atualizarMarcadores();
+  }
+
+  aplicarFiltroBairro(valor: string | 'todos'): void {
+    this.filtroBairro.set(valor);
     this.itensVisiveis.set(ITENS_POR_PAGINA);
     this.atualizarMarcadores();
   }
@@ -287,6 +319,54 @@ export class Reunioes implements OnInit, OnDestroy {
     return this.diasPorIndiceJs[new Date().getDay()];
   }
 
+  private readonly reunioesPresenciais = computed<Reuniao[]>(() =>
+    this.reunioes().filter((r) => r.categoria === 'presencial'),
+  );
+
+  readonly estadosDisponiveis = computed<string[]>(() => {
+    const valores = new Set<string>();
+    for (const reuniao of this.reunioesPresenciais()) {
+      if (reuniao.estado) {
+        valores.add(reuniao.estado);
+      }
+    }
+    return [...valores].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  });
+
+  readonly cidadesDisponiveis = computed<string[]>(() => {
+    const filtroEstado = this.filtroEstado();
+    const valores = new Set<string>();
+    for (const reuniao of this.reunioesPresenciais()) {
+      if (!reuniao.cidade) {
+        continue;
+      }
+      if (filtroEstado !== 'todos' && reuniao.estado !== filtroEstado) {
+        continue;
+      }
+      valores.add(reuniao.cidade);
+    }
+    return [...valores].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  });
+
+  readonly bairrosDisponiveis = computed<string[]>(() => {
+    const filtroEstado = this.filtroEstado();
+    const filtroCidade = this.filtroCidade();
+    const valores = new Set<string>();
+    for (const reuniao of this.reunioesPresenciais()) {
+      if (!reuniao.bairro) {
+        continue;
+      }
+      if (filtroEstado !== 'todos' && reuniao.estado !== filtroEstado) {
+        continue;
+      }
+      if (filtroCidade !== 'todos' && reuniao.cidade !== filtroCidade) {
+        continue;
+      }
+      valores.add(reuniao.bairro);
+    }
+    return [...valores].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  });
+
   readonly reunioesFiltradas = computed<Reuniao[]>(() => {
     const categoriaSelecionada = this.categoriaSelecionada();
     if (!categoriaSelecionada) {
@@ -310,6 +390,9 @@ export class Reunioes implements OnInit, OnDestroy {
       const filtroDiaSemana = this.filtroDiaSemana();
       const filtroPeriodo = this.filtroPeriodo();
       const filtroRaioKm = this.filtroRaioKm();
+      const filtroEstado = this.filtroEstado();
+      const filtroCidade = this.filtroCidade();
+      const filtroBairro = this.filtroBairro();
 
       if (filtroDiaSemana !== 'todos') {
         const diaAlvo = filtroDiaSemana === 'hoje' ? this.diaSemanaAtual : filtroDiaSemana;
@@ -321,6 +404,15 @@ export class Reunioes implements OnInit, OnDestroy {
       if (filtroRaioKm !== 'todos' && userCoords) {
         const raioMaximo = filtroRaioKm;
         resultado = resultado.filter((r) => (this.distanciaKm(r) ?? Infinity) <= raioMaximo);
+      }
+      if (filtroEstado !== 'todos') {
+        resultado = resultado.filter((r) => r.estado === filtroEstado);
+      }
+      if (filtroCidade !== 'todos') {
+        resultado = resultado.filter((r) => r.cidade === filtroCidade);
+      }
+      if (filtroBairro !== 'todos') {
+        resultado = resultado.filter((r) => r.bairro === filtroBairro);
       }
 
       if (userCoords) {
@@ -336,6 +428,35 @@ export class Reunioes implements OnInit, OnDestroy {
   readonly reunioesPaginadas = computed<Reuniao[]>(() =>
     this.reunioesFiltradas().slice(0, this.itensVisiveis()),
   );
+
+  private comparaHorario(a: Reuniao, b: Reuniao): number {
+    return a.horario.localeCompare(b.horario);
+  }
+
+  readonly reunioesVirtuaisAgrupadas = computed<GrupoDiaVirtual[]>(() => {
+    if (this.categoriaSelecionada() !== 'virtual') {
+      return [];
+    }
+
+    const grupos: GrupoDiaVirtual[] = [];
+    for (const dia of this.diasSemana) {
+      const reunioesDoDia = this.reunioesFiltradas()
+        .filter((r) => r.diaSemana === dia)
+        .sort((a, b) => this.comparaHorario(a, b));
+      if (reunioesDoDia.length > 0) {
+        grupos.push({ dia, reunioes: reunioesDoDia });
+      }
+    }
+
+    const semDiaDefinido = this.reunioesFiltradas()
+      .filter((r) => !r.diaSemana)
+      .sort((a, b) => this.comparaHorario(a, b));
+    if (semDiaDefinido.length > 0) {
+      grupos.push({ dia: 'Sem dia definido', reunioes: semDiaDefinido });
+    }
+
+    return grupos;
+  });
 
   atualizarMarcadores(): void {
     if (!this.mapa || !this.leaflet) {
@@ -507,8 +628,6 @@ export class Reunioes implements OnInit, OnDestroy {
         return;
       }
       this.mapa.invalidateSize();
-      this.mapa.panBy([1, 0], { animate: false });
-      this.mapa.panBy([-1, 0], { animate: false });
     });
     this.resizeObserver.observe(container);
 

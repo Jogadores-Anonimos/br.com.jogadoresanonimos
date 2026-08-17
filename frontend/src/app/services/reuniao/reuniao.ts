@@ -25,7 +25,6 @@ export class ReuniaoService {
     return of(apiSuccess(ordenadas)).pipe(delay(400));
   }
 
-
   listarReunioesAdmin(): Observable<ApiEnvelope<Reuniao[]>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<Reuniao[]>>(this.adminUrl).pipe(
@@ -60,6 +59,13 @@ export class ReuniaoService {
       periodo: req.periodo?.trim() || null,
       latitude: req.latitude ?? null,
       longitude: req.longitude ?? null,
+      cep: req.cep?.trim() || null,
+      numero: req.numero?.trim() || null,
+      logradouro: req.logradouro?.trim() || null,
+      bairro: req.bairro?.trim() || null,
+      cidade: req.cidade?.trim() || null,
+      estado: req.estado?.trim() || null,
+      linkReuniao: req.linkReuniao?.trim() || null,
     };
     REUNIOES_MOCK.push(nova);
     return of(apiSuccess(nova)).pipe(delay(500));
@@ -91,6 +97,13 @@ export class ReuniaoService {
     reuniao.periodo = req.periodo?.trim() || null;
     reuniao.latitude = req.latitude ?? null;
     reuniao.longitude = req.longitude ?? null;
+    reuniao.cep = req.cep?.trim() || null;
+    reuniao.numero = req.numero?.trim() || null;
+    reuniao.logradouro = req.logradouro?.trim() || null;
+    reuniao.bairro = req.bairro?.trim() || null;
+    reuniao.cidade = req.cidade?.trim() || null;
+    reuniao.estado = req.estado?.trim() || null;
+    reuniao.linkReuniao = req.linkReuniao?.trim() || null;
     return of(apiSuccess(reuniao)).pipe(delay(400));
   }
 

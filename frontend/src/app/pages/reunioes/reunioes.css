@@ -73,6 +73,25 @@
   gap: var(--spacing-md);
 }
 
+.dia-secao {
+  margin-bottom: var(--spacing-lg);
+}
+
+.dia-secao-titulo {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--cor-padrao-ja);
+  border-bottom: 2px solid var(--color-border);
+  padding-bottom: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.reuniao-card h4 {
+  font-size: 1.1rem;
+  color: var(--cor-padrao-ja);
+  margin-bottom: var(--spacing-xs);
+}
+
 .reuniao-card {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
@@ -171,6 +190,15 @@
 .mapa-leaflet {
   position: absolute;
   inset: 0;
+}
+
+.mapa-leaflet ::ng-deep .leaflet-container,
+.mapa-leaflet ::ng-deep .leaflet-container *:not(.leaflet-zoom-box):not(.leaflet-popup-tip),
+.mapa-leaflet ::ng-deep .leaflet-container *::before,
+.mapa-leaflet ::ng-deep .leaflet-container *::after {
+  box-sizing: content-box;
+  margin: revert;
+  padding: revert;
 }
 
 .mapa-leaflet ::ng-deep .leaflet-control,

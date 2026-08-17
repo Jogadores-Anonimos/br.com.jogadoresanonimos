@@ -146,7 +146,7 @@
 }
 
 @if (modo === 'formulario') {
-<section class="admin-reunioes">
+<section class="admin-reunioes" #formularioSecao>
   <h1 class="admin-reunioes__titulo">{{ reuniaoEmEdicao ? 'Editar reunião' : 'Nova reunião' }}</h1>
 
   <form class="admin-reunioes__formulario" (ngSubmit)="salvar()">
@@ -156,6 +156,7 @@
           <label for="reuniao-nome">Nome</label>
           <input
             id="reuniao-nome"
+            #campoNome
             type="text"
             name="nome"
             [(ngModel)]="formulario.nome"
@@ -226,59 +227,106 @@
           </div>
         </div>
 
-        <div class="admin-reunioes__campo-linha">
-          <div class="admin-reunioes__campo">
-            <label for="reuniao-cep">CEP</label>
-            <input
-              id="reuniao-cep"
-              type="text"
-              inputmode="numeric"
-              placeholder="00000-000"
-              maxlength="9"
-              [(ngModel)]="cep"
-              name="cep"
-            />
+        @if (formulario.categoria === 'presencial') {
+          <div class="admin-reunioes__campo-linha">
+            <div class="admin-reunioes__campo">
+              <label for="reuniao-cep">CEP</label>
+              <input
+                id="reuniao-cep"
+                type="text"
+                inputmode="numeric"
+                placeholder="00000-000"
+                maxlength="9"
+                [(ngModel)]="formulario.cep"
+                name="cep"
+              />
+            </div>
+
+            <div class="admin-reunioes__campo">
+              <label for="reuniao-numero">Número</label>
+              <input
+                id="reuniao-numero"
+                type="text"
+                placeholder="Ex: 123"
+                [(ngModel)]="formulario.numero"
+                name="numero"
+              />
+            </div>
           </div>
 
           <div class="admin-reunioes__campo">
-            <label for="reuniao-numero">Número</label>
+            <button type="button" class="admin-reunioes__botao admin-reunioes__botao--secundario" [disabled]="buscandoCep" (click)="buscarCep()">
+              {{ buscandoCep ? 'Buscando…' : 'Buscar endereço' }}
+            </button>
+            @if (erroCep) {
+              <p class="admin-reunioes__erro-card" role="alert">{{ erroCep }}</p>
+            }
+            <p class="admin-reunioes__ajuda">
+              Preenche automaticamente o campo "Endereço" e a localização no mapa.
+            </p>
+          </div>
+
+          <div class="admin-reunioes__campo">
+            <label for="reuniao-local">Endereço</label>
             <input
-              id="reuniao-numero"
+              id="reuniao-local"
               type="text"
-              placeholder="Ex: 123"
-              [(ngModel)]="numero"
-              name="numero"
+              name="local"
+              [(ngModel)]="formulario.local"
+              [class.campo-invalido]="errosCampo['local']"
+              [attr.aria-invalid]="errosCampo['local'] ? 'true' : null"
+              required
             />
           </div>
-        </div>
+
+          <div class="admin-reunioes__campo-linha">
+            <div class="admin-reunioes__campo">
+              <label for="reuniao-logradouro">Logradouro</label>
+              <input
+                id="reuniao-logradouro"
+                type="text"
+                name="logradouro"
+                [(ngModel)]="formulario.logradouro"
+              />
+            </div>
+
+            <div class="admin-reunioes__campo">
+              <label for="reuniao-bairro">Bairro</label>
+              <input
+                id="reuniao-bairro"
+                type="text"
+                name="bairro"
+                [(ngModel)]="formulario.bairro"
+              />
+            </div>
+          </div>
+
+          <div class="admin-reunioes__campo-linha">
+            <div class="admin-reunioes__campo">
+              <label for="reuniao-cidade">Cidade</label>
+              <input
+                id="reuniao-cidade"
+                type="text"
+                name="cidade"
+                [(ngModel)]="formulario.cidade"
+              />
+            </div>
+
+            <div class="admin-reunioes__campo">
+              <label for="reuniao-estado">Estado</label>
+              <input
+                id="reuniao-estado"
+                type="text"
+                name="estado"
+                maxlength="2"
+                [(ngModel)]="formulario.estado"
+              />
+            </div>
+          </div>
+        }
 
         <div class="admin-reunioes__campo">
-          <button type="button" class="admin-reunioes__botao admin-reunioes__botao--secundario" [disabled]="buscandoCep" (click)="buscarCep()">
-            {{ buscandoCep ? 'Buscando…' : 'Buscar endereço' }}
-          </button>
-          @if (erroCep) {
-            <p class="admin-reunioes__erro-card" role="alert">{{ erroCep }}</p>
-          }
-          <p class="admin-reunioes__ajuda">
-            Preenche automaticamente o campo "Endereço" e a localização no mapa.
-          </p>
-        </div>
-
-        <div class="admin-reunioes__campo">
-          <label for="reuniao-local">Endereço</label>
-          <input
-            id="reuniao-local"
-            type="text"
-            name="local"
-            [(ngModel)]="formulario.local"
-            [class.campo-invalido]="errosCampo['local']"
-            [attr.aria-invalid]="errosCampo['local'] ? 'true' : null"
-            required
-          />
-        </div>
-
-        <div class="admin-reunioes__campo">
-          <label for="reuniao-whatsapp">WhatsApp (opcional)</label>
+          <label for="reuniao-whatsapp">{{ formulario.categoria === 'virtual' ? 'Número/contato (opcional)' : 'WhatsApp (opcional)' }}</label>
           <input
             id="reuniao-whatsapp"
             type="text"
@@ -291,45 +339,62 @@
           />
         </div>
 
-        <div class="admin-reunioes__campo-linha">
+        @if (formulario.categoria === 'virtual') {
           <div class="admin-reunioes__campo">
-            <label for="reuniao-latitude">Latitude (opcional)</label>
+            <label for="reuniao-link">Link da reunião (opcional)</label>
             <input
-              id="reuniao-latitude"
-              type="text"
-              name="latitude"
-              inputmode="decimal"
-              placeholder="Preenchido pela busca de CEP"
-              [(ngModel)]="formulario.latitude"
-              (ngModelChange)="atualizarMapaPreview()"
-              [class.campo-invalido]="errosCampo['latitude']"
-              [attr.aria-invalid]="errosCampo['latitude'] ? 'true' : null"
+              id="reuniao-link"
+              type="url"
+              name="linkReuniao"
+              placeholder="Ex: https://meet.google.com/..."
+              [(ngModel)]="formulario.linkReuniao"
             />
           </div>
+        }
 
-          <div class="admin-reunioes__campo">
-            <label for="reuniao-longitude">Longitude (opcional)</label>
-            <input
-              id="reuniao-longitude"
-              type="text"
-              name="longitude"
-              inputmode="decimal"
-              placeholder="Preenchido pela busca de CEP"
-              [(ngModel)]="formulario.longitude"
-              (ngModelChange)="atualizarMapaPreview()"
-              [class.campo-invalido]="errosCampo['longitude']"
-              [attr.aria-invalid]="errosCampo['longitude'] ? 'true' : null"
-            />
+        @if (formulario.categoria === 'presencial') {
+          <div class="admin-reunioes__campo-linha">
+            <div class="admin-reunioes__campo">
+              <label for="reuniao-latitude">Latitude (opcional)</label>
+              <input
+                id="reuniao-latitude"
+                type="text"
+                name="latitude"
+                inputmode="decimal"
+                placeholder="Preenchido pela busca de CEP"
+                [(ngModel)]="formulario.latitude"
+                (ngModelChange)="atualizarMapaPreview()"
+                [class.campo-invalido]="errosCampo['latitude']"
+                [attr.aria-invalid]="errosCampo['latitude'] ? 'true' : null"
+              />
+            </div>
+
+            <div class="admin-reunioes__campo">
+              <label for="reuniao-longitude">Longitude (opcional)</label>
+              <input
+                id="reuniao-longitude"
+                type="text"
+                name="longitude"
+                inputmode="decimal"
+                placeholder="Preenchido pela busca de CEP"
+                [(ngModel)]="formulario.longitude"
+                (ngModelChange)="atualizarMapaPreview()"
+                [class.campo-invalido]="errosCampo['longitude']"
+                [attr.aria-invalid]="errosCampo['longitude'] ? 'true' : null"
+              />
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (formulario.categoria === 'presencial') {
+        <div class="admin-reunioes__mapa-preview">
+          <span class="admin-reunioes__mapa-preview-titulo">Pré-visualização</span>
+          <div class="admin-reunioes__mapa-preview-wrapper">
+            <div #mapaPreviewContainer class="admin-reunioes__mapa-preview-leaflet"></div>
           </div>
         </div>
-      </div>
-
-      <div class="admin-reunioes__mapa-preview">
-        <span class="admin-reunioes__mapa-preview-titulo">Pré-visualização</span>
-        <div class="admin-reunioes__mapa-preview-wrapper">
-          <div #mapaPreviewContainer class="admin-reunioes__mapa-preview-leaflet"></div>
-        </div>
-      </div>
+      }
     </div>
 
     @if (erroFormulario) {

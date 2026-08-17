@@ -18,6 +18,13 @@ interface FormularioReuniao {
   diaSemana: string;
   latitude: string;
   longitude: string;
+  cep: string;
+  numero: string;
+  logradouro: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+  linkReuniao: string;
 }
 
 function formularioVazio(): FormularioReuniao {
@@ -31,6 +38,13 @@ function formularioVazio(): FormularioReuniao {
     diaSemana: '',
     latitude: '',
     longitude: '',
+    cep: '',
+    numero: '',
+    logradouro: '',
+    bairro: '',
+    cidade: '',
+    estado: '',
+    linkReuniao: '',
   };
 }
 
@@ -91,12 +105,20 @@ export class AdminReunioes implements OnInit {
 
   readonly reunioesFiltradas = computed(() => {
     const texto = this.filtroTexto().trim().toLowerCase();
+    const digitosTexto = texto.replace(/\D/g, '');
     const categoria = this.filtroCategoria();
     const diaSemana = this.filtroDiaSemana();
 
     return this.reunioes().filter((reuniao) => {
       const combinaTexto =
-        texto === '' || reuniao.nome.toLowerCase().includes(texto) || reuniao.local.toLowerCase().includes(texto);
+        texto === '' ||
+        reuniao.nome.toLowerCase().includes(texto) ||
+        reuniao.local.toLowerCase().includes(texto) ||
+        (reuniao.logradouro ?? '').toLowerCase().includes(texto) ||
+        (reuniao.bairro ?? '').toLowerCase().includes(texto) ||
+        (reuniao.cidade ?? '').toLowerCase().includes(texto) ||
+        (reuniao.estado ?? '').toLowerCase().includes(texto) ||
+        (digitosTexto !== '' && (reuniao.cep ?? '').replace(/\D/g, '').includes(digitosTexto));
       const combinaCategoria = categoria === '' || reuniao.categoria === categoria;
       const combinaDiaSemana = diaSemana === '' || reuniao.diaSemana === diaSemana;
       return combinaTexto && combinaCategoria && combinaDiaSemana;
@@ -116,8 +138,6 @@ export class AdminReunioes implements OnInit {
   erroFormulario = '';
   errosCampo: Record<string, string> = {};
 
-  cep = '';
-  numero = '';
   buscandoCep = false;
   erroCep = '';
 
@@ -130,6 +150,9 @@ export class AdminReunioes implements OnInit {
   private marcadorPreview?: L.Marker;
   private resizeObserver?: ResizeObserver;
   private mapaInitToken = 0;
+
+  @ViewChild('formularioSecao') formularioSecaoRef?: ElementRef<HTMLElement>;
+  @ViewChild('campoNome') campoNomeRef?: ElementRef<HTMLInputElement>;
 
   @ViewChild('mapaPreviewContainer')
   set mapaPreviewContainerRef(ref: ElementRef<HTMLDivElement> | undefined) {
@@ -166,12 +189,11 @@ export class AdminReunioes implements OnInit {
   abrirNovo(): void {
     this.reuniaoEmEdicao = null;
     this.formulario = formularioVazio();
-    this.cep = '';
-    this.numero = '';
     this.erroCep = '';
     this.erroFormulario = '';
     this.errosCampo = {};
     this.modo = 'formulario';
+    this.focarFormulario();
   }
 
   abrirEdicao(reuniao: Reuniao): void {
@@ -186,13 +208,31 @@ export class AdminReunioes implements OnInit {
       diaSemana: reuniao.diaSemana ?? '',
       latitude: reuniao.latitude !== null ? String(reuniao.latitude) : '',
       longitude: reuniao.longitude !== null ? String(reuniao.longitude) : '',
+      cep: reuniao.cep ?? '',
+      numero: reuniao.numero ?? '',
+      logradouro: reuniao.logradouro ?? '',
+      bairro: reuniao.bairro ?? '',
+      cidade: reuniao.cidade ?? '',
+      estado: reuniao.estado ?? '',
+      linkReuniao: reuniao.linkReuniao ?? '',
     };
-    this.cep = '';
-    this.numero = '';
     this.erroCep = '';
     this.erroFormulario = '';
     this.errosCampo = {};
     this.modo = 'formulario';
+    this.focarFormulario();
+  }
+
+  private focarFormulario(): void {
+    if (!this.isBrowser) {
+      return;
+    }
+    setTimeout(() => {
+      const secao = this.formularioSecaoRef?.nativeElement;
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      secao?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+      this.campoNomeRef?.nativeElement.focus({ preventScroll: true });
+    });
   }
 
   cancelar(): void {
@@ -203,7 +243,7 @@ export class AdminReunioes implements OnInit {
   }
 
   buscarCep(): void {
-    const cepLimpo = this.cep.replace(/\D/g, '');
+    const cepLimpo = this.formulario.cep.replace(/\D/g, '');
     if (cepLimpo.length !== 8) {
       this.erroCep = 'CEP inválido — precisa ter 8 dígitos.';
       return;
@@ -219,11 +259,15 @@ export class AdminReunioes implements OnInit {
         return;
       }
 
-      const logradouroComNumero = [endereco.logradouro, this.numero.trim()].filter(Boolean).join(', ');
+      const logradouroComNumero = [endereco.logradouro, this.formulario.numero.trim()].filter(Boolean).join(', ');
       const enderecoBase = [logradouroComNumero, endereco.bairro, endereco.localidade, endereco.uf]
         .filter(Boolean)
         .join(', ');
       this.formulario.local = enderecoBase || this.formulario.local;
+      this.formulario.logradouro = endereco.logradouro ?? '';
+      this.formulario.bairro = endereco.bairro ?? '';
+      this.formulario.cidade = endereco.localidade ?? '';
+      this.formulario.estado = endereco.uf ?? '';
 
       this.enderecoLookupService.geocodificar(enderecoBase).subscribe((resultados) => {
         this.buscandoCep = false;
@@ -298,11 +342,14 @@ export class AdminReunioes implements OnInit {
     if (!this.formulario.horario.trim()) {
       this.errosCampo['horario'] = 'Horário é obrigatório.';
     }
-    if (!this.formulario.local.trim()) {
+    if (this.formulario.categoria === 'presencial' && !this.formulario.local.trim()) {
       this.errosCampo['local'] = 'Local é obrigatório.';
     }
     if (Object.keys(this.errosCampo).length > 0) {
-      this.erroFormulario = 'Nome, descrição, dia da semana, horário e local são obrigatórios.';
+      this.erroFormulario =
+        this.formulario.categoria === 'presencial'
+          ? 'Nome, descrição, dia da semana, horário e local são obrigatórios.'
+          : 'Nome, descrição, dia da semana e horário são obrigatórios.';
       return;
     }
 
@@ -344,6 +391,13 @@ export class AdminReunioes implements OnInit {
       periodo: periodoParaHorario(horario),
       latitude,
       longitude,
+      cep: this.formulario.cep.trim() || undefined,
+      numero: this.formulario.numero.trim() || undefined,
+      logradouro: this.formulario.logradouro.trim() || undefined,
+      bairro: this.formulario.bairro.trim() || undefined,
+      cidade: this.formulario.cidade.trim() || undefined,
+      estado: this.formulario.estado.trim() || undefined,
+      linkReuniao: this.formulario.linkReuniao.trim() || undefined,
     };
 
     const acao = this.reuniaoEmEdicao

@@ -307,6 +307,15 @@
   inset: 0;
 }
 
+.admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-container,
+.admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-container *:not(.leaflet-zoom-box):not(.leaflet-popup-tip),
+.admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-container *::before,
+.admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-container *::after {
+  box-sizing: content-box;
+  margin: revert;
+  padding: revert;
+}
+
 .admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-control,
 .admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-bar,
 .admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-bar a {
