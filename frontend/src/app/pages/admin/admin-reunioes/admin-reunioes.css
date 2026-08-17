@@ -16,6 +16,12 @@
   gap: var(--spacing-sm);
 }
 
+.admin-reunioes__cabecalho-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
 .admin-reunioes__titulo {
   color: var(--color-text);
   font-size: 1.4rem;
@@ -307,6 +313,15 @@
   inset: 0;
 }
 
+.admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-container,
+.admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-container *:not(.leaflet-zoom-box):not(.leaflet-popup-tip),
+.admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-container *::before,
+.admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-container *::after {
+  box-sizing: content-box;
+  margin: revert;
+  padding: revert;
+}
+
 .admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-control,
 .admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-bar,
 .admin-reunioes__mapa-preview-leaflet ::ng-deep .leaflet-bar a {
@@ -337,6 +352,12 @@
   .admin-reunioes__cabecalho {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .admin-reunioes__cabecalho-acoes {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
   }
 
   .admin-reunioes__botao--primario {

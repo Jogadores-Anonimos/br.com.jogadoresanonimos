@@ -13,6 +13,13 @@ export interface Reuniao {
   periodo: string | null;
   latitude: number | null;
   longitude: number | null;
+  cep: string | null;
+  numero: string | null;
+  logradouro: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  estado: string | null;
+  linkReuniao: string | null;
 }
 
 export interface CriarReuniaoRequest {
@@ -27,6 +34,25 @@ export interface CriarReuniaoRequest {
   periodo?: string;
   latitude?: number;
   longitude?: number;
+  cep?: string;
+  numero?: string;
+  logradouro?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+  linkReuniao?: string;
 }
 
 export type EditarReuniaoRequest = CriarReuniaoRequest;
+
+export interface BackfillGeolocalizacaoFalha {
+  reuniaoId: string;
+  motivo: string;
+}
+
+export interface BackfillGeolocalizacaoResponse {
+  totalElegiveis: number;
+  atualizadas: number;
+  falhas: number;
+  detalhesFalha: BackfillGeolocalizacaoFalha[];
+}

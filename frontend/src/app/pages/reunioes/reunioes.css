@@ -73,6 +73,25 @@
   gap: var(--spacing-md);
 }
 
+.dia-secao {
+  margin-bottom: var(--spacing-lg);
+}
+
+.dia-secao-titulo {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--cor-padrao-ja);
+  border-bottom: 2px solid var(--color-border);
+  padding-bottom: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.reuniao-card h4 {
+  font-size: 1.1rem;
+  color: var(--cor-padrao-ja);
+  margin-bottom: var(--spacing-xs);
+}
+
 .reuniao-card {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
@@ -168,18 +187,12 @@
   overflow: hidden;
 }
 
-.mapa-leaflet {
+.mapa-maplibre {
   position: absolute;
   inset: 0;
 }
 
-.mapa-leaflet ::ng-deep .leaflet-control,
-.mapa-leaflet ::ng-deep .leaflet-bar,
-.mapa-leaflet ::ng-deep .leaflet-bar a {
-  border-radius: 0 !important;
-}
-
-.mapa-leaflet ::ng-deep .mapa-marcador-grupo {
+.mapa-maplibre ::ng-deep .mapa-marcador-grupo {
   width: 34px;
   height: 34px;
   display: flex;
@@ -188,23 +201,32 @@
   background: var(--color-bg-surface);
   border: 2px solid var(--cor-padrao-ja);
   box-shadow: var(--shadow-sm);
+  cursor: pointer;
 }
 
-.mapa-leaflet ::ng-deep .mapa-marcador-grupo img {
+.mapa-maplibre ::ng-deep .mapa-marcador-grupo img {
   width: 20px;
   height: 20px;
   object-fit: contain;
 }
 
-.mapa-leaflet ::ng-deep .mapa-marcador-voce {
+.mapa-maplibre ::ng-deep .mapa-marcador-voce-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.mapa-maplibre ::ng-deep .mapa-marcador-voce {
   width: 16px;
   height: 16px;
   background: var(--color-cta);
   border: 2px solid var(--white);
+  border-radius: 50%;
   box-shadow: var(--shadow-sm);
 }
 
-.mapa-leaflet ::ng-deep .mapa-tooltip-voce {
+.mapa-maplibre ::ng-deep .mapa-tooltip-voce {
   background: var(--color-cta);
   color: var(--white);
   border: none;
@@ -213,10 +235,37 @@
   font-size: 0.75rem;
   padding: 3px 8px;
   box-shadow: var(--shadow-sm);
+  white-space: nowrap;
 }
 
-.mapa-leaflet ::ng-deep .mapa-tooltip-voce::before {
-  border-top-color: var(--color-cta);
+.mapa-maplibre ::ng-deep .mapa-popup-reuniao {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  max-width: 220px;
+}
+
+.mapa-maplibre ::ng-deep .mapa-popup-reuniao strong {
+  color: var(--cor-padrao-ja);
+  font-size: 0.9rem;
+}
+
+.mapa-maplibre ::ng-deep .mapa-popup-reuniao p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.mapa-maplibre ::ng-deep .maplibregl-popup-content {
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-sm);
+}
+
+.mapa-maplibre ::ng-deep .maplibregl-popup-tip {
+  border-top-color: var(--color-bg-surface);
 }
 
 .mapa-overlay {
