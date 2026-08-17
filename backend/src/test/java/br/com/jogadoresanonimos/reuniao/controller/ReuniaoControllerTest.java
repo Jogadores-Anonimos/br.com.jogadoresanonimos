@@ -34,8 +34,9 @@ class ReuniaoControllerTest {
     @Test
     void listarTodas_deveRetornarOkComListaDoService() {
         ReuniaoResponse item = new ReuniaoResponse(UUID.randomUUID(), "Grupo Centro", CategoriaReuniao.presencial,
-                "descricao", "Segunda-feira", "19h30", "endereco", "5599999999999", "Segunda", "Noite",
-                -23.5505, -46.6333);
+                "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP",
+                "5599999999999", "Segunda", "Noite", -23.5505, -46.6333,
+                "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "SP", null);
         when(reuniaoService.listarTodas()).thenReturn(List.of(item));
         ResponseEntity<ApiResponse<List<ReuniaoResponse>>> resposta = reuniaoController.listarTodas();
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);

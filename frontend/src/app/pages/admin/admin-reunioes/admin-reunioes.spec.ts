@@ -24,6 +24,13 @@ function reuniaoFake(overrides: Partial<Reuniao> = {}): Reuniao {
     periodo: 'Noite',
     latitude: null,
     longitude: null,
+    cep: null,
+    numero: null,
+    logradouro: null,
+    bairro: null,
+    cidade: null,
+    estado: null,
+    linkReuniao: null,
     ...overrides,
   };
 }
@@ -252,7 +259,7 @@ describe('AdminReunioes', () => {
     });
 
     it('não busca quando o CEP tem menos de 8 dígitos', () => {
-      component.cep = '123';
+      component.formulario.cep = '123';
 
       component.buscarCep();
 
@@ -261,8 +268,8 @@ describe('AdminReunioes', () => {
     });
 
     it('preenche endereço e coordenadas ao buscar CEP válido com sucesso', () => {
-      component.cep = '01001-000';
-      component.numero = '100';
+      component.formulario.cep = '01001-000';
+      component.formulario.numero = '100';
 
       component.buscarCep();
 
@@ -276,7 +283,7 @@ describe('AdminReunioes', () => {
 
     it('mostra erro quando o CEP não é encontrado', () => {
       enderecoLookupServiceSpy['buscarCep'].mockReturnValue(of(null));
-      component.cep = '99999999';
+      component.formulario.cep = '99999999';
 
       component.buscarCep();
 
@@ -287,7 +294,7 @@ describe('AdminReunioes', () => {
 
     it('mostra erro quando o ViaCEP retorna endereço marcado como erro', () => {
       enderecoLookupServiceSpy['buscarCep'].mockReturnValue(of({ erro: true } as EnderecoViaCep));
-      component.cep = '00000000';
+      component.formulario.cep = '00000000';
 
       component.buscarCep();
 
@@ -297,7 +304,7 @@ describe('AdminReunioes', () => {
 
     it('mostra aviso quando o endereço é encontrado mas a geocodificação não retorna coordenadas', () => {
       enderecoLookupServiceSpy['geocodificar'].mockReturnValue(of([]));
-      component.cep = '01001000';
+      component.formulario.cep = '01001000';
 
       component.buscarCep();
 
