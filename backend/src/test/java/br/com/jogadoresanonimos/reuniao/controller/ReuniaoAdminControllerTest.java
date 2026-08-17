@@ -37,17 +37,21 @@ class ReuniaoAdminControllerTest {
 
     private ReuniaoResponse reuniaoResponse(UUID id) {
         return new ReuniaoResponse(id, "Grupo Centro", CategoriaReuniao.presencial, "descricao",
-                "Segunda-feira", "19h30", "endereco", "5599999999999", "Segunda", "Noite", -23.5505, -46.6333);
+                "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP",
+                "5599999999999", "Segunda", "Noite", -23.5505, -46.6333,
+                "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "SP", null);
     }
 
     private CriarReuniaoRequest criarRequest() {
         return new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial, "descricao",
-                "Segunda-feira", "19h30", "endereco", "5599999999999", "Segunda", "Noite", -23.5505, -46.6333);
+                "Segunda-feira", "19h30", null, "5599999999999", "Segunda", "Noite", -23.5505, -46.6333,
+                "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "SP", null);
     }
 
     private EditarReuniaoRequest editarRequest() {
         return new EditarReuniaoRequest("Grupo Centro editado", CategoriaReuniao.virtual, "descricao editada",
-                "Terça-feira", "20h00", "link", null, null, null, null, null);
+                "Terça-feira", "20h00", "link", null, null, null, null, null, null, null, null, null, null, null,
+                "https://meet.google.com/abc-defg-hij");
     }
 
     @Test
