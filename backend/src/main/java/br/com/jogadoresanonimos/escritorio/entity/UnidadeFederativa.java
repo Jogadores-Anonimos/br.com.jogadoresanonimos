@@ -55,4 +55,12 @@ public enum UnidadeFederativa {
         String normalizada = sigla.trim().toUpperCase();
         return Arrays.stream(values()).filter(uf -> uf.name().equals(normalizada)).findFirst();
     }
+
+    public static Optional<UnidadeFederativa> deNomeCompleto(String nome) {
+        if (nome == null) {
+            return Optional.empty();
+        }
+        String normalizado = nome.trim();
+        return Arrays.stream(values()).filter(uf -> uf.nomeCompleto.equalsIgnoreCase(normalizado)).findFirst();
+    }
 }

@@ -2,9 +2,11 @@ package br.com.jogadoresanonimos.reuniao.controller;
 
 import br.com.jogadoresanonimos.auth.dto.MensagemResponse;
 import br.com.jogadoresanonimos.common.dto.ApiResponse;
+import br.com.jogadoresanonimos.reuniao.dto.BackfillGeolocalizacaoResponse;
 import br.com.jogadoresanonimos.reuniao.dto.CriarReuniaoRequest;
 import br.com.jogadoresanonimos.reuniao.dto.EditarReuniaoRequest;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoResponse;
+import br.com.jogadoresanonimos.reuniao.service.ReuniaoBackfillGeolocalizacaoService;
 import br.com.jogadoresanonimos.reuniao.service.ReuniaoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -21,9 +23,12 @@ import java.util.UUID;
 public class ReuniaoAdminController {
 
     private final ReuniaoService reuniaoService;
+    private final ReuniaoBackfillGeolocalizacaoService backfillGeolocalizacaoService;
 
-    public ReuniaoAdminController(ReuniaoService reuniaoService) {
+    public ReuniaoAdminController(ReuniaoService reuniaoService,
+                                   ReuniaoBackfillGeolocalizacaoService backfillGeolocalizacaoService) {
         this.reuniaoService = reuniaoService;
+        this.backfillGeolocalizacaoService = backfillGeolocalizacaoService;
     }
 
     @GetMapping
@@ -47,5 +52,10 @@ public class ReuniaoAdminController {
     public ResponseEntity<ApiResponse<MensagemResponse>> remover(@PathVariable UUID id) {
         reuniaoService.remover(id);
         return ResponseEntity.ok(ApiResponse.ok(new MensagemResponse("Reunião removida.")));
+    }
+
+    @PostMapping("/backfill-geolocalizacao")
+    public ResponseEntity<ApiResponse<BackfillGeolocalizacaoResponse>> backfillGeolocalizacao() {
+        return ResponseEntity.ok(ApiResponse.ok(backfillGeolocalizacaoService.executar()));
     }
 }
