@@ -192,52 +192,6 @@
   inset: 0;
 }
 
-.mapa-maplibre ::ng-deep .mapa-marcador-grupo {
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-bg-surface);
-  border: 2px solid var(--cor-padrao-ja);
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
-}
-
-.mapa-maplibre ::ng-deep .mapa-marcador-grupo img {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-}
-
-.mapa-maplibre ::ng-deep .mapa-marcador-voce-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.mapa-maplibre ::ng-deep .mapa-marcador-voce {
-  width: 16px;
-  height: 16px;
-  background: var(--color-cta);
-  border: 2px solid var(--white);
-  border-radius: 50%;
-  box-shadow: var(--shadow-sm);
-}
-
-.mapa-maplibre ::ng-deep .mapa-tooltip-voce {
-  background: var(--color-cta);
-  color: var(--white);
-  border: none;
-  border-radius: 0;
-  font-weight: 700;
-  font-size: 0.75rem;
-  padding: 3px 8px;
-  box-shadow: var(--shadow-sm);
-  white-space: nowrap;
-}
-
 .mapa-maplibre ::ng-deep .mapa-popup-reuniao {
   display: flex;
   flex-direction: column;
@@ -268,10 +222,7 @@
   border-top-color: var(--color-bg-surface);
 }
 
-.mapa-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1000;
+.localizacao-bloco {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -279,19 +230,21 @@
   text-align: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
-  overflow-y: auto;
-  background: rgba(var(--color-background-dark-rgb), 0.55);
+  margin-top: var(--spacing-sm);
+  background: var(--color-bg-section);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
-.mapa-overlay p {
-  color: var(--white);
+.localizacao-bloco p {
+  color: var(--color-text);
   max-width: 420px;
   font-size: 0.95rem;
   line-height: 1.6;
 }
 
 .mapa-erro {
-  color: var(--white);
+  color: var(--color-danger);
   font-weight: 700;
 }
 

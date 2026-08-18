@@ -2,7 +2,6 @@ import {
   Component,
   ElementRef,
   HostListener,
-  NgZone,
   OnDestroy,
   OnInit,
   PLATFORM_ID,
@@ -14,11 +13,12 @@ import {
 import { FormsModule } from '@angular/forms';
 import { isPlatformBrowser } from '@angular/common';
 import type {
+  GeoJSONSource,
   LngLatLike,
   Map as MapLibreMap,
-  Marker as MapLibreMarker,
   StyleSpecification,
 } from 'maplibre-gl';
+import type { Feature, FeatureCollection, Point } from 'geojson';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 import { ReuniaoService } from '../../services/reuniao/reuniao';
 import { CategoriaReuniao, Reuniao } from '../../services/reuniao/reuniao.model';
@@ -37,17 +37,28 @@ interface GrupoDiaVirtual {
   reunioes: Reuniao[];
 }
 
+interface PropriedadesPontoReuniao {
+  id: string;
+  nome: string;
+  dia: string;
+  horario: string;
+  local: string;
+}
+
 const RAIO_TERRA_KM = 6371;
 
 const CENTRO_PADRAO: LngLatLike = [-46.62, -23.55];
 const ZOOM_PADRAO = 12;
-const ZOOM_PADRAO_MARCADOR_UNICO = 13;
-const ZOOM_MAXIMO_BOUNDS = 13;
-const PADDING_BOUNDS_PX = 56;
+const ZOOM_REGIAO_USUARIO = 10;
+const ZOOM_MAXIMO_BOUNDS = 12;
+const PADDING_BOUNDS_PX = 40;
 const ITENS_POR_PAGINA = 10;
 
 const WHATSAPP_PLACEHOLDER = '5599999999999';
 const DEBOUNCE_FILTRO_TEXTO_MS = 200;
+
+const FONTE_REUNIOES = 'reunioes';
+const CAMADA_PONTOS_REUNIOES = 'reunioes-pontos';
 
 const ESTILO_OSM: StyleSpecification = {
   version: 8,
@@ -72,46 +83,45 @@ const ESTILO_OSM: StyleSpecification = {
   ],
 };
 
-function criarElementoMarcadorGrupo(): HTMLDivElement {
-  const elemento = document.createElement('div');
-  elemento.className = 'mapa-marcador-grupo';
-  const imagem = document.createElement('img');
-  imagem.src = '/images/header/logo-jogadores-anonimos-monograma.png';
-  imagem.alt = '';
-  elemento.appendChild(imagem);
-  return elemento;
+function montarFeatureCollection(reunioes: Reuniao[]): FeatureCollection<Point, PropriedadesPontoReuniao> {
+  const features: Feature<Point, PropriedadesPontoReuniao>[] = [];
+
+  for (const reuniao of reunioes) {
+    if (reuniao.latitude === null || reuniao.longitude === null) {
+      continue;
+    }
+
+    features.push({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [reuniao.longitude, reuniao.latitude],
+      },
+      properties: {
+        id: reuniao.id,
+        nome: reuniao.nome,
+        dia: reuniao.dia,
+        horario: reuniao.horario,
+        local: reuniao.local,
+      },
+    });
+  }
+
+  return { type: 'FeatureCollection', features };
 }
 
-function criarElementoMarcadorUsuario(): HTMLDivElement {
-  const elemento = document.createElement('div');
-  elemento.className = 'mapa-marcador-voce';
-  return elemento;
+function montarHtmlPopup(propriedades: PropriedadesPontoReuniao): string {
+  const nome = escaparHtml(propriedades.nome);
+  const dia = escaparHtml(propriedades.dia);
+  const horario = escaparHtml(propriedades.horario);
+  const local = escaparHtml(propriedades.local);
+  return `<div class="mapa-popup-reuniao"><strong>${nome}</strong><p>${dia} · ${horario}</p><p>${local}</p></div>`;
 }
 
-function criarElementoTooltipUsuario(): HTMLDivElement {
+function escaparHtml(valor: string): string {
   const elemento = document.createElement('div');
-  elemento.className = 'mapa-tooltip-voce';
-  elemento.textContent = 'Você';
-  return elemento;
-}
-
-function criarElementoPopupReuniao(reuniao: Reuniao): HTMLDivElement {
-  const elemento = document.createElement('div');
-  elemento.className = 'mapa-popup-reuniao';
-
-  const titulo = document.createElement('strong');
-  titulo.textContent = reuniao.nome;
-  elemento.appendChild(titulo);
-
-  const dia = document.createElement('p');
-  dia.textContent = `${reuniao.dia} · ${reuniao.horario}`;
-  elemento.appendChild(dia);
-
-  const local = document.createElement('p');
-  local.textContent = reuniao.local;
-  elemento.appendChild(local);
-
-  return elemento;
+  elemento.textContent = valor;
+  return elemento.innerHTML;
 }
 
 @Component({
@@ -122,7 +132,6 @@ function criarElementoPopupReuniao(reuniao: Reuniao): HTMLDivElement {
   styleUrl: './reunioes.css',
 })
 export class Reunioes implements OnInit, OnDestroy {
-  private readonly ngZone = inject(NgZone);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly reuniaoService = inject(ReuniaoService);
 
@@ -174,8 +183,6 @@ export class Reunioes implements OnInit, OnDestroy {
 
   private maplibregl?: typeof import('maplibre-gl');
   private mapa?: MapLibreMap;
-  private marcadoresGrupo: MapLibreMarker[] = [];
-  private marcadorUsuario?: MapLibreMarker;
   private resizeObserver?: ResizeObserver;
   private mapaInitToken = 0;
 
@@ -216,7 +223,7 @@ export class Reunioes implements OnInit, OnDestroy {
 
       if (envelope.success && envelope.data) {
         this.reunioes.set(envelope.data);
-        this.atualizarMarcadores();
+        this.atualizarDadosMapa();
       } else {
         this.erroCarregamentoReunioes = envelope.error?.message ?? 'Não foi possível carregar as reuniões agora.';
       }
@@ -245,20 +252,20 @@ export class Reunioes implements OnInit, OnDestroy {
     this.filtroCidade.set('todos');
     this.filtroBairro.set('todos');
     this.itensVisiveis.set(ITENS_POR_PAGINA);
-    this.atualizarMarcadores();
+    this.atualizarDadosMapa();
   }
 
   aplicarFiltroCidade(valor: string | 'todos'): void {
     this.filtroCidade.set(valor);
     this.filtroBairro.set('todos');
     this.itensVisiveis.set(ITENS_POR_PAGINA);
-    this.atualizarMarcadores();
+    this.atualizarDadosMapa();
   }
 
   aplicarFiltroBairro(valor: string | 'todos'): void {
     this.filtroBairro.set(valor);
     this.itensVisiveis.set(ITENS_POR_PAGINA);
-    this.atualizarMarcadores();
+    this.atualizarDadosMapa();
   }
 
   aplicarFiltroTexto(valor: string): void {
@@ -267,7 +274,7 @@ export class Reunioes implements OnInit, OnDestroy {
     clearTimeout(this.debounceFiltroTextoId);
     this.debounceFiltroTextoId = setTimeout(() => {
       this.filtroTextoDebounced.set(valor);
-      this.atualizarMarcadores();
+      this.atualizarDadosMapa();
     }, DEBOUNCE_FILTRO_TEXTO_MS);
   }
 
@@ -292,7 +299,7 @@ export class Reunioes implements OnInit, OnDestroy {
         });
         this.localizacaoPermitida.set(true);
         this.localizacaoCarregando.set(false);
-        this.garantirMarcadorUsuario();
+        this.centralizarMapa();
       },
       () => {
         this.localizacaoIndisponivel.set(true);
@@ -453,67 +460,40 @@ export class Reunioes implements OnInit, OnDestroy {
     return grupos;
   });
 
-  atualizarMarcadores(opcoes?: { ajustarBoundsAoFinal?: boolean }): void {
-    if (!this.mapa || !this.maplibregl) {
+  private atualizarDadosMapa(): void {
+    if (!this.mapa || !this.mapa.getSource(FONTE_REUNIOES)) {
       return;
     }
 
-    this.marcadoresGrupo.forEach((marcador) => marcador.remove());
-    this.marcadoresGrupo = [];
-
-    for (const reuniao of this.reunioesFiltradas()) {
-      if (reuniao.latitude === null || reuniao.longitude === null) {
-        continue;
-      }
-
-      const popup = new this.maplibregl.Popup({ offset: 24, closeButton: false }).setDOMContent(
-        criarElementoPopupReuniao(reuniao),
-      );
-
-      const marcador = new this.maplibregl.Marker({
-        element: criarElementoMarcadorGrupo(),
-        anchor: 'bottom',
-      })
-        .setLngLat([reuniao.longitude, reuniao.latitude])
-        .setPopup(popup);
-
-      const elementoMarcador = marcador.getElement();
-      elementoMarcador.setAttribute('role', 'button');
-      elementoMarcador.setAttribute('aria-label', reuniao.nome);
-      elementoMarcador.addEventListener('click', () => {
-        this.ngZone.run(() => this.abrirDetalhes(reuniao));
-      });
-
-      marcador.addTo(this.mapa);
-      this.marcadoresGrupo.push(marcador);
-    }
-
-    if (opcoes?.ajustarBoundsAoFinal ?? true) {
-      this.ajustarBounds();
-    }
+    const featureCollection = montarFeatureCollection(this.reunioesFiltradas());
+    (this.mapa.getSource(FONTE_REUNIOES) as GeoJSONSource).setData(featureCollection);
+    this.centralizarMapa(featureCollection);
   }
 
-  private ajustarBounds(): void {
+  private centralizarMapa(featureCollection?: FeatureCollection<Point, PropriedadesPontoReuniao>): void {
     if (!this.mapa || !this.maplibregl) {
       return;
     }
 
-    const pontos: LngLatLike[] = this.marcadoresGrupo.map((marcador) => marcador.getLngLat());
+    const userCoords = this.userCoords();
+    if (userCoords) {
+      this.mapa.setCenter([userCoords.longitude, userCoords.latitude]);
+      this.mapa.setZoom(ZOOM_REGIAO_USUARIO);
+      return;
+    }
 
-    if (pontos.length === 0) {
+    const features = featureCollection ?? montarFeatureCollection(this.reunioesFiltradas());
+
+    if (features.features.length === 0) {
       this.mapa.setCenter(CENTRO_PADRAO);
       this.mapa.setZoom(ZOOM_PADRAO);
       return;
     }
 
-    if (pontos.length === 1) {
-      this.mapa.setCenter(pontos[0]);
-      this.mapa.setZoom(ZOOM_PADRAO_MARCADOR_UNICO);
-      return;
-    }
-
     const bounds = new this.maplibregl.LngLatBounds();
-    pontos.forEach((ponto) => bounds.extend(ponto));
+    for (const feature of features.features) {
+      bounds.extend(feature.geometry.coordinates as LngLatLike);
+    }
     this.mapa.fitBounds(bounds, { padding: PADDING_BOUNDS_PX, maxZoom: ZOOM_MAXIMO_BOUNDS });
   }
 
@@ -574,10 +554,57 @@ export class Reunioes implements OnInit, OnDestroy {
     container.addEventListener('blur', () => this.mapa?.scrollZoom.disable());
 
     this.mapa.on('load', () => {
-      this.mapa?.resize();
-      this.atualizarMarcadores({ ajustarBoundsAoFinal: false });
-      this.garantirMarcadorUsuario();
-      this.ajustarBounds();
+      if (!this.mapa) {
+        return;
+      }
+
+      this.mapa.resize();
+
+      const featureCollection = montarFeatureCollection(this.reunioesFiltradas());
+
+      this.mapa.addSource(FONTE_REUNIOES, {
+        type: 'geojson',
+        data: featureCollection,
+      });
+
+      this.mapa.addLayer({
+        id: CAMADA_PONTOS_REUNIOES,
+        type: 'circle',
+        source: FONTE_REUNIOES,
+        paint: {
+          'circle-radius': 7,
+          'circle-color': '#742C24',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+        },
+      });
+
+      this.mapa.on('click', CAMADA_PONTOS_REUNIOES, (e) => {
+        const feature = e.features?.[0];
+        if (!feature || feature.geometry.type !== 'Point' || !this.maplibregl) {
+          return;
+        }
+
+        const propriedades = feature.properties as PropriedadesPontoReuniao;
+        new this.maplibregl.Popup({ offset: 12 })
+          .setLngLat(e.lngLat)
+          .setHTML(montarHtmlPopup(propriedades))
+          .addTo(this.mapa!);
+      });
+
+      this.mapa.on('mouseenter', CAMADA_PONTOS_REUNIOES, () => {
+        if (this.mapa) {
+          this.mapa.getCanvas().style.cursor = 'pointer';
+        }
+      });
+
+      this.mapa.on('mouseleave', CAMADA_PONTOS_REUNIOES, () => {
+        if (this.mapa) {
+          this.mapa.getCanvas().style.cursor = '';
+        }
+      });
+
+      this.centralizarMapa(featureCollection);
     });
 
     this.resizeObserver = new ResizeObserver(() => {
@@ -592,33 +619,7 @@ export class Reunioes implements OnInit, OnDestroy {
     this.mapaInitToken++;
     this.resizeObserver?.disconnect();
     this.resizeObserver = undefined;
-    this.marcadoresGrupo.forEach((marcador) => marcador.remove());
-    this.marcadoresGrupo = [];
-    this.marcadorUsuario?.remove();
-    this.marcadorUsuario = undefined;
     this.mapa?.remove();
     this.mapa = undefined;
-  }
-
-  private garantirMarcadorUsuario(): void {
-    const userCoords = this.userCoords();
-    if (!this.mapa || !this.maplibregl || !userCoords) {
-      return;
-    }
-
-    this.marcadorUsuario?.remove();
-
-    const elementoMarcadorUsuario = criarElementoMarcadorUsuario();
-    const containerTooltip = document.createElement('div');
-    containerTooltip.className = 'mapa-marcador-voce-wrapper';
-    containerTooltip.appendChild(criarElementoTooltipUsuario());
-    containerTooltip.appendChild(elementoMarcadorUsuario);
-
-    this.marcadorUsuario = new this.maplibregl.Marker({
-      element: containerTooltip,
-      anchor: 'center',
-    })
-      .setLngLat([userCoords.longitude, userCoords.latitude])
-      .addTo(this.mapa);
   }
 }

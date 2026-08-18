@@ -34,37 +34,38 @@
         <div class="mapa-bloco">
           <div class="mapa-wrapper">
             <div class="mapa-maplibre" #mapaContainer></div>
-
-            @if (!localizacaoPermitida()) {
-              <div class="mapa-overlay">
-                <p>
-                  Permita o acesso à sua localização aproximada para ver as
-                  reuniões presenciais mais perto de você.
-                </p>
-                <button
-                  type="button"
-                  class="btn-cta"
-                  (click)="solicitarLocalizacao()"
-                  [attr.aria-busy]="localizacaoCarregando()"
-                >
-                  {{ localizacaoCarregando() ? 'Obtendo localização…' : 'Permitir localização' }}
-                </button>
-                @if (localizacaoIndisponivel()) {
-                  <p class="mapa-erro" role="alert">
-                    Não foi possível acessar sua localização. Você ainda pode
-                    ver todas as reuniões presenciais abaixo, sem ordenação
-                    por distância.
-                  </p>
-                }
-              </div>
-            }
           </div>
+
+          @if (!localizacaoPermitida()) {
+            <div class="localizacao-bloco">
+              <p>
+                Permita o acesso à sua localização aproximada para ver a
+                lista de reuniões presenciais ordenada pelas mais perto de
+                você.
+              </p>
+              <button
+                type="button"
+                class="btn-cta"
+                (click)="solicitarLocalizacao()"
+                [attr.aria-busy]="localizacaoCarregando()"
+              >
+                {{ localizacaoCarregando() ? 'Obtendo localização…' : 'Permitir localização' }}
+              </button>
+              @if (localizacaoIndisponivel()) {
+                <p class="mapa-erro" role="alert">
+                  Não foi possível acessar sua localização. Você ainda pode
+                  ver todas as reuniões presenciais abaixo, sem ordenação
+                  por distância.
+                </p>
+              }
+            </div>
+          }
 
           @if (localizacaoPermitida()) {
             <p class="mapa-status">
-              Localização aproximada obtida, mostrando reuniões ordenadas
-              por proximidade. Ela não é salva nem enviada a nenhum
-              servidor.
+              Localização aproximada obtida, mostrando a lista de reuniões
+              ordenada por proximidade. Ela não é salva nem enviada a
+              nenhum servidor.
             </p>
           }
         </div>
