@@ -1,5 +1,7 @@
 package br.com.jogadoresanonimos.reuniao.service;
 
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
+import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
 import br.com.jogadoresanonimos.reuniao.dto.BackfillGeolocalizacaoResponse;
 import br.com.jogadoresanonimos.reuniao.entity.CategoriaReuniao;
 import br.com.jogadoresanonimos.reuniao.entity.Reuniao;
@@ -8,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -20,14 +23,19 @@ public class ReuniaoBackfillGeolocalizacaoService {
 
     private final ReuniaoRepository reuniaoRepository;
     private final ReuniaoBackfillGeolocalizacaoItemService itemService;
+    private final RateLimiterService rateLimiterService;
 
     public ReuniaoBackfillGeolocalizacaoService(ReuniaoRepository reuniaoRepository,
-                                                 ReuniaoBackfillGeolocalizacaoItemService itemService) {
+                                                 ReuniaoBackfillGeolocalizacaoItemService itemService,
+                                                 RateLimiterService rateLimiterService) {
         this.reuniaoRepository = reuniaoRepository;
         this.itemService = itemService;
+        this.rateLimiterService = rateLimiterService;
     }
 
     public BackfillGeolocalizacaoResponse executar() {
+        rateLimiterService.check("reuniao-backfill-geolocalizacao:global", 1, Duration.ofMinutes(5),
+                ErrorCode.REUNIAO_BACKFILL_RATE_LIMITED);
         List<Reuniao> elegiveis = reuniaoRepository
                 .findAllByCategoriaAndEstadoIsNullAndLatitudeIsNotNullAndLongitudeIsNotNull(CategoriaReuniao.presencial);
         int atualizadas = 0;

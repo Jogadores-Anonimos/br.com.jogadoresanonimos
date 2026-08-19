@@ -484,12 +484,15 @@ automático no boot.
   desfaça os itens já processados. Ver seção "Execução e tratamento de
   falha" abaixo.
 - **Rate limit de saída**: 1 requisição/segundo ao Nominatim (ver seção
-  "Nominatim" abaixo) — não é rate limit de entrada da API (não faz
-  sentido limitar quantas vezes o admin pode chamar, dado que é
-  idempotente e o próprio processamento já é serializado e lento pela
-  natureza do backfill). Duração esperada para as 73 reuniões: ~73s,
-  request HTTP síncrona (sem endpoint de status/polling — volume baixo o
-  suficiente para o admin aguardar a resposta).
+  "Nominatim" abaixo), aplicado durante o processamento do lote.
+  Duração esperada para as 73 reuniões: ~73s, request HTTP síncrona (sem
+  endpoint de status/polling — volume baixo o suficiente para o admin
+  aguardar a resposta).
+- **Rate limit de entrada**: 1 execução/5min, **global** (não
+  por-admin) — ver detalhe completo abaixo, na tabela de erros. Não é
+  para conter abuso de um único admin (o endpoint é idempotente); é para
+  impedir que execuções em sequência ou concorrentes sobrecarreguem o
+  Nominatim.
 - **Não altera** `local`, `latitude`, `longitude`, nem qualquer outro
   campo além de `estado`/`cidade`/`bairro`.
 - **Não processa** reunião `categoria=virtual` (não tem lat/long por
@@ -523,6 +526,13 @@ manualmente sobre os casos de falha.
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
+| 429 | `REUNIAO_BACKFILL_RATE_LIMITED` | rate limit global excedido |
+
+Detalhe do rate limit de entrada (bucket
+`reuniao-backfill-geolocalizacao:global`, janela de 5min, capacidade 1):
+qualquer admin que chame o endpoint dentro da janela de 5min de uma
+execução anterior recebe 429, independente de qual admin disparou a
+primeira chamada.
 
 Falha de geocode de um item individual **não é erro HTTP** — o lote
 inteiro sempre retorna 200 com o resumo; falhas por item aparecem em

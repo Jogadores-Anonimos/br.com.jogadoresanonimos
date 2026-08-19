@@ -1,5 +1,7 @@
 package br.com.jogadoresanonimos.reuniao.service;
 
+import br.com.jogadoresanonimos.common.exception.RateLimitedException;
+import br.com.jogadoresanonimos.common.ratelimit.RateLimiterService;
 import br.com.jogadoresanonimos.reuniao.dto.BackfillGeolocalizacaoResponse;
 import br.com.jogadoresanonimos.reuniao.entity.CategoriaReuniao;
 import br.com.jogadoresanonimos.reuniao.entity.Reuniao;
@@ -16,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,11 +30,14 @@ class ReuniaoBackfillGeolocalizacaoServiceTest {
     @Mock
     ReuniaoBackfillGeolocalizacaoItemService itemService;
 
+    RateLimiterService rateLimiterService;
+
     ReuniaoBackfillGeolocalizacaoService service;
 
     @BeforeEach
     void setUp() {
-        service = new ReuniaoBackfillGeolocalizacaoService(reuniaoRepository, itemService);
+        rateLimiterService = new RateLimiterService();
+        service = new ReuniaoBackfillGeolocalizacaoService(reuniaoRepository, itemService, rateLimiterService);
     }
 
     private Reuniao reuniaoPresencialSemEndereco() {
@@ -91,5 +97,17 @@ class ReuniaoBackfillGeolocalizacaoServiceTest {
         assertThat(response.detalhesFalha().get(0).motivo()).isEqualTo("NOMINATIM_SEM_RESPOSTA");
         verify(itemService).processar(reuniaoComFalha.getId(), -23.5505, -46.6333);
         verify(itemService).processar(reuniaoComSucesso.getId(), -23.5505, -46.6333);
+    }
+
+    @Test
+    void segundaChamadaDentroDaJanelaDeCincoMinutosEhBloqueadaPorRateLimit() {
+        when(reuniaoRepository.findAllByCategoriaAndEstadoIsNullAndLatitudeIsNotNullAndLongitudeIsNotNull(CategoriaReuniao.presencial))
+                .thenReturn(List.of());
+
+        service.executar();
+
+        assertThatThrownBy(() -> service.executar())
+                .isInstanceOf(RateLimitedException.class)
+                .hasFieldOrPropertyWithValue("code", "REUNIAO_BACKFILL_RATE_LIMITED");
     }
 }
