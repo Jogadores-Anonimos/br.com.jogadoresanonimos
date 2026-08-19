@@ -1,12 +1,13 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Component, ElementRef, OnInit, PLATFORM_ID, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import type * as L from 'leaflet';
+import type { LngLatLike, Map as MapLibreMap, Marker as MapLibreMarker, StyleSpecification } from 'maplibre-gl';
 
 import { mapearErrosCampo, mensagemDeErro } from '../../../services/api-envelope';
 import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
 import { ReuniaoService } from '../../../services/reuniao/reuniao';
 import { CategoriaReuniao, CriarReuniaoRequest, Reuniao } from '../../../services/reuniao/reuniao.model';
+import { configurarMapLibreWorker } from '../../../config/maplibre-worker.config';
 
 interface FormularioReuniao {
   nome: string;
@@ -65,7 +66,32 @@ function periodoParaHorario(horario: string): 'Manhã' | 'Tarde' | 'Noite' {
   return 'Noite';
 }
 
-const CENTRO_PADRAO: L.LatLngTuple = [-23.55, -46.62];
+const CENTRO_PADRAO: LngLatLike = [-46.62, -23.55];
+const ZOOM_PADRAO = 11;
+const ZOOM_MARCADOR = 14;
+
+const ESTILO_OSM: StyleSpecification = {
+  version: 8,
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: [
+        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+      attribution: '&copy; colaboradores do OpenStreetMap',
+    },
+  },
+  layers: [
+    {
+      id: 'osm-tiles',
+      type: 'raster',
+      source: 'osm',
+    },
+  ],
+};
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
@@ -74,6 +100,10 @@ const WHATSAPP_DIGITOS_REGEX = /^(?:55)?\d{10,11}$/;
 function whatsappFormatoValido(valor: string): boolean {
   const digitos = valor.replace(/\D/g, '');
   return WHATSAPP_DIGITOS_REGEX.test(digitos);
+}
+
+function corPadraoJa(): string {
+  return getComputedStyle(document.documentElement).getPropertyValue('--cor-padrao-ja').trim();
 }
 
 @Component({
@@ -149,11 +179,12 @@ export class AdminReunioes implements OnInit {
   mensagemGeolocalizacao = '';
   erroGeolocalizacao = '';
 
-  private leaflet?: typeof L;
-  private mapaPreview?: L.Map;
-  private marcadorPreview?: L.Marker;
+  private maplibregl?: typeof import('maplibre-gl');
+  private mapaPreview?: MapLibreMap;
+  private marcadorPreview?: MapLibreMarker;
   private resizeObserver?: ResizeObserver;
   private mapaInitToken = 0;
+  private mapaPreviewContainerAtual?: HTMLDivElement;
 
   @ViewChild('formularioSecao') formularioSecaoRef?: ElementRef<HTMLElement>;
   @ViewChild('campoNome') campoNomeRef?: ElementRef<HTMLInputElement>;
@@ -164,8 +195,13 @@ export class AdminReunioes implements OnInit {
       return;
     }
     if (ref) {
-      this.carregarLeafletECriarMapaPreview(ref.nativeElement);
+      if (this.mapaPreviewContainerAtual === ref.nativeElement) {
+        return;
+      }
+      this.mapaPreviewContainerAtual = ref.nativeElement;
+      this.carregarMapLibreECriarMapaPreview(ref.nativeElement);
     } else {
+      this.mapaPreviewContainerAtual = undefined;
       this.destruirMapaPreview();
     }
   }
@@ -325,7 +361,7 @@ export class AdminReunioes implements OnInit {
   }
 
   atualizarMapaPreview(): void {
-    if (!this.isBrowser || !this.mapaPreview || !this.leaflet) {
+    if (!this.isBrowser || !this.mapaPreview || !this.maplibregl) {
       return;
     }
 
@@ -340,19 +376,21 @@ export class AdminReunioes implements OnInit {
     if (!coordenadasValidas) {
       this.marcadorPreview?.remove();
       this.marcadorPreview = undefined;
-      this.mapaPreview.setView(CENTRO_PADRAO, 11);
+      this.mapaPreview.setCenter(CENTRO_PADRAO);
+      this.mapaPreview.setZoom(ZOOM_PADRAO);
       return;
     }
 
-    const posicao: L.LatLngTuple = [lat, lng];
+    const posicao: LngLatLike = [lng, lat];
 
     if (this.marcadorPreview) {
-      this.marcadorPreview.setLatLng(posicao);
+      this.marcadorPreview.setLngLat(posicao);
     } else {
-      this.marcadorPreview = this.leaflet.marker(posicao).addTo(this.mapaPreview);
+      this.marcadorPreview = new this.maplibregl.Marker({ color: corPadraoJa() }).setLngLat(posicao).addTo(this.mapaPreview);
     }
 
-    this.mapaPreview.setView(posicao, 14);
+    this.mapaPreview.setCenter(posicao);
+    this.mapaPreview.setZoom(ZOOM_MARCADOR);
   }
 
   salvar(): void {
@@ -478,11 +516,12 @@ export class AdminReunioes implements OnInit {
     });
   }
 
-  private async carregarLeafletECriarMapaPreview(container: HTMLDivElement): Promise<void> {
+  private async carregarMapLibreECriarMapaPreview(container: HTMLDivElement): Promise<void> {
     const token = ++this.mapaInitToken;
-    if (!this.leaflet) {
-      const mod = await import('leaflet');
-      this.leaflet = (mod as unknown as { default?: typeof L }).default ?? (mod as unknown as typeof L);
+    if (!this.maplibregl) {
+      const mod = await import('maplibre-gl');
+      this.maplibregl = (mod as unknown as { default?: typeof import('maplibre-gl') }).default ?? mod;
+      configurarMapLibreWorker(this.maplibregl);
     }
     if (token !== this.mapaInitToken) {
       return;
@@ -491,38 +530,34 @@ export class AdminReunioes implements OnInit {
   }
 
   private criarMapaPreview(container: HTMLDivElement): void {
-    if (!this.leaflet) {
+    if (!this.maplibregl) {
       return;
     }
 
     this.destruirMapaPreview();
 
-    this.mapaPreview = this.leaflet.map(container, {
+    this.mapaPreview = new this.maplibregl.Map({
+      container,
+      style: ESTILO_OSM,
       center: CENTRO_PADRAO,
-      zoom: 11,
-      scrollWheelZoom: false,
-      dragging: false,
-      zoomControl: false,
+      zoom: ZOOM_PADRAO,
+      scrollZoom: false,
+      dragRotate: false,
+      dragPan: false,
+      attributionControl: { compact: true },
     });
 
-    this.leaflet
-      .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '&copy; colaboradores do OpenStreetMap',
-      })
-      .addTo(this.mapaPreview);
-
-    this.atualizarMapaPreview();
+    this.mapaPreview.on('load', () => {
+      this.mapaPreview?.resize();
+      this.atualizarMapaPreview();
+    });
 
     this.resizeObserver = new ResizeObserver(() => {
-      if (!this.mapaPreview) {
-        return;
-      }
-      this.mapaPreview.invalidateSize();
-      this.mapaPreview.panBy([1, 0], { animate: false });
-      this.mapaPreview.panBy([-1, 0], { animate: false });
+      this.mapaPreview?.resize();
     });
     this.resizeObserver.observe(container);
+
+    setTimeout(() => this.mapaPreview?.resize(), 200);
   }
 
   private destruirMapaPreview(): void {

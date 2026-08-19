@@ -10,42 +10,71 @@ import { ReuniaoService } from '../../services/reuniao/reuniao';
 import { Reuniao } from '../../services/reuniao/reuniao.model';
 import { apiSuccess } from '../../services/api-envelope';
 
-interface MarcadorFake {
-  latLng: [number, number];
-  opcoes: Record<string, unknown>;
-  removido: boolean;
-  handlers: Record<string, () => void>;
+interface FonteFake {
+  setData: ReturnType<typeof vi.fn>;
+  dadosAtuais: unknown;
+}
+
+interface MapaFake {
+  addControl: ReturnType<typeof vi.fn>;
   on: ReturnType<typeof vi.fn>;
-  addTo: ReturnType<typeof vi.fn>;
+  resize: ReturnType<typeof vi.fn>;
   remove: ReturnType<typeof vi.fn>;
-  getLatLng: ReturnType<typeof vi.fn>;
-  bindTooltip: ReturnType<typeof vi.fn>;
-  openTooltip: ReturnType<typeof vi.fn>;
+  addSource: ReturnType<typeof vi.fn>;
+  addLayer: ReturnType<typeof vi.fn>;
+  getSource: ReturnType<typeof vi.fn>;
+  getCanvas: ReturnType<typeof vi.fn>;
+  setCenter: ReturnType<typeof vi.fn>;
+  setZoom: ReturnType<typeof vi.fn>;
+  fitBounds: ReturnType<typeof vi.fn>;
+  handlers: Record<string, (...args: unknown[]) => void>;
+  fontes: Record<string, FonteFake>;
 }
 
-function criarMarcadorFake(latLng: [number, number], opcoes: Record<string, unknown>): MarcadorFake {
-  const marcador: Partial<MarcadorFake> = {
-    latLng,
-    opcoes,
-    removido: false,
+const mapasCriados: MapaFake[] = [];
+const boundsExtendidos: unknown[][] = [];
+
+function criarFonteFake(): FonteFake {
+  const fonte: Partial<FonteFake> = { dadosAtuais: undefined };
+  fonte.setData = vi.fn((dados: unknown) => {
+    fonte.dadosAtuais = dados;
+  });
+  return fonte as FonteFake;
+}
+
+function criarMapaFake(): MapaFake {
+  const mapa: Partial<MapaFake> = {
     handlers: {},
+    fontes: {},
   };
-  marcador.on = vi.fn((evento: string, handler: () => void) => {
-    marcador.handlers![evento] = handler;
-    return marcador;
+  mapa.addControl = vi.fn();
+  mapa.resize = vi.fn();
+  mapa.remove = vi.fn();
+  mapa.getCanvas = vi.fn(() => ({ style: { cursor: '' } }));
+  mapa.setCenter = vi.fn();
+  mapa.setZoom = vi.fn();
+  mapa.fitBounds = vi.fn();
+  mapa.on = vi.fn((evento: string, layerOuHandler: unknown, talvezHandler?: unknown) => {
+    const chave = typeof talvezHandler === 'function' ? `${evento}:${layerOuHandler}` : evento;
+    const handler = typeof talvezHandler === 'function' ? talvezHandler : layerOuHandler;
+    mapa.handlers![chave] = handler as (...args: unknown[]) => void;
+    return mapa;
   });
-  marcador.addTo = vi.fn(() => marcador);
-  marcador.remove = vi.fn(() => {
-    marcador.removido = true;
-    return marcador;
+  mapa.addSource = vi.fn((id: string) => {
+    mapa.fontes![id] = criarFonteFake();
   });
-  marcador.getLatLng = vi.fn(() => latLng);
-  marcador.bindTooltip = vi.fn(() => marcador);
-  marcador.openTooltip = vi.fn(() => marcador);
-  return marcador as MarcadorFake;
+  mapa.addLayer = vi.fn();
+  mapa.getSource = vi.fn((id: string) => mapa.fontes![id]);
+  return mapa as MapaFake;
 }
 
-const marcadoresCriados: MarcadorFake[] = [];
+class LngLatBoundsFake {
+  pontos: unknown[] = [];
+  extend(ponto: unknown): void {
+    this.pontos.push(ponto);
+    boundsExtendidos.push(this.pontos);
+  }
+}
 
 class ResizeObserverFake {
   observe(): void {}
@@ -53,25 +82,21 @@ class ResizeObserverFake {
   disconnect(): void {}
 }
 
-vi.mock('leaflet', () => {
-  const mapaFake = {
-    setView: vi.fn(),
-    fitBounds: vi.fn(),
-    remove: vi.fn(),
-    invalidateSize: vi.fn(),
-  };
+vi.mock('maplibre-gl', () => {
   return {
-    default: {
-      map: vi.fn(() => mapaFake),
-      tileLayer: vi.fn(() => ({ addTo: vi.fn() })),
-      divIcon: vi.fn((opcoes: Record<string, unknown>) => opcoes),
-      latLngBounds: vi.fn((pontos: unknown) => pontos),
-      marker: vi.fn((latLng: [number, number], opcoes: Record<string, unknown>) => {
-        const marcador = criarMarcadorFake(latLng, opcoes);
-        marcadoresCriados.push(marcador);
-        return marcador;
-      }),
-    },
+    Map: vi.fn(() => {
+      const mapa = criarMapaFake();
+      mapasCriados.push(mapa);
+      return mapa;
+    }),
+    LngLatBounds: LngLatBoundsFake,
+    NavigationControl: vi.fn(),
+    Popup: vi.fn(() => ({
+      setLngLat: vi.fn().mockReturnThis(),
+      setHTML: vi.fn().mockReturnThis(),
+      addTo: vi.fn().mockReturnThis(),
+    })),
+    setWorkerUrl: vi.fn(),
   };
 });
 
@@ -100,6 +125,10 @@ function reuniaoFake(overrides: Partial<Reuniao> = {}): Reuniao {
   };
 }
 
+function dispararLoadDoMapa(mapa: MapaFake): void {
+  mapa.handlers['load']?.();
+}
+
 describe('Reunioes', () => {
   let component: Reunioes;
   let fixture: ComponentFixture<Reunioes>;
@@ -112,7 +141,8 @@ describe('Reunioes', () => {
   });
 
   async function configurarTeste(reunioesIniciais: Reuniao[]): Promise<void> {
-    marcadoresCriados.length = 0;
+    mapasCriados.length = 0;
+    boundsExtendidos.length = 0;
     reuniaoServiceSpy = {
       listarReunioes: vi.fn().mockReturnValue(of(apiSuccess(reunioesIniciais))),
     };
@@ -147,7 +177,7 @@ describe('Reunioes', () => {
   }
 
   describe('mapa de reuniões presenciais', () => {
-    it('renderiza sem erro e cria marcador para reunião presencial com latitude e longitude', async () => {
+    it('renderiza sem erro e cria a fonte GeoJSON com feature para reunião presencial com latitude e longitude', async () => {
       const comCoordenadas = reuniaoFake({
         id: 'reuniao-com-coords',
         categoria: 'presencial',
@@ -159,11 +189,17 @@ describe('Reunioes', () => {
 
       await expect(selecionarPresencial()).resolves.not.toThrow();
 
-      expect(marcadoresCriados).toHaveLength(1);
-      expect(marcadoresCriados[0].latLng).toEqual([-23.55, -46.62]);
+      expect(mapasCriados).toHaveLength(1);
+      const mapa = mapasCriados[0];
+      dispararLoadDoMapa(mapa);
+
+      const fonte = mapa.getSource('reunioes') as FonteFake;
+      const dados = fonte.dadosAtuais as { features: { geometry: { coordinates: number[] } }[] };
+      expect(dados.features).toHaveLength(1);
+      expect(dados.features[0].geometry.coordinates).toEqual([-46.62, -23.55]);
     });
 
-    it('não cria marcador para reunião presencial sem latitude e longitude', async () => {
+    it('não inclui reunião presencial sem latitude e longitude na coleção do mapa', async () => {
       const semCoordenadas = reuniaoFake({
         id: 'reuniao-sem-coords',
         categoria: 'presencial',
@@ -172,13 +208,17 @@ describe('Reunioes', () => {
       });
 
       await configurarTeste([semCoordenadas]);
-
       await selecionarPresencial();
 
-      expect(marcadoresCriados).toHaveLength(0);
+      const mapa = mapasCriados[0];
+      dispararLoadDoMapa(mapa);
+
+      const fonte = mapa.getSource('reunioes') as FonteFake;
+      const dados = fonte.dadosAtuais as { features: unknown[] };
+      expect(dados.features).toHaveLength(0);
     });
 
-    it('não cria marcador para reunião virtual mesmo com latitude e longitude preenchidas (dado legado)', async () => {
+    it('não inclui reunião virtual mesmo com latitude e longitude preenchidas (dado legado)', async () => {
       const virtualComCoordsLegado = reuniaoFake({
         id: 'reuniao-virtual-legado',
         categoria: 'virtual',
@@ -195,15 +235,19 @@ describe('Reunioes', () => {
       });
 
       await configurarTeste([virtualComCoordsLegado, presencialComCoords]);
-
       await selecionarPresencial();
 
-      expect(marcadoresCriados).toHaveLength(1);
-      expect(marcadoresCriados[0].latLng).toEqual([-22.9, -43.2]);
+      const mapa = mapasCriados[0];
+      dispararLoadDoMapa(mapa);
+
+      const fonte = mapa.getSource('reunioes') as FonteFake;
+      const dados = fonte.dadosAtuais as { features: { properties: { id: string } }[] };
+      expect(dados.features).toHaveLength(1);
+      expect(dados.features[0].properties.id).toBe('reuniao-presencial-com-coords');
       expect(component.reunioesFiltradas().every((r) => r.categoria === 'presencial')).toBe(true);
     });
 
-    it('remove o marcador do mapa quando a reunião é excluída da lista', async () => {
+    it('atualiza a fonte GeoJSON quando a lista de reuniões muda', async () => {
       const reuniaoRemovivel = reuniaoFake({
         id: 'reuniao-removivel',
         categoria: 'presencial',
@@ -212,17 +256,100 @@ describe('Reunioes', () => {
       });
 
       await configurarTeste([reuniaoRemovivel]);
-
       await selecionarPresencial();
-      expect(marcadoresCriados).toHaveLength(1);
-      const marcadorOriginal = marcadoresCriados[0];
+
+      const mapa = mapasCriados[0];
+      dispararLoadDoMapa(mapa);
+      const fonte = mapa.getSource('reunioes') as FonteFake;
+      expect((fonte.dadosAtuais as { features: unknown[] }).features).toHaveLength(1);
 
       component.reunioes.set([]);
-      component.atualizarMarcadores();
+      fixture.detectChanges();
       await fixture.whenStable();
 
-      expect(marcadorOriginal.remove).toHaveBeenCalled();
-      expect(marcadoresCriados).toHaveLength(1);
+      expect((fonte.dadosAtuais as { features: unknown[] }).features).toHaveLength(0);
+    });
+  });
+
+  describe('centralizarMapa', () => {
+    it('com localização do usuário e reuniões filtradas não vazias, usa fitBounds só com as coordenadas das reuniões', async () => {
+      const reuniao1 = reuniaoFake({
+        id: 'reuniao-1',
+        categoria: 'presencial',
+        latitude: -23.55,
+        longitude: -46.62,
+      });
+      const reuniao2 = reuniaoFake({
+        id: 'reuniao-2',
+        categoria: 'presencial',
+        latitude: -22.9,
+        longitude: -43.2,
+      });
+
+      await configurarTeste([reuniao1, reuniao2]);
+      await selecionarPresencial();
+
+      const mapa = mapasCriados[0];
+      dispararLoadDoMapa(mapa);
+      mapa.fitBounds.mockClear();
+      mapa.setCenter.mockClear();
+      mapa.setZoom.mockClear();
+      boundsExtendidos.length = 0;
+
+      (component as unknown as { userCoords: { set: (v: unknown) => void } }).userCoords.set({
+        latitude: -10,
+        longitude: -50,
+      });
+      (component as unknown as { centralizarMapa: () => void }).centralizarMapa();
+
+      expect(mapa.fitBounds).toHaveBeenCalledTimes(1);
+      expect(mapa.setCenter).not.toHaveBeenCalled();
+      expect(mapa.setZoom).not.toHaveBeenCalled();
+
+      const pontosUsados = boundsExtendidos[boundsExtendidos.length - 1] as number[][];
+      expect(pontosUsados).toEqual([
+        [-46.62, -23.55],
+        [-43.2, -22.9],
+      ]);
+      expect(pontosUsados).not.toContainEqual([-50, -10]);
+    });
+
+    it('sem reuniões filtradas e com localização do usuário disponível, centraliza em userCoords', async () => {
+      await configurarTeste([]);
+      await selecionarPresencial();
+
+      const mapa = mapasCriados[0];
+      dispararLoadDoMapa(mapa);
+      mapa.fitBounds.mockClear();
+      mapa.setCenter.mockClear();
+      mapa.setZoom.mockClear();
+
+      (component as unknown as { userCoords: { set: (v: unknown) => void } }).userCoords.set({
+        latitude: -10,
+        longitude: -50,
+      });
+      (component as unknown as { centralizarMapa: () => void }).centralizarMapa();
+
+      expect(mapa.setCenter).toHaveBeenCalledWith([-50, -10]);
+      expect(mapa.setZoom).toHaveBeenCalled();
+      expect(mapa.fitBounds).not.toHaveBeenCalled();
+    });
+
+    it('sem reuniões filtradas e sem localização do usuário, centraliza no CENTRO_PADRAO', async () => {
+      await configurarTeste([]);
+      await selecionarPresencial();
+
+      const mapa = mapasCriados[0];
+      dispararLoadDoMapa(mapa);
+      mapa.fitBounds.mockClear();
+      mapa.setCenter.mockClear();
+      mapa.setZoom.mockClear();
+
+      (component as unknown as { centralizarMapa: () => void }).centralizarMapa();
+
+      expect(mapa.setCenter).toHaveBeenCalledWith([-46.62, -23.55]);
+      expect(mapa.setZoom).toHaveBeenCalled();
+      expect(mapa.fitBounds).not.toHaveBeenCalled();
     });
   });
 });

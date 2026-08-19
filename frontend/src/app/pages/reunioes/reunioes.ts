@@ -23,6 +23,7 @@ import { ResourceLayout } from '../../components/resource-layout/resource-layout
 import { ReuniaoService } from '../../services/reuniao/reuniao';
 import { CategoriaReuniao, Reuniao } from '../../services/reuniao/reuniao.model';
 import { montarLinkWhatsapp } from '../../config/whatsapp.config';
+import { configurarMapLibreWorker } from '../../config/maplibre-worker.config';
 
 type DiaSemana = 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo';
 
@@ -48,10 +49,11 @@ interface PropriedadesPontoReuniao {
 const RAIO_TERRA_KM = 6371;
 
 const CENTRO_PADRAO: LngLatLike = [-46.62, -23.55];
-const ZOOM_PADRAO = 12;
+const ZOOM_PADRAO = 4;
 const ZOOM_REGIAO_USUARIO = 10;
-const ZOOM_MAXIMO_BOUNDS = 12;
-const PADDING_BOUNDS_PX = 40;
+const ZOOM_MINIMO_BOUNDS = 11;
+const ZOOM_MAXIMO_BOUNDS = 13;
+const PADDING_BOUNDS_PX = 48;
 const ITENS_POR_PAGINA = 10;
 
 const WHATSAPP_PLACEHOLDER = '5599999999999';
@@ -124,6 +126,14 @@ function escaparHtml(valor: string): string {
   return elemento.innerHTML;
 }
 
+function corPadraoJa(): string {
+  return getComputedStyle(document.documentElement).getPropertyValue('--cor-padrao-ja').trim();
+}
+
+function corBranca(): string {
+  return getComputedStyle(document.documentElement).getPropertyValue('--white').trim();
+}
+
 @Component({
   selector: 'app-reunioes',
   standalone: true,
@@ -184,7 +194,6 @@ export class Reunioes implements OnInit, OnDestroy {
   private maplibregl?: typeof import('maplibre-gl');
   private mapa?: MapLibreMap;
   private resizeObserver?: ResizeObserver;
-  private mapaInitToken = 0;
 
   private mapaContainerAtual?: HTMLDivElement;
 
@@ -475,13 +484,6 @@ export class Reunioes implements OnInit, OnDestroy {
       return;
     }
 
-    const userCoords = this.userCoords();
-    if (userCoords) {
-      this.mapa.setCenter([userCoords.longitude, userCoords.latitude]);
-      this.mapa.setZoom(ZOOM_REGIAO_USUARIO);
-      return;
-    }
-
     const features = featureCollection ?? montarFeatureCollection(this.reunioesFiltradas());
 
     if (features.features.length === 0) {
@@ -490,11 +492,22 @@ export class Reunioes implements OnInit, OnDestroy {
       return;
     }
 
+    if (features.features.length === 1) {
+      const [longitude, latitude] = features.features[0].geometry.coordinates;
+      this.mapa.setCenter([longitude, latitude]);
+      this.mapa.setZoom(ZOOM_MAXIMO_BOUNDS);
+      return;
+    }
+
     const bounds = new this.maplibregl.LngLatBounds();
     for (const feature of features.features) {
       bounds.extend(feature.geometry.coordinates as LngLatLike);
     }
-    this.mapa.fitBounds(bounds, { padding: PADDING_BOUNDS_PX, maxZoom: ZOOM_MAXIMO_BOUNDS });
+    this.mapa.fitBounds(bounds, {
+      padding: PADDING_BOUNDS_PX,
+      minZoom: ZOOM_MINIMO_BOUNDS,
+      maxZoom: ZOOM_MAXIMO_BOUNDS,
+    });
   }
 
   abrirDetalhes(reuniao: Reuniao): void {
@@ -519,12 +532,12 @@ export class Reunioes implements OnInit, OnDestroy {
   }
 
   private async carregarMapLibreECriarMapa(container: HTMLDivElement): Promise<void> {
-    const token = ++this.mapaInitToken;
     if (!this.maplibregl) {
       const mod = await import('maplibre-gl');
       this.maplibregl = (mod as unknown as { default?: typeof import('maplibre-gl') }).default ?? mod;
+      configurarMapLibreWorker(this.maplibregl);
     }
-    if (token !== this.mapaInitToken) {
+    if (this.mapaContainerAtual !== container) {
       return;
     }
     this.criarMapa(container);
@@ -542,16 +555,10 @@ export class Reunioes implements OnInit, OnDestroy {
       style: ESTILO_OSM,
       center: CENTRO_PADRAO,
       zoom: ZOOM_PADRAO,
-      scrollZoom: false,
       attributionControl: { compact: true },
     });
 
     this.mapa.addControl(new this.maplibregl.NavigationControl({ showCompass: false }));
-
-    container.addEventListener('click', () => this.mapa?.scrollZoom.enable());
-    container.addEventListener('focus', () => this.mapa?.scrollZoom.enable());
-    container.addEventListener('mouseleave', () => this.mapa?.scrollZoom.disable());
-    container.addEventListener('blur', () => this.mapa?.scrollZoom.disable());
 
     this.mapa.on('load', () => {
       if (!this.mapa) {
@@ -573,9 +580,9 @@ export class Reunioes implements OnInit, OnDestroy {
         source: FONTE_REUNIOES,
         paint: {
           'circle-radius': 7,
-          'circle-color': '#742C24',
+          'circle-color': corPadraoJa(),
           'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
+          'circle-stroke-color': corBranca(),
         },
       });
 
@@ -604,6 +611,7 @@ export class Reunioes implements OnInit, OnDestroy {
         }
       });
 
+      this.mapa.resize();
       this.centralizarMapa(featureCollection);
     });
 
@@ -611,12 +619,9 @@ export class Reunioes implements OnInit, OnDestroy {
       this.mapa?.resize();
     });
     this.resizeObserver.observe(container);
-
-    setTimeout(() => this.mapa?.resize(), 200);
   }
 
   private destruirMapa(): void {
-    this.mapaInitToken++;
     this.resizeObserver?.disconnect();
     this.resizeObserver = undefined;
     this.mapa?.remove();
