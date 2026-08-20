@@ -7,9 +7,9 @@ import { mapearErrosCampo, mensagemDeErro } from '../../../services/api-envelope
 import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
 import { ReuniaoService } from '../../../services/reuniao/reuniao';
 import { CategoriaReuniao, CriarReuniaoRequest, Reuniao } from '../../../services/reuniao/reuniao.model';
+import { configurarMapLibreWorker } from '../../../config/maplibre-worker.config';
 
 const CODIGO_AVISO_ENDERECO_LOCAL_DIVERGENTE = 'ENDERECO_LOCAL_DIVERGENTE';
-import { configurarMapLibreWorker } from '../../../config/maplibre-worker.config';
 
 interface FormularioReuniao {
   nome: string;
