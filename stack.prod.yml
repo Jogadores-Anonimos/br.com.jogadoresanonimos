@@ -33,6 +33,12 @@ services:
     volumes:
       - backend_storage:/app/data/imagens
       - backend_logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/liveness | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
     deploy:
       replicas: 1
       resources:
@@ -43,9 +49,10 @@ services:
           cpus: "0.25"
           memory: 256M
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 5s
-        max_attempts: 5
+        max_attempts: 0
+        window: 120s
       update_config:
         order: start-first
         failure_action: rollback
@@ -87,9 +94,10 @@ services:
           cpus: "0.25"
           memory: 150M
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 5s
-        max_attempts: 5
+        max_attempts: 0
+        window: 120s
       update_config:
         order: stop-first
 
