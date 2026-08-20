@@ -43,7 +43,7 @@ class ReuniaoAdminControllerTest {
         return new ReuniaoResponse(id, "Grupo Centro", CategoriaReuniao.presencial, "descricao",
                 "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP",
                 "5599999999999", "Segunda", "Noite", -23.5505, -46.6333,
-                "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "SP", null);
+                "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "SP", null, List.of());
     }
 
     private CriarReuniaoRequest criarRequest() {

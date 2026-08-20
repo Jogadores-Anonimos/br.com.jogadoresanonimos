@@ -301,6 +301,68 @@ class ReuniaoServiceTest {
     }
 
     @Test
+    void editar_devePersistirEGerarAvisoQuandoCidadeMudaSemLocalMudar() {
+        UUID id = UUID.randomUUID();
+        Reuniao reuniao = reuniao();
+        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
+                "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP", null, null,
+                null, null, null, "01310-100", "123", "Rua das Flores", "Centro", "Guarulhos", "SP", null);
+        ReuniaoResponse resultado = reuniaoService.editar(id, request);
+        assertThat(resultado.avisos()).hasSize(1);
+        assertThat(resultado.avisos().get(0).codigo()).isEqualTo("ENDERECO_LOCAL_DIVERGENTE");
+        assertThat(resultado.cidade()).isEqualTo("Guarulhos");
+    }
+
+    @Test
+    void editar_devePersistirEGerarAvisoQuandoEstadoMudaSemLocalMudar() {
+        UUID id = UUID.randomUUID();
+        Reuniao reuniao = reuniao();
+        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
+                "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP", null, null,
+                null, null, null, "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "RJ", null);
+        ReuniaoResponse resultado = reuniaoService.editar(id, request);
+        assertThat(resultado.avisos()).hasSize(1);
+    }
+
+    @Test
+    void editar_naoDeveGerarAvisoQuandoCidadeMudaELocalTambemMuda() {
+        UUID id = UUID.randomUUID();
+        Reuniao reuniao = reuniao();
+        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
+                "descricao", "Segunda-feira", "19h30", "Rua Nova, 45 - Centro, Guarulhos - SP", null, null,
+                null, null, null, "01310-100", "123", "Rua das Flores", "Centro", "Guarulhos", "SP", null);
+        ReuniaoResponse resultado = reuniaoService.editar(id, request);
+        assertThat(resultado.avisos()).isEmpty();
+    }
+
+    @Test
+    void editar_naoDeveGerarAvisoQuandoEnderecoEstruturadoNaoMuda() {
+        UUID id = UUID.randomUUID();
+        Reuniao reuniao = reuniao();
+        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro Atualizado", CategoriaReuniao.presencial,
+                "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP", null, null,
+                null, null, null, "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "SP", null);
+        ReuniaoResponse resultado = reuniaoService.editar(id, request);
+        assertThat(resultado.avisos()).isEmpty();
+    }
+
+    @Test
+    void editar_naoDeveGerarAvisoParaReuniaoLegadaSemEnderecoEstruturadoQuandoNadaMuda() {
+        UUID id = UUID.randomUUID();
+        Reuniao reuniao = reuniaoLegadaSemEnderecoEstruturado();
+        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
+                "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP",
+                null, null, null, null, null, null, null, null, null, null, null, null);
+        ReuniaoResponse resultado = reuniaoService.editar(id, request);
+        assertThat(resultado.avisos()).isEmpty();
+    }
+
+    @Test
     void remover_deveDeletarQuandoExiste() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniao();
