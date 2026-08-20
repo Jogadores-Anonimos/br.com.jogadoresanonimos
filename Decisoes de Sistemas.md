@@ -236,6 +236,16 @@
   deixar de ser monolito único, ou necessidade concreta de alerting
   proativo que Actuator não cobre  nesse momento Prometheus/Grafana
   selfhosted é o próximo degrau antes de considerar um SaaS.
+ **Exceção pontual  UptimeRobot (free tier)**: monitor de disponibilidade
+  externo em cima de `https://api.jogadoresanonimos.com.br/actuator/health`
+  (2026-08-20). Não conflita com o descarte de APM/SaaS acima porque o
+  escopo é estritamente diferente: UptimeRobot só faz um GET periódico
+  num endpoint já público e sem dado pessoal (`{"status":"UP"}`), não
+  recebe log de requisição, IP de usuário ou payload  não há soberania
+  de dado em jogo. Resolve a lacuna real que Actuator sozinho não cobre:
+  ninguém é avisado se o serviço cair (Actuator só responde quando
+  perguntado, não empurra alerta). Alerta por email para
+  eduardo.salvador.gs@gmail.com quando o endpoint parar de responder UP.
 
 ### 2I. Backend expõe/roda com
  Só `/health` público (Actuator restrito no resto); config 100% via
@@ -601,6 +611,48 @@ limitar.
   `StorageClient` já existente é o que torna essa futura migração
   barata: trocase a implementação, não o contrato usado pelo resto do
   código.
+
+### 4E. Endereço estruturado x campo `local` (reunião)  sem entidade separada
+ **Decisão** (`system-design`, 2026-08-20): endereço estruturado (`cep`,
+  `logradouro`, `bairro`, `cidade`, `estado`, `numero`, `latitude`,
+  `longitude`) continua como colunas da própria entidade `Reuniao`, sem
+  extrair para uma entidade `Endereco` com FK. `local` é um campo de texto
+  livre complementar (rótulo exibido ao usuário, ex: "Rua das Flores, 123
+  - Centro, São Paulo - SP"), não é gerado a partir do endereço
+  estruturado e não é a fonte de verdade dele  os dois convivem porque
+  servem propósitos diferentes (busca/geocodificação/mapa usa o
+  estruturado; exibição usa `local`).
+ **Por que não normalizar**: volume de reuniões é baixo (dezenas, não
+  milhares), relação é 1:1 (uma reunião tem exatamente um endereço, nunca
+  reaproveitado por outra reunião)  não há ganho real de normalização
+  (nem espaço, nem reuso), só custo de JOIN e mais uma tabela para
+  manter. Ver "Contexto de escala" no `CLAUDE.md`.
+ **Risco aceito**: os dois podem divergir (ex: admin atualiza cidade/
+  estado do endereço estruturado via geocoding e esquece de editar o
+  texto de `local`, ou viceversa). Em vez de normalizar para eliminar
+  esse risco estruturalmente, ele é sinalizado na edição.
+ **Mecanismo**: `ReuniaoService.editar()` compara `cidade`/`estado` antes
+  e depois da edição; se algum dos dois mudou e o campo `local` **não**
+  mudou, adiciona um aviso não-bloqueante à resposta. Nunca impede salvar
+   é sinalização para o admin revisar manualmente, não validação de
+  integridade referencial.
+ **Contrato de API** (response de `PUT /api/v1/admin/reunioes/{id}`,
+  formato `{ success, data, error }`): `data` é o `ReuniaoResponse`
+  usual, acrescido do campo `avisos: ReuniaoAvisoResponse[]` (lista vazia
+  no caminho feliz, nunca `null`). Cada item:
+  `{ "codigo": "ENDERECO_LOCAL_DIVERGENTE", "mensagem": "Cidade/estado do
+  endereço estruturado mudaram, mas o campo \"local\" não foi atualizado
+  junto. Confira se o texto ainda reflete o endereço correto." }`.
+  `codigo` é estável para o frontend tratar por switch/case; `mensagem`
+  é a string exibível pronta, sem necessidade de i18n adicional no
+  cliente. `GET`/`POST` (listagem e criação) sempre retornam `avisos: []`
+  , o campo só é populado no fluxo de edição, que é o único ponto onde
+  há um "antes" para comparar.
+ **Reserva de migration revertida**: `V11` havia sido reservada para uma
+  eventual extração da entidade `Endereco`; como a decisão final foi não
+  normalizar, o número **não foi usado para nenhum schema novo** e a
+  próxima migration deve usar `V11` normalmente (nenhum arquivo
+  `V11__RESERVADO...` chegou a ser commitado no repositório).
 
 ## 5. Logs e auditoria
 
