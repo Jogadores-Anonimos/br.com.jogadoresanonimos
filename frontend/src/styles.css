@@ -87,8 +87,12 @@ body {
   outline-offset: 2px;
 }
 
+.conteudo-cms {
+  line-height: 2;
+}
+
 .conteudo-cms > div {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
 
 .conteudo-cms > div:first-child h2:first-child {
@@ -97,9 +101,9 @@ body {
 
 .conteudo-cms p {
   color: var(--color-text);
-  line-height: 1.7;
+  line-height: 2;
   max-width: 100%;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
 }
 
 .conteudo-cms h2 {
@@ -126,6 +130,22 @@ body {
   color: var(--color-text);
 }
 
+.conteudo-cms a {
+  color: var(--cor-padrao-ja);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.conteudo-cms a:hover {
+  color: var(--color-text);
+}
+
+.conteudo-cms a:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
 .conteudo-cms ul {
   list-style: none;
   margin-bottom: var(--spacing-sm);
@@ -138,7 +158,7 @@ body {
   position: relative;
   padding-left: var(--spacing-sm);
   color: var(--color-text);
-  line-height: 1.7;
+  line-height: 2;
 }
 
 .conteudo-cms li::before {
