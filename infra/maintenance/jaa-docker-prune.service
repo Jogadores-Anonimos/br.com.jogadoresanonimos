@@ -1,0 +1,10 @@
+[Unit]
+Description=Limpeza periodica de containers Exited e imagens dangling (JA Brasil)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=eduardo
+ExecStart=/home/eduardo/deploy/infra/maintenance/docker-prune.sh
+Environment=PATH=/home/eduardo/bin:/usr/bin:/bin
