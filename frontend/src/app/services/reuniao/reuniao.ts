@@ -66,6 +66,7 @@ export class ReuniaoService {
       cidade: req.cidade?.trim() || null,
       estado: req.estado?.trim() || null,
       linkReuniao: req.linkReuniao?.trim() || null,
+      avisos: [],
     };
     REUNIOES_MOCK.push(nova);
     return of(apiSuccess(nova)).pipe(delay(500));
@@ -86,6 +87,10 @@ export class ReuniaoService {
       return of(apiError<Reuniao>('VALIDATION_ERROR', 'Preencha todos os campos obrigatórios.')).pipe(delay(300));
     }
 
+    const cidadeAnterior = reuniao.cidade;
+    const estadoAnterior = reuniao.estado?.toUpperCase() ?? null;
+    const localAnterior = reuniao.local.trim();
+
     reuniao.nome = req.nome;
     reuniao.categoria = req.categoria;
     reuniao.descricao = req.descricao;
@@ -104,6 +109,21 @@ export class ReuniaoService {
     reuniao.cidade = req.cidade?.trim() || null;
     reuniao.estado = req.estado?.trim() || null;
     reuniao.linkReuniao = req.linkReuniao?.trim() || null;
+
+    const enderecoMudou =
+      reuniao.cidade !== cidadeAnterior || (reuniao.estado?.toUpperCase() ?? null) !== estadoAnterior;
+    const localPermaneceuIgual = reuniao.local.trim() === localAnterior;
+    reuniao.avisos =
+      enderecoMudou && localPermaneceuIgual
+        ? [
+            {
+              codigo: 'ENDERECO_LOCAL_DIVERGENTE',
+              mensagem:
+                'Cidade/estado do endereço estruturado mudaram, mas o campo "local" não foi atualizado junto. Confira se o texto ainda reflete o endereço correto.',
+            },
+          ]
+        : [];
+
     return of(apiSuccess(reuniao)).pipe(delay(400));
   }
 

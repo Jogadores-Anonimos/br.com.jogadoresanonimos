@@ -23,6 +23,7 @@ export const REUNIOES_MOCK: Reuniao[] = [
     cidade: null,
     estado: null,
     linkReuniao: null,
+    avisos: [],
   },
   {
     id: 'reuniao-2',
@@ -44,6 +45,7 @@ export const REUNIOES_MOCK: Reuniao[] = [
     cidade: null,
     estado: null,
     linkReuniao: null,
+    avisos: [],
   },
   {
     id: 'reuniao-3',
@@ -65,6 +67,7 @@ export const REUNIOES_MOCK: Reuniao[] = [
     cidade: null,
     estado: null,
     linkReuniao: null,
+    avisos: [],
   },
   {
     id: 'reuniao-4',
@@ -86,6 +89,7 @@ export const REUNIOES_MOCK: Reuniao[] = [
     cidade: null,
     estado: null,
     linkReuniao: null,
+    avisos: [],
   },
   {
     id: 'reuniao-5',
@@ -108,6 +112,7 @@ export const REUNIOES_MOCK: Reuniao[] = [
     cidade: null,
     estado: null,
     linkReuniao: null,
+    avisos: [],
   },
   {
     id: 'reuniao-6',
@@ -129,6 +134,7 @@ export const REUNIOES_MOCK: Reuniao[] = [
     cidade: null,
     estado: null,
     linkReuniao: null,
+    avisos: [],
   },
   {
     id: 'reuniao-7',
@@ -150,6 +156,7 @@ export const REUNIOES_MOCK: Reuniao[] = [
     cidade: null,
     estado: null,
     linkReuniao: null,
+    avisos: [],
   },
   {
     id: 'reuniao-8',
@@ -171,5 +178,6 @@ export const REUNIOES_MOCK: Reuniao[] = [
     cidade: null,
     estado: null,
     linkReuniao: null,
+    avisos: [],
   },
 ];

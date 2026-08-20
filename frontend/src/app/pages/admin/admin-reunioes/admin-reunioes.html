@@ -303,10 +303,19 @@
               type="text"
               name="local"
               [(ngModel)]="formulario.local"
+              (ngModelChange)="limparAvisoEnderecoLocalDivergente()"
               [class.campo-invalido]="errosCampo['local']"
               [attr.aria-invalid]="errosCampo['local'] ? 'true' : null"
               required
             />
+            @if (avisoEnderecoLocalDivergente) {
+              <div class="admin-reunioes__aviso-endereco" role="status">
+                <p class="admin-reunioes__aviso-endereco-texto">
+                  <strong>Endereço estruturado alterado.</strong>
+                  O endereço estruturado foi alterado, mas o campo Endereço abaixo pode não refletir essa mudança. Revise o texto se necessário.
+                </p>
+              </div>
+            }
           </div>
 
           <div class="admin-reunioes__campo-linha">

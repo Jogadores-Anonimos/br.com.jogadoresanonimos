@@ -87,7 +87,7 @@
                 name="filtroTexto"
                 [ngModel]="filtroTexto()"
                 (ngModelChange)="aplicarFiltroTexto($event)"
-                placeholder="Nome do grupo, bairro ou cidade"
+                placeholder="Nome do grupo, cidade ou descrição"
                 aria-label="Buscar reunião por nome, local ou descrição"
               />
             </span>
@@ -119,21 +119,6 @@
                 <option value="todos">Todas as cidades</option>
                 @for (cidade of cidadesDisponiveis(); track cidade) {
                   <option [value]="cidade">{{ cidade }}</option>
-                }
-              </select>
-            </label>
-
-            <label class="filtro-campo">
-              <span>Bairro</span>
-              <select
-                name="filtroBairro"
-                [ngModel]="filtroBairro()"
-                (ngModelChange)="aplicarFiltroBairro($event)"
-                [disabled]="bairrosDisponiveis().length === 0"
-              >
-                <option value="todos">Todos os bairros</option>
-                @for (bairro of bairrosDisponiveis(); track bairro) {
-                  <option [value]="bairro">{{ bairro }}</option>
                 }
               </select>
             </label>

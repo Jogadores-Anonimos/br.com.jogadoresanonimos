@@ -7,6 +7,8 @@ import { mapearErrosCampo, mensagemDeErro } from '../../../services/api-envelope
 import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
 import { ReuniaoService } from '../../../services/reuniao/reuniao';
 import { CategoriaReuniao, CriarReuniaoRequest, Reuniao } from '../../../services/reuniao/reuniao.model';
+
+const CODIGO_AVISO_ENDERECO_LOCAL_DIVERGENTE = 'ENDERECO_LOCAL_DIVERGENTE';
 import { configurarMapLibreWorker } from '../../../config/maplibre-worker.config';
 
 interface FormularioReuniao {
@@ -167,6 +169,7 @@ export class AdminReunioes implements OnInit {
   salvando = false;
   erroFormulario = '';
   errosCampo: Record<string, string> = {};
+  avisoEnderecoLocalDivergente = false;
 
   buscandoCep = false;
   erroCep = '';
@@ -256,6 +259,7 @@ export class AdminReunioes implements OnInit {
     this.erroCep = '';
     this.erroFormulario = '';
     this.errosCampo = {};
+    this.avisoEnderecoLocalDivergente = false;
     this.modo = 'formulario';
     this.focarFormulario();
   }
@@ -283,6 +287,7 @@ export class AdminReunioes implements OnInit {
     this.erroCep = '';
     this.erroFormulario = '';
     this.errosCampo = {};
+    this.avisoEnderecoLocalDivergente = false;
     this.modo = 'formulario';
     this.focarFormulario();
   }
@@ -304,6 +309,11 @@ export class AdminReunioes implements OnInit {
     this.reuniaoEmEdicao = null;
     this.erroFormulario = '';
     this.errosCampo = {};
+    this.avisoEnderecoLocalDivergente = false;
+  }
+
+  limparAvisoEnderecoLocalDivergente(): void {
+    this.avisoEnderecoLocalDivergente = false;
   }
 
   buscarCep(): void {
@@ -481,8 +491,16 @@ export class AdminReunioes implements OnInit {
           : [...this.reunioes(), salva];
         reunioes.sort((a, b) => a.nome.localeCompare(b.nome));
         this.reunioes.set(reunioes);
-        this.modo = 'lista';
-        this.reuniaoEmEdicao = null;
+        const editando = this.reuniaoEmEdicao !== null;
+        this.avisoEnderecoLocalDivergente = (salva.avisos ?? []).some(
+          (aviso) => aviso.codigo === CODIGO_AVISO_ENDERECO_LOCAL_DIVERGENTE,
+        );
+        if (editando && this.avisoEnderecoLocalDivergente) {
+          this.reuniaoEmEdicao = salva;
+        } else {
+          this.modo = 'lista';
+          this.reuniaoEmEdicao = null;
+        }
       } else {
         this.erroFormulario = envelope.error?.message ?? 'Não foi possível salvar a reunião.';
         this.errosCampo = mapearErrosCampo(envelope.error?.fields);

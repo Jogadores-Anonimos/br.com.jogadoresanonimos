@@ -1,5 +1,10 @@
 export type CategoriaReuniao = 'presencial' | 'virtual';
 
+export interface AvisoReuniao {
+  codigo: string;
+  mensagem: string;
+}
+
 export interface Reuniao {
   id: string;
   nome: string;
@@ -20,6 +25,7 @@ export interface Reuniao {
   cidade: string | null;
   estado: string | null;
   linkReuniao: string | null;
+  avisos: AvisoReuniao[];
 }
 
 export interface CriarReuniaoRequest {

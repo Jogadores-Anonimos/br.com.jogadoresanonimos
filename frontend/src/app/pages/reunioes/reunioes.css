@@ -192,36 +192,6 @@
   inset: 0;
 }
 
-.mapa-maplibre ::ng-deep .mapa-popup-reuniao {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 0.85rem;
-  color: var(--color-text);
-  max-width: 220px;
-}
-
-.mapa-maplibre ::ng-deep .mapa-popup-reuniao strong {
-  color: var(--cor-padrao-ja);
-  font-size: 0.9rem;
-}
-
-.mapa-maplibre ::ng-deep .mapa-popup-reuniao p {
-  margin: 0;
-  color: var(--color-text-muted);
-}
-
-.mapa-maplibre ::ng-deep .maplibregl-popup-content {
-  background: var(--color-bg-surface);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-sm);
-  padding: var(--spacing-sm);
-}
-
-.mapa-maplibre ::ng-deep .maplibregl-popup-tip {
-  border-top-color: var(--color-bg-surface);
-}
-
 .localizacao-bloco {
   display: flex;
   flex-direction: column;

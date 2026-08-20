@@ -61,6 +61,8 @@ const DEBOUNCE_FILTRO_TEXTO_MS = 200;
 
 const FONTE_REUNIOES = 'reunioes';
 const CAMADA_PONTOS_REUNIOES = 'reunioes-pontos';
+const FONTE_USUARIO = 'usuario';
+const CAMADA_PONTO_USUARIO = 'usuario-ponto';
 
 const ESTILO_OSM: StyleSpecification = {
   version: 8,
@@ -112,22 +114,28 @@ function montarFeatureCollection(reunioes: Reuniao[]): FeatureCollection<Point, 
   return { type: 'FeatureCollection', features };
 }
 
-function montarHtmlPopup(propriedades: PropriedadesPontoReuniao): string {
-  const nome = escaparHtml(propriedades.nome);
-  const dia = escaparHtml(propriedades.dia);
-  const horario = escaparHtml(propriedades.horario);
-  const local = escaparHtml(propriedades.local);
-  return `<div class="mapa-popup-reuniao"><strong>${nome}</strong><p>${dia} · ${horario}</p><p>${local}</p></div>`;
-}
-
-function escaparHtml(valor: string): string {
-  const elemento = document.createElement('div');
-  elemento.textContent = valor;
-  return elemento.innerHTML;
+function montarFeatureUsuario(coords: { latitude: number; longitude: number }): FeatureCollection<Point, Record<string, never>> {
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [coords.longitude, coords.latitude],
+        },
+        properties: {},
+      },
+    ],
+  };
 }
 
 function corPadraoJa(): string {
   return getComputedStyle(document.documentElement).getPropertyValue('--cor-padrao-ja').trim();
+}
+
+function corSucesso(): string {
+  return getComputedStyle(document.documentElement).getPropertyValue('--color-success').trim();
 }
 
 function corBranca(): string {
@@ -176,7 +184,6 @@ export class Reunioes implements OnInit, OnDestroy {
 
   readonly filtroEstado = signal<string | 'todos'>('todos');
   readonly filtroCidade = signal<string | 'todos'>('todos');
-  readonly filtroBairro = signal<string | 'todos'>('todos');
   readonly filtroTexto = signal('');
   private readonly filtroTextoDebounced = signal('');
   private debounceFiltroTextoId?: ReturnType<typeof setTimeout>;
@@ -248,7 +255,6 @@ export class Reunioes implements OnInit, OnDestroy {
     this.categoriaSelecionada.set(categoria);
     this.filtroEstado.set('todos');
     this.filtroCidade.set('todos');
-    this.filtroBairro.set('todos');
     this.filtroTexto.set('');
     this.filtroTextoDebounced.set('');
     clearTimeout(this.debounceFiltroTextoId);
@@ -259,20 +265,12 @@ export class Reunioes implements OnInit, OnDestroy {
   aplicarFiltroEstado(valor: string | 'todos'): void {
     this.filtroEstado.set(valor);
     this.filtroCidade.set('todos');
-    this.filtroBairro.set('todos');
     this.itensVisiveis.set(ITENS_POR_PAGINA);
     this.atualizarDadosMapa();
   }
 
   aplicarFiltroCidade(valor: string | 'todos'): void {
     this.filtroCidade.set(valor);
-    this.filtroBairro.set('todos');
-    this.itensVisiveis.set(ITENS_POR_PAGINA);
-    this.atualizarDadosMapa();
-  }
-
-  aplicarFiltroBairro(valor: string | 'todos'): void {
-    this.filtroBairro.set(valor);
     this.itensVisiveis.set(ITENS_POR_PAGINA);
     this.atualizarDadosMapa();
   }
@@ -302,13 +300,15 @@ export class Reunioes implements OnInit, OnDestroy {
 
     navigator.geolocation.getCurrentPosition(
       (posicao) => {
-        this.userCoords.set({
+        const coords = {
           latitude: posicao.coords.latitude,
           longitude: posicao.coords.longitude,
-        });
+        };
+        this.userCoords.set(coords);
         this.localizacaoPermitida.set(true);
         this.localizacaoCarregando.set(false);
-        this.centralizarMapa();
+        this.atualizarMarcadorUsuario(coords);
+        this.centralizarMapaNoUsuario(coords);
       },
       () => {
         this.localizacaoIndisponivel.set(true);
@@ -373,25 +373,6 @@ export class Reunioes implements OnInit, OnDestroy {
     return [...valores].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   });
 
-  readonly bairrosDisponiveis = computed<string[]>(() => {
-    const filtroEstado = this.filtroEstado();
-    const filtroCidade = this.filtroCidade();
-    const valores = new Set<string>();
-    for (const reuniao of this.reunioesPresenciais()) {
-      if (!reuniao.bairro) {
-        continue;
-      }
-      if (filtroEstado !== 'todos' && reuniao.estado !== filtroEstado) {
-        continue;
-      }
-      if (filtroCidade !== 'todos' && reuniao.cidade !== filtroCidade) {
-        continue;
-      }
-      valores.add(reuniao.bairro);
-    }
-    return [...valores].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  });
-
   readonly reunioesFiltradas = computed<Reuniao[]>(() => {
     const categoriaSelecionada = this.categoriaSelecionada();
     if (!categoriaSelecionada) {
@@ -414,16 +395,12 @@ export class Reunioes implements OnInit, OnDestroy {
     if (categoriaSelecionada === 'presencial') {
       const filtroEstado = this.filtroEstado();
       const filtroCidade = this.filtroCidade();
-      const filtroBairro = this.filtroBairro();
 
       if (filtroEstado !== 'todos') {
         resultado = resultado.filter((r) => r.estado === filtroEstado);
       }
       if (filtroCidade !== 'todos') {
         resultado = resultado.filter((r) => r.cidade === filtroCidade);
-      }
-      if (filtroBairro !== 'todos') {
-        resultado = resultado.filter((r) => r.bairro === filtroBairro);
       }
 
       if (userCoords) {
@@ -510,6 +487,21 @@ export class Reunioes implements OnInit, OnDestroy {
     });
   }
 
+  private centralizarMapaNoUsuario(coords: { latitude: number; longitude: number }): void {
+    if (!this.mapa) {
+      return;
+    }
+    this.mapa.setCenter([coords.longitude, coords.latitude]);
+    this.mapa.setZoom(ZOOM_REGIAO_USUARIO);
+  }
+
+  private atualizarMarcadorUsuario(coords: { latitude: number; longitude: number }): void {
+    if (!this.mapa || !this.mapa.getSource(FONTE_USUARIO)) {
+      return;
+    }
+    (this.mapa.getSource(FONTE_USUARIO) as GeoJSONSource).setData(montarFeatureUsuario(coords));
+  }
+
   abrirDetalhes(reuniao: Reuniao): void {
     this.reuniaoDetalhe = reuniao;
   }
@@ -547,10 +539,11 @@ export class Reunioes implements OnInit, OnDestroy {
     if (!this.maplibregl) {
       return;
     }
+    const maplibregl = this.maplibregl;
 
     this.destruirMapa();
 
-    this.mapa = new this.maplibregl.Map({
+    this.mapa = new maplibregl.Map({
       container,
       style: ESTILO_OSM,
       center: CENTRO_PADRAO,
@@ -558,7 +551,7 @@ export class Reunioes implements OnInit, OnDestroy {
       attributionControl: { compact: true },
     });
 
-    this.mapa.addControl(new this.maplibregl.NavigationControl({ showCompass: false }));
+    this.mapa.addControl(new maplibregl.NavigationControl({ showCompass: false }));
 
     this.mapa.on('load', () => {
       if (!this.mapa) {
@@ -588,15 +581,15 @@ export class Reunioes implements OnInit, OnDestroy {
 
       this.mapa.on('click', CAMADA_PONTOS_REUNIOES, (e) => {
         const feature = e.features?.[0];
-        if (!feature || feature.geometry.type !== 'Point' || !this.maplibregl) {
+        if (!feature || feature.geometry.type !== 'Point') {
           return;
         }
 
         const propriedades = feature.properties as PropriedadesPontoReuniao;
-        new this.maplibregl.Popup({ offset: 12 })
-          .setLngLat(e.lngLat)
-          .setHTML(montarHtmlPopup(propriedades))
-          .addTo(this.mapa!);
+        const reuniao = this.reunioesFiltradas().find((r) => r.id === propriedades.id);
+        if (reuniao) {
+          this.abrirDetalhes(reuniao);
+        }
       });
 
       this.mapa.on('mouseenter', CAMADA_PONTOS_REUNIOES, () => {
@@ -611,8 +604,53 @@ export class Reunioes implements OnInit, OnDestroy {
         }
       });
 
+      const userCoords = this.userCoords();
+
+      this.mapa.addSource(FONTE_USUARIO, {
+        type: 'geojson',
+        data: userCoords ? montarFeatureUsuario(userCoords) : { type: 'FeatureCollection', features: [] },
+      });
+
+      this.mapa.addLayer({
+        id: CAMADA_PONTO_USUARIO,
+        type: 'circle',
+        source: FONTE_USUARIO,
+        paint: {
+          'circle-radius': 9,
+          'circle-color': corSucesso(),
+          'circle-stroke-width': 3,
+          'circle-stroke-color': corBranca(),
+        },
+      });
+
+      const popupUsuario = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 14 })
+        .setText('Você (localização aproximada)');
+
+      this.mapa.on('mouseenter', CAMADA_PONTO_USUARIO, (e) => {
+        if (!this.mapa) {
+          return;
+        }
+        this.mapa.getCanvas().style.cursor = 'pointer';
+        const feature = e.features?.[0];
+        if (feature && feature.geometry.type === 'Point') {
+          popupUsuario.setLngLat(feature.geometry.coordinates as LngLatLike).addTo(this.mapa);
+        }
+      });
+
+      this.mapa.on('mouseleave', CAMADA_PONTO_USUARIO, () => {
+        if (this.mapa) {
+          this.mapa.getCanvas().style.cursor = '';
+        }
+        popupUsuario.remove();
+      });
+
       this.mapa.resize();
-      this.centralizarMapa(featureCollection);
+
+      if (userCoords) {
+        this.centralizarMapaNoUsuario(userCoords);
+      } else {
+        this.centralizarMapa(featureCollection);
+      }
     });
 
     this.resizeObserver = new ResizeObserver(() => {
