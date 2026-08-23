@@ -50,8 +50,7 @@
     próprio stack.
  **Firewall (`ufw`)** libera só `22` (SSH `eduardo`), `22022` (SSH
   legado do colega), `80`, `443`.
- **Portainer** roda no Swarm (2 serviços) para gestão via web; escopo de
-  uso pro projeto ainda não confirmado (ver `PENDENCIAS.md`).
+ **Portainer** roda no Swarm (2 serviços) para gestão via web.
 
 ### 2B. Traefik e TLS
  **Traefik** (`traefik:v3.5.3`) é o reverse proxy único do VPS 

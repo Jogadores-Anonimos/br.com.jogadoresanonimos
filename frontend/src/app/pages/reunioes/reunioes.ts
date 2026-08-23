@@ -21,7 +21,12 @@ import type {
 import type { Feature, FeatureCollection, Point } from 'geojson';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 import { ReuniaoService } from '../../services/reuniao/reuniao';
-import { CategoriaReuniao, Reuniao } from '../../services/reuniao/reuniao.model';
+import {
+  AgendaItemReuniao,
+  CategoriaReuniao,
+  DiaSemanaAgendaReuniao,
+  Reuniao,
+} from '../../services/reuniao/reuniao.model';
 import { montarLinkWhatsapp } from '../../config/whatsapp.config';
 import { configurarMapLibreWorker } from '../../config/maplibre-worker.config';
 
@@ -34,8 +39,8 @@ interface FiltroCategoria {
 }
 
 interface GrupoDiaVirtual {
-  dia: DiaSemana | 'Sem dia definido';
-  reunioes: Reuniao[];
+  dia: DiaSemana;
+  itens: Array<{ reuniao: Reuniao; horario: string }>;
 }
 
 interface PropriedadesPontoReuniao {
@@ -58,6 +63,20 @@ const ITENS_POR_PAGINA = 10;
 
 const WHATSAPP_PLACEHOLDER = '5599999999999';
 const DEBOUNCE_FILTRO_TEXTO_MS = 200;
+
+const DIAS_AGENDA: ReadonlyArray<{ diaSemana: DiaSemanaAgendaReuniao; rotulo: DiaSemana }> = [
+  { diaSemana: 'SEGUNDA', rotulo: 'Segunda' },
+  { diaSemana: 'TERCA', rotulo: 'Terça' },
+  { diaSemana: 'QUARTA', rotulo: 'Quarta' },
+  { diaSemana: 'QUINTA', rotulo: 'Quinta' },
+  { diaSemana: 'SEXTA', rotulo: 'Sexta' },
+  { diaSemana: 'SABADO', rotulo: 'Sábado' },
+  { diaSemana: 'DOMINGO', rotulo: 'Domingo' },
+];
+
+const ROTULO_DIA: Record<DiaSemanaAgendaReuniao, DiaSemana> = Object.fromEntries(
+  DIAS_AGENDA.map((dia) => [dia.diaSemana, dia.rotulo]),
+) as Record<DiaSemanaAgendaReuniao, DiaSemana>;
 
 const FONTE_REUNIOES = 'reunioes';
 const CAMADA_PONTOS_REUNIOES = 'reunioes-pontos';
@@ -166,15 +185,7 @@ export class Reunioes implements OnInit, OnDestroy {
     },
   ];
 
-  readonly diasSemana: DiaSemana[] = [
-    'Segunda',
-    'Terça',
-    'Quarta',
-    'Quinta',
-    'Sexta',
-    'Sábado',
-    'Domingo',
-  ];
+  readonly diasSemana: DiaSemana[] = DIAS_AGENDA.map((dia) => dia.rotulo);
 
   readonly reunioes = signal<Reuniao[]>([]);
   carregandoReunioes = true;
@@ -388,7 +399,12 @@ export class Reunioes implements OnInit, OnDestroy {
         (r) =>
           r.nome.toLowerCase().includes(textoFiltro) ||
           r.local.toLowerCase().includes(textoFiltro) ||
-          r.descricao.toLowerCase().includes(textoFiltro),
+          r.descricao.toLowerCase().includes(textoFiltro) ||
+          this.agendaDaReuniao(r).some(
+            (item) =>
+              ROTULO_DIA[item.diaSemana].toLowerCase().includes(textoFiltro) ||
+              item.horario.toLowerCase().includes(textoFiltro),
+          ),
       );
     }
 
@@ -417,34 +433,51 @@ export class Reunioes implements OnInit, OnDestroy {
     this.reunioesFiltradas().slice(0, this.itensVisiveis()),
   );
 
-  private comparaHorario(a: Reuniao, b: Reuniao): number {
-    return a.horario.localeCompare(b.horario);
-  }
-
   readonly reunioesVirtuaisAgrupadas = computed<GrupoDiaVirtual[]>(() => {
     if (this.categoriaSelecionada() !== 'virtual') {
       return [];
     }
 
     const grupos: GrupoDiaVirtual[] = [];
-    for (const dia of this.diasSemana) {
-      const reunioesDoDia = this.reunioesFiltradas()
-        .filter((r) => r.diaSemana === dia)
-        .sort((a, b) => this.comparaHorario(a, b));
-      if (reunioesDoDia.length > 0) {
-        grupos.push({ dia, reunioes: reunioesDoDia });
+    for (const dia of DIAS_AGENDA) {
+      const itens = this.reunioesFiltradas()
+        .flatMap((reuniao) =>
+          this.agendaDaReuniao(reuniao)
+            .filter((item) => item.diaSemana === dia.diaSemana)
+            .map((item) => ({ reuniao, horario: item.horario })),
+        )
+        .sort((a, b) => a.horario.localeCompare(b.horario) || a.reuniao.nome.localeCompare(b.reuniao.nome));
+      if (itens.length > 0) {
+        grupos.push({ dia: dia.rotulo, itens });
       }
-    }
-
-    const semDiaDefinido = this.reunioesFiltradas()
-      .filter((r) => !r.diaSemana)
-      .sort((a, b) => this.comparaHorario(a, b));
-    if (semDiaDefinido.length > 0) {
-      grupos.push({ dia: 'Sem dia definido', reunioes: semDiaDefinido });
     }
 
     return grupos;
   });
+
+  agendaDaReuniao(reuniao: Reuniao): AgendaItemReuniao[] {
+    if (reuniao.agenda?.length) {
+      return reuniao.agenda;
+    }
+    const valorLegado = (reuniao.diaSemana || reuniao.dia)
+      ?.normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/-feira$/, '')
+      .trim();
+    const dia = DIAS_AGENDA.find((item) => item.rotulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() === valorLegado);
+    return dia && reuniao.horario ? [{ diaSemana: dia.diaSemana, horario: reuniao.horario }] : [];
+  }
+
+  resumoAgenda(reuniao: Reuniao): string {
+    return this.agendaDaReuniao(reuniao)
+      .map((item) => `${ROTULO_DIA[item.diaSemana]} ${item.horario}`)
+      .join(' · ');
+  }
+
+  rotuloDiaAgenda(item: AgendaItemReuniao): DiaSemana {
+    return ROTULO_DIA[item.diaSemana];
+  }
 
   private atualizarDadosMapa(): void {
     if (!this.mapa || !this.mapa.getSource(FONTE_REUNIOES)) {

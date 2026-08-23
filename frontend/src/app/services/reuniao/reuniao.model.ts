@@ -1,4 +1,10 @@
 export type CategoriaReuniao = 'presencial' | 'virtual';
+export type DiaSemanaAgendaReuniao = 'DOMINGO' | 'SEGUNDA' | 'TERCA' | 'QUARTA' | 'QUINTA' | 'SEXTA' | 'SABADO';
+
+export interface AgendaItemReuniao {
+  diaSemana: DiaSemanaAgendaReuniao;
+  horario: string;
+}
 
 export interface AvisoReuniao {
   codigo: string;
@@ -10,6 +16,7 @@ export interface Reuniao {
   nome: string;
   categoria: CategoriaReuniao;
   descricao: string;
+  agenda: AgendaItemReuniao[];
   dia: string;
   horario: string;
   local: string;
@@ -32,8 +39,9 @@ export interface CriarReuniaoRequest {
   nome: string;
   categoria: CategoriaReuniao;
   descricao: string;
-  dia: string;
-  horario: string;
+  agenda?: AgendaItemReuniao[];
+  dia?: string;
+  horario?: string;
   local: string;
   whatsapp?: string;
   diaSemana?: string;

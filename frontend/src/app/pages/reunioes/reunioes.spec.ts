@@ -22,7 +22,7 @@ interface MapaFake {
   remove: ReturnType<typeof vi.fn>;
   addSource: ReturnType<typeof vi.fn>;
   addLayer: ReturnType<typeof vi.fn>;
-  getSource: ReturnType<typeof vi.fn>;
+  getSource: (id: string) => FonteFake;
   getCanvas: ReturnType<typeof vi.fn>;
   setCenter: ReturnType<typeof vi.fn>;
   setZoom: ReturnType<typeof vi.fn>;
@@ -106,6 +106,7 @@ function reuniaoFake(overrides: Partial<Reuniao> = {}): Reuniao {
     nome: 'Grupo Esperança',
     categoria: 'presencial',
     descricao: 'Reunião de apoio mútuo.',
+    agenda: [{ diaSemana: 'SEGUNDA', horario: '19:00' }],
     dia: 'Segunda',
     horario: '19:00',
     local: 'Rua Fictícia, 100, Bairro Teste, Cidade Teste, TS',
@@ -121,6 +122,7 @@ function reuniaoFake(overrides: Partial<Reuniao> = {}): Reuniao {
     cidade: 'Cidade Teste',
     estado: 'TS',
     linkReuniao: null,
+    avisos: [],
     ...overrides,
   };
 }
@@ -268,6 +270,76 @@ describe('Reunioes', () => {
       await fixture.whenStable();
 
       expect((fonte.dadosAtuais as { features: unknown[] }).features).toHaveLength(0);
+    });
+  });
+
+  describe('agenda múltipla', () => {
+    it('agrupa uma reunião virtual em cada dia da sua agenda', async () => {
+      const virtual = reuniaoFake({
+        categoria: 'virtual',
+        agenda: [
+          { diaSemana: 'SEGUNDA', horario: '19:00' },
+          { diaSemana: 'QUINTA', horario: '20:30' },
+        ],
+        latitude: null,
+        longitude: null,
+      });
+      await configurarTeste([virtual]);
+
+      component.selecionarCategoria('virtual');
+
+      expect(component.reunioesVirtuaisAgrupadas()).toEqual([
+        { dia: 'Segunda', itens: [{ reuniao: virtual, horario: '19:00' }] },
+        { dia: 'Quinta', itens: [{ reuniao: virtual, horario: '20:30' }] },
+      ]);
+    });
+
+    it('considera qualquer dia ou horário da agenda na busca', async () => {
+      await configurarTeste([
+        reuniaoFake({
+          categoria: 'virtual',
+          agenda: [
+            { diaSemana: 'SEGUNDA', horario: '19:00' },
+            { diaSemana: 'SABADO', horario: '08:30' },
+          ],
+        }),
+      ]);
+      component.selecionarCategoria('virtual');
+      (component as unknown as { filtroTextoDebounced: { set: (valor: string) => void } }).filtroTextoDebounced.set('sábado');
+
+      expect(component.reunioesFiltradas()).toHaveLength(1);
+    });
+
+    it('gera resumo e detalhes com a agenda completa em ordem', async () => {
+      const reuniao = reuniaoFake({
+        agenda: [
+          { diaSemana: 'SEGUNDA', horario: '19:00' },
+          { diaSemana: 'QUINTA', horario: '20:30' },
+        ],
+      });
+      await configurarTeste([reuniao]);
+
+      expect(component.resumoAgenda(reuniao)).toBe('Segunda 19:00 · Quinta 20:30');
+      expect(component.agendaDaReuniao(reuniao)).toHaveLength(2);
+    });
+
+    it('agrupa dado legado sem agenda usando dia e horário antigos', async () => {
+      const virtualLegada = reuniaoFake({
+        categoria: 'virtual',
+        agenda: [],
+        dia: 'Terça-feira',
+        diaSemana: null,
+        horario: '18:30',
+        latitude: null,
+        longitude: null,
+      });
+      await configurarTeste([virtualLegada]);
+
+      component.selecionarCategoria('virtual');
+
+      expect(component.reunioesVirtuaisAgrupadas()).toEqual([
+        { dia: 'Terça', itens: [{ reuniao: virtualLegada, horario: '18:30' }] },
+      ]);
     });
   });
 

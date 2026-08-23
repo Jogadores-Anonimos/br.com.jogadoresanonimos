@@ -1,8 +1,20 @@
 package br.com.jogadoresanonimos.reuniao.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -65,6 +77,10 @@ public class Reuniao {
 
     @Column(name = "link_reuniao", length = 500)
     private String linkReuniao;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "reuniao_horario", joinColumns = @JoinColumn(name = "reuniao_id"))
+    private List<AgendaItemReuniao> agenda = new ArrayList<>();
 
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
@@ -130,6 +146,12 @@ public class Reuniao {
         this.estado = estado;
         this.cidade = cidade;
         this.bairro = bairro;
+        this.atualizadoEm = Instant.now();
+    }
+
+    public void substituirAgenda(List<AgendaItemReuniao> novaAgenda) {
+        this.agenda.clear();
+        this.agenda.addAll(novaAgenda);
         this.atualizadoEm = Instant.now();
     }
 
@@ -207,6 +229,10 @@ public class Reuniao {
 
     public String getLinkReuniao() {
         return linkReuniao;
+    }
+
+    public List<AgendaItemReuniao> getAgenda() {
+        return agenda;
     }
 
     public Instant getCriadoEm() {

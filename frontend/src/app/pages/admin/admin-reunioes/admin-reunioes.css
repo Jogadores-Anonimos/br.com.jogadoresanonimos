@@ -138,6 +138,7 @@
 .admin-reunioes__dia-horario {
   color: var(--color-text-muted);
   font-size: 0.85rem;
+  line-height: 1.5;
 }
 
 .admin-reunioes__corpo {
@@ -237,6 +238,96 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-sm);
+}
+
+.admin-reunioes__agenda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin-reunioes__agenda legend {
+  padding: 0 var(--spacing-xs);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-reunioes__agenda-lista {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.admin-reunioes__agenda-item {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.7fr) minmax(10rem, 1fr);
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+}
+
+.admin-reunioes__agenda-item:has(input:checked) {
+  background: var(--color-bg-frame);
+}
+
+.admin-reunioes__agenda-dia {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.admin-reunioes__agenda-dia input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--cor-padrao-ja);
+}
+
+.admin-reunioes__agenda-horario select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-xs);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin-reunioes__agenda-horario select:disabled {
+  opacity: 0.55;
+}
+
+.admin-reunioes__agenda-erro {
+  grid-column: 1 / -1;
+  color: var(--color-danger);
+  font-size: 0.82rem;
+}
+
+.admin-reunioes__agenda.campo-invalido,
+.admin-reunioes__agenda-item.campo-invalido {
+  border-color: var(--color-danger);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .admin-reunioes__campo-cep {
@@ -369,6 +460,10 @@
   }
 
   .admin-reunioes__campo-linha {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-reunioes__agenda-item {
     grid-template-columns: 1fr;
   }
 

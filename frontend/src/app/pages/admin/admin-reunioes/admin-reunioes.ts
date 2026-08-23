@@ -6,7 +6,13 @@ import type { LngLatLike, Map as MapLibreMap, Marker as MapLibreMarker, StyleSpe
 import { mapearErrosCampo, mensagemDeErro } from '../../../services/api-envelope';
 import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
 import { ReuniaoService } from '../../../services/reuniao/reuniao';
-import { CategoriaReuniao, CriarReuniaoRequest, Reuniao } from '../../../services/reuniao/reuniao.model';
+import {
+  AgendaItemReuniao,
+  CategoriaReuniao,
+  CriarReuniaoRequest,
+  DiaSemanaAgendaReuniao,
+  Reuniao,
+} from '../../../services/reuniao/reuniao.model';
 import { configurarMapLibreWorker } from '../../../config/maplibre-worker.config';
 
 const CODIGO_AVISO_ENDERECO_LOCAL_DIVERGENTE = 'ENDERECO_LOCAL_DIVERGENTE';
@@ -15,10 +21,9 @@ interface FormularioReuniao {
   nome: string;
   categoria: CategoriaReuniao;
   descricao: string;
-  horario: string;
+  agenda: AgendaFormularioItem[];
   local: string;
   whatsapp: string;
-  diaSemana: string;
   latitude: string;
   longitude: string;
   cep: string;
@@ -30,15 +35,39 @@ interface FormularioReuniao {
   linkReuniao: string;
 }
 
+interface AgendaFormularioItem {
+  diaSemana: DiaSemanaAgendaReuniao;
+  rotulo: string;
+  selecionado: boolean;
+  horario: string;
+}
+
+const DIAS_AGENDA: ReadonlyArray<{ diaSemana: DiaSemanaAgendaReuniao; rotulo: string }> = [
+  { diaSemana: 'SEGUNDA', rotulo: 'Segunda' },
+  { diaSemana: 'TERCA', rotulo: 'Terça' },
+  { diaSemana: 'QUARTA', rotulo: 'Quarta' },
+  { diaSemana: 'QUINTA', rotulo: 'Quinta' },
+  { diaSemana: 'SEXTA', rotulo: 'Sexta' },
+  { diaSemana: 'SABADO', rotulo: 'Sábado' },
+  { diaSemana: 'DOMINGO', rotulo: 'Domingo' },
+];
+
+const ROTULO_DIA: Record<DiaSemanaAgendaReuniao, string> = Object.fromEntries(
+  DIAS_AGENDA.map((dia) => [dia.diaSemana, dia.rotulo]),
+) as Record<DiaSemanaAgendaReuniao, string>;
+
+function agendaFormularioVazia(): AgendaFormularioItem[] {
+  return DIAS_AGENDA.map((dia) => ({ ...dia, selecionado: false, horario: '' }));
+}
+
 function formularioVazio(): FormularioReuniao {
   return {
     nome: '',
     categoria: 'presencial',
     descricao: '',
-    horario: '',
+    agenda: agendaFormularioVazia(),
     local: '',
     whatsapp: '',
-    diaSemana: '',
     latitude: '',
     longitude: '',
     cep: '',
@@ -95,7 +124,7 @@ const ESTILO_OSM: StyleSpecification = {
   ],
 };
 
-const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+const DIAS_SEMANA = DIAS_AGENDA.map((dia) => dia.rotulo);
 
 const WHATSAPP_DIGITOS_REGEX = /^(?:55)?\d{10,11}$/;
 
@@ -152,7 +181,8 @@ export class AdminReunioes implements OnInit {
         (reuniao.estado ?? '').toLowerCase().includes(texto) ||
         (digitosTexto !== '' && (reuniao.cep ?? '').replace(/\D/g, '').includes(digitosTexto));
       const combinaCategoria = categoria === '' || reuniao.categoria === categoria;
-      const combinaDiaSemana = diaSemana === '' || reuniao.diaSemana === diaSemana;
+      const combinaDiaSemana =
+        diaSemana === '' || this.agendaDaReuniao(reuniao).some((item) => ROTULO_DIA[item.diaSemana] === diaSemana);
       return combinaTexto && combinaCategoria && combinaDiaSemana;
     });
   });
@@ -270,10 +300,9 @@ export class AdminReunioes implements OnInit {
       nome: reuniao.nome,
       categoria: reuniao.categoria,
       descricao: reuniao.descricao,
-      horario: reuniao.horario,
+      agenda: this.agendaParaFormulario(reuniao),
       local: reuniao.local,
       whatsapp: reuniao.whatsapp ?? '',
-      diaSemana: reuniao.diaSemana ?? '',
       latitude: reuniao.latitude !== null ? String(reuniao.latitude) : '',
       longitude: reuniao.longitude !== null ? String(reuniao.longitude) : '',
       cep: reuniao.cep ?? '',
@@ -370,6 +399,20 @@ export class AdminReunioes implements OnInit {
     delete this.errosCampo['whatsapp'];
   }
 
+  alternarDiaAgenda(item: AgendaFormularioItem): void {
+    if (!item.selecionado) {
+      item.horario = '';
+    }
+    delete this.errosCampo['agenda'];
+    delete this.errosCampo[`agenda.${item.diaSemana}`];
+  }
+
+  resumoAgenda(reuniao: Reuniao): string {
+    return this.agendaDaReuniao(reuniao)
+      .map((item) => `${ROTULO_DIA[item.diaSemana]} ${item.horario}`)
+      .join(' · ');
+  }
+
   atualizarMapaPreview(): void {
     if (!this.isBrowser || !this.mapaPreview || !this.maplibregl) {
       return;
@@ -414,19 +457,24 @@ export class AdminReunioes implements OnInit {
     if (presencial && !this.formulario.descricao.trim()) {
       this.errosCampo['descricao'] = 'Descrição é obrigatória.';
     }
-    if (!this.formulario.diaSemana.trim()) {
-      this.errosCampo['diaSemana'] = 'Dia da semana é obrigatório.';
+    const agenda = this.formulario.agenda
+      .filter((item) => item.selecionado)
+      .map(({ diaSemana, horario }) => ({ diaSemana, horario: horario.trim() }));
+    if (agenda.length === 0) {
+      this.errosCampo['agenda'] = 'Selecione pelo menos um dia da semana.';
     }
-    if (!this.formulario.horario.trim()) {
-      this.errosCampo['horario'] = 'Horário é obrigatório.';
+    for (const item of agenda) {
+      if (!item.horario) {
+        this.errosCampo[`agenda.${item.diaSemana}`] = `Informe o horário de ${ROTULO_DIA[item.diaSemana]}.`;
+      }
     }
     if (presencial && !this.formulario.local.trim()) {
       this.errosCampo['local'] = 'Local é obrigatório.';
     }
     if (Object.keys(this.errosCampo).length > 0) {
       this.erroFormulario = presencial
-        ? 'Nome, descrição, dia da semana, horário e local são obrigatórios.'
-        : 'Nome, dia da semana e horário são obrigatórios.';
+        ? 'Nome, descrição, agenda e local são obrigatórios.'
+        : 'Nome e agenda são obrigatórios.';
       return;
     }
 
@@ -453,13 +501,15 @@ export class AdminReunioes implements OnInit {
     this.salvando = true;
     this.erroFormulario = '';
 
-    const diaSemana = this.formulario.diaSemana.trim();
-    const horario = this.formulario.horario.trim();
+    const primeiroItem = agenda[0];
+    const diaSemana = ROTULO_DIA[primeiroItem.diaSemana];
+    const horario = primeiroItem.horario;
 
     const request: CriarReuniaoRequest = {
       nome: this.formulario.nome.trim(),
       categoria: this.formulario.categoria,
       descricao: this.formulario.descricao.trim(),
+      agenda,
       dia: diaSemana,
       horario,
       local: this.formulario.local.trim(),
@@ -505,6 +555,22 @@ export class AdminReunioes implements OnInit {
         this.erroFormulario = envelope.error?.message ?? 'Não foi possível salvar a reunião.';
         this.errosCampo = mapearErrosCampo(envelope.error?.fields);
       }
+    });
+  }
+
+  private agendaDaReuniao(reuniao: Reuniao): AgendaItemReuniao[] {
+    if (reuniao.agenda?.length) {
+      return reuniao.agenda;
+    }
+    const dia = DIAS_AGENDA.find((item) => item.rotulo === (reuniao.diaSemana || reuniao.dia));
+    return dia && reuniao.horario ? [{ diaSemana: dia.diaSemana, horario: reuniao.horario }] : [];
+  }
+
+  private agendaParaFormulario(reuniao: Reuniao): AgendaFormularioItem[] {
+    const agenda = this.agendaDaReuniao(reuniao);
+    return DIAS_AGENDA.map((dia) => {
+      const item = agenda.find((horario) => horario.diaSemana === dia.diaSemana);
+      return { ...dia, selecionado: !!item, horario: item?.horario ?? '' };
     });
   }
 

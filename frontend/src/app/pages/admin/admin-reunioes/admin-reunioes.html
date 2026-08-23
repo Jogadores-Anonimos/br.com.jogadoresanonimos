@@ -122,7 +122,7 @@
                 {{ reuniao.categoria === 'presencial' ? 'Presencial' : 'Virtual' }}
               </span>
             </div>
-            <span class="admin-reunioes__dia-horario">{{ reuniao.dia }} · {{ reuniao.horario }}</span>
+            <span class="admin-reunioes__dia-horario">{{ resumoAgenda(reuniao) }}</span>
           </div>
 
           <p class="admin-reunioes__corpo">{{ reuniao.descricao }}</p>
@@ -217,45 +217,51 @@
           </div>
         }
 
-        <div class="admin-reunioes__campo-linha">
-          <div class="admin-reunioes__campo">
-            <label for="reuniao-dia-semana">Dia da semana</label>
-            <select
-              id="reuniao-dia-semana"
-              name="diaSemana"
-              [(ngModel)]="formulario.diaSemana"
-              [class.campo-invalido]="errosCampo['diaSemana']"
-              [attr.aria-invalid]="errosCampo['diaSemana'] ? 'true' : null"
-              required
-            >
-              <option value="" disabled>Selecione</option>
-              <option value="Segunda">Segunda</option>
-              <option value="Terça">Terça</option>
-              <option value="Quarta">Quarta</option>
-              <option value="Quinta">Quinta</option>
-              <option value="Sexta">Sexta</option>
-              <option value="Sábado">Sábado</option>
-              <option value="Domingo">Domingo</option>
-            </select>
+        <fieldset
+          class="admin-reunioes__agenda"
+          [class.campo-invalido]="errosCampo['agenda']"
+          [attr.aria-invalid]="errosCampo['agenda'] ? 'true' : null"
+        >
+          <legend>Agenda</legend>
+          <p class="admin-reunioes__ajuda">Marque os dias em que o grupo se reúne e informe um horário para cada dia.</p>
+          <div class="admin-reunioes__agenda-lista">
+            @for (item of formulario.agenda; track item.diaSemana) {
+              <div class="admin-reunioes__agenda-item" [class.campo-invalido]="errosCampo['agenda.' + item.diaSemana]">
+                <label class="admin-reunioes__agenda-dia" [for]="'agenda-dia-' + item.diaSemana">
+                  <input
+                    [id]="'agenda-dia-' + item.diaSemana"
+                    type="checkbox"
+                    [name]="'agendaDia-' + item.diaSemana"
+                    [(ngModel)]="item.selecionado"
+                    (ngModelChange)="alternarDiaAgenda(item)"
+                  />
+                  <span>{{ item.rotulo }}</span>
+                </label>
+                <label class="admin-reunioes__agenda-horario" [for]="'agenda-horario-' + item.diaSemana">
+                  <span class="sr-only">Horário de {{ item.rotulo }}</span>
+                  <select
+                    [id]="'agenda-horario-' + item.diaSemana"
+                    [name]="'agendaHorario-' + item.diaSemana"
+                    [(ngModel)]="item.horario"
+                    [disabled]="!item.selecionado"
+                    [attr.aria-invalid]="errosCampo['agenda.' + item.diaSemana] ? 'true' : null"
+                  >
+                    <option value="">Selecione o horário</option>
+                    @for (h of horarios; track h) {
+                      <option [value]="h">{{ h }}</option>
+                    }
+                  </select>
+                </label>
+                @if (errosCampo['agenda.' + item.diaSemana]) {
+                  <span class="admin-reunioes__agenda-erro">{{ errosCampo['agenda.' + item.diaSemana] }}</span>
+                }
+              </div>
+            }
           </div>
-
-          <div class="admin-reunioes__campo">
-            <label for="reuniao-horario">Horário</label>
-            <select
-              id="reuniao-horario"
-              name="horario"
-              [(ngModel)]="formulario.horario"
-              [class.campo-invalido]="errosCampo['horario']"
-              [attr.aria-invalid]="errosCampo['horario'] ? 'true' : null"
-              required
-            >
-              <option value="" disabled>Selecione</option>
-              @for (h of horarios; track h) {
-                <option [value]="h">{{ h }}</option>
-              }
-            </select>
-          </div>
-        </div>
+          @if (errosCampo['agenda']) {
+            <p class="admin-reunioes__agenda-erro">{{ errosCampo['agenda'] }}</p>
+          }
+        </fieldset>
 
         @if (formulario.categoria === 'presencial') {
           <div class="admin-reunioes__campo-linha">

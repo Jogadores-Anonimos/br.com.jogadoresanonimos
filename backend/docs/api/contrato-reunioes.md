@@ -1,5 +1,59 @@
 # Contrato de API — Módulo Reunião
 
+## Mudança não-breaking — 2026-08-22 (múltiplos dias e horários)
+
+`CriarReuniaoRequest`, `EditarReuniaoRequest` e `ReuniaoResponse` ganham
+`agenda`, uma lista de itens no mesmo formato usado pela agenda de grupos:
+
+```json
+{
+  "diaSemana": "SEGUNDA",
+  "horario": "19h30"
+}
+```
+
+`diaSemana` aceita `SEGUNDA`, `TERCA`, `QUARTA`, `QUINTA`, `SEXTA`,
+`SABADO` ou `DOMINGO`; `horario` é texto obrigatório de até 50 caracteres.
+Não é permitido repetir um dia na mesma reunião. Respostas são sempre
+ordenadas de segunda a domingo, independentemente da ordem de entrada.
+Criação e edição exigem pelo menos um item, aceitando duas
+formas de payload durante a fase de compatibilidade:
+
+- cliente novo envia `agenda` com um ou mais itens;
+- cliente legado omite `agenda` e continua enviando `dia`, `horario`,
+  `diaSemana` e `periodo` no nível raiz.
+
+Quando `agenda` é informada e não vazia, ela é a fonte de verdade e os
+campos legados `dia`, `horario` e `diaSemana` no nível raiz são ignorados;
+`periodo` continua aceito como metadado legado opcional. O backend persiste a
+lista completa em `reuniao_horario` e também grava o primeiro item nas
+colunas legadas de `reuniao`. O backend novo aceita clientes antigos; em um
+`PUT` legado, atualiza o dia correspondente sem apagar os demais itens. Se o
+dia recebido já existe na agenda, seu horário é atualizado e todos os outros
+dias são preservados. Se for um dia novo, ele substitui somente o antigo item
+primário, preservando os adicionais.
+
+O dual-write não torna seguro fazer rollback para uma versão antiga do
+backend depois que uma agenda com múltiplos itens foi criada: a versão antiga
+não conhece `reuniao_horario` e pode alterar apenas as colunas legadas, sem
+sincronizar a lista. Nesse cenário, rollback exige bloquear escritas e aplicar
+correção forward ou procedimento operacional específico; não há garantia de
+compatibilidade de escrita bidirecional entre as duas versões.
+
+Toda resposta inclui `agenda`. Os campos raiz `dia`, `horario`,
+`diaSemana` e `periodo` continuam presentes. `horario` e `diaSemana`
+representam o primeiro item na ordem semanal; `dia` recebe a forma legível
+do primeiro dia (`Segunda`, `Terça`, etc.) e `periodo` permanece como o valor
+legado recebido, pois não faz parte da nova agenda.
+Dados existentes recebem exatamente um item por reunião por backfill, sem
+remoção nem alteração das colunas antigas. A fase `contract`, com eventual
+remoção dos campos legados, fica fora deste contrato e exige migration futura
+destrutiva, confirmação explícita e todos os clientes já migrados.
+
+Validação inválida retorna `400` com `error.code = VALIDATION_ERROR`.
+Os endpoints, autenticação, autorização, idempotência e demais
+códigos de erro permanecem inalterados.
+
 > Status: **implementado em 2026-07-12**, **endereço estruturado
 > adicionado em 2026-08-16** (migration `V9`), **`linkReuniao` adicionado
 > em 2026-08-16** (migration `V10`) — entity, repository, service, DTOs
@@ -176,6 +230,12 @@ desde 2026-08-16: `link_reuniao` (`VARCHAR(500)`, nullable, campo
 dedicado para o link de reunião virtual — ver seção "Mudança
 não-breaking — 2026-08-16 (`linkReuniao`, campo dedicado)").
 
+Tabela `reuniao_horario`: um item por dia de cada reunião, com
+`reuniao_id` (`ON DELETE CASCADE`), `dia_semana` canônico e `horario`.
+A constraint `UNIQUE (reuniao_id, dia_semana)` garante a regra de um
+horário por dia. As colunas de agenda da tabela `reuniao` permanecem como
+espelho compatível do primeiro item durante a fase *expand*.
+
 **Decisão confirmada com o usuário (herdada, sem mudança)**: sem
 geocodificação automática no backend nesta v1. O admin insere
 `latitude`/`longitude` — hoje calculados no frontend via Nominatim a
@@ -266,6 +326,10 @@ de autoria como o CMS de páginas institucionais.
       "nome": "Grupo Centro",
       "categoria": "presencial",
       "descricao": "string",
+      "agenda": [
+        { "diaSemana": "SEGUNDA", "horario": "19h30" },
+        { "diaSemana": "QUINTA", "horario": "20h00" }
+      ],
       "dia": "Segunda-feira",
       "horario": "19h30",
       "local": "Rua das Flores, 123 - Centro, São Paulo - SP",
@@ -287,6 +351,9 @@ de autoria como o CMS de páginas institucionais.
       "nome": "Grupo Virtual Quinta",
       "categoria": "virtual",
       "descricao": "string",
+      "agenda": [
+        { "diaSemana": "QUINTA", "horario": "20h00" }
+      ],
       "dia": "Quinta-feira",
       "horario": "20h00",
       "local": "Link de acesso via Google Meet",
@@ -342,8 +409,12 @@ de autoria como o CMS de páginas institucionais.
   "nome": "string, 1-200 chars",
   "categoria": "presencial | virtual",
   "descricao": "string, 0-2000 chars, obrigatória (não-branca) só quando categoria=presencial",
-  "dia": "string, 1-100 chars",
-  "horario": "string, 1-50 chars",
+  "agenda": [
+    { "diaSemana": "SEGUNDA", "horario": "19h30" },
+    { "diaSemana": "QUINTA", "horario": "20h00" }
+  ],
+  "dia": "string, 1-100 chars, legado; opcional quando agenda é enviada",
+  "horario": "string, 1-50 chars, legado; opcional quando agenda é enviada",
   "local": "string, até 300 chars, opcional (texto livre, salvo exatamente como enviado, sem derivação)",
   "whatsapp": "string, até 20 chars, opcional",
   "diaSemana": "string, até 20 chars, opcional",
@@ -757,6 +828,20 @@ campo dedicado)" acima.
 
 ---
 
+## Migration — `V11__adiciona_reuniao_horario.sql`
+
+Migration *expand* transacional: cria `reuniao_horario`, adiciona FK com
+`ON DELETE CASCADE`, unicidade por reunião/dia e faz backfill de uma linha
+para cada reunião usando `dia_semana`/`dia` e `horario` legados. Nenhuma
+coluna ou constraint da tabela `reuniao` é removida ou relaxada. Antes de
+criar a tabela definitiva, uma tabela temporária normaliza e audita todos os
+dias legados. Qualquer valor fora do catálogo aborta a migration inteira com
+erro e contagem explícita; nenhum dia desconhecido é convertido para `NULL`.
+Após a precondição, `reuniao_horario.dia_semana` é `NOT NULL` e protegido por
+`CHECK` com os sete valores canônicos.
+
+---
+
 ## Mudança não-breaking sinalizada — 2026-08-16, endereço estruturado
 
 Ver seção "Mudança não-breaking — 2026-08-16" no topo deste documento.
@@ -787,6 +872,8 @@ dedicado)" no topo deste documento. Resumo para `frontend-services`:
   funcionando, é pré-requisito só para a tarefa de UI de endereço
   estruturado do admin. Também precisa incluir `linkReuniao` (novo,
   2026-08-16) no mesmo model/requests.
+  Também incluir `agenda: { diaSemana, horario }[]`, com fallback temporário
+  para os campos legados ao consumir respostas de uma versão anterior.
 - `frontend`: adaptar o formulário de `admin-reunioes.ts`/`.html` para
   capturar os 6 campos de endereço estruturado (sem torná-los
   obrigatórios no formulário nem no backend) — **fora do escopo desta

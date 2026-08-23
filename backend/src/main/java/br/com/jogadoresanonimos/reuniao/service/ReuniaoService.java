@@ -5,17 +5,25 @@ import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.reuniao.dto.CriarReuniaoRequest;
 import br.com.jogadoresanonimos.reuniao.dto.EditarReuniaoRequest;
+import br.com.jogadoresanonimos.reuniao.dto.ReuniaoAgendaItemRequest;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoAvisoResponse;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoResponse;
+import br.com.jogadoresanonimos.reuniao.entity.AgendaItemReuniao;
 import br.com.jogadoresanonimos.reuniao.entity.CategoriaReuniao;
+import br.com.jogadoresanonimos.reuniao.entity.DiaSemanaReuniao;
 import br.com.jogadoresanonimos.reuniao.entity.Reuniao;
 import br.com.jogadoresanonimos.reuniao.repository.ReuniaoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -38,13 +46,16 @@ public class ReuniaoService {
 
     @Transactional
     public ReuniaoResponse criar(CriarReuniaoRequest request) {
+        DadosAgenda dadosAgenda = normalizarAgenda(request.agenda(), request.dia(), request.horario(),
+                request.diaSemana(), request.periodo());
         Reuniao reuniao = new Reuniao(request.nome().trim(), request.categoria(),
                 validarEDescricao(request.categoria(), request.descricao()),
-                request.dia().trim(), request.horario().trim(), normalizarLocal(request.local()),
-                normalizarWhatsapp(request.whatsapp()), normalizar(request.diaSemana()), normalizar(request.periodo()),
+                dadosAgenda.dia(), dadosAgenda.horario(), normalizarLocal(request.local()),
+                normalizarWhatsapp(request.whatsapp()), dadosAgenda.diaSemana(), dadosAgenda.periodo(),
                 request.latitude(), request.longitude(), normalizar(request.cep()), normalizar(request.numero()),
                 normalizar(request.logradouro()), normalizar(request.bairro()), normalizar(request.cidade()),
                 normalizarEstado(request.estado()), normalizar(request.linkReuniao()));
+        reuniao.substituirAgenda(dadosAgenda.itens());
         reuniao = reuniaoRepository.save(reuniao);
         return ReuniaoResponse.from(reuniao);
     }
@@ -52,6 +63,7 @@ public class ReuniaoService {
     @Transactional
     public ReuniaoResponse editar(UUID id, EditarReuniaoRequest request) {
         Reuniao reuniao = buscarOuFalhar(id);
+        DadosAgenda dadosAgenda = normalizarAgendaEdicao(reuniao, request);
         String localAntes = reuniao.getLocal();
         String cidadeAntes = reuniao.getCidade();
         String estadoAntes = reuniao.getEstado();
@@ -60,11 +72,12 @@ public class ReuniaoService {
         String estadoDepois = normalizarEstado(request.estado());
         reuniao.editar(request.nome().trim(), request.categoria(),
                 validarEDescricao(request.categoria(), request.descricao()),
-                request.dia().trim(), request.horario().trim(), localDepois,
-                normalizarWhatsapp(request.whatsapp()), normalizar(request.diaSemana()), normalizar(request.periodo()),
+                dadosAgenda.dia(), dadosAgenda.horario(), localDepois,
+                normalizarWhatsapp(request.whatsapp()), dadosAgenda.diaSemana(), dadosAgenda.periodo(),
                 request.latitude(), request.longitude(), normalizar(request.cep()), normalizar(request.numero()),
                 normalizar(request.logradouro()), normalizar(request.bairro()), cidadeDepois,
                 estadoDepois, normalizar(request.linkReuniao()));
+        reuniao.substituirAgenda(dadosAgenda.itens());
         List<ReuniaoAvisoResponse> avisos = detectarAvisos(localAntes, localDepois, cidadeAntes, cidadeDepois,
                 estadoAntes, estadoDepois);
         return ReuniaoResponse.from(reuniao, avisos);
@@ -115,8 +128,132 @@ public class ReuniaoService {
         return normalizado == null ? WHATSAPP_PADRAO : normalizado;
     }
 
+    private DadosAgenda normalizarAgenda(List<ReuniaoAgendaItemRequest> agenda, String dia, String horario,
+                                          String diaSemana, String periodo) {
+        boolean agendaNova = agenda != null && !agenda.isEmpty();
+        List<AgendaItemReuniao> itens = agendaNova
+                ? normalizarItensAgenda(agenda)
+                : normalizarItemLegado(dia, horario, diaSemana);
+        AgendaItemReuniao primeiro = itens.getFirst();
+        String diaRaiz = agendaNova ? nomeLegivel(primeiro.getDiaSemana()) : exigirTexto(dia, "Dia é obrigatório");
+        String diaSemanaRaiz = agendaNova ? nomeLegivel(primeiro.getDiaSemana()) : normalizar(diaSemana);
+        return new DadosAgenda(itens, diaRaiz, primeiro.getHorario(), diaSemanaRaiz, normalizar(periodo));
+    }
+
+    private DadosAgenda normalizarAgendaEdicao(Reuniao reuniao, EditarReuniaoRequest request) {
+        if (request.agenda() != null && !request.agenda().isEmpty()) {
+            return normalizarAgenda(request.agenda(), request.dia(), request.horario(), request.diaSemana(),
+                    request.periodo());
+        }
+        AgendaItemReuniao itemLegado = normalizarItemLegado(request.dia(), request.horario(),
+                request.diaSemana()).getFirst();
+        List<AgendaItemReuniao> itens = mesclarEdicaoLegada(reuniao, itemLegado);
+        AgendaItemReuniao primeiro = itens.getFirst();
+        return new DadosAgenda(itens, nomeLegivel(primeiro.getDiaSemana()), primeiro.getHorario(),
+                nomeLegivel(primeiro.getDiaSemana()), normalizar(request.periodo()));
+    }
+
+    private List<AgendaItemReuniao> mesclarEdicaoLegada(Reuniao reuniao, AgendaItemReuniao itemLegado) {
+        List<AgendaItemReuniao> itens = reuniao.getAgenda().stream()
+                .filter(item -> item.getDiaSemana() != null)
+                .map(item -> new AgendaItemReuniao(item.getDiaSemana(), item.getHorario()))
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        if (itens.isEmpty()) {
+            itens.add(itemLegado);
+            return itens;
+        }
+        int indiceDiaRecebido = indiceDoDia(itens, itemLegado.getDiaSemana());
+        if (indiceDiaRecebido >= 0) {
+            itens.set(indiceDiaRecebido, itemLegado);
+        } else {
+            DiaSemanaReuniao diaPrimarioAnterior = converterDiaSemana(
+                    normalizar(reuniao.getDiaSemana()) == null ? reuniao.getDia() : reuniao.getDiaSemana());
+            int indicePrimarioAnterior = indiceDoDia(itens, diaPrimarioAnterior);
+            itens.set(indicePrimarioAnterior >= 0 ? indicePrimarioAnterior : 0, itemLegado);
+        }
+        itens.sort(Comparator.comparingInt(item -> item.getDiaSemana().ordinal()));
+        return itens;
+    }
+
+    private int indiceDoDia(List<AgendaItemReuniao> itens, DiaSemanaReuniao diaSemana) {
+        for (int indice = 0; indice < itens.size(); indice++) {
+            if (itens.get(indice).getDiaSemana() == diaSemana) {
+                return indice;
+            }
+        }
+        return -1;
+    }
+
+    private List<AgendaItemReuniao> normalizarItensAgenda(List<ReuniaoAgendaItemRequest> agenda) {
+        if (agenda.size() > DiaSemanaReuniao.values().length) {
+            throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Agenda deve conter no máximo 7 dias");
+        }
+        Set<DiaSemanaReuniao> dias = new HashSet<>();
+        List<AgendaItemReuniao> itens = new ArrayList<>();
+        for (ReuniaoAgendaItemRequest item : agenda) {
+            if (item == null) {
+                throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Item da agenda é obrigatório");
+            }
+            DiaSemanaReuniao diaSemana = converterDiaSemana(item.diaSemana());
+            if (!dias.add(diaSemana)) {
+                throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Agenda não pode repetir dia da semana");
+            }
+            String horario = exigirTexto(item.horario(), "Horário é obrigatório");
+            if (horario.length() > 50) {
+                throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Horário deve ter no máximo 50 caracteres");
+            }
+            itens.add(new AgendaItemReuniao(diaSemana, horario));
+        }
+        itens.sort(Comparator.comparingInt(item -> item.getDiaSemana().ordinal()));
+        return itens;
+    }
+
+    private List<AgendaItemReuniao> normalizarItemLegado(String dia, String horario, String diaSemana) {
+        String diaLegado = exigirTexto(dia, "Dia é obrigatório");
+        String horarioLegado = exigirTexto(horario, "Horário é obrigatório");
+        DiaSemanaReuniao diaNormalizado = converterDiaSemana(normalizar(diaSemana) == null ? diaLegado : diaSemana);
+        return List.of(new AgendaItemReuniao(diaNormalizado, horarioLegado));
+    }
+
+    private DiaSemanaReuniao converterDiaSemana(String valor) {
+        String texto = exigirTexto(valor, "Dia da semana é obrigatório");
+        String normalizado = Normalizer.normalize(texto, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toUpperCase(Locale.ROOT)
+                .replace("-FEIRA", "")
+                .trim();
+        try {
+            return DiaSemanaReuniao.valueOf(normalizado);
+        } catch (IllegalArgumentException exception) {
+            throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Dia da semana inválido");
+        }
+    }
+
+    private String nomeLegivel(DiaSemanaReuniao diaSemana) {
+        return switch (diaSemana) {
+            case SEGUNDA -> "Segunda";
+            case TERCA -> "Terça";
+            case QUARTA -> "Quarta";
+            case QUINTA -> "Quinta";
+            case SEXTA -> "Sexta";
+            case SABADO -> "Sábado";
+            case DOMINGO -> "Domingo";
+        };
+    }
+
+    private String exigirTexto(String valor, String mensagem) {
+        if (valor == null || valor.isBlank()) {
+            throw new ValidationException(ErrorCode.VALIDATION_ERROR, mensagem);
+        }
+        return valor.trim();
+    }
+
     private Reuniao buscarOuFalhar(UUID id) {
         return reuniaoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.REUNIAO_NAO_ENCONTRADA, "Reunião não encontrada"));
+    }
+
+    private record DadosAgenda(List<AgendaItemReuniao> itens, String dia, String horario,
+                               String diaSemana, String periodo) {
     }
 }

@@ -132,8 +132,7 @@
             <div class="reuniao-card">
               <h3>{{ reuniao.nome }}</h3>
               <p class="reuniao-descricao">{{ reuniao.descricao }}</p>
-              <p class="reuniao-dado"><strong>Dia:</strong> {{ reuniao.dia }}</p>
-              <p class="reuniao-dado"><strong>Horário:</strong> {{ reuniao.horario }}</p>
+              <p class="reuniao-dado reuniao-agenda-resumo"><strong>Agenda:</strong> {{ resumoAgenda(reuniao) }}</p>
               <p class="reuniao-dado"><strong>Local:</strong> {{ reuniao.local }}</p>
               @if (distanciaKm(reuniao) !== null) {
                 <p class="reuniao-dado reuniao-distancia">
@@ -167,19 +166,19 @@
           <div class="dia-secao">
             <h3 class="dia-secao-titulo">{{ grupo.dia }}</h3>
             <div class="reunioes-lista">
-              @for (reuniao of grupo.reunioes; track reuniao.id) {
+              @for (item of grupo.itens; track item.reuniao.id + '-' + grupo.dia) {
                 <div class="reuniao-card">
-                  <h4>{{ reuniao.nome }}</h4>
-                  <p class="reuniao-descricao">{{ reuniao.descricao }}</p>
-                  <p class="reuniao-dado"><strong>Horário:</strong> {{ reuniao.horario }}</p>
-                  <p class="reuniao-dado"><strong>Local:</strong> {{ reuniao.local }}</p>
+                  <h4>{{ item.reuniao.nome }}</h4>
+                  <p class="reuniao-descricao">{{ item.reuniao.descricao }}</p>
+                  <p class="reuniao-dado"><strong>Horário:</strong> {{ item.horario }}</p>
+                  <p class="reuniao-dado"><strong>Local:</strong> {{ item.reuniao.local }}</p>
                   <div class="reuniao-card-acoes">
-                    <button type="button" class="btn-detalhes" (click)="abrirDetalhes(reuniao)">
+                    <button type="button" class="btn-detalhes" (click)="abrirDetalhes(item.reuniao)">
                       Ver detalhes
                     </button>
                     <a
                       class="btn-cta btn-whatsapp"
-                      [href]="whatsappLink(reuniao)"
+                      [href]="whatsappLink(item.reuniao)"
                       target="_blank"
                       rel="noopener"
                     >
@@ -222,8 +221,14 @@
 
         <h3 id="detalhes-titulo">{{ reuniaoDetalhe.nome }}</h3>
         <p class="reuniao-descricao">{{ reuniaoDetalhe.descricao }}</p>
-        <p class="reuniao-dado"><strong>Dia:</strong> {{ reuniaoDetalhe.dia }}</p>
-        <p class="reuniao-dado"><strong>Horário:</strong> {{ reuniaoDetalhe.horario }}</p>
+        <div class="detalhes-agenda">
+          <strong>Agenda:</strong>
+          <ul>
+            @for (item of agendaDaReuniao(reuniaoDetalhe); track item.diaSemana) {
+              <li>{{ rotuloDiaAgenda(item) }} às {{ item.horario }}</li>
+            }
+          </ul>
+        </div>
         <p class="reuniao-dado"><strong>Local:</strong> {{ reuniaoDetalhe.local }}</p>
         @if (distanciaKm(reuniaoDetalhe) !== null) {
           <p class="reuniao-dado">

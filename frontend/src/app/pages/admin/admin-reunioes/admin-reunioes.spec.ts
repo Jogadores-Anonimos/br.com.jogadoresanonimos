@@ -16,6 +16,7 @@ function reuniaoFake(overrides: Partial<Reuniao> = {}): Reuniao {
     nome: 'Grupo Esperança',
     categoria: 'presencial',
     descricao: 'Reunião de apoio mútuo.',
+    agenda: [{ diaSemana: 'SEGUNDA', horario: '19:00' }],
     dia: 'Segunda',
     horario: '19:00',
     local: 'Rua Fictícia, 100, Bairro Teste, Cidade Teste, TS',
@@ -31,6 +32,7 @@ function reuniaoFake(overrides: Partial<Reuniao> = {}): Reuniao {
     cidade: null,
     estado: null,
     linkReuniao: null,
+    avisos: [],
     ...overrides,
   };
 }
@@ -47,8 +49,15 @@ describe('AdminReunioes', () => {
     nome: 'Grupo Virtual Recomeço',
     categoria: 'virtual',
     diaSemana: 'Quarta',
+    agenda: [{ diaSemana: 'QUARTA', horario: '19:00' }],
     local: 'Link enviado por e-mail',
   });
+
+  function selecionarAgenda(diaSemana: 'SEGUNDA' | 'TERCA' | 'QUARTA', horario: string): void {
+    const item = component.formulario.agenda.find((agenda) => agenda.diaSemana === diaSemana)!;
+    item.selecionado = true;
+    item.horario = horario;
+  }
 
   async function configurarTeste(
     reunioesIniciais: Reuniao[] = [reuniao1, reuniao2],
@@ -150,6 +159,21 @@ describe('AdminReunioes', () => {
       expect(component.reunioesFiltradas()[0].id).toBe('reuniao-2');
     });
 
+    it('filtra por qualquer dia da agenda, não apenas pelo primeiro', async () => {
+      await configurarTeste([
+        reuniaoFake({
+          agenda: [
+            { diaSemana: 'SEGUNDA', horario: '19:00' },
+            { diaSemana: 'QUINTA', horario: '20:00' },
+          ],
+        }),
+      ]);
+
+      component.filtroDiaSemana.set('Quinta');
+
+      expect(component.reunioesFiltradas()).toHaveLength(1);
+    });
+
     it('retorna lista vazia quando nenhum resultado combina com o filtro', () => {
       component.filtroTexto.set('inexistente-xyz');
 
@@ -185,8 +209,7 @@ describe('AdminReunioes', () => {
       component.abrirNovo();
       component.formulario.nome = 'Novo Grupo';
       component.formulario.descricao = 'Descrição válida.';
-      component.formulario.diaSemana = 'Terça';
-      component.formulario.horario = '20:00';
+      selecionarAgenda('TERCA', '20:00');
       component.formulario.local = 'Rua Nova, 1';
 
       component.salvar();
@@ -195,6 +218,7 @@ describe('AdminReunioes', () => {
         expect.objectContaining({
           nome: 'Novo Grupo',
           descricao: 'Descrição válida.',
+          agenda: [{ diaSemana: 'TERCA', horario: '20:00' }],
           diaSemana: 'Terça',
           horario: '20:00',
           local: 'Rua Nova, 1',
@@ -204,14 +228,27 @@ describe('AdminReunioes', () => {
     });
 
     it('edita reunião existente enviando o id correto', () => {
-      component.abrirEdicao(reuniao1);
+      component.abrirEdicao(
+        reuniaoFake({
+          agenda: [
+            { diaSemana: 'SEGUNDA', horario: '19:00' },
+            { diaSemana: 'QUINTA', horario: '20:30' },
+          ],
+        }),
+      );
       component.formulario.descricao = 'Descrição atualizada.';
 
       component.salvar();
 
       expect(reuniaoServiceSpy['editarReuniaoAdmin']).toHaveBeenCalledWith(
         'reuniao-1',
-        expect.objectContaining({ descricao: 'Descrição atualizada.' }),
+        expect.objectContaining({
+          descricao: 'Descrição atualizada.',
+          agenda: [
+            { diaSemana: 'SEGUNDA', horario: '19:00' },
+            { diaSemana: 'QUINTA', horario: '20:30' },
+          ],
+        }),
       );
     });
 
@@ -226,8 +263,7 @@ describe('AdminReunioes', () => {
       component.abrirNovo();
       component.formulario.nome = 'Grupo Duplicado';
       component.formulario.descricao = 'Descrição válida.';
-      component.formulario.diaSemana = 'Terça';
-      component.formulario.horario = '20:00';
+      selecionarAgenda('TERCA', '20:00');
       component.formulario.local = 'Rua Nova, 1';
 
       component.salvar();
@@ -241,8 +277,7 @@ describe('AdminReunioes', () => {
       component.abrirNovo();
       component.formulario.nome = 'Grupo X';
       component.formulario.descricao = 'Descrição válida.';
-      component.formulario.diaSemana = 'Terça';
-      component.formulario.horario = '20:00';
+      selecionarAgenda('TERCA', '20:00');
       component.formulario.local = 'Rua Nova, 1';
       component.formulario.latitude = 'não-é-numero';
 
@@ -250,6 +285,35 @@ describe('AdminReunioes', () => {
 
       expect(reuniaoServiceSpy['criarReuniaoAdmin']).not.toHaveBeenCalled();
       expect(component.errosCampo['latitude']).toBeTruthy();
+    });
+
+    it('não salva quando um dia selecionado não tem horário', () => {
+      component.abrirNovo();
+      component.formulario.nome = 'Grupo X';
+      component.formulario.descricao = 'Descrição válida.';
+      component.formulario.local = 'Rua Nova, 1';
+      selecionarAgenda('QUARTA', '');
+
+      component.salvar();
+
+      expect(reuniaoServiceSpy['criarReuniaoAdmin']).not.toHaveBeenCalled();
+      expect(component.errosCampo['agenda.QUARTA']).toContain('horário');
+    });
+
+    it('carrega todos os itens da agenda ao editar', () => {
+      component.abrirEdicao(
+        reuniaoFake({
+          agenda: [
+            { diaSemana: 'SEGUNDA', horario: '19:00' },
+            { diaSemana: 'QUINTA', horario: '20:30' },
+          ],
+        }),
+      );
+
+      expect(component.formulario.agenda.filter((item) => item.selecionado)).toEqual([
+        expect.objectContaining({ diaSemana: 'SEGUNDA', horario: '19:00' }),
+        expect.objectContaining({ diaSemana: 'QUINTA', horario: '20:30' }),
+      ]);
     });
   });
 

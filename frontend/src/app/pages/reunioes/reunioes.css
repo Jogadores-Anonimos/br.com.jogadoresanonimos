@@ -119,6 +119,10 @@
   line-height: 1.7;
 }
 
+.reuniao-agenda-resumo {
+  line-height: 1.5;
+}
+
 .reunioes-vazio {
   color: var(--color-text-muted);
   font-style: italic;
@@ -340,6 +344,18 @@
   font-size: 1.3rem;
   margin-bottom: var(--spacing-sm);
   padding-right: var(--spacing-lg);
+}
+
+.detalhes-agenda {
+  margin: var(--spacing-sm) 0;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.detalhes-agenda ul {
+  margin: var(--spacing-xs) 0 0;
+  padding-left: var(--spacing-md);
 }
 
 .detalhes-fechar {
