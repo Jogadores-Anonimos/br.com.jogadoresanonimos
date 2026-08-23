@@ -8,13 +8,16 @@ export interface SeoData {
   description: string;
   ogTitle?: string;
   ogDescription?: string;
+  robots?: string;
 }
 
 const DOMINIO_PRODUCAO = 'https://jogadoresanonimos.com.br';
+const ROBOTS_PADRAO = 'index, follow';
 const SEO_FALLBACK: SeoData = {
   title: 'Jogadores Anônimos do Brasil',
   description:
     'Jogadores Anônimos do Brasil: informação e apoio para pessoas afetadas pelo jogo compulsivo.',
+  robots: ROBOTS_PADRAO,
 };
 
 @Injectable({ providedIn: 'root' })
@@ -55,5 +58,6 @@ export class Seo {
     });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
     this.meta.updateTag({ property: 'og:url', content: `${DOMINIO_PRODUCAO}${urlAtual}` });
+    this.meta.updateTag({ name: 'robots', content: seoData.robots ?? ROBOTS_PADRAO });
   }
 }

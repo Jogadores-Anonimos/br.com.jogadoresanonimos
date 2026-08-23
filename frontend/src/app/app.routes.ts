@@ -436,4 +436,21 @@ export const routes: Routes = [
       },
     },
   },
+  {
+    path: '**',
+    loadComponent: () =>
+      import('./pages/pagina-nao-encontrada/pagina-nao-encontrada').then(
+        (m) => m.PaginaNaoEncontrada,
+      ),
+    data: {
+      seo: {
+        title: 'Página não encontrada | Jogadores Anônimos do Brasil',
+        description:
+          'A página que você procurou não foi encontrada. Volte ao início ou encontre uma reunião da Jogadores Anônimos.',
+        ogTitle: 'Página não encontrada | JA Brasil',
+        ogDescription: 'Volte ao início ou encontre uma reunião da Jogadores Anônimos.',
+        robots: 'noindex, follow',
+      },
+    },
+  },
 ];
