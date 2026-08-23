@@ -8,7 +8,10 @@ export const REUNIOES_MOCK: Reuniao[] = [
     nome: 'Grupo [a definir] — Centro',
     categoria: 'presencial',
     descricao: 'Grupo aberto, ambiente acolhedor, para quem está começando a se recuperar.',
-    agenda: [{ diaSemana: 'SEGUNDA', horario: '19h30' }],
+    agenda: [
+      { diaSemana: 'SEGUNDA', horario: '19h30' },
+      { diaSemana: 'SEGUNDA', horario: '21h00' },
+    ],
     dia: 'Segunda-feira',
     horario: '19h30',
     local: '[endereço a definir], [cidade a definir]',

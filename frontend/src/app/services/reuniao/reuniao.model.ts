@@ -6,6 +6,12 @@ export interface AgendaItemReuniao {
   horario: string;
 }
 
+/**
+ * Uma agenda pode conter mais de um item para o mesmo dia, desde que os
+ * horários sejam diferentes.
+ */
+export type AgendaReuniao = AgendaItemReuniao[];
+
 export interface AvisoReuniao {
   codigo: string;
   mensagem: string;
@@ -16,7 +22,7 @@ export interface Reuniao {
   nome: string;
   categoria: CategoriaReuniao;
   descricao: string;
-  agenda: AgendaItemReuniao[];
+  agenda: AgendaReuniao;
   dia: string;
   horario: string;
   local: string;
@@ -39,7 +45,7 @@ export interface CriarReuniaoRequest {
   nome: string;
   categoria: CategoriaReuniao;
   descricao: string;
-  agenda?: AgendaItemReuniao[];
+  agenda?: AgendaReuniao;
   dia?: string;
   horario?: string;
   local: string;

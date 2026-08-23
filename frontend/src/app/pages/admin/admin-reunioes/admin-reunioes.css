@@ -265,7 +265,7 @@
 .admin-reunioes__agenda-item {
   display: grid;
   grid-template-columns: minmax(7rem, 0.7fr) minmax(10rem, 1fr);
-  align-items: center;
+  align-items: start;
   gap: var(--spacing-xs);
   padding: var(--spacing-xs);
   border-radius: var(--radius-sm);
@@ -291,6 +291,18 @@
   accent-color: var(--cor-padrao-ja);
 }
 
+.admin-reunioes__agenda-horarios {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.admin-reunioes__agenda-horario-linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
 .admin-reunioes__agenda-horario select {
   width: 100%;
   box-sizing: border-box;
@@ -303,8 +315,28 @@
   border-radius: var(--radius-md);
 }
 
-.admin-reunioes__agenda-horario select:disabled {
-  opacity: 0.55;
+.admin-reunioes__agenda-adicionar,
+.admin-reunioes__agenda-remover {
+  width: fit-content;
+  padding: 0.35rem 0.55rem;
+  color: var(--cor-padrao-ja);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: var(--font-weight-semibold);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.admin-reunioes__agenda-remover {
+  color: var(--color-danger);
+}
+
+.admin-reunioes__agenda-adicionar:focus-visible,
+.admin-reunioes__agenda-remover:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
 }
 
 .admin-reunioes__agenda-erro {
@@ -464,6 +496,10 @@
   }
 
   .admin-reunioes__agenda-item {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-reunioes__agenda-horario-linha {
     grid-template-columns: 1fr;
   }
 

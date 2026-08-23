@@ -6,6 +6,7 @@ import type { LngLatLike, Map as MapLibreMap, Marker as MapLibreMarker, StyleSpe
 import { mapearErrosCampo, mensagemDeErro } from '../../../services/api-envelope';
 import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
 import { ReuniaoService } from '../../../services/reuniao/reuniao';
+import { compararHorarios } from '../../../services/reuniao/reuniao-horario';
 import {
   AgendaItemReuniao,
   CategoriaReuniao,
@@ -39,7 +40,7 @@ interface AgendaFormularioItem {
   diaSemana: DiaSemanaAgendaReuniao;
   rotulo: string;
   selecionado: boolean;
-  horario: string;
+  horarios: string[];
 }
 
 const DIAS_AGENDA: ReadonlyArray<{ diaSemana: DiaSemanaAgendaReuniao; rotulo: string }> = [
@@ -57,7 +58,7 @@ const ROTULO_DIA: Record<DiaSemanaAgendaReuniao, string> = Object.fromEntries(
 ) as Record<DiaSemanaAgendaReuniao, string>;
 
 function agendaFormularioVazia(): AgendaFormularioItem[] {
-  return DIAS_AGENDA.map((dia) => ({ ...dia, selecionado: false, horario: '' }));
+  return DIAS_AGENDA.map((dia) => ({ ...dia, selecionado: false, horarios: [] }));
 }
 
 function formularioVazio(): FormularioReuniao {
@@ -400,16 +401,37 @@ export class AdminReunioes implements OnInit {
   }
 
   alternarDiaAgenda(item: AgendaFormularioItem): void {
-    if (!item.selecionado) {
-      item.horario = '';
-    }
+    item.horarios = item.selecionado ? (item.horarios.length ? item.horarios : ['']) : [];
     delete this.errosCampo['agenda'];
     delete this.errosCampo[`agenda.${item.diaSemana}`];
   }
 
+  adicionarHorario(item: AgendaFormularioItem): void {
+    item.horarios.push('');
+    delete this.errosCampo[`agenda.${item.diaSemana}`];
+  }
+
+  removerHorario(item: AgendaFormularioItem, indice: number): void {
+    item.horarios.splice(indice, 1);
+    if (item.horarios.length === 0) {
+      item.selecionado = false;
+      queueMicrotask(() => {
+        this.formularioSecaoRef?.nativeElement
+          .querySelector<HTMLInputElement>(`#agenda-dia-${item.diaSemana}`)
+          ?.focus();
+      });
+    }
+    delete this.errosCampo[`agenda.${item.diaSemana}`];
+  }
+
+  atualizarHorario(item: AgendaFormularioItem): void {
+    item.horarios.sort(compararHorarios);
+    delete this.errosCampo[`agenda.${item.diaSemana}`];
+  }
+
   resumoAgenda(reuniao: Reuniao): string {
-    return this.agendaDaReuniao(reuniao)
-      .map((item) => `${ROTULO_DIA[item.diaSemana]} ${item.horario}`)
+    return this.agendaAgrupadaDaReuniao(reuniao)
+      .map((item) => `${ROTULO_DIA[item.diaSemana]} ${item.horarios.join(', ')}`)
       .join(' · ');
   }
 
@@ -459,13 +481,18 @@ export class AdminReunioes implements OnInit {
     }
     const agenda = this.formulario.agenda
       .filter((item) => item.selecionado)
-      .map(({ diaSemana, horario }) => ({ diaSemana, horario: horario.trim() }));
+      .flatMap(({ diaSemana, horarios }) =>
+        horarios.map((horario) => ({ diaSemana, horario: horario.trim() })),
+      );
     if (agenda.length === 0) {
       this.errosCampo['agenda'] = 'Selecione pelo menos um dia da semana.';
     }
-    for (const item of agenda) {
-      if (!item.horario) {
-        this.errosCampo[`agenda.${item.diaSemana}`] = `Informe o horário de ${ROTULO_DIA[item.diaSemana]}.`;
+    for (const dia of this.formulario.agenda.filter((item) => item.selecionado)) {
+      const horarios = dia.horarios.map((horario) => horario.trim());
+      if (horarios.length === 0 || horarios.some((horario) => !horario)) {
+        this.errosCampo[`agenda.${dia.diaSemana}`] = `Informe todos os horários de ${ROTULO_DIA[dia.diaSemana]}.`;
+      } else if (new Set(horarios).size !== horarios.length) {
+        this.errosCampo[`agenda.${dia.diaSemana}`] = `Não repita horários em ${ROTULO_DIA[dia.diaSemana]}.`;
       }
     }
     if (presencial && !this.formulario.local.trim()) {
@@ -566,11 +593,24 @@ export class AdminReunioes implements OnInit {
     return dia && reuniao.horario ? [{ diaSemana: dia.diaSemana, horario: reuniao.horario }] : [];
   }
 
+  private agendaAgrupadaDaReuniao(reuniao: Reuniao): Array<{ diaSemana: DiaSemanaAgendaReuniao; horarios: string[] }> {
+    return DIAS_AGENDA.flatMap(({ diaSemana }) => {
+      const horarios = this.agendaDaReuniao(reuniao)
+        .filter((item) => item.diaSemana === diaSemana)
+        .map((item) => item.horario)
+        .sort(compararHorarios);
+      return horarios.length ? [{ diaSemana, horarios }] : [];
+    });
+  }
+
   private agendaParaFormulario(reuniao: Reuniao): AgendaFormularioItem[] {
     const agenda = this.agendaDaReuniao(reuniao);
     return DIAS_AGENDA.map((dia) => {
-      const item = agenda.find((horario) => horario.diaSemana === dia.diaSemana);
-      return { ...dia, selecionado: !!item, horario: item?.horario ?? '' };
+      const horarios = agenda
+        .filter((item) => item.diaSemana === dia.diaSemana)
+        .map((item) => item.horario)
+        .sort(compararHorarios);
+      return { ...dia, selecionado: horarios.length > 0, horarios };
     });
   }
 

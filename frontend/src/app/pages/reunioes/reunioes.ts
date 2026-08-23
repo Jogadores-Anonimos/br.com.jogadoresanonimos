@@ -21,6 +21,7 @@ import type {
 import type { Feature, FeatureCollection, Point } from 'geojson';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 import { ReuniaoService } from '../../services/reuniao/reuniao';
+import { compararHorarios } from '../../services/reuniao/reuniao-horario';
 import {
   AgendaItemReuniao,
   CategoriaReuniao,
@@ -40,7 +41,12 @@ interface FiltroCategoria {
 
 interface GrupoDiaVirtual {
   dia: DiaSemana;
-  itens: Array<{ reuniao: Reuniao; horario: string }>;
+  itens: Array<{ reuniao: Reuniao; horarios: string[] }>;
+}
+
+interface AgendaDiaAgrupada {
+  diaSemana: DiaSemanaAgendaReuniao;
+  horarios: string[];
 }
 
 interface PropriedadesPontoReuniao {
@@ -441,12 +447,14 @@ export class Reunioes implements OnInit, OnDestroy {
     const grupos: GrupoDiaVirtual[] = [];
     for (const dia of DIAS_AGENDA) {
       const itens = this.reunioesFiltradas()
-        .flatMap((reuniao) =>
-          this.agendaDaReuniao(reuniao)
-            .filter((item) => item.diaSemana === dia.diaSemana)
-            .map((item) => ({ reuniao, horario: item.horario })),
-        )
-        .sort((a, b) => a.horario.localeCompare(b.horario) || a.reuniao.nome.localeCompare(b.reuniao.nome));
+        .flatMap((reuniao) => {
+          const agendaDia = this.agendaAgrupadaDaReuniao(reuniao).find((item) => item.diaSemana === dia.diaSemana);
+          return agendaDia ? [{ reuniao, horarios: agendaDia.horarios }] : [];
+        })
+        .sort(
+          (a, b) =>
+            compararHorarios(a.horarios[0], b.horarios[0]) || a.reuniao.nome.localeCompare(b.reuniao.nome),
+        );
       if (itens.length > 0) {
         grupos.push({ dia: dia.rotulo, itens });
       }
@@ -470,12 +478,23 @@ export class Reunioes implements OnInit, OnDestroy {
   }
 
   resumoAgenda(reuniao: Reuniao): string {
-    return this.agendaDaReuniao(reuniao)
-      .map((item) => `${ROTULO_DIA[item.diaSemana]} ${item.horario}`)
+    return this.agendaAgrupadaDaReuniao(reuniao)
+      .map((item) => `${ROTULO_DIA[item.diaSemana]} ${item.horarios.join(', ')}`)
       .join(' · ');
   }
 
-  rotuloDiaAgenda(item: AgendaItemReuniao): DiaSemana {
+  agendaAgrupadaDaReuniao(reuniao: Reuniao): AgendaDiaAgrupada[] {
+    return DIAS_AGENDA.flatMap(({ diaSemana }) => {
+      const horarios = [...new Set(
+        this.agendaDaReuniao(reuniao)
+          .filter((item) => item.diaSemana === diaSemana)
+          .map((item) => item.horario),
+      )].sort(compararHorarios);
+      return horarios.length ? [{ diaSemana, horarios }] : [];
+    });
+  }
+
+  rotuloDiaAgenda(item: { diaSemana: DiaSemanaAgendaReuniao }): DiaSemana {
     return ROTULO_DIA[item.diaSemana];
   }
 

@@ -166,11 +166,14 @@
           <div class="dia-secao">
             <h3 class="dia-secao-titulo">{{ grupo.dia }}</h3>
             <div class="reunioes-lista">
-              @for (item of grupo.itens; track item.reuniao.id + '-' + item.horario) {
+              @for (item of grupo.itens; track item.reuniao.id) {
                 <div class="reuniao-card">
                   <h4>{{ item.reuniao.nome }}</h4>
                   <p class="reuniao-descricao">{{ item.reuniao.descricao }}</p>
-                  <p class="reuniao-dado"><strong>Horário:</strong> {{ item.horario }}</p>
+                  <p class="reuniao-dado">
+                    <strong>{{ item.horarios.length === 1 ? 'Horário:' : 'Horários:' }}</strong>
+                    {{ item.horarios.join(', ') }}
+                  </p>
                   <p class="reuniao-dado"><strong>Local:</strong> {{ item.reuniao.local }}</p>
                   <div class="reuniao-card-acoes">
                     <button type="button" class="btn-detalhes" (click)="abrirDetalhes(item.reuniao)">
@@ -224,8 +227,8 @@
         <div class="detalhes-agenda">
           <strong>Agenda:</strong>
           <ul>
-            @for (item of agendaDaReuniao(reuniaoDetalhe); track item.diaSemana) {
-              <li>{{ rotuloDiaAgenda(item) }} às {{ item.horario }}</li>
+            @for (item of agendaAgrupadaDaReuniao(reuniaoDetalhe); track item.diaSemana) {
+              <li>{{ rotuloDiaAgenda(item) }} às {{ item.horarios.join(', ') }}</li>
             }
           </ul>
         </div>

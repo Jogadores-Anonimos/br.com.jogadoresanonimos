@@ -44,14 +44,17 @@ describe('ReuniaoService', () => {
     const resposta = await promise;
     expect(resposta.data?.[0].agenda).toEqual([{ diaSemana: 'TERCA', horario: '19h30' }]);
   });
-  it('preserva e ordena a agenda recebida do backend novo', async () => {
+  it('preserva ocorrências e ordena a agenda por dia e horário', async () => {
     const promise = firstValueFrom(service.listarReunioes());
     httpMock.expectOne(publicaUrl).flush(
       apiSuccess([
         {
           ...reuniaoLegada,
           agenda: [
+            { diaSemana: 'SEGUNDA', horario: '9h' },
             { diaSemana: 'SABADO', horario: '10h00' },
+            { diaSemana: 'SEGUNDA', horario: '21h00' },
+            { diaSemana: 'SEGUNDA', horario: '09:30' },
             { diaSemana: 'SEGUNDA', horario: '19h30' },
           ],
         },
@@ -59,7 +62,10 @@ describe('ReuniaoService', () => {
     );
     const resposta = await promise;
     expect(resposta.data?.[0].agenda).toEqual([
+      { diaSemana: 'SEGUNDA', horario: '9h' },
+      { diaSemana: 'SEGUNDA', horario: '09:30' },
       { diaSemana: 'SEGUNDA', horario: '19h30' },
+      { diaSemana: 'SEGUNDA', horario: '21h00' },
       { diaSemana: 'SABADO', horario: '10h00' },
     ]);
   });
@@ -68,7 +74,10 @@ describe('ReuniaoService', () => {
       nome: 'Grupo Centro',
       categoria: 'presencial' as const,
       descricao: 'Descrição',
-      agenda: [{ diaSemana: 'SEGUNDA' as const, horario: '19h30' }],
+      agenda: [
+        { diaSemana: 'SEGUNDA' as const, horario: '19h30' },
+        { diaSemana: 'SEGUNDA' as const, horario: '21h00' },
+      ],
       dia: 'Segunda-feira',
       horario: '19h30',
       local: 'Centro',

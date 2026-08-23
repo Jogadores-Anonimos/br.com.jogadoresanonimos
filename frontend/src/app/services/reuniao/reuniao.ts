@@ -14,6 +14,7 @@ import {
   Reuniao,
 } from './reuniao.model';
 import { REUNIOES_MOCK } from './reuniao.mock';
+import { compararHorarios } from './reuniao-horario';
 
 type ReuniaoRespostaCompat = Omit<Reuniao, 'agenda'> & { agenda?: AgendaItemReuniao[] | null };
 const ORDEM_DIAS: DiaSemanaAgendaReuniao[] = ['SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO', 'DOMINGO'];
@@ -227,6 +228,10 @@ export class ReuniaoService {
   private ordenarAgenda(agenda: AgendaItemReuniao[]): AgendaItemReuniao[] {
     return [...agenda]
       .map((item) => ({ diaSemana: item.diaSemana, horario: item.horario.trim() }))
-      .sort((a, b) => ORDEM_DIAS.indexOf(a.diaSemana) - ORDEM_DIAS.indexOf(b.diaSemana));
+      .sort(
+        (a, b) =>
+          ORDEM_DIAS.indexOf(a.diaSemana) - ORDEM_DIAS.indexOf(b.diaSemana) ||
+          compararHorarios(a.horario, b.horario),
+      );
   }
 }

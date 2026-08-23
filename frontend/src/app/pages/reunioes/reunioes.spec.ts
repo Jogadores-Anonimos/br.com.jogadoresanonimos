@@ -289,8 +289,36 @@ describe('Reunioes', () => {
       component.selecionarCategoria('virtual');
 
       expect(component.reunioesVirtuaisAgrupadas()).toEqual([
-        { dia: 'Segunda', itens: [{ reuniao: virtual, horario: '19:00' }] },
-        { dia: 'Quinta', itens: [{ reuniao: virtual, horario: '20:30' }] },
+        { dia: 'Segunda', itens: [{ reuniao: virtual, horarios: ['19:00'] }] },
+        { dia: 'Quinta', itens: [{ reuniao: virtual, horarios: ['20:30'] }] },
+      ]);
+    });
+
+    it('mostra uma única reunião por dia com formatos mistos em ordem cronológica', async () => {
+      const virtual = reuniaoFake({
+        categoria: 'virtual',
+        agenda: [
+          { diaSemana: 'SEGUNDA', horario: '19:30h' },
+          { diaSemana: 'SEGUNDA', horario: '9h' },
+          { diaSemana: 'SEGUNDA', horario: '14h às 16h' },
+          { diaSemana: 'SEGUNDA', horario: 'a confirmar' },
+        ],
+        latitude: null,
+        longitude: null,
+      });
+      await configurarTeste([virtual]);
+
+      component.selecionarCategoria('virtual');
+
+      expect(component.reunioesVirtuaisAgrupadas()).toEqual([
+        {
+          dia: 'Segunda',
+          itens: [{ reuniao: virtual, horarios: ['9h', '14h às 16h', '19:30h', 'a confirmar'] }],
+        },
+      ]);
+      expect(component.resumoAgenda(virtual)).toBe('Segunda 9h, 14h às 16h, 19:30h, a confirmar');
+      expect(component.agendaAgrupadaDaReuniao(virtual)).toEqual([
+        { diaSemana: 'SEGUNDA', horarios: ['9h', '14h às 16h', '19:30h', 'a confirmar'] },
       ]);
     });
 
@@ -338,7 +366,7 @@ describe('Reunioes', () => {
       component.selecionarCategoria('virtual');
 
       expect(component.reunioesVirtuaisAgrupadas()).toEqual([
-        { dia: 'Terça', itens: [{ reuniao: virtualLegada, horario: '18:30' }] },
+        { dia: 'Terça', itens: [{ reuniao: virtualLegada, horarios: ['18:30'] }] },
       ]);
     });
   });

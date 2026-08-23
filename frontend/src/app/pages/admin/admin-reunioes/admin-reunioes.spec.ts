@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ElementRef } from '@angular/core';
 import { of } from 'rxjs';
 
 import { AdminReunioes } from './admin-reunioes';
@@ -56,7 +57,7 @@ describe('AdminReunioes', () => {
   function selecionarAgenda(diaSemana: 'SEGUNDA' | 'TERCA' | 'QUARTA', horario: string): void {
     const item = component.formulario.agenda.find((agenda) => agenda.diaSemana === diaSemana)!;
     item.selecionado = true;
-    item.horario = horario;
+    item.horarios = [horario];
   }
 
   async function configurarTeste(
@@ -311,9 +312,81 @@ describe('AdminReunioes', () => {
       );
 
       expect(component.formulario.agenda.filter((item) => item.selecionado)).toEqual([
-        expect.objectContaining({ diaSemana: 'SEGUNDA', horario: '19:00' }),
-        expect.objectContaining({ diaSemana: 'QUINTA', horario: '20:30' }),
+        expect.objectContaining({ diaSemana: 'SEGUNDA', horarios: ['19:00'] }),
+        expect.objectContaining({ diaSemana: 'QUINTA', horarios: ['20:30'] }),
       ]);
+    });
+
+    it('carrega, ordena cronologicamente formatos mistos e envia múltiplos horários do mesmo dia', () => {
+      component.abrirEdicao(
+        reuniaoFake({
+          agenda: [
+            { diaSemana: 'SEGUNDA', horario: '19:30h' },
+            { diaSemana: 'SEGUNDA', horario: '9h às 11h' },
+            { diaSemana: 'SEGUNDA', horario: '14:00' },
+            { diaSemana: 'SEGUNDA', horario: 'a confirmar' },
+          ],
+        }),
+      );
+
+      const segunda = component.formulario.agenda.find((item) => item.diaSemana === 'SEGUNDA')!;
+      expect(segunda.horarios).toEqual(['9h às 11h', '14:00', '19:30h', 'a confirmar']);
+
+      component.salvar();
+
+      expect(reuniaoServiceSpy['editarReuniaoAdmin']).toHaveBeenCalledWith(
+        'reuniao-1',
+        expect.objectContaining({
+          agenda: [
+            { diaSemana: 'SEGUNDA', horario: '9h às 11h' },
+            { diaSemana: 'SEGUNDA', horario: '14:00' },
+            { diaSemana: 'SEGUNDA', horario: '19:30h' },
+            { diaSemana: 'SEGUNDA', horario: 'a confirmar' },
+          ],
+        }),
+      );
+    });
+
+    it('impede horários duplicados no mesmo dia', () => {
+      component.abrirNovo();
+      component.formulario.nome = 'Grupo X';
+      component.formulario.descricao = 'Descrição válida.';
+      component.formulario.local = 'Rua Nova, 1';
+      const segunda = component.formulario.agenda.find((item) => item.diaSemana === 'SEGUNDA')!;
+      segunda.selecionado = true;
+      segunda.horarios = ['19:00', '19:00'];
+
+      component.salvar();
+
+      expect(reuniaoServiceSpy['criarReuniaoAdmin']).not.toHaveBeenCalled();
+      expect(component.errosCampo['agenda.SEGUNDA']).toContain('repita');
+    });
+
+    it('adiciona e remove linhas de horário, desmarca o dia e devolve o foco ao checkbox', async () => {
+      component.abrirNovo();
+      const segunda = component.formulario.agenda.find((item) => item.diaSemana === 'SEGUNDA')!;
+      segunda.selecionado = true;
+      component.alternarDiaAgenda(segunda);
+      component.adicionarHorario(segunda);
+
+      const secao = document.createElement('section');
+      const checkbox = document.createElement('input');
+      checkbox.id = 'agenda-dia-SEGUNDA';
+      checkbox.type = 'checkbox';
+      secao.appendChild(checkbox);
+      document.body.appendChild(secao);
+      component.formularioSecaoRef = new ElementRef(secao);
+
+      expect(segunda.horarios).toEqual(['', '']);
+
+      component.removerHorario(segunda, 1);
+      component.removerHorario(segunda, 0);
+      await Promise.resolve();
+
+      expect(segunda.horarios).toEqual([]);
+      expect(segunda.selecionado).toBe(false);
+      expect(document.activeElement).toBe(checkbox);
+      secao.remove();
     });
   });
 
