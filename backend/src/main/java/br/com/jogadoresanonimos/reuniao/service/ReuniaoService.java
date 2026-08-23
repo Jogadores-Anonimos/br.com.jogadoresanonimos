@@ -9,6 +9,7 @@ import br.com.jogadoresanonimos.reuniao.dto.ReuniaoAgendaItemRequest;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoAvisoResponse;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoResponse;
 import br.com.jogadoresanonimos.reuniao.entity.AgendaItemReuniao;
+import br.com.jogadoresanonimos.reuniao.entity.AgendaItemReuniaoComparator;
 import br.com.jogadoresanonimos.reuniao.entity.CategoriaReuniao;
 import br.com.jogadoresanonimos.reuniao.entity.DiaSemanaReuniao;
 import br.com.jogadoresanonimos.reuniao.entity.Reuniao;
@@ -162,16 +163,24 @@ public class ReuniaoService {
             itens.add(itemLegado);
             return itens;
         }
+        itens.sort(comparadorAgenda());
+        if (indiceDoItem(itens, itemLegado) >= 0) {
+            return itens;
+        }
         int indiceDiaRecebido = indiceDoDia(itens, itemLegado.getDiaSemana());
         if (indiceDiaRecebido >= 0) {
             itens.set(indiceDiaRecebido, itemLegado);
         } else {
             DiaSemanaReuniao diaPrimarioAnterior = converterDiaSemana(
                     normalizar(reuniao.getDiaSemana()) == null ? reuniao.getDia() : reuniao.getDiaSemana());
-            int indicePrimarioAnterior = indiceDoDia(itens, diaPrimarioAnterior);
+            int indicePrimarioAnterior = indiceDoItem(itens,
+                    new AgendaItemReuniao(diaPrimarioAnterior, reuniao.getHorario()));
+            if (indicePrimarioAnterior < 0) {
+                indicePrimarioAnterior = indiceDoDia(itens, diaPrimarioAnterior);
+            }
             itens.set(indicePrimarioAnterior >= 0 ? indicePrimarioAnterior : 0, itemLegado);
         }
-        itens.sort(Comparator.comparingInt(item -> item.getDiaSemana().ordinal()));
+        itens.sort(comparadorAgenda());
         return itens;
     }
 
@@ -184,28 +193,45 @@ public class ReuniaoService {
         return -1;
     }
 
-    private List<AgendaItemReuniao> normalizarItensAgenda(List<ReuniaoAgendaItemRequest> agenda) {
-        if (agenda.size() > DiaSemanaReuniao.values().length) {
-            throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Agenda deve conter no máximo 7 dias");
+    private int indiceDoItem(List<AgendaItemReuniao> itens, AgendaItemReuniao itemProcurado) {
+        for (int indice = 0; indice < itens.size(); indice++) {
+            AgendaItemReuniao item = itens.get(indice);
+            if (item.getDiaSemana() == itemProcurado.getDiaSemana()
+                    && item.getHorario().equals(itemProcurado.getHorario())) {
+                return indice;
+            }
         }
-        Set<DiaSemanaReuniao> dias = new HashSet<>();
+        return -1;
+    }
+
+    private List<AgendaItemReuniao> normalizarItensAgenda(List<ReuniaoAgendaItemRequest> agenda) {
+        if (agenda.size() > 336) {
+            throw new ValidationException(ErrorCode.VALIDATION_ERROR,
+                    "Agenda deve conter no máximo 336 horários");
+        }
+        Set<ItemAgendaNormalizado> combinacoes = new HashSet<>();
         List<AgendaItemReuniao> itens = new ArrayList<>();
         for (ReuniaoAgendaItemRequest item : agenda) {
             if (item == null) {
                 throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Item da agenda é obrigatório");
             }
             DiaSemanaReuniao diaSemana = converterDiaSemana(item.diaSemana());
-            if (!dias.add(diaSemana)) {
-                throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Agenda não pode repetir dia da semana");
-            }
             String horario = exigirTexto(item.horario(), "Horário é obrigatório");
             if (horario.length() > 50) {
                 throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Horário deve ter no máximo 50 caracteres");
             }
+            if (!combinacoes.add(new ItemAgendaNormalizado(diaSemana, horario))) {
+                throw new ValidationException(ErrorCode.VALIDATION_ERROR,
+                        "Agenda não pode repetir o mesmo horário no mesmo dia");
+            }
             itens.add(new AgendaItemReuniao(diaSemana, horario));
         }
-        itens.sort(Comparator.comparingInt(item -> item.getDiaSemana().ordinal()));
+        itens.sort(comparadorAgenda());
         return itens;
+    }
+
+    private Comparator<AgendaItemReuniao> comparadorAgenda() {
+        return AgendaItemReuniaoComparator.porDiaEHorario();
     }
 
     private List<AgendaItemReuniao> normalizarItemLegado(String dia, String horario, String diaSemana) {
@@ -255,5 +281,8 @@ public class ReuniaoService {
 
     private record DadosAgenda(List<AgendaItemReuniao> itens, String dia, String horario,
                                String diaSemana, String periodo) {
+    }
+
+    private record ItemAgendaNormalizado(DiaSemanaReuniao diaSemana, String horario) {
     }
 }

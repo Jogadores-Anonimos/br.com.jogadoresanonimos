@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -420,12 +421,68 @@ class ReuniaoServiceTest {
     }
 
     @Test
-    void criar_comDiaRepetidoNaAgenda_deveRejeitarSemPersistir() {
+    void criar_comMultiplosHorariosNoMesmoDia_devePersistirOrdenado() {
+        CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
+                "descricao", null, null, "local", null, null, null, null, null, null, null, null,
+                null, null, null, null, List.of(
+                new ReuniaoAgendaItemRequest("SEGUNDA", "20h"),
+                new ReuniaoAgendaItemRequest("segunda-feira", "19h")));
+        when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        ReuniaoResponse resultado = reuniaoService.criar(request);
+        assertThat(resultado.agenda()).extracting("diaSemana", "horario")
+                .containsExactly(tuple("SEGUNDA", "19h"), tuple("SEGUNDA", "20h"));
+        assertThat(resultado.horario()).isEqualTo("19h");
+    }
+
+    @Test
+    void criar_comFormatosMistos_deveOrdenarCronologicamenteEFazerDualWriteDoPrimeiro() {
+        CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
+                "descricao", null, null, "local", null, null, null, null, null, null, null, null,
+                null, null, null, null, List.of(
+                new ReuniaoAgendaItemRequest("SEGUNDA", "texto livre"),
+                new ReuniaoAgendaItemRequest("SEGUNDA", "19h30"),
+                new ReuniaoAgendaItemRequest("SEGUNDA", "19:30h"),
+                new ReuniaoAgendaItemRequest("SEGUNDA", "09:15"),
+                new ReuniaoAgendaItemRequest("SEGUNDA", "9h às 11h"),
+                new ReuniaoAgendaItemRequest("SEGUNDA", "9h")));
+        when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        ReuniaoResponse resultado = reuniaoService.criar(request);
+        assertThat(resultado.agenda()).extracting("horario")
+                .containsExactly("9h", "9h às 11h", "09:15", "19:30h", "19h30", "texto livre");
+        assertThat(resultado.horario()).isEqualTo("9h");
+    }
+
+    @Test
+    void response_deveOrdenarFormatosMistosMesmoQuandoEntidadeEstaForaDeOrdem() {
+        Reuniao reuniao = reuniao();
+        reuniao.substituirAgenda(List.of(
+                new AgendaItemReuniao(DiaSemanaReuniao.SEGUNDA, "sem hora"),
+                new AgendaItemReuniao(DiaSemanaReuniao.SEGUNDA, "19:30h"),
+                new AgendaItemReuniao(DiaSemanaReuniao.SEGUNDA, "9h às 11h"),
+                new AgendaItemReuniao(DiaSemanaReuniao.SEGUNDA, "09:15")));
+        assertThat(ReuniaoResponse.from(reuniao).agenda()).extracting("horario")
+                .containsExactly("9h às 11h", "09:15", "19:30h", "sem hora");
+    }
+
+    @Test
+    void criar_comMaisDe336Horarios_deveRejeitarNoServiceSemPersistir() {
+        List<ReuniaoAgendaItemRequest> agenda = IntStream.range(0, 337)
+                .mapToObj(indice -> new ReuniaoAgendaItemRequest("SEGUNDA", "horario-" + indice))
+                .toList();
+        CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
+                "descricao", null, null, "local", null, null, null, null, null, null, null, null,
+                null, null, null, null, agenda);
+        assertThatThrownBy(() -> reuniaoService.criar(request)).isInstanceOf(ValidationException.class);
+        verify(reuniaoRepository, never()).save(any());
+    }
+
+    @Test
+    void criar_comMesmoHorarioRepetidoNoMesmoDia_deveRejeitarSemPersistir() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", null, null, "local", null, null, null, null, null, null, null, null,
                 null, null, null, null, List.of(
                 new ReuniaoAgendaItemRequest("SEGUNDA", "19h"),
-                new ReuniaoAgendaItemRequest("segunda-feira", "20h")));
+                new ReuniaoAgendaItemRequest("segunda-feira", " 19h ")));
         assertThatThrownBy(() -> reuniaoService.criar(request)).isInstanceOf(ValidationException.class);
         verify(reuniaoRepository, never()).save(any());
     }
@@ -473,5 +530,41 @@ class ReuniaoServiceTest {
                 .containsExactly(tuple("SEGUNDA", "19h"), tuple("QUINTA", "22h"));
         assertThat(resultado.diaSemana()).isEqualTo("Segunda");
         assertThat(resultado.horario()).isEqualTo("19h");
+    }
+
+    @Test
+    void editar_comPayloadLegado_devePreservarOutroHorarioDoMesmoDia() {
+        UUID id = UUID.randomUUID();
+        Reuniao reuniao = reuniao();
+        reuniao.substituirAgenda(List.of(
+                new AgendaItemReuniao(DiaSemanaReuniao.SEGUNDA, "18h"),
+                new AgendaItemReuniao(DiaSemanaReuniao.SEGUNDA, "20h"),
+                new AgendaItemReuniao(DiaSemanaReuniao.QUINTA, "19h")));
+        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
+                "descricao", "Segunda-feira", "19h", "Rua das Flores, 123 - Centro, São Paulo - SP",
+                null, "Segunda", "Noite", null, null, "01310-100", "123", "Rua das Flores", "Centro",
+                "São Paulo", "SP", null);
+        ReuniaoResponse resultado = reuniaoService.editar(id, request);
+        assertThat(resultado.agenda()).extracting("diaSemana", "horario")
+                .containsExactly(tuple("SEGUNDA", "19h"), tuple("SEGUNDA", "20h"),
+                        tuple("QUINTA", "19h"));
+    }
+
+    @Test
+    void editar_comPayloadLegadoJaExistente_devePreservarAgendaSemDuplicar() {
+        UUID id = UUID.randomUUID();
+        Reuniao reuniao = reuniao();
+        reuniao.substituirAgenda(List.of(
+                new AgendaItemReuniao(DiaSemanaReuniao.SEGUNDA, "18h"),
+                new AgendaItemReuniao(DiaSemanaReuniao.SEGUNDA, "20h")));
+        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
+                "descricao", "Segunda-feira", "20h", "Rua das Flores, 123 - Centro, São Paulo - SP",
+                null, "Segunda", "Noite", null, null, "01310-100", "123", "Rua das Flores", "Centro",
+                "São Paulo", "SP", null);
+        ReuniaoResponse resultado = reuniaoService.editar(id, request);
+        assertThat(resultado.agenda()).extracting("diaSemana", "horario")
+                .containsExactly(tuple("SEGUNDA", "18h"), tuple("SEGUNDA", "20h"));
     }
 }

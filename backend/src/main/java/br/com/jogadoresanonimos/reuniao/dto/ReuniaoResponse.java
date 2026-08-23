@@ -1,11 +1,11 @@
 package br.com.jogadoresanonimos.reuniao.dto;
 
 import br.com.jogadoresanonimos.reuniao.entity.CategoriaReuniao;
+import br.com.jogadoresanonimos.reuniao.entity.AgendaItemReuniaoComparator;
 import br.com.jogadoresanonimos.reuniao.entity.DiaSemanaReuniao;
 import br.com.jogadoresanonimos.reuniao.entity.Reuniao;
 
 import java.text.Normalizer;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -45,7 +45,7 @@ public record ReuniaoResponse(UUID id, String nome, CategoriaReuniao categoria, 
     private static List<ReuniaoAgendaItemResponse> agendaDa(Reuniao reuniao) {
         List<ReuniaoAgendaItemResponse> agenda = reuniao.getAgenda().stream()
                 .filter(item -> item.getDiaSemana() != null)
-                .sorted(Comparator.comparing(item -> item.getDiaSemana().ordinal()))
+                .sorted(AgendaItemReuniaoComparator.porDiaEHorario())
                 .map(ReuniaoAgendaItemResponse::from)
                 .toList();
         if (!agenda.isEmpty()) {

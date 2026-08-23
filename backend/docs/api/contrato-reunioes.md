@@ -14,8 +14,14 @@
 
 `diaSemana` aceita `SEGUNDA`, `TERCA`, `QUARTA`, `QUINTA`, `SEXTA`,
 `SABADO` ou `DOMINGO`; `horario` é texto obrigatório de até 50 caracteres.
-Não é permitido repetir um dia na mesma reunião. Respostas são sempre
-ordenadas de segunda a domingo, independentemente da ordem de entrada.
+Um mesmo dia pode aparecer mais de uma vez quando a reunião possui mais de
+um horário nesse dia. Não é permitido repetir a mesma combinação de
+`diaSemana` e `horario` na mesma reunião. A lista aceita no máximo 336 itens.
+Respostas são sempre ordenadas de segunda a domingo e, dentro do mesmo dia,
+pela hora/minuto inicial reconhecida nos formatos legados (`9h`,
+`9h às 11h`, `19h30`, `19:30h` e `HH:mm`). Valores sem hora inicial
+reconhecível usam ordem textual como fallback. A mesma ordem define o primeiro
+item espelhado nos campos legados, independentemente da ordem de entrada.
 Criação e edição exigem pelo menos um item, aceitando duas
 formas de payload durante a fase de compatibilidade:
 
@@ -29,9 +35,10 @@ campos legados `dia`, `horario` e `diaSemana` no nível raiz são ignorados;
 lista completa em `reuniao_horario` e também grava o primeiro item nas
 colunas legadas de `reuniao`. O backend novo aceita clientes antigos; em um
 `PUT` legado, atualiza o dia correspondente sem apagar os demais itens. Se o
-dia recebido já existe na agenda, seu horário é atualizado e todos os outros
-dias são preservados. Se for um dia novo, ele substitui somente o antigo item
-primário, preservando os adicionais.
+dia recebido já existe na agenda, o primeiro horário desse dia é atualizado
+e todos os demais horários, inclusive os do mesmo dia, são preservados. Se a
+combinação recebida já existe, a agenda não é alterada. Se for um dia novo,
+ele substitui somente o antigo item primário, preservando os adicionais.
 
 O dual-write não torna seguro fazer rollback para uma versão antiga do
 backend depois que uma agenda com múltiplos itens foi criada: a versão antiga
@@ -230,10 +237,11 @@ desde 2026-08-16: `link_reuniao` (`VARCHAR(500)`, nullable, campo
 dedicado para o link de reunião virtual — ver seção "Mudança
 não-breaking — 2026-08-16 (`linkReuniao`, campo dedicado)").
 
-Tabela `reuniao_horario`: um item por dia de cada reunião, com
+Tabela `reuniao_horario`: um item por horário de cada reunião, com
 `reuniao_id` (`ON DELETE CASCADE`), `dia_semana` canônico e `horario`.
-A constraint `UNIQUE (reuniao_id, dia_semana)` garante a regra de um
-horário por dia. As colunas de agenda da tabela `reuniao` permanecem como
+A constraint `UNIQUE (reuniao_id, dia_semana, horario)` impede somente a
+duplicação exata do mesmo horário no mesmo dia, permitindo vários horários
+por dia. As colunas de agenda da tabela `reuniao` permanecem como
 espelho compatível do primeiro item durante a fase *expand*.
 
 **Decisão confirmada com o usuário (herdada, sem mudança)**: sem
@@ -839,6 +847,16 @@ dias legados. Qualquer valor fora do catálogo aborta a migration inteira com
 erro e contagem explícita; nenhum dia desconhecido é convertido para `NULL`.
 Após a precondição, `reuniao_horario.dia_semana` é `NOT NULL` e protegido por
 `CHECK` com os sete valores canônicos.
+
+---
+
+## Migration — `V12__permite_multiplos_horarios_por_dia.sql`
+
+Migration transacional e sem alteração de dados: remove apenas a constraint
+`UNIQUE (reuniao_id, dia_semana)` criada pela `V11` e a substitui por
+`UNIQUE (reuniao_id, dia_semana, horario)`. A `V11` permanece imutável por já
+ter sido aplicada em produção. FK com `ON DELETE CASCADE`, `NOT NULL`, `CHECK`
+de dia canônico e todos os registros existentes permanecem inalterados.
 
 ---
 

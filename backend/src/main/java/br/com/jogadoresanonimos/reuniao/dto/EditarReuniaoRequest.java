@@ -30,7 +30,7 @@ public record EditarReuniaoRequest(
         @Size(max = 100) String cidade,
         @Size(max = 2) @Pattern(regexp = "^$|^[A-Za-z]{2}$", message = "Estado deve ser a sigla da UF com 2 letras") String estado,
         @Size(max = 500) String linkReuniao,
-        @Valid @Size(max = 7) List<ReuniaoAgendaItemRequest> agenda
+        @Size(max = 336) List<@Valid ReuniaoAgendaItemRequest> agenda
 ) {
     public EditarReuniaoRequest(String nome, CategoriaReuniao categoria, String descricao, String dia,
                                  String horario, String local, String whatsapp, String diaSemana,

@@ -1,6 +1,7 @@
 package br.com.jogadoresanonimos.reuniao.service;
 import br.com.jogadoresanonimos.reuniao.dto.CriarReuniaoRequest;
 import br.com.jogadoresanonimos.reuniao.dto.EditarReuniaoRequest;
+import br.com.jogadoresanonimos.reuniao.dto.ReuniaoResponse;
 import br.com.jogadoresanonimos.reuniao.entity.Reuniao;
 import br.com.jogadoresanonimos.reuniao.repository.ReuniaoRepository;
 import jakarta.persistence.EntityManager;
@@ -37,11 +38,26 @@ class ReuniaoAgendaPersistenceIT {
         entityManager.flush();
         entityManager.clear();
         Reuniao persistida = reuniaoRepository.findById(criado.id()).orElseThrow();
-        assertThat(persistida.getAgenda()).extracting("diaSemana", "horario")
-                .containsExactly(tuple(br.com.jogadoresanonimos.reuniao.entity.DiaSemanaReuniao.SEGUNDA, "19h"), tuple(br.com.jogadoresanonimos.reuniao.entity.DiaSemanaReuniao.QUINTA, "20h"));
+        assertThat(ReuniaoResponse.from(persistida).agenda()).extracting("diaSemana", "horario")
+                .containsExactly(tuple("SEGUNDA", "19h"), tuple("QUINTA", "20h"));
         assertThat(persistida.getDia()).isEqualTo("Segunda");
         assertThat(persistida.getHorario()).isEqualTo("19h");
         assertThat(persistida.getDiaSemana()).isEqualTo("Segunda");
+    }
+    @Test
+    void payloadNovoDevePersistirMultiplosHorariosNoMesmoDia() throws Exception {
+        CriarReuniaoRequest request = objectMapper.readValue("""
+                {"nome":"Grupo QA Multi","categoria":"presencial","descricao":"Massa sintética","local":"Local sintético","agenda":[{"diaSemana":"SEGUNDA","horario":"20h"},{"diaSemana":"SEGUNDA","horario":"18h"},{"diaSemana":"QUINTA","horario":"19h"}]}
+                """, CriarReuniaoRequest.class);
+        assertThat(validator.validate(request)).isEmpty();
+        var criado = reuniaoService.criar(request);
+        entityManager.flush();
+        entityManager.clear();
+        Reuniao persistida = reuniaoRepository.findById(criado.id()).orElseThrow();
+        assertThat(ReuniaoResponse.from(persistida).agenda()).extracting("diaSemana", "horario")
+                .containsExactly(
+                        tuple("SEGUNDA", "18h"), tuple("SEGUNDA", "20h"), tuple("QUINTA", "19h"));
+        assertThat(persistida.getHorario()).isEqualTo("18h");
     }
     @Test
     void payloadLegadoDeveContinuarPersistindoUmaAgenda() throws Exception {
@@ -53,8 +69,8 @@ class ReuniaoAgendaPersistenceIT {
         entityManager.flush();
         entityManager.clear();
         Reuniao persistida = reuniaoRepository.findById(criado.id()).orElseThrow();
-        assertThat(persistida.getAgenda()).extracting("diaSemana", "horario")
-                .containsExactly(tuple(br.com.jogadoresanonimos.reuniao.entity.DiaSemanaReuniao.TERCA, "21h"));
+        assertThat(ReuniaoResponse.from(persistida).agenda()).extracting("diaSemana", "horario")
+                .containsExactly(tuple("TERCA", "21h"));
         assertThat(persistida.getDia()).isEqualTo("Terça-feira");
         assertThat(persistida.getHorario()).isEqualTo("21h");
     }
@@ -73,7 +89,25 @@ class ReuniaoAgendaPersistenceIT {
         entityManager.flush();
         entityManager.clear();
         Reuniao persistida = reuniaoRepository.findById(criada.id()).orElseThrow();
-        assertThat(persistida.getAgenda()).extracting("diaSemana", "horario")
-                .containsExactly(tuple(br.com.jogadoresanonimos.reuniao.entity.DiaSemanaReuniao.TERCA, "19h30"), tuple(br.com.jogadoresanonimos.reuniao.entity.DiaSemanaReuniao.SABADO, "10h"));
+        assertThat(ReuniaoResponse.from(persistida).agenda()).extracting("diaSemana", "horario")
+                .containsExactly(tuple("TERCA", "19h30"), tuple("SABADO", "10h"));
+    }
+    @Test
+    void edicaoLegadaDevePreservarHorarioAdicionalDoMesmoDia() throws Exception {
+        CriarReuniaoRequest criacao = objectMapper.readValue("""
+                {"nome":"Grupo QA Legado Multi","categoria":"presencial","descricao":"Massa sintética","local":"Local sintético","agenda":[{"diaSemana":"SEGUNDA","horario":"18h"},{"diaSemana":"SEGUNDA","horario":"20h"},{"diaSemana":"QUINTA","horario":"19h"}]}
+                """, CriarReuniaoRequest.class);
+        var criada = reuniaoService.criar(criacao);
+        entityManager.flush();
+        EditarReuniaoRequest edicao = objectMapper.readValue("""
+                {"nome":"Grupo QA Legado Multi","categoria":"presencial","descricao":"Massa sintética","dia":"Segunda-feira","diaSemana":"Segunda","horario":"19h","local":"Local sintético"}
+                """, EditarReuniaoRequest.class);
+        reuniaoService.editar(criada.id(), edicao);
+        entityManager.flush();
+        entityManager.clear();
+        Reuniao persistida = reuniaoRepository.findById(criada.id()).orElseThrow();
+        assertThat(ReuniaoResponse.from(persistida).agenda()).extracting("diaSemana", "horario")
+                .containsExactly(
+                        tuple("SEGUNDA", "19h"), tuple("SEGUNDA", "20h"), tuple("QUINTA", "19h"));
     }
 }
