@@ -9,6 +9,7 @@ import java.text.Normalizer;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.time.Instant;
 
 public record ReuniaoResponse(UUID id, String nome, CategoriaReuniao categoria, String descricao,
                                String dia, String horario, String local, String whatsapp,
@@ -16,7 +17,8 @@ public record ReuniaoResponse(UUID id, String nome, CategoriaReuniao categoria, 
                                String cep, String numero, String logradouro, String bairro,
                                String cidade, String estado, String linkReuniao,
                                List<ReuniaoAvisoResponse> avisos,
-                               List<ReuniaoAgendaItemResponse> agenda) {
+                               List<ReuniaoAgendaItemResponse> agenda,
+                               UUID grupoIntergrupoId, Instant atualizadoEm) {
 
     public ReuniaoResponse(UUID id, String nome, CategoriaReuniao categoria, String descricao,
                             String dia, String horario, String local, String whatsapp,
@@ -26,7 +28,7 @@ public record ReuniaoResponse(UUID id, String nome, CategoriaReuniao categoria, 
                             List<ReuniaoAvisoResponse> avisos) {
         this(id, nome, categoria, descricao, dia, horario, local, whatsapp, diaSemana, periodo,
                 latitude, longitude, cep, numero, logradouro, bairro, cidade, estado, linkReuniao,
-                avisos, List.of());
+                avisos, List.of(), null, null);
     }
 
     public static ReuniaoResponse from(Reuniao reuniao) {
@@ -39,7 +41,9 @@ public record ReuniaoResponse(UUID id, String nome, CategoriaReuniao categoria, 
                 reuniao.getWhatsapp(), reuniao.getDiaSemana(), reuniao.getPeriodo(),
                 reuniao.getLatitude(), reuniao.getLongitude(), reuniao.getCep(), reuniao.getNumero(),
                 reuniao.getLogradouro(), reuniao.getBairro(), reuniao.getCidade(), reuniao.getEstado(),
-                reuniao.getLinkReuniao(), avisos, agendaDa(reuniao));
+                reuniao.getLinkReuniao(), avisos, agendaDa(reuniao),
+                reuniao.getGrupoIntergrupo() == null ? null : reuniao.getGrupoIntergrupo().getId(),
+                reuniao.getAtualizadoEm());
     }
 
     private static List<ReuniaoAgendaItemResponse> agendaDa(Reuniao reuniao) {

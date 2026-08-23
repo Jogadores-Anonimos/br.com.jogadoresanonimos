@@ -611,47 +611,103 @@ limitar.
   barata: trocase a implementação, não o contrato usado pelo resto do
   código.
 
-### 4E. Endereço estruturado x campo `local` (reunião)  sem entidade separada
- **Decisão** (`system-design`, 2026-08-20): endereço estruturado (`cep`,
-  `logradouro`, `bairro`, `cidade`, `estado`, `numero`, `latitude`,
-  `longitude`) continua como colunas da própria entidade `Reuniao`, sem
-  extrair para uma entidade `Endereco` com FK. `local` é um campo de texto
-  livre complementar (rótulo exibido ao usuário, ex: "Rua das Flores, 123
-  - Centro, São Paulo - SP"), não é gerado a partir do endereço
-  estruturado e não é a fonte de verdade dele  os dois convivem porque
-  servem propósitos diferentes (busca/geocodificação/mapa usa o
-  estruturado; exibição usa `local`).
- **Por que não normalizar**: volume de reuniões é baixo (dezenas, não
-  milhares), relação é 1:1 (uma reunião tem exatamente um endereço, nunca
-  reaproveitado por outra reunião)  não há ganho real de normalização
-  (nem espaço, nem reuso), só custo de JOIN e mais uma tabela para
-  manter. Ver "Contexto de escala" no `CLAUDE.md`.
- **Risco aceito**: os dois podem divergir (ex: admin atualiza cidade/
-  estado do endereço estruturado via geocoding e esquece de editar o
-  texto de `local`, ou viceversa). Em vez de normalizar para eliminar
-  esse risco estruturalmente, ele é sinalizado na edição.
- **Mecanismo**: `ReuniaoService.editar()` compara `cidade`/`estado` antes
-  e depois da edição; se algum dos dois mudou e o campo `local` **não**
-  mudou, adiciona um aviso não-bloqueante à resposta. Nunca impede salvar
-   é sinalização para o admin revisar manualmente, não validação de
-  integridade referencial.
- **Contrato de API** (response de `PUT /api/v1/admin/reunioes/{id}`,
-  formato `{ success, data, error }`): `data` é o `ReuniaoResponse`
-  usual, acrescido do campo `avisos: ReuniaoAvisoResponse[]` (lista vazia
-  no caminho feliz, nunca `null`). Cada item:
-  `{ "codigo": "ENDERECO_LOCAL_DIVERGENTE", "mensagem": "Cidade/estado do
-  endereço estruturado mudaram, mas o campo \"local\" não foi atualizado
-  junto. Confira se o texto ainda reflete o endereço correto." }`.
-  `codigo` é estável para o frontend tratar por switch/case; `mensagem`
-  é a string exibível pronta, sem necessidade de i18n adicional no
-  cliente. `GET`/`POST` (listagem e criação) sempre retornam `avisos: []`
-  , o campo só é populado no fluxo de edição, que é o único ponto onde
-  há um "antes" para comparar.
- **Reserva de migration revertida**: `V11` havia sido reservada para uma
-  eventual extração da entidade `Endereco`; como a decisão final foi não
-  normalizar, o número **não foi usado para nenhum schema novo** e a
-  próxima migration deve usar `V11` normalmente (nenhum arquivo
-  `V11__RESERVADO...` chegou a ser commitado no repositório).
+### 4E. Reuniões, Endereços e mapa — um único agregado sincronizado
+ **Decisão vigente** (`system-design`, 2026-08-22): `Reuniao` é a fonte
+  de verdade dos dados compartilhados por Reuniões, Endereços e mapa.
+  `GrupoIntergrupo` mantém apenas o pertencimento a região/UF, a ordem de
+  exibição e seus telefones. O mapa não possui cadastro próprio: é uma
+  projeção das reuniões presenciais com coordenadas válidas.
+ **Premissa substituída explicitamente**: a decisão de 2026-08-20 assumia
+  que Reuniões e Endereços eram fontes paralelas, sem endereço físico
+  compartilhado e sem necessidade de FK. O requisito posterior de que a
+  mesma reunião seja criada e alterada de forma coerente nas duas páginas
+  invalida essa premissa. Não se deve tentar manter duas fontes autônomas
+  sincronizadas por convenção, nome ou endereço textual.
+ **Sem terceira entidade `Endereco`**: o endereço estruturado (`cep`,
+  `numero`, `logradouro`, `bairro`, `cidade`, `estado`, `latitude` e
+  `longitude`) continua em `Reuniao`. No volume atual, introduzir uma
+  terceira entidade acrescentaria outro agregado e mais JOINs sem resolver
+  a duplicação existente. `local` permanece o rótulo de exibição; os
+  campos estruturados alimentam busca, geocodificação e mapa.
+ **Vínculo de identidade**: uma migration expand posterior à `V13` deve
+  adicionar `reuniao.grupo_intergrupo_id`, nullable durante a transição,
+  com FK para `grupo_intergrupo(id)`, `ON DELETE RESTRICT` e índice único
+  parcial para valores não nulos. Reunião virtual nunca possui vínculo;
+  reunião presencial sincronizada possui exatamente um grupo, e um grupo
+  pode representar no máximo uma reunião. `RESTRICT` impede que a cascata
+  de região/estado apague silenciosamente um endereço ainda publicado em
+  Reuniões/mapa.
+ **Propriedade dos campos**: `Reuniao` é canônica para nome, agenda,
+  `local`, endereço estruturado, coordenadas, categoria, descrição,
+  WhatsApp e link virtual. `GrupoIntergrupo` é canônico para região, UF
+  organizacional, ordem e lista de telefones. Telefones do grupo e
+  `whatsapp` da reunião não são sincronizados automaticamente, pois têm
+  cardinalidade e significado diferentes.
+ **Agendas com múltiplos horários**: `V13` é uma etapa independente e
+  segura que troca a chave de `grupo_intergrupo_horario` para
+  `(grupo_intergrupo_id, dia_semana, horario)`, permitindo mais de um
+  horário no mesmo dia, como já ocorre em `reuniao_horario`. Durante a
+  fase expand, uma operação de domínio transacional explícita grava a
+  agenda canônica da reunião e o espelho legado do grupo. Não usar trigger
+  de banco nem listener JPA para sincronização implícita.
+ **Criação e edição**: criar um Endereço cria, na mesma transação, a
+  `Reuniao` presencial, o `GrupoIntergrupo`, o vínculo e as agendas. Criar
+  uma reunião presencial exige selecionar/criar seu grupo organizacional
+  após o cutover; reunião virtual continua independente. Editar por
+  qualquer painel chama a mesma operação de domínio, bloqueia os dois
+  registros, atualiza primeiro a reunião canônica e então o espelho
+  legado. Para evitar sobrescrita por tela desatualizada, o novo cliente
+  envia o `atualizadoEm` que leu; divergência retorna `409 CONFLICT` e
+  exige recarga.
+ **Exclusão**: excluir uma reunião presencial vinculada ou seu endereço
+  remove ambos explicitamente, na mesma transação. Exclusão de região ou
+  estado com grupos vinculados deve falhar com `409`, exigindo remoção ou
+  movimentação prévia dos filhos. Não usar cascata bidirecional.
+ **Geolocalização**: alterações feitas em Endereços passam pela reunião
+  canônica, portanto o mapa muda sem processo assíncrono adicional. O
+  formulário reutiliza CEP + geocodificação do formulário de Reuniões e
+  envia as coordenadas obtidas. Se o endereço mudar sem novas coordenadas
+  validadas, as coordenadas antigas são limpas para não manter marcador
+  falso. Falha do geocodificador permite salvar sem marcador e apresenta
+  aviso; chamadas externas não ocorrem dentro da transação do banco.
+ **Backfill conservador**: a FK nasce sem preenchimento automático.
+  Primeiro é gerado relatório somente-leitura com nome, UF, cidade e
+  endereço normalizados, separando correspondência única, ambígua e sem
+  par. Como o volume é baixo, todos os pares são revisados manualmente.
+  Apenas pares aprovados recebem vínculo; nenhum dado divergente é
+  sobrescrito ao vincular. A resolução posterior é campo a campo e, após
+  aprovação, `Reuniao` passa a vencer. Registros sem par continuam no
+  fluxo legado até correção manual.
+ **Expand/contract e rollout**: (1) publicar e validar `V13`; (2) publicar
+  a migration aditiva do vínculo (`V14`); (3) subir backend compatível com
+  vinculados e não vinculados, com dual-write; (4) gerar/revisar/aplicar o
+  backfill; (5) publicar o frontend com editor unificado; (6) impedir
+  novos presenciais sem vínculo; (7) monitorar divergências; e somente
+  depois de 100% dos grupos vinculados considerar uma migration contract
+  para remover nome/endereço/agenda duplicados de `grupo_intergrupo`.
+ **Impacto operacional das migrations**: a troca da chave primária em
+  `V13` usa `ALTER TABLE` e pode obter `ACCESS EXCLUSIVE`; em `V14`, a
+  criação/validação da FK examina os registros existentes e a criação do
+  índice único também exige locks e trabalho proporcional à tabela. O
+  volume atual torna a pausa esperada curta e aceitável, mas não elimina
+  o risco de espera por transações antigas. Executar com backup verificado,
+  janela de baixa escrita, ausência de transações longas e monitoramento
+  de locks, duração da migration e health do backend. Se o lock não for
+  obtido dentro da janela prevista, abortar a implantação sem insistir e
+  investigar a sessão bloqueadora.
+ **Rollback**: `V14` é aditiva e um backend anterior é compatível com o
+  schema para iniciar e ler dados, mas **não é funcionalmente seguro para
+  escrita** depois que vínculos ou múltiplos horários de `V13` existirem:
+  ele ignora a FK lógica, não mantém o dual-write e pode voltar a gravar a
+  antiga suposição de um horário por dia. Portanto, rollback de backend
+  exige congelar todas as escritas administrativas de Reuniões e
+  Endereços; para restaurar escrita, a estratégia preferida é
+  `forward-fix` no backend novo. Anular vínculos, isoladamente, não reverte
+  divergências nem torna o escritor antigo seguro. Frontend anterior só
+  pode ser usado sob a mesma restrição de escrita. Nenhuma coluna ou
+  tabela duplicada é removida na release de sincronização. `V13` não deve
+  ser revertida depois que houver dois horários no mesmo dia, pois a chave
+  anterior não comporta esses dados.
 
 ## 5. Logs e auditoria
 

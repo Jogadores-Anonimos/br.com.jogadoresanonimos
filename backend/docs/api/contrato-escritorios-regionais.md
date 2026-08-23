@@ -763,9 +763,10 @@ CREATE TABLE grupo_intergrupo_horario (
   PRIMARY KEY (grupo_intergrupo_id, dia_semana)
 );
 ```
-A PK composta `(grupo_intergrupo_id, dia_semana)` já garante, no
-próprio banco, a regra "não pode haver o mesmo dia da semana repetido
-na lista de um grupo" — não é só validação de aplicação.
+A partir da V13, a PK composta é
+`(grupo_intergrupo_id, dia_semana, horario)`. Assim, um grupo pode ter
+mais de um horário no mesmo dia, enquanto a combinação exata de dia e
+horário continua protegida contra duplicidade no próprio banco.
 
 **Migration de dado**: para cada linha de `grupo_intergrupo`, para cada
 dia já marcado em `grupo_intergrupo_dia_semana`, insere uma linha em
@@ -817,11 +818,30 @@ estável no frontend.
 `CriarGrupoRequest`/`EditarGrupoRequest.diasSemana` + `.horario` deixam
 de existir — viram `agenda: AgendaItemRequest[]` (`@NotEmpty`, cada item
 com `diaSemana` e `horario` obrigatórios). Validação de negócio no
-service rejeita `diaSemana` duplicado na lista recebida com
-`400 VALIDATION_ERROR` antes mesmo de tentar persistir (a `UNIQUE` do
+service permite repetir `diaSemana`, mas rejeita a combinação exata
+`diaSemana` + `horario` e limita a agenda a 336 itens, retornando
+`400 VALIDATION_ERROR` antes mesmo de tentar persistir (a PK do
 banco é a rede de segurança final, não a validação primária — o erro de
 aplicação é mais claro para o client do que uma violação de constraint
 crua).
+
+Os itens de `agenda` são devolvidos em ordem de dia da semana e, dentro
+do mesmo dia, pela hora inicial reconhecida (`18h30` antes de `20h`).
+Textos sem hora reconhecível ficam depois dos horários reconhecidos,
+com ordenação textual estável.
+
+### Migration — `V13__permite_multiplos_horarios_grupo_intergrupo.sql`
+
+V13 não recria a tabela nem transforma linhas: apenas substitui a PK
+de duas colunas pela PK de três colunas. Todas as agendas existentes
+são preservadas sem alteração de valores ou contagem.
+
+```sql
+ALTER TABLE grupo_intergrupo_horario
+    DROP CONSTRAINT grupo_intergrupo_horario_pkey,
+    ADD CONSTRAINT grupo_intergrupo_horario_pkey
+        PRIMARY KEY (grupo_intergrupo_id, dia_semana, horario);
+```
 
 ### Mudança breaking desta revisão
 
@@ -1315,3 +1335,24 @@ componente, com adição de `id`/`ordem`/timestamps em cada nível.
   Cobertura adicional exigida nesta revisão: validação de UF inválida,
   conflito de UF duplicada na região, e os 8 endpoints de reordenação
   (delegado ao `qa-backend`).
+
+## SDD 2026-08-22 — Endereços como projeção organizacional
+
+Um `GrupoIntergrupo` novo criado por qualquer endpoint de Endereços
+passa a criar, na mesma transação, uma `Reuniao` presencial canônica e
+o vínculo V14. Nome, endereço/local e agenda são escritos primeiro na
+reunião e espelhados no grupo; região, UF organizacional, ordem e
+telefones permanecem propriedade do grupo.
+
+Na fase dual-mode, grupos anteriores sem vínculo continuam editáveis e
+removíveis isoladamente. Para grupos vinculados, edição e exclusão
+operam sobre os dois registros com locks pessimistas e transação única.
+`EditarGrupoRequest.atualizadoEm` é opcional por compatibilidade; quando
+enviado, deve ser o `atualizadoEm` do grupo retornado pela leitura e divergência
+retorna `409 REUNIAO_VERSAO_CONFLITO`.
+
+Excluir estado que contenha grupo vinculado retorna conflito antes da
+cascata. A FK `ON DELETE RESTRICT` é a proteção final. Não existe
+deleção em cascata bidirecional, listener ou trigger de sincronização.
+O backfill permanece manual e separado; o relatório SQL de candidatos
+não executa `UPDATE` nem escolhe pares automaticamente.

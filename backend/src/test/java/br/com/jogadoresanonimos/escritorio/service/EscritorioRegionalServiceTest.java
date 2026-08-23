@@ -17,6 +17,7 @@ import br.com.jogadoresanonimos.escritorio.repository.EscritorioServicoRepositor
 import br.com.jogadoresanonimos.escritorio.repository.EstadoIntergrupoRepository;
 import br.com.jogadoresanonimos.escritorio.repository.GrupoIntergrupoRepository;
 import br.com.jogadoresanonimos.escritorio.repository.RegiaoIntergrupoRepository;
+import br.com.jogadoresanonimos.reuniao.service.ReuniaoGrupoSincronizacaoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -248,6 +250,80 @@ class EscritorioRegionalServiceTest {
         assertThat(resultado.telefones()).hasSize(2);
         assertThat(resultado.telefones()).extracting("telefone")
                 .containsExactlyInAnyOrder("11 90000-0000", "11 91111-1111");
+    }
+
+    @Test
+    void editarEstado_deveBloquearTrocaDeUfQuandoHaGrupoVinculado() {
+        UUID regiaoId = UUID.randomUUID();
+        UUID estadoId = UUID.randomUUID();
+        RegiaoIntergrupo regiao = novaRegiao();
+        setId(regiao, regiaoId);
+        EstadoIntergrupo estado = novoEstado(regiao);
+        setId(estado, estadoId);
+        ReuniaoGrupoSincronizacaoService sync = mock(ReuniaoGrupoSincronizacaoService.class);
+        EscritorioRegionalService serviceComSync = new EscritorioRegionalService(regiaoRepository,
+                estadoRepository, grupoRepository, escritorioServicoRepository, sync);
+        when(estadoRepository.buscarPorIdComLock(estadoId)).thenReturn(Optional.of(estado));
+        when(sync.possuiVinculoNoEstado(estadoId)).thenReturn(true);
+
+        assertThatThrownBy(() -> serviceComSync.editarEstado(regiaoId, estadoId,
+                new EditarEstadoRequest("RJ")))
+                .isInstanceOf(ConflitoDeEstadoException.class)
+                .hasMessageContaining("UF");
+        verify(estadoRepository, never()).save(any());
+    }
+
+    @Test
+    void criarGrupo_devePermitirMultiplosHorariosNoMesmoDiaEOrdenarCronologicamente() {
+        UUID estadoId = UUID.randomUUID();
+        EstadoIntergrupo estado = novoEstado(novaRegiao());
+        when(estadoRepository.findById(estadoId)).thenReturn(Optional.of(estado));
+        when(grupoRepository.findAllByEstadoIdOrderByOrdemAsc(estadoId)).thenReturn(List.of());
+        when(grupoRepository.save(any(GrupoIntergrupo.class))).thenAnswer(inv -> inv.getArgument(0));
+        CriarGrupoRequest request = new CriarGrupoRequest("Grupo Multi", "Rua X", null, "Cidade",
+                List.of(new AgendaItemRequest("SEGUNDA", "20h"),
+                        new AgendaItemRequest("QUINTA", "19h"),
+                        new AgendaItemRequest("SEGUNDA", "18h30")), List.of());
+
+        GrupoIntergrupoResponse resultado = service.criarGrupo(estadoId, request);
+
+        assertThat(resultado.agenda()).extracting("diaSemana", "horario")
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("SEGUNDA", "18h30"),
+                        org.assertj.core.groups.Tuple.tuple("SEGUNDA", "20h"),
+                        org.assertj.core.groups.Tuple.tuple("QUINTA", "19h"));
+    }
+
+    @Test
+    void criarGrupo_deveRejeitarDuplicataExataNormalizada() {
+        UUID estadoId = UUID.randomUUID();
+        EstadoIntergrupo estado = novoEstado(novaRegiao());
+        when(estadoRepository.findById(estadoId)).thenReturn(Optional.of(estado));
+        CriarGrupoRequest request = new CriarGrupoRequest("Grupo Duplicado", "Rua X", null, "Cidade",
+                List.of(new AgendaItemRequest("SEGUNDA", "18h"),
+                        new AgendaItemRequest("segunda", " 18h ")), List.of());
+
+        assertThatThrownBy(() -> service.criarGrupo(estadoId, request))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("mesmo horário no mesmo dia");
+        verify(grupoRepository, never()).save(any());
+    }
+
+    @Test
+    void criarGrupo_deveRejeitarMaisDe336HorariosSemPersistir() {
+        UUID estadoId = UUID.randomUUID();
+        EstadoIntergrupo estado = novoEstado(novaRegiao());
+        when(estadoRepository.findById(estadoId)).thenReturn(Optional.of(estado));
+        List<AgendaItemRequest> agenda = IntStream.range(0, 337)
+                .mapToObj(i -> new AgendaItemRequest("SEGUNDA", "horário " + i))
+                .toList();
+        CriarGrupoRequest request = new CriarGrupoRequest("Grupo Limite", "Rua X", null, "Cidade",
+                agenda, List.of());
+
+        assertThatThrownBy(() -> service.criarGrupo(estadoId, request))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("336");
+        verify(grupoRepository, never()).save(any());
     }
 
     @Test

@@ -15,6 +15,7 @@ import br.com.jogadoresanonimos.reuniao.entity.DiaSemanaReuniao;
 import br.com.jogadoresanonimos.reuniao.entity.Reuniao;
 import br.com.jogadoresanonimos.reuniao.repository.ReuniaoRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
@@ -33,9 +34,17 @@ public class ReuniaoService {
     private static final String WHATSAPP_PADRAO = "11 99571-6942";
 
     private final ReuniaoRepository reuniaoRepository;
+    private final ReuniaoGrupoSincronizacaoService sincronizacaoService;
 
     public ReuniaoService(ReuniaoRepository reuniaoRepository) {
+        this(reuniaoRepository, null);
+    }
+
+    @Autowired
+    public ReuniaoService(ReuniaoRepository reuniaoRepository,
+                           ReuniaoGrupoSincronizacaoService sincronizacaoService) {
         this.reuniaoRepository = reuniaoRepository;
+        this.sincronizacaoService = sincronizacaoService;
     }
 
     @Transactional(readOnly = true)
@@ -58,12 +67,18 @@ public class ReuniaoService {
                 normalizarEstado(request.estado()), normalizar(request.linkReuniao()));
         reuniao.substituirAgenda(dadosAgenda.itens());
         reuniao = reuniaoRepository.save(reuniao);
+        if (sincronizacaoService != null) {
+            sincronizacaoService.vincularSeSolicitado(reuniao, request.grupoIntergrupoId());
+        }
         return ReuniaoResponse.from(reuniao);
     }
 
     @Transactional
     public ReuniaoResponse editar(UUID id, EditarReuniaoRequest request) {
-        Reuniao reuniao = buscarOuFalhar(id);
+        Reuniao reuniao = buscarParaEscrita(id);
+        if (sincronizacaoService != null) {
+            sincronizacaoService.validarVersao(reuniao.getAtualizadoEm(), request.atualizadoEm());
+        }
         DadosAgenda dadosAgenda = normalizarAgendaEdicao(reuniao, request);
         String localAntes = reuniao.getLocal();
         String cidadeAntes = reuniao.getCidade();
@@ -79,6 +94,9 @@ public class ReuniaoService {
                 normalizar(request.logradouro()), normalizar(request.bairro()), cidadeDepois,
                 estadoDepois, normalizar(request.linkReuniao()));
         reuniao.substituirAgenda(dadosAgenda.itens());
+        if (sincronizacaoService != null) {
+            sincronizacaoService.sincronizarAposEdicaoReuniao(reuniao);
+        }
         List<ReuniaoAvisoResponse> avisos = detectarAvisos(localAntes, localDepois, cidadeAntes, cidadeDepois,
                 estadoAntes, estadoDepois);
         return ReuniaoResponse.from(reuniao, avisos);
@@ -99,8 +117,12 @@ public class ReuniaoService {
 
     @Transactional
     public void remover(UUID id) {
-        Reuniao reuniao = buscarOuFalhar(id);
-        reuniaoRepository.delete(reuniao);
+        Reuniao reuniao = buscarParaEscrita(id);
+        if (sincronizacaoService == null) {
+            reuniaoRepository.delete(reuniao);
+        } else {
+            sincronizacaoService.removerPorReuniao(reuniao);
+        }
     }
 
     private String validarEDescricao(CategoriaReuniao categoria, String descricao) {
@@ -277,6 +299,13 @@ public class ReuniaoService {
     private Reuniao buscarOuFalhar(UUID id) {
         return reuniaoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.REUNIAO_NAO_ENCONTRADA, "Reunião não encontrada"));
+    }
+
+    private Reuniao buscarParaEscrita(UUID id) {
+        if (sincronizacaoService == null) {
+            return buscarOuFalhar(id);
+        }
+        return sincronizacaoService.bloquearReuniaoParaEscrita(id);
     }
 
     private record DadosAgenda(List<AgendaItemReuniao> itens, String dia, String horario,

@@ -11,7 +11,7 @@ public final class AgendaItemReuniaoComparator {
             "^\\s*([01]?\\d|2[0-3])\\s*(?:h\\s*([0-5]\\d)?|:\\s*([0-5]\\d))(?:h)?",
             Pattern.CASE_INSENSITIVE);
     private static final Comparator<AgendaItemReuniao> POR_DIA_E_HORARIO = Comparator
-            .comparingInt((AgendaItemReuniao item) -> item.getDiaSemana().ordinal())
+            .comparingInt((AgendaItemReuniao item) -> ordemSemanal(item.getDiaSemana()))
             .thenComparingInt(item -> minutosIniciais(item.getHorario()))
             .thenComparing(item -> textoFallback(item.getHorario()), String.CASE_INSENSITIVE_ORDER)
             .thenComparing(item -> textoFallback(item.getHorario()));
@@ -21,6 +21,18 @@ public final class AgendaItemReuniaoComparator {
 
     public static Comparator<AgendaItemReuniao> porDiaEHorario() {
         return POR_DIA_E_HORARIO;
+    }
+
+    private static int ordemSemanal(DiaSemanaReuniao diaSemana) {
+        return switch (diaSemana) {
+            case DOMINGO -> 0;
+            case SEGUNDA -> 1;
+            case TERCA -> 2;
+            case QUARTA -> 3;
+            case QUINTA -> 4;
+            case SEXTA -> 5;
+            case SABADO -> 6;
+        };
     }
 
     private static int minutosIniciais(String horario) {

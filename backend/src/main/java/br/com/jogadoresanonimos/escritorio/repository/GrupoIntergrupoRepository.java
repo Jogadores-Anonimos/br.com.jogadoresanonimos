@@ -17,4 +17,7 @@ public interface GrupoIntergrupoRepository extends JpaRepository<GrupoIntergrupo
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT g FROM GrupoIntergrupo g WHERE g.id = :id")
     Optional<GrupoIntergrupo> buscarPorIdComLock(UUID id);
+
+    @Query("SELECT g.estado.id FROM GrupoIntergrupo g WHERE g.id = :id")
+    Optional<UUID> buscarEstadoIdPorGrupoId(UUID id);
 }

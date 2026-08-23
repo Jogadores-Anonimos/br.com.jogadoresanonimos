@@ -924,3 +924,34 @@ dedicado)" no topo deste documento. Resumo para `frontend-services`:
   incluindo caminhos de `RecursoNaoEncontradoException`, e o caso de
   reunião presencial legada editada sem nenhum dos 6 campos de endereço
   estruturado).
+
+## SDD 2026-08-22 — vínculo canônico com Endereços
+
+`Reuniao` é a fonte canônica de nome, agenda, local, endereço
+estruturado e coordenadas. `GrupoIntergrupo` conserva região/UF
+organizacional, ordem e telefones, além de um espelho temporário dos
+campos compartilhados durante o rollout expand/contract.
+
+V14 adiciona `reuniao.grupo_intergrupo_id` nullable, FK com
+`ON DELETE RESTRICT` e unicidade parcial. O vínculo é 1:0..1 nos dois
+lados. Reuniões virtuais nunca aceitam o vínculo. Durante o dual-mode,
+presenciais antigas sem vínculo continuam funcionando e a aplicação não
+tenta pareá-las automaticamente.
+
+`CriarReuniaoRequest` aceita `grupoIntergrupoId` opcional. Quando
+informado numa presencial, a mesma transação bloqueia o grupo, valida a
+unicidade, cria o vínculo e atualiza o espelho. `EditarReuniaoRequest`
+aceita `atualizadoEm` opcional; quando informado, divergência com a
+versão lida retorna `409 REUNIAO_VERSAO_CONFLITO`. A ausência preserva
+clientes da fase anterior.
+
+Edição vinculada bloqueia os dois registros, atualiza a reunião e
+depois o espelho. Não há listener JPA nem trigger. Excluir qualquer
+lado vinculado remove ambos explicitamente; registros não vinculados
+nunca são apagados por essa operação. Converter uma vinculada em virtual
+retorna conflito.
+
+O mapa permanece uma projeção de `Reuniao`. Alteração de endereço sem
+novas coordenadas validadas limpa latitude/longitude para evitar marcador
+obsoleto. O script `backend/scripts/relatorio_backfill_reuniao_grupo.sql`
+é somente-leitura: classifica candidatos, mas nunca grava a FK.

@@ -1,5 +1,6 @@
 package br.com.jogadoresanonimos.reuniao.entity;
 
+import br.com.jogadoresanonimos.escritorio.entity.GrupoIntergrupo;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -10,6 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -82,6 +84,10 @@ public class Reuniao {
     @CollectionTable(name = "reuniao_horario", joinColumns = @JoinColumn(name = "reuniao_id"))
     private List<AgendaItemReuniao> agenda = new ArrayList<>();
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "grupo_intergrupo_id", unique = true)
+    private GrupoIntergrupo grupoIntergrupo;
+
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
 
@@ -153,6 +159,59 @@ public class Reuniao {
         this.agenda.clear();
         this.agenda.addAll(novaAgenda);
         this.atualizadoEm = Instant.now();
+    }
+
+    public void vincularGrupoIntergrupo(GrupoIntergrupo grupoIntergrupo) {
+        if (categoria == CategoriaReuniao.virtual && grupoIntergrupo != null) {
+            throw new IllegalStateException("Reunião virtual não pode possuir grupo intergrupo");
+        }
+        this.grupoIntergrupo = grupoIntergrupo;
+        this.atualizadoEm = Instant.now();
+    }
+
+    public void atualizarPeriodo(String periodo) {
+        this.periodo = periodo;
+        this.atualizadoEm = Instant.now();
+    }
+
+    public void sincronizarCamposCompartilhados(String nome, String local, String cep, String numero,
+                                                  String logradouro, String bairro, String cidade,
+                                                  String estado, Double latitude, Double longitude,
+                                                  boolean substituirEstrutura,
+                                                  List<AgendaItemReuniao> novaAgenda, String periodo) {
+        boolean enderecoMudou = !java.util.Objects.equals(this.local, local)
+                || !java.util.Objects.equals(this.bairro, bairro)
+                || !java.util.Objects.equals(this.cidade, cidade);
+        this.nome = nome;
+        this.local = local;
+        this.bairro = bairro;
+        this.cidade = cidade;
+        this.estado = estado;
+        if (enderecoMudou || substituirEstrutura) {
+            this.cep = cep;
+            this.numero = numero;
+            this.logradouro = logradouro;
+            this.latitude = latitude;
+            this.longitude = longitude;
+        }
+        AgendaItemReuniao primeiro = novaAgenda.getFirst();
+        this.dia = nomeLegivel(primeiro.getDiaSemana());
+        this.diaSemana = this.dia;
+        this.horario = primeiro.getHorario();
+        this.periodo = periodo;
+        substituirAgenda(novaAgenda);
+    }
+
+    private String nomeLegivel(DiaSemanaReuniao diaSemana) {
+        return switch (diaSemana) {
+            case SEGUNDA -> "Segunda";
+            case TERCA -> "Terça";
+            case QUARTA -> "Quarta";
+            case QUINTA -> "Quinta";
+            case SEXTA -> "Sexta";
+            case SABADO -> "Sábado";
+            case DOMINGO -> "Domingo";
+        };
     }
 
     public UUID getId() {
@@ -233,6 +292,10 @@ public class Reuniao {
 
     public List<AgendaItemReuniao> getAgenda() {
         return agenda;
+    }
+
+    public GrupoIntergrupo getGrupoIntergrupo() {
+        return grupoIntergrupo;
     }
 
     public Instant getCriadoEm() {

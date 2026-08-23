@@ -1,10 +1,10 @@
 package br.com.jogadoresanonimos.escritorio.dto;
 
 import br.com.jogadoresanonimos.escritorio.entity.AgendaItemGrupo;
+import br.com.jogadoresanonimos.escritorio.entity.AgendaItemGrupoComparator;
 import br.com.jogadoresanonimos.escritorio.entity.GrupoIntergrupo;
 
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,7 +17,7 @@ public record GrupoIntergrupoResponse(UUID id, UUID estadoId, String nome, Strin
         return new GrupoIntergrupoResponse(grupo.getId(), grupo.getEstado().getId(), grupo.getNome(),
                 grupo.getEndereco(), grupo.getBairro(), grupo.getCidade(),
                 grupo.getAgenda().stream()
-                        .sorted(Comparator.comparing(AgendaItemGrupo::getDiaSemana))
+                        .sorted(AgendaItemGrupoComparator.porDiaEHorario())
                         .map(AgendaItemResponse::from).toList(),
                 grupo.getTelefones().stream().map(GrupoTelefoneResponse::from).toList(), grupo.getOrdem(),
                 grupo.getCriadoEm(), grupo.getAtualizadoEm());
