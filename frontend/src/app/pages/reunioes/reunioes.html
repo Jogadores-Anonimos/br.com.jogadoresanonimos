@@ -166,7 +166,7 @@
           <div class="dia-secao">
             <h3 class="dia-secao-titulo">{{ grupo.dia }}</h3>
             <div class="reunioes-lista">
-              @for (item of grupo.itens; track item.reuniao.id + '-' + grupo.dia) {
+              @for (item of grupo.itens; track item.reuniao.id + '-' + item.horario) {
                 <div class="reuniao-card">
                   <h4>{{ item.reuniao.nome }}</h4>
                   <p class="reuniao-descricao">{{ item.reuniao.descricao }}</p>
