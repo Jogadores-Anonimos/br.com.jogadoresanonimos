@@ -1,4 +1,5 @@
 import {
+  AgendaItemGrupo,
   DiaSemana,
   EscritoriosRegionais,
   EstadoIntergrupo,
@@ -35,8 +36,9 @@ interface GrupoSeed {
   bairro?: string;
   cidade: string;
   telefones?: TelefoneSeed[];
-  diasSemana: DiaSemana[];
-  horario: string;
+  diasSemana?: DiaSemana[];
+  horario?: string;
+  agenda?: AgendaItemGrupo[];
 }
 
 function grupo(estadoId: string, ordem: number, seed: GrupoSeed): GrupoIntergrupo {
@@ -48,7 +50,9 @@ function grupo(estadoId: string, ordem: number, seed: GrupoSeed): GrupoIntergrup
     bairro: seed.bairro ?? null,
     cidade: seed.cidade,
     telefones: (seed.telefones ?? []).map(telefone),
-    agenda: seed.diasSemana.map((diaSemana) => ({ diaSemana, horario: seed.horario })),
+    agenda:
+      seed.agenda ??
+      (seed.diasSemana ?? []).map((diaSemana) => ({ diaSemana, horario: seed.horario ?? '' })),
     ordem,
     criadoEm: AGORA,
     atualizadoEm: AGORA,
@@ -92,8 +96,10 @@ const REGIOES_SEED: RegiaoIntergrupo[] = [
           endereco: 'R. Santa Ifigênia nº 30',
           bairro: 'Santa Ifigênia',
           cidade: 'São Paulo - SP',
-          diasSemana: ['DOMINGO'],
-          horario: '9h-11h',
+          agenda: [
+            { diaSemana: 'DOMINGO', horario: '9h-11h' },
+            { diaSemana: 'DOMINGO', horario: '14h-16h' },
+          ],
         },
         {
           nome: 'Grupo Pioneiro',

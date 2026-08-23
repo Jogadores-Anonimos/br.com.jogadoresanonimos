@@ -4,7 +4,7 @@ import { Observable, of } from 'rxjs';
 import { catchError, delay, map } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
-import { ApiEnvelope, apiError, apiSuccess } from '../api-envelope';
+import { ApiEnvelope, apiError, apiErrorDeHttpError, apiSuccess } from '../api-envelope';
 import {
   AgendaItemReuniao,
   BackfillGeolocalizacaoResponse,
@@ -42,7 +42,9 @@ export class ReuniaoService {
       );
     }
 
-    const ordenadas = [...REUNIOES_MOCK].sort((a, b) => a.nome.localeCompare(b.nome));
+    const ordenadas = REUNIOES_MOCK.map((reuniao) => this.normalizarReuniao(reuniao)).sort((a, b) =>
+      a.nome.localeCompare(b.nome),
+    );
     return of(apiSuccess(ordenadas)).pipe(delay(400));
   }
 
@@ -61,7 +63,9 @@ export class ReuniaoService {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<ReuniaoRespostaCompat>>(this.adminUrl, req).pipe(
         map((resposta) => this.normalizarEnvelope(resposta)),
-        catchError(() => of(apiError<Reuniao>('INTERNAL_ERROR', 'Não foi possível criar a reunião agora.'))),
+        catchError((erro) =>
+          of(apiErrorDeHttpError<Reuniao>(erro, 'INTERNAL_ERROR', 'Não foi possível criar a reunião agora.')),
+        ),
       );
     }
 
@@ -70,6 +74,7 @@ export class ReuniaoService {
       return of(apiError<Reuniao>('VALIDATION_ERROR', 'Preencha todos os campos obrigatórios.')).pipe(delay(300));
     }
     const primeiroHorario = agenda[0];
+    const agora = new Date().toISOString();
     const nova: Reuniao = {
       id: `mock-reuniao-${REUNIOES_MOCK.length + 1}`,
       nome: req.nome,
@@ -92,6 +97,8 @@ export class ReuniaoService {
       estado: req.estado?.trim() || null,
       linkReuniao: req.linkReuniao?.trim() || null,
       avisos: [],
+      grupoIntergrupoId: req.grupoIntergrupoId?.trim() || null,
+      atualizadoEm: agora,
     };
     REUNIOES_MOCK.push(nova);
     return of(apiSuccess(nova)).pipe(delay(500));
@@ -101,7 +108,9 @@ export class ReuniaoService {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<ReuniaoRespostaCompat>>(`${this.adminUrl}/${id}`, req).pipe(
         map((resposta) => this.normalizarEnvelope(resposta)),
-        catchError(() => of(apiError<Reuniao>('INTERNAL_ERROR', 'Não foi possível salvar as alterações.'))),
+        catchError((erro) =>
+          of(apiErrorDeHttpError<Reuniao>(erro, 'INTERNAL_ERROR', 'Não foi possível salvar as alterações.')),
+        ),
       );
     }
 
@@ -112,6 +121,14 @@ export class ReuniaoService {
     const agenda = this.agendaDoRequest(req);
     if (!req.nome?.trim() || !req.descricao?.trim() || agenda.length === 0 || !req.local?.trim()) {
       return of(apiError<Reuniao>('VALIDATION_ERROR', 'Preencha todos os campos obrigatórios.')).pipe(delay(300));
+    }
+    if (req.atualizadoEm && reuniao.atualizadoEm && req.atualizadoEm !== reuniao.atualizadoEm) {
+      return of(
+        apiError<Reuniao>(
+          'REUNIAO_VERSAO_CONFLITO',
+          'O registro foi alterado por outra operação; recarregue antes de salvar.',
+        ),
+      ).pipe(delay(300));
     }
     const primeiroHorario = agenda[0];
     const cidadeAnterior = reuniao.cidade;
@@ -137,6 +154,7 @@ export class ReuniaoService {
     reuniao.cidade = req.cidade?.trim() || null;
     reuniao.estado = req.estado?.trim() || null;
     reuniao.linkReuniao = req.linkReuniao?.trim() || null;
+    reuniao.atualizadoEm = new Date().toISOString();
 
     const enderecoMudou =
       reuniao.cidade !== cidadeAnterior || (reuniao.estado?.toUpperCase() ?? null) !== estadoAnterior;
@@ -199,7 +217,12 @@ export class ReuniaoService {
 
   private normalizarReuniao(reuniao: ReuniaoRespostaCompat): Reuniao {
     const agendaRecebida = reuniao.agenda?.length ? reuniao.agenda : this.agendaLegada(reuniao.diaSemana, reuniao.dia, reuniao.horario);
-    return { ...reuniao, agenda: this.ordenarAgenda(agendaRecebida) };
+    return {
+      ...reuniao,
+      agenda: this.ordenarAgenda(agendaRecebida),
+      grupoIntergrupoId: reuniao.grupoIntergrupoId ?? null,
+      atualizadoEm: reuniao.atualizadoEm ?? null,
+    };
   }
 
   private agendaDoRequest(req: CriarReuniaoRequest): AgendaItemReuniao[] {

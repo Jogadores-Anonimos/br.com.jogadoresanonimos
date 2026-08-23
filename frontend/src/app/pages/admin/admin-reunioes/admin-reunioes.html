@@ -127,6 +127,12 @@
 
           <p class="admin-reunioes__corpo">{{ reuniao.descricao }}</p>
           <p class="admin-reunioes__local">{{ reuniao.local }}</p>
+          <p class="admin-reunioes__local">
+            <strong>{{ statusVinculo(reuniao) }}</strong>
+            @if (reuniao.grupoIntergrupoId) {
+              · <a href="/admin/escritorios-regionais">Abrir em Endereços</a>
+            }
+          </p>
 
           @if (erroExclusao && confirmandoExclusao === reuniao.id) {
             <p class="admin-reunioes__erro-card" role="alert">
@@ -193,6 +199,49 @@
             required
           />
         </div>
+
+        @if (formulario.categoria === 'presencial') {
+          <fieldset class="admin-reunioes__agenda">
+            <legend>Vínculo com Endereços</legend>
+            @if (reuniaoEmEdicao) {
+              <p class="admin-reunioes__ajuda">
+                <strong>{{ statusVinculo(reuniaoEmEdicao) }}</strong>. O vínculo é definido na criação e os dados compartilhados são sincronizados.
+                <a href="/admin/escritorios-regionais">Abrir Endereços</a>
+              </p>
+            } @else {
+              <p class="admin-reunioes__ajuda">Opcional: vincule a reunião a um grupo existente ainda não sincronizado.</p>
+              <div class="admin-reunioes__campo-linha">
+                <div class="admin-reunioes__campo">
+                  <label for="reuniao-regiao">Região</label>
+                  <select id="reuniao-regiao" name="regiaoId" [(ngModel)]="formulario.regiaoId" (ngModelChange)="selecionarRegiao()">
+                    <option value="">Sem vínculo</option>
+                    @for (regiao of regioesComGrupos; track regiao.id) {
+                      <option [value]="regiao.id">{{ regiao.nome }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="admin-reunioes__campo">
+                  <label for="reuniao-uf">UF</label>
+                  <select id="reuniao-uf" name="ufVinculo" [(ngModel)]="formulario.uf" (ngModelChange)="selecionarUf()" [disabled]="!formulario.regiaoId">
+                    <option value="">Selecione</option>
+                    @for (estado of ufsDoFormulario; track estado.uf) {
+                      <option [value]="estado.uf">{{ estado.nome }} ({{ estado.uf }})</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              <div class="admin-reunioes__campo">
+                <label for="reuniao-grupo">Grupo</label>
+                <select id="reuniao-grupo" name="grupoIntergrupoId" [(ngModel)]="formulario.grupoIntergrupoId" (ngModelChange)="selecionarGrupo()" [disabled]="!formulario.uf">
+                  <option value="">Sem vínculo</option>
+                  @for (grupo of gruposDoFormulario; track grupo.id) {
+                    <option [value]="grupo.id">{{ grupo.nome }} — {{ grupo.cidade }}</option>
+                  }
+                </select>
+              </div>
+            }
+          </fieldset>
+        }
 
         <div class="admin-reunioes__campo">
           <label for="reuniao-categoria">Categoria</label>
@@ -299,6 +348,7 @@
                 placeholder="00000-000"
                 maxlength="9"
                 [(ngModel)]="formulario.cep"
+                (ngModelChange)="limparCoordenadas()"
                 name="cep"
               />
             </div>
@@ -310,6 +360,7 @@
                 type="text"
                 placeholder="Ex: 123"
                 [(ngModel)]="formulario.numero"
+                (ngModelChange)="limparCoordenadas()"
                 name="numero"
               />
             </div>
@@ -321,6 +372,9 @@
             </button>
             @if (erroCep) {
               <p class="admin-reunioes__erro-card" role="alert">{{ erroCep }}</p>
+            }
+            @if (avisoGeocodificacao) {
+              <p class="admin-reunioes__ajuda" role="status">{{ avisoGeocodificacao }}</p>
             }
             <p class="admin-reunioes__ajuda">
               Preenche automaticamente o campo "Endereço" e a localização no mapa.
@@ -335,6 +389,7 @@
               name="local"
               [(ngModel)]="formulario.local"
               (ngModelChange)="limparAvisoEnderecoLocalDivergente()"
+              (change)="limparCoordenadas()"
               [class.campo-invalido]="errosCampo['local']"
               [attr.aria-invalid]="errosCampo['local'] ? 'true' : null"
               required
@@ -357,6 +412,7 @@
                 type="text"
                 name="logradouro"
                 [(ngModel)]="formulario.logradouro"
+                (ngModelChange)="limparCoordenadas()"
               />
             </div>
 
@@ -367,6 +423,7 @@
                 type="text"
                 name="bairro"
                 [(ngModel)]="formulario.bairro"
+                (ngModelChange)="limparCoordenadas()"
               />
             </div>
           </div>
@@ -379,6 +436,7 @@
                 type="text"
                 name="cidade"
                 [(ngModel)]="formulario.cidade"
+                (ngModelChange)="limparCoordenadas()"
               />
             </div>
 
@@ -390,7 +448,12 @@
                 name="estado"
                 maxlength="2"
                 [(ngModel)]="formulario.estado"
+                (ngModelChange)="limparCoordenadas()"
+                [disabled]="!!reuniaoEmEdicao?.grupoIntergrupoId"
               />
+              @if (reuniaoEmEdicao?.grupoIntergrupoId) {
+                <span class="admin-reunioes__ajuda">A UF é definida pelo grupo vinculado e não pode divergir.</span>
+              }
             </div>
           </div>
         }
@@ -469,6 +532,11 @@
 
     @if (erroFormulario) {
       <p class="admin-reunioes__erro-card" role="alert">{{ erroFormulario }}</p>
+      @if (conflitoVersao) {
+        <button type="button" class="admin-reunioes__botao admin-reunioes__botao--secundario" (click)="recarregarAposConflito()">
+          Recarregar dados sem perder o rascunho
+        </button>
+      }
     }
 
     <div class="admin-reunioes__acoes">

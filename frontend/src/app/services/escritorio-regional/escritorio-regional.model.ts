@@ -136,9 +136,24 @@ export interface CriarGrupoRequest {
   cidade: string;
   agenda: AgendaItemGrupo[];
   telefones: CriarGrupoTelefoneRequest[];
+  cep?: string;
+  numero?: string;
+  logradouro?: string;
+  estado?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
-export type EditarGrupoRequest = CriarGrupoRequest;
+export interface EditarGrupoRequest extends CriarGrupoRequest {
+  cep?: string;
+  numero?: string;
+  logradouro?: string;
+  estado?: string;
+  latitude?: number;
+  longitude?: number;
+  /** Versão canônica da reunião vinculada; opcional para grupos legados. */
+  atualizadoEm?: string;
+}
 
 export interface CriarEnderecoGrupoRequest {
   uf: string;
@@ -148,6 +163,12 @@ export interface CriarEnderecoGrupoRequest {
   cidade: string;
   agenda: AgendaItemGrupo[];
   telefones: CriarGrupoTelefoneRequest[];
+  cep?: string;
+  numero?: string;
+  logradouro?: string;
+  estado?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface CriarEscritorioTelefoneRequest {

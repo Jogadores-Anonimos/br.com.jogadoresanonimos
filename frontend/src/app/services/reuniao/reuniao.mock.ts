@@ -28,6 +28,8 @@ export const REUNIOES_MOCK: Reuniao[] = [
     estado: null,
     linkReuniao: null,
     avisos: [],
+    grupoIntergrupoId: null,
+    atualizadoEm: '2026-08-22T21:00:00.000Z',
   },
   {
     id: 'reuniao-2',

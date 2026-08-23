@@ -8,6 +8,7 @@ import { AdminReunioes } from './admin-reunioes';
 import { ReuniaoService } from '../../../services/reuniao/reuniao';
 import { Reuniao } from '../../../services/reuniao/reuniao.model';
 import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
+import { EscritorioRegionalService } from '../../../services/escritorio-regional/escritorio-regional';
 import { EnderecoViaCep, ResultadoNominatim } from '../../../services/endereco-lookup/endereco-lookup.model';
 import { apiError, apiSuccess } from '../../../services/api-envelope';
 
@@ -91,6 +92,10 @@ describe('AdminReunioes', () => {
         provideHttpClientTesting(),
         { provide: ReuniaoService, useValue: reuniaoServiceSpy },
         { provide: EnderecoLookupService, useValue: enderecoLookupServiceSpy },
+        {
+          provide: EscritorioRegionalService,
+          useValue: { listarEstruturaAdmin: vi.fn().mockReturnValue(of(apiSuccess({ escritorios: [], regioes: [] }))) },
+        },
       ],
     }).compileComponents();
 
@@ -360,6 +365,39 @@ describe('AdminReunioes', () => {
 
       expect(reuniaoServiceSpy['criarReuniaoAdmin']).not.toHaveBeenCalled();
       expect(component.errosCampo['agenda.SEGUNDA']).toContain('repita');
+    });
+
+    it('envia vínculo escolhido somente na criação presencial', () => {
+      component.abrirNovo();
+      component.formulario.nome = 'Grupo vinculado';
+      component.formulario.descricao = 'Descrição';
+      component.formulario.local = 'Rua Um';
+      component.formulario.grupoIntergrupoId = 'grupo-1';
+      selecionarAgenda('SEGUNDA', '19:00');
+
+      component.salvar();
+
+      expect(reuniaoServiceSpy['criarReuniaoAdmin']).toHaveBeenCalledWith(
+        expect.objectContaining({ grupoIntergrupoId: 'grupo-1' }),
+      );
+    });
+
+    it('preserva o rascunho e oferece recarga no conflito de versão', () => {
+      reuniaoServiceSpy['editarReuniaoAdmin'].mockReturnValue(
+        of(apiError('REUNIAO_VERSAO_CONFLITO', 'Registro alterado.')),
+      );
+      component.abrirEdicao(reuniaoFake({ atualizadoEm: '2026-08-22T20:00:00Z' }));
+      component.formulario.nome = 'Meu rascunho';
+
+      component.salvar();
+
+      expect(component.formulario.nome).toBe('Meu rascunho');
+      expect(component.modo).toBe('formulario');
+      expect(component.conflitoVersao).toBe(true);
+      expect(reuniaoServiceSpy['editarReuniaoAdmin']).toHaveBeenCalledWith(
+        'reuniao-1',
+        expect.objectContaining({ atualizadoEm: '2026-08-22T20:00:00Z' }),
+      );
     });
 
     it('adiciona e remove linhas de horário, desmarca o dia e devolve o foco ao checkbox', async () => {

@@ -43,6 +43,8 @@ describe('ReuniaoService', () => {
     httpMock.expectOne(publicaUrl).flush(apiSuccess([reuniaoLegada]));
     const resposta = await promise;
     expect(resposta.data?.[0].agenda).toEqual([{ diaSemana: 'TERCA', horario: '19h30' }]);
+    expect(resposta.data?.[0].grupoIntergrupoId).toBeNull();
+    expect(resposta.data?.[0].atualizadoEm).toBeNull();
   });
   it('preserva ocorrências e ordena a agenda por dia e horário', async () => {
     const promise = firstValueFrom(service.listarReunioes());
@@ -83,6 +85,7 @@ describe('ReuniaoService', () => {
       local: 'Centro',
       diaSemana: 'Segunda',
       periodo: 'Noite',
+      grupoIntergrupoId: 'grupo-1',
     };
     service.criarReuniaoAdmin(request).subscribe();
     const chamada = httpMock.expectOne(`${environment.apiBaseUrl}/admin/reunioes`);
@@ -103,6 +106,7 @@ describe('ReuniaoService', () => {
       local: 'Centro',
       diaSemana: 'Segunda',
       periodo: 'Noite',
+      atualizadoEm: '2026-08-22T20:00:00Z',
     };
     const promise = firstValueFrom(service.editarReuniaoAdmin('reuniao-1', request));
     const chamada = httpMock.expectOne(`${environment.apiBaseUrl}/admin/reunioes/reuniao-1`);
@@ -114,5 +118,28 @@ describe('ReuniaoService', () => {
       { diaSemana: 'SEGUNDA', horario: '19h30' },
       { diaSemana: 'QUINTA', horario: '20h30' },
     ]);
+  });
+
+  it('preserva o conflito de versão 409 retornado ao editar', async () => {
+    const request = {
+      nome: 'Grupo Centro',
+      categoria: 'presencial' as const,
+      descricao: 'Descrição',
+      agenda: [{ diaSemana: 'SEGUNDA' as const, horario: '19h30' }],
+      local: 'Centro',
+      atualizadoEm: '2026-08-22T20:00:00Z',
+    };
+    const promise = firstValueFrom(service.editarReuniaoAdmin('reuniao-1', request));
+    httpMock.expectOne(`${environment.apiBaseUrl}/admin/reunioes/reuniao-1`).flush(
+      {
+        success: false,
+        data: null,
+        error: { code: 'REUNIAO_VERSAO_CONFLITO', message: 'Recarregue antes de salvar.' },
+      },
+      { status: 409, statusText: 'Conflict' },
+    );
+
+    const resposta = await promise;
+    expect(resposta.error?.code).toBe('REUNIAO_VERSAO_CONFLITO');
   });
 });

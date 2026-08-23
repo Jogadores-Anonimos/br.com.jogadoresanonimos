@@ -53,6 +53,7 @@
 
         @if (modoFormularioRegiao !== 'fechado') {
           <form
+            #formularioEnderecoSecao
             class="admin-escritorios__formulario"
             (ngSubmit)="salvarRegiao()"
           >
@@ -96,7 +97,10 @@
             class="admin-escritorios__formulario"
             (ngSubmit)="salvarEndereco()"
           >
-            <h3 class="admin-escritorios__formulario-titulo">Cadastrar endereço</h3>
+            <h3 class="admin-escritorios__formulario-titulo">Cadastrar grupo e reunião presencial</h3>
+            <p class="admin-escritorios__ajuda" role="status">
+              Este fluxo cria o grupo em Endereços e sua reunião presencial sincronizada em uma única operação.
+            </p>
 
             <div class="admin-escritorios__campo">
               <label for="endereco-regiao">Região</label>
@@ -104,6 +108,7 @@
                 id="endereco-regiao"
                 name="regiaoId"
                 [(ngModel)]="formularioEndereco.regiaoId"
+                (ngModelChange)="selecionarRegiaoEndereco()"
                 [class.campo-invalido]="errosCampoEndereco['regiaoId']"
                 [attr.aria-invalid]="errosCampoEndereco['regiaoId'] ? 'true' : null"
                 required
@@ -126,12 +131,13 @@
                   maxlength="9"
                   name="cepEndereco"
                   [(ngModel)]="cepEndereco"
+                  (ngModelChange)="limparGeocodificacaoEndereco()"
                 />
               </div>
 
               <div class="admin-escritorios__campo">
                 <label for="endereco-numero">Número</label>
-                <input id="endereco-numero" type="text" placeholder="Ex: 123" name="numeroEndereco" [(ngModel)]="numeroEndereco" />
+                <input id="endereco-numero" type="text" placeholder="Ex: 123" name="numeroEndereco" [(ngModel)]="numeroEndereco" (ngModelChange)="limparGeocodificacaoEndereco()" />
               </div>
             </div>
 
@@ -147,6 +153,9 @@
               @if (erroCepEndereco) {
                 <p class="admin-escritorios__erro-card" role="alert">{{ erroCepEndereco }}</p>
               }
+              @if (avisoGeocodificacaoEndereco) {
+                <p class="admin-escritorios__ajuda" role="status">{{ avisoGeocodificacaoEndereco }}</p>
+              }
               <p class="admin-escritorios__ajuda">Preenche automaticamente UF, cidade, bairro e endereço. Os campos continuam editáveis.</p>
             </div>
 
@@ -156,12 +165,13 @@
                 id="endereco-uf"
                 name="uf"
                 [(ngModel)]="formularioEndereco.uf"
+                (ngModelChange)="limparGeocodificacaoEndereco()"
                 [class.campo-invalido]="errosCampoEndereco['uf']"
                 [attr.aria-invalid]="errosCampoEndereco['uf'] ? 'true' : null"
                 required
               >
                 <option value="" disabled>Selecione</option>
-                @for (uf of unidadesFederativas; track uf.sigla) {
+                @for (uf of ufsEnderecoDisponiveis; track uf.sigla) {
                   <option [value]="uf.sigla">{{ uf.nome }} ({{ uf.sigla }})</option>
                 }
               </select>
@@ -174,6 +184,7 @@
                 type="text"
                 name="endereco"
                 [(ngModel)]="formularioEndereco.endereco"
+                (ngModelChange)="limparGeocodificacaoEndereco()"
                 [class.campo-invalido]="errosCampoEndereco['endereco']"
                 [attr.aria-invalid]="errosCampoEndereco['endereco'] ? 'true' : null"
                 required
@@ -182,7 +193,7 @@
 
             <div class="admin-escritorios__campo">
               <label for="endereco-bairro">Bairro (opcional)</label>
-              <input id="endereco-bairro" type="text" name="bairro" [(ngModel)]="formularioEndereco.bairro" />
+              <input id="endereco-bairro" type="text" name="bairro" [(ngModel)]="formularioEndereco.bairro" (ngModelChange)="limparGeocodificacaoEndereco()" />
             </div>
 
             <div class="admin-escritorios__campo">
@@ -192,6 +203,7 @@
                 type="text"
                 name="cidade"
                 [(ngModel)]="formularioEndereco.cidade"
+                (ngModelChange)="limparGeocodificacaoEndereco()"
                 [class.campo-invalido]="errosCampoEndereco['cidade']"
                 [attr.aria-invalid]="errosCampoEndereco['cidade'] ? 'true' : null"
                 required
@@ -223,6 +235,7 @@
                   <div class="admin-escritorios__dia-opcao">
                     <label>
                       <input
+                        [id]="'endereco-dia-' + dia.valor"
                         type="checkbox"
                         [checked]="diaSelecionadoEndereco(dia.valor)"
                         (change)="alternarDiaSemanaEndereco(dia.valor, $any($event.target).checked)"
@@ -230,18 +243,22 @@
                       {{ dia.rotulo }}
                     </label>
                     @if (diaSelecionadoEndereco(dia.valor)) {
-                      <select
-                        [attr.aria-label]="'Horário de ' + dia.rotulo"
-                        [ngModel]="horarioDoDiaEndereco(dia.valor)"
-                        (ngModelChange)="definirHorarioDoDiaEndereco(dia.valor, $event)"
-                        [name]="'endereco-horario-' + dia.valor"
-                        required
-                      >
-                        <option value="" disabled>Selecione</option>
-                        @for (h of horarios; track h) {
-                          <option [value]="h">{{ h }}</option>
-                        }
-                      </select>
+                      @for (item of horariosDoDiaEndereco(dia.valor); track item.id; let indice = $index) {
+                        <div class="admin-escritorios__campo-linha">
+                          <select
+                            [attr.aria-label]="'Horário ' + (indice + 1) + ' de ' + dia.rotulo"
+                            [ngModel]="item.horario"
+                            (ngModelChange)="definirHorarioEndereco(item.id, $event)"
+                            [name]="'endereco-horario-' + item.id"
+                            required
+                          >
+                            <option value="" disabled>Selecione</option>
+                            @for (h of horarios; track h) { <option [value]="h">{{ h }}</option> }
+                          </select>
+                          <button type="button" class="admin-escritorios__botao admin-escritorios__botao--perigo admin-escritorios__botao--pequeno" (click)="removerHorarioEndereco(item.id)" [attr.aria-label]="'Remover horário ' + (indice + 1) + ' de ' + dia.rotulo">Remover</button>
+                        </div>
+                      }
+                      <button type="button" class="admin-escritorios__botao admin-escritorios__botao--secundario admin-escritorios__botao--pequeno" (click)="adicionarHorarioEndereco(dia.valor)">+ Adicionar horário</button>
                     }
                   </div>
                 }
@@ -306,8 +323,8 @@
             }
 
             <div class="admin-escritorios__acoes">
-              <button type="submit" class="admin-escritorios__botao admin-escritorios__botao--primario" [disabled]="salvandoEndereco">
-                {{ salvandoEndereco ? 'Salvando…' : 'Salvar' }}
+              <button type="submit" class="admin-escritorios__botao admin-escritorios__botao--primario" [disabled]="salvandoEndereco || buscandoCepEndereco">
+                {{ salvandoEndereco ? 'Salvando…' : buscandoCepEndereco ? 'Aguardando endereço…' : 'Salvar' }}
               </button>
               <button
                 type="button"
@@ -527,6 +544,7 @@
 
           @if (modoFormularioGrupo !== 'fechado') {
             <form
+              #formularioGrupoSecao
               class="admin-escritorios__formulario"
               (ngSubmit)="salvarGrupo()"
             >
@@ -558,12 +576,13 @@
                     maxlength="9"
                     name="cepGrupo"
                     [(ngModel)]="cepGrupo"
+                    (ngModelChange)="limparGeocodificacaoGrupo()"
                   />
                 </div>
 
                 <div class="admin-escritorios__campo">
                   <label for="grupo-numero">Número</label>
-                  <input id="grupo-numero" type="text" placeholder="Ex: 123" name="numeroGrupo" [(ngModel)]="numeroGrupo" />
+                  <input id="grupo-numero" type="text" placeholder="Ex: 123" name="numeroGrupo" [(ngModel)]="numeroGrupo" (ngModelChange)="limparGeocodificacaoGrupo()" />
                 </div>
               </div>
 
@@ -579,6 +598,9 @@
                 @if (erroCepGrupo) {
                   <p class="admin-escritorios__erro-card" role="alert">{{ erroCepGrupo }}</p>
                 }
+                @if (avisoGeocodificacaoGrupo) {
+                  <p class="admin-escritorios__ajuda" role="status">{{ avisoGeocodificacaoGrupo }}</p>
+                }
                 <p class="admin-escritorios__ajuda">Preenche automaticamente os campos de endereço, bairro e cidade.</p>
               </div>
 
@@ -589,6 +611,7 @@
                   type="text"
                   name="endereco"
                   [(ngModel)]="formularioGrupo.endereco"
+                  (ngModelChange)="limparGeocodificacaoGrupo()"
                   [class.campo-invalido]="errosCampoGrupo['endereco']"
                   [attr.aria-invalid]="errosCampoGrupo['endereco'] ? 'true' : null"
                   required
@@ -597,7 +620,7 @@
 
               <div class="admin-escritorios__campo">
                 <label for="grupo-bairro">Bairro (opcional)</label>
-                <input id="grupo-bairro" type="text" name="bairro" [(ngModel)]="formularioGrupo.bairro" />
+                <input id="grupo-bairro" type="text" name="bairro" [(ngModel)]="formularioGrupo.bairro" (ngModelChange)="limparGeocodificacaoGrupo()" />
               </div>
 
               <div class="admin-escritorios__campo">
@@ -607,6 +630,7 @@
                   type="text"
                   name="cidade"
                   [(ngModel)]="formularioGrupo.cidade"
+                  (ngModelChange)="limparGeocodificacaoGrupo()"
                   [class.campo-invalido]="errosCampoGrupo['cidade']"
                   [attr.aria-invalid]="errosCampoGrupo['cidade'] ? 'true' : null"
                   required
@@ -625,25 +649,30 @@
                     <div class="admin-escritorios__dia-opcao">
                       <label>
                         <input
+                          [id]="'grupo-dia-' + dia.valor"
                           type="checkbox"
                           [checked]="diaSelecionado(dia.valor)"
                           (change)="alternarDiaSemana(dia.valor, $any($event.target).checked)"
                         />
                         {{ dia.rotulo }}
                       </label>
-                      @if (diaSelecionado(dia.valor)) {
-                        <select
-                          [attr.aria-label]="'Horário de ' + dia.rotulo"
-                          [ngModel]="horarioDoDia(dia.valor)"
-                          (ngModelChange)="definirHorarioDoDia(dia.valor, $event)"
-                          [name]="'horario-' + dia.valor"
-                          required
-                        >
-                          <option value="" disabled>Selecione</option>
-                          @for (h of horarios; track h) {
-                            <option [value]="h">{{ h }}</option>
-                          }
-                        </select>
+                    @if (diaSelecionado(dia.valor)) {
+                        @for (item of horariosDoDia(dia.valor); track item.id; let indice = $index) {
+                          <div class="admin-escritorios__campo-linha">
+                            <select
+                              [attr.aria-label]="'Horário ' + (indice + 1) + ' de ' + dia.rotulo"
+                              [ngModel]="item.horario"
+                              (ngModelChange)="definirHorarioGrupo(item.id, $event)"
+                              [name]="'horario-' + item.id"
+                              required
+                            >
+                              <option value="" disabled>Selecione</option>
+                              @for (h of horarios; track h) { <option [value]="h">{{ h }}</option> }
+                            </select>
+                            <button type="button" class="admin-escritorios__botao admin-escritorios__botao--perigo admin-escritorios__botao--pequeno" (click)="removerHorarioGrupo(item.id)" [attr.aria-label]="'Remover horário ' + (indice + 1) + ' de ' + dia.rotulo">Remover</button>
+                          </div>
+                        }
+                        <button type="button" class="admin-escritorios__botao admin-escritorios__botao--secundario admin-escritorios__botao--pequeno" (click)="adicionarHorarioGrupo(dia.valor)">+ Adicionar horário</button>
                       }
                     </div>
                   }
@@ -705,11 +734,14 @@
 
               @if (erroFormularioGrupo) {
                 <p class="admin-escritorios__erro-card" role="alert">{{ erroFormularioGrupo }}</p>
+                @if (conflitoVersaoGrupo) {
+                  <button type="button" class="admin-escritorios__botao admin-escritorios__botao--secundario" (click)="recarregarGrupoAposConflito()">Recarregar sem perder o rascunho</button>
+                }
               }
 
               <div class="admin-escritorios__acoes">
-                <button type="submit" class="admin-escritorios__botao admin-escritorios__botao--primario" [disabled]="salvandoGrupo">
-                  {{ salvandoGrupo ? 'Salvando…' : 'Salvar' }}
+                <button type="submit" class="admin-escritorios__botao admin-escritorios__botao--primario" [disabled]="salvandoGrupo || buscandoCepGrupo">
+                  {{ salvandoGrupo ? 'Salvando…' : buscandoCepGrupo ? 'Aguardando endereço…' : 'Salvar' }}
                 </button>
                 <button
                   type="button"
@@ -742,6 +774,10 @@
                         · {{ grupo.telefones[0].label ? grupo.telefones[0].label + ': ' : '' }}{{ grupo.telefones[0].telefone
                         }}@if (grupo.telefones.length > 1) { (+{{ grupo.telefones.length - 1 }})}
                       }
+                    </p>
+                    <p class="admin-escritorios__item-meta">
+                      <strong>{{ grupoEstaSincronizado(grupo) ? 'Sincronizado com Reuniões' : 'Não vinculado' }}</strong>
+                      · <a href="/admin/reunioes">Abrir Reuniões</a>
                     </p>
                   </div>
 

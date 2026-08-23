@@ -61,6 +61,23 @@ describe('EscritorioRegionalService', () => {
     };
   }
 
+  function grupoFake(overrides: Partial<GrupoIntergrupo> = {}): GrupoIntergrupo {
+    return {
+      id: 'grupo-fake-1',
+      estadoId: 'estado-fake-1',
+      nome: 'Grupo Teste',
+      endereco: 'Rua Fake, 100',
+      bairro: null,
+      cidade: 'Cidade Fake - UF',
+      telefones: [],
+      agenda: [{ diaSemana: 'SEGUNDA', horario: '19:00' }],
+      ordem: 0,
+      criadoEm: '2026-01-01T00:00:00.000Z',
+      atualizadoEm: '2026-08-22T20:00:00.000Z',
+      ...overrides,
+    };
+  }
+
   it('criarEstadoAdmin envia o payload correto no corpo da requisição', () => {
     const req: CriarEstadoRequest = { uf: 'SP' };
     const regiaoId = 'regiao-fake-1';
@@ -114,6 +131,7 @@ describe('EscritorioRegionalService', () => {
       endereco: 'Rua Fake, 100',
       cidade: 'Cidade Fake - UF',
       agenda: [
+        { diaSemana: 'SEGUNDA', horario: '9h' },
         { diaSemana: 'SEGUNDA', horario: '19:00' },
         { diaSemana: 'QUARTA', horario: '19:00' },
         { diaSemana: 'SEXTA', horario: '20:30' },
@@ -129,7 +147,7 @@ describe('EscritorioRegionalService', () => {
     const chamada = httpMock.expectOne(`${adminUrl}/estados/estado-fake-1/grupos`);
     expect(chamada.request.method).toBe('POST');
     expect(chamada.request.body).toEqual(req);
-    expect(chamada.request.body.agenda).toHaveLength(3);
+    expect(chamada.request.body.agenda).toHaveLength(4);
     expect(chamada.request.body.telefones).toHaveLength(2);
     chamada.flush(
       apiSuccess({
@@ -146,6 +164,55 @@ describe('EscritorioRegionalService', () => {
         atualizadoEm: '2026-01-01T00:00:00.000Z',
       } satisfies GrupoIntergrupo),
     );
+  });
+
+  it('ordena agenda projetada por dia e hora sem colapsar horários do mesmo dia', async () => {
+    const promise = firstValueFrom(service.listarEstruturaAdmin());
+    const grupo = grupoFake({
+      agenda: [
+        { diaSemana: 'SEGUNDA', horario: '20h' },
+        { diaSemana: 'DOMINGO', horario: '14:00' },
+        { diaSemana: 'SEGUNDA', horario: '9h30' },
+        { diaSemana: 'DOMINGO', horario: '9h' },
+      ],
+    });
+    const estrutura: EscritoriosRegionais = {
+      escritorios: [],
+      regioes: [regiaoFake({ estados: [estadoFake({ grupos: [grupo] })] })],
+    };
+    httpMock.expectOne(adminUrl).flush(apiSuccess(estrutura));
+
+    const agenda = (await promise).data?.regioes[0].estados[0].grupos[0].agenda;
+    expect(agenda).toEqual([
+      { diaSemana: 'DOMINGO', horario: '9h' },
+      { diaSemana: 'DOMINGO', horario: '14:00' },
+      { diaSemana: 'SEGUNDA', horario: '9h30' },
+      { diaSemana: 'SEGUNDA', horario: '20h' },
+    ]);
+  });
+
+  it('envia atualizadoEm ao editar grupo e preserva conflito de versão 409', async () => {
+    const req = {
+      nome: 'Grupo Teste',
+      endereco: 'Rua Fake, 100',
+      cidade: 'Cidade Fake - UF',
+      agenda: [{ diaSemana: 'SEGUNDA' as const, horario: '19:00' }],
+      telefones: [],
+      atualizadoEm: '2026-08-22T20:00:00.000Z',
+    };
+    const promise = firstValueFrom(service.editarGrupoAdmin('estado-fake-1', 'grupo-fake-1', req));
+    const chamada = httpMock.expectOne(`${adminUrl}/estados/estado-fake-1/grupos/grupo-fake-1`);
+    expect(chamada.request.body.atualizadoEm).toBe(req.atualizadoEm);
+    chamada.flush(
+      {
+        success: false,
+        data: null,
+        error: { code: 'REUNIAO_VERSAO_CONFLITO', message: 'Recarregue antes de salvar.' },
+      },
+      { status: 409, statusText: 'Conflict' },
+    );
+
+    expect((await promise).error?.code).toBe('REUNIAO_VERSAO_CONFLITO');
   });
 
   it('moverRegiaoParaCima chama o endpoint POST mover-cima', () => {

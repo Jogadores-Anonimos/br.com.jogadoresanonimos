@@ -347,11 +347,23 @@
 
 .admin-escritorios__dia-opcao {
   display: flex;
-  align-items: center;
+  flex: 1 1 16rem;
+  flex-direction: column;
+  align-items: stretch;
   gap: var(--spacing-xs);
+  padding: var(--spacing-xs);
   color: var(--color-text);
   font-size: 0.9rem;
   font-weight: normal;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.admin-escritorios__dia-opcao > label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-weight: var(--font-weight-semibold);
 }
 
 .admin-escritorios__dia-opcao input[type='checkbox'] {

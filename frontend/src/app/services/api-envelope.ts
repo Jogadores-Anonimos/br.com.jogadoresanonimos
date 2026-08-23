@@ -75,6 +75,9 @@ export const ERROR_CODE_MENSAGENS: Record<string, string> = {
   USUARIO_LIMITE_ADMIN_ATINGIDO: 'Não é possível promover: o limite máximo de administradores já foi atingido.',
   USUARIO_PROMOCAO_MFA_NAO_CONFIGURADO: 'Configure a autenticação em duas etapas na sua conta antes de promover outro usuário a administrador.',
   USUARIO_PROMOCAO_TOTP_INVALIDO: 'Código de autenticação em duas etapas ausente ou incorreto.',
+  REUNIAO_GRUPO_CONFLITO: 'Este grupo já está vinculado a outra reunião.',
+  REUNIAO_VERSAO_CONFLITO: 'Este registro foi alterado. Recarregue os dados antes de salvar novamente.',
+  REUNIAO_GRUPO_DADOS_INVALIDOS: 'Confira os dados compartilhados entre a reunião e o endereço.',
   AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO: 'Link de confirmação inválido ou expirado.',
   USUARIO_SENHA_IGUAL_ATUAL: 'A nova senha não pode ser igual à senha atual.',
 };

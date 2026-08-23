@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { mapearErrosCampo } from '../../../services/api-envelope';
+import { mapearErrosCampo, mensagemDeErro } from '../../../services/api-envelope';
 import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
 import { EnderecoViaCep } from '../../../services/endereco-lookup/endereco-lookup.model';
 import { EscritorioRegionalService } from '../../../services/escritorio-regional/escritorio-regional';
@@ -16,8 +16,11 @@ import {
   GrupoIntergrupo,
   RegiaoIntergrupo,
   UNIDADES_FEDERATIVAS,
+  UnidadeFederativaComRegiao,
 } from '../../../services/escritorio-regional/escritorio-regional.model';
 import { AdminEscritoriosServico } from './admin-escritorios-servico/admin-escritorios-servico';
+import { ReuniaoService } from '../../../services/reuniao/reuniao';
+import { Reuniao } from '../../../services/reuniao/reuniao.model';
 
 type Aba = 'escritorios' | 'enderecos';
 
@@ -61,6 +64,15 @@ interface FormularioEndereco {
   cidade: string;
   agenda: FormularioAgendaItem[];
   telefones: FormularioTelefone[];
+}
+
+interface DadosGeocodificacao {
+  cep?: string;
+  numero?: string;
+  logradouro?: string;
+  estado?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 function formularioRegiaoVazio(): FormularioRegiao {
@@ -129,10 +141,16 @@ function proximoIdAgendaFormulario(): string {
 export class AdminEscritoriosRegionais implements OnInit {
   private readonly service = inject(EscritorioRegionalService);
   private readonly enderecoLookupService = inject(EnderecoLookupService);
+  private readonly reuniaoService = inject(ReuniaoService);
+
+  @ViewChild('formularioEnderecoSecao') formularioEnderecoSecao?: ElementRef<HTMLElement>;
+  @ViewChild('formularioGrupoSecao') formularioGrupoSecao?: ElementRef<HTMLElement>;
 
   readonly unidadesFederativas = UNIDADES_FEDERATIVAS;
   readonly diasSemana = DIAS_SEMANA;
   readonly horarios = gerarHorarios();
+  unidadesFederativasComRegiao: UnidadeFederativaComRegiao[] = [];
+  reunioesAdmin: Reuniao[] = [];
 
   carregando = true;
   erroCarregamento = '';
@@ -160,6 +178,7 @@ export class AdminEscritoriosRegionais implements OnInit {
 
   salvandoGrupo = false;
   erroFormularioGrupo = '';
+  conflitoVersaoGrupo = false;
   errosCampoGrupo: Record<string, string> = {};
   modoFormularioGrupo: 'fechado' | 'novo' | 'edicao' = 'fechado';
   grupoEmEdicao: GrupoIntergrupo | null = null;
@@ -169,17 +188,24 @@ export class AdminEscritoriosRegionais implements OnInit {
   numeroGrupo = '';
   buscandoCepGrupo = false;
   erroCepGrupo = '';
+  avisoGeocodificacaoGrupo = '';
+  private tokenGeocodificacaoGrupo = 0;
+  dadosGeocodificacaoGrupo: DadosGeocodificacao = {};
 
   salvandoEndereco = false;
   erroFormularioEndereco = '';
   errosCampoEndereco: Record<string, string> = {};
   formularioEnderecoAberto = false;
   formularioEndereco: FormularioEndereco = formularioEnderecoVazio();
+  private readonly gruposSincronizadosNestaSessao = new Set<string>();
 
   cepEndereco = '';
   numeroEndereco = '';
   buscandoCepEndereco = false;
   erroCepEndereco = '';
+  avisoGeocodificacaoEndereco = '';
+  private tokenGeocodificacaoEndereco = 0;
+  dadosGeocodificacaoEndereco: DadosGeocodificacao = {};
 
   exclusaoAlvo: ExclusaoAlvo | null = null;
   excluindo = false;
@@ -195,6 +221,12 @@ export class AdminEscritoriosRegionais implements OnInit {
 
   ngOnInit(): void {
     this.carregarEstrutura();
+    this.service.listarUnidadesFederativas().subscribe((envelope) => {
+      this.unidadesFederativasComRegiao = envelope.success && envelope.data ? envelope.data : [];
+    });
+    this.reuniaoService.listarReunioesAdmin().subscribe((envelope) => {
+      this.reunioesAdmin = envelope.success && envelope.data ? envelope.data : [];
+    });
   }
 
   selecionarAba(aba: Aba): void {
@@ -256,10 +288,33 @@ export class AdminEscritoriosRegionais implements OnInit {
       .filter((dia) => grupo.agenda.some((item) => item.diaSemana === dia))
       .map((dia) => {
         const rotuloDia = this.diasSemana.find((d) => d.valor === dia)?.rotulo ?? dia;
-        const horario = grupo.agenda.find((item) => item.diaSemana === dia)?.horario ?? '';
-        return `${rotuloDia}: ${horario}`;
+        const horarios = grupo.agenda
+          .filter((item) => item.diaSemana === dia)
+          .map((item) => item.horario)
+          .sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true }));
+        return `${rotuloDia}: ${horarios.join(', ')}`;
       })
       .join(' · ');
+  }
+
+  get ufsEnderecoDisponiveis(): Array<{ sigla: string; nome: string }> {
+    const codigo = this.dados.regioes.find((regiao) => regiao.id === this.formularioEndereco.regiaoId)?.codigo;
+    if (!codigo || this.unidadesFederativasComRegiao.length === 0) return this.unidadesFederativas;
+    return this.unidadesFederativasComRegiao
+      .filter((item) => item.codigoRegiao === codigo)
+      .map((item) => ({ sigla: item.uf, nome: item.nome }));
+  }
+
+  selecionarRegiaoEndereco(): void {
+    this.limparGeocodificacaoEndereco();
+    if (!this.ufsEnderecoDisponiveis.some((item) => item.sigla === this.formularioEndereco.uf)) {
+      this.formularioEndereco.uf = '';
+    }
+  }
+
+  grupoEstaSincronizado(grupo: GrupoIntergrupo): boolean {
+    return this.gruposSincronizadosNestaSessao.has(grupo.id) ||
+      this.reunioesAdmin.some((reuniao) => reuniao.grupoIntergrupoId === grupo.id);
   }
 
   verEstados(regiao: RegiaoIntergrupo): void {
@@ -501,6 +556,8 @@ export class AdminEscritoriosRegionais implements OnInit {
     this.cepEndereco = '';
     this.numeroEndereco = '';
     this.erroCepEndereco = '';
+    this.avisoGeocodificacaoEndereco = '';
+    this.dadosGeocodificacaoEndereco = {};
     this.erroFormularioEndereco = '';
     this.errosCampoEndereco = {};
     this.formularioEnderecoAberto = true;
@@ -516,8 +573,8 @@ export class AdminEscritoriosRegionais implements OnInit {
     return this.formularioEndereco.agenda.some((item) => item.diaSemana === dia);
   }
 
-  horarioDoDiaEndereco(dia: DiaSemana): string {
-    return this.formularioEndereco.agenda.find((item) => item.diaSemana === dia)?.horario ?? '';
+  horariosDoDiaEndereco(dia: DiaSemana): FormularioAgendaItem[] {
+    return this.formularioEndereco.agenda.filter((item) => item.diaSemana === dia);
   }
 
   alternarDiaSemanaEndereco(dia: DiaSemana, selecionado: boolean): void {
@@ -540,6 +597,31 @@ export class AdminEscritoriosRegionais implements OnInit {
     );
   }
 
+  adicionarHorarioEndereco(dia: DiaSemana): void {
+    this.formularioEndereco.agenda = [
+      ...this.formularioEndereco.agenda,
+      { id: proximoIdAgendaFormulario(), diaSemana: dia, horario: '' },
+    ];
+  }
+
+  definirHorarioEndereco(id: string, horario: string): void {
+    this.formularioEndereco.agenda = this.formularioEndereco.agenda.map((item) =>
+      item.id === id ? { ...item, horario } : item,
+    );
+  }
+
+  removerHorarioEndereco(id: string): void {
+    const removido = this.formularioEndereco.agenda.find((item) => item.id === id);
+    this.formularioEndereco.agenda = this.formularioEndereco.agenda.filter((item) => item.id !== id);
+    if (removido && !this.diaSelecionadoEndereco(removido.diaSemana as DiaSemana)) {
+      queueMicrotask(() =>
+        this.formularioEnderecoSecao?.nativeElement
+          .querySelector<HTMLInputElement>(`#endereco-dia-${removido.diaSemana}`)
+          ?.focus(),
+      );
+    }
+  }
+
   adicionarTelefoneEndereco(): void {
     this.formularioEndereco.telefones = [
       ...this.formularioEndereco.telefones,
@@ -552,22 +634,55 @@ export class AdminEscritoriosRegionais implements OnInit {
   }
 
   buscarCepEndereco(): void {
+    this.limparGeocodificacaoEndereco();
+    const token = ++this.tokenGeocodificacaoEndereco;
     this.buscarEnderecoPorCep(
       this.cepEndereco,
       this.numeroEndereco,
       (valor) => (this.buscandoCepEndereco = valor),
       (valor) => (this.erroCepEndereco = valor),
+      () => token === this.tokenGeocodificacaoEndereco,
       (endereco, logradouroComNumero) => {
+        if (!this.ufsEnderecoDisponiveis.some((item) => item.sigla === endereco.uf)) {
+          this.erroCepEndereco = 'O CEP pertence a uma UF de outra região. Revise a região antes de continuar.';
+          this.buscandoCepEndereco = false;
+          return;
+        }
         this.formularioEndereco.endereco = logradouroComNumero || this.formularioEndereco.endereco;
         this.formularioEndereco.bairro = endereco.bairro ?? this.formularioEndereco.bairro;
         this.formularioEndereco.cidade = [endereco.localidade, endereco.uf].filter(Boolean).join(' - ') || this.formularioEndereco.cidade;
         this.formularioEndereco.uf = endereco.uf ?? this.formularioEndereco.uf;
+        this.dadosGeocodificacaoEndereco = {
+          cep: this.cepEndereco.replace(/\D/g, ''),
+          numero: this.numeroEndereco.trim() || undefined,
+          logradouro: endereco.logradouro || undefined,
+          estado: endereco.uf || undefined,
+        };
+        this.geocodificarEndereco(
+          [logradouroComNumero, endereco.bairro, endereco.localidade, endereco.uf].filter(Boolean).join(', '),
+          'endereco',
+          token,
+        );
       },
     );
   }
 
+  limparGeocodificacaoEndereco(): void {
+    this.tokenGeocodificacaoEndereco += 1;
+    this.buscandoCepEndereco = false;
+    if (this.dadosGeocodificacaoEndereco.latitude !== undefined || this.dadosGeocodificacaoEndereco.longitude !== undefined) {
+      this.avisoGeocodificacaoEndereco = 'Endereço alterado. O marcador anterior foi removido; busque o CEP novamente.';
+    }
+    this.dadosGeocodificacaoEndereco = {};
+  }
+
   salvarEndereco(): void {
     this.errosCampoEndereco = {};
+
+    if (this.buscandoCepEndereco) {
+      this.erroFormularioEndereco = 'Aguarde a busca do endereço terminar antes de salvar.';
+      return;
+    }
 
     if (!this.formularioEndereco.regiaoId) {
       this.errosCampoEndereco['regiaoId'] = 'Selecione uma região.';
@@ -598,6 +713,11 @@ export class AdminEscritoriosRegionais implements OnInit {
       this.errosCampoEndereco['agenda'] = this.erroFormularioEndereco;
       return;
     }
+    if (this.temAgendaDuplicada(this.formularioEndereco.agenda)) {
+      this.erroFormularioEndereco = 'Não repita o mesmo horário no mesmo dia.';
+      this.errosCampoEndereco['agenda'] = this.erroFormularioEndereco;
+      return;
+    }
 
     const telefonesInvalidos = this.formularioEndereco.telefones.some((t) => !t.telefone.trim());
     if (telefonesInvalidos) {
@@ -625,6 +745,7 @@ export class AdminEscritoriosRegionais implements OnInit {
         label: t.label.trim() || undefined,
         telefone: t.telefone.trim(),
       })),
+      ...this.dadosGeocodificacaoEndereco,
     };
 
     const regiaoId = this.formularioEndereco.regiaoId;
@@ -635,6 +756,7 @@ export class AdminEscritoriosRegionais implements OnInit {
 
       if (envelope.success && envelope.data) {
         const grupoCriado = envelope.data;
+        this.gruposSincronizadosNestaSessao.add(grupoCriado.id);
         const regiao = this.dados.regioes.find((r) => r.id === regiaoId);
         const estadoExistente = regiao?.estados.find((e) => e.uf === uf);
 
@@ -674,8 +796,11 @@ export class AdminEscritoriosRegionais implements OnInit {
     this.cepGrupo = '';
     this.numeroGrupo = '';
     this.erroCepGrupo = '';
+    this.avisoGeocodificacaoGrupo = '';
+    this.dadosGeocodificacaoGrupo = {};
     this.erroFormularioGrupo = '';
     this.errosCampoGrupo = {};
+    this.conflitoVersaoGrupo = false;
     this.modoFormularioGrupo = 'novo';
   }
 
@@ -689,9 +814,21 @@ export class AdminEscritoriosRegionais implements OnInit {
       agenda: grupo.agenda.map((item) => ({ id: proximoIdAgendaFormulario(), diaSemana: item.diaSemana, horario: item.horario })),
       telefones: grupo.telefones.map((t) => ({ id: proximoIdTelefoneFormulario(), label: t.label ?? '', telefone: t.telefone })),
     };
+    const reuniaoVinculada = this.reunioesAdmin.find((item) => item.grupoIntergrupoId === grupo.id);
+    this.dadosGeocodificacaoGrupo = reuniaoVinculada
+      ? {
+          cep: reuniaoVinculada.cep ?? undefined,
+          numero: reuniaoVinculada.numero ?? undefined,
+          logradouro: reuniaoVinculada.logradouro ?? undefined,
+          estado: reuniaoVinculada.estado ?? undefined,
+          latitude: reuniaoVinculada.latitude ?? undefined,
+          longitude: reuniaoVinculada.longitude ?? undefined,
+        }
+      : {};
     this.cepGrupo = '';
     this.numeroGrupo = '';
     this.erroCepGrupo = '';
+    this.avisoGeocodificacaoGrupo = '';
     this.erroFormularioGrupo = '';
     this.errosCampoGrupo = {};
     this.modoFormularioGrupo = 'edicao';
@@ -708,8 +845,8 @@ export class AdminEscritoriosRegionais implements OnInit {
     return this.formularioGrupo.agenda.some((item) => item.diaSemana === dia);
   }
 
-  horarioDoDia(dia: DiaSemana): string {
-    return this.formularioGrupo.agenda.find((item) => item.diaSemana === dia)?.horario ?? '';
+  horariosDoDia(dia: DiaSemana): FormularioAgendaItem[] {
+    return this.formularioGrupo.agenda.filter((item) => item.diaSemana === dia);
   }
 
   alternarDiaSemana(dia: DiaSemana, selecionado: boolean): void {
@@ -732,6 +869,31 @@ export class AdminEscritoriosRegionais implements OnInit {
     );
   }
 
+  adicionarHorarioGrupo(dia: DiaSemana): void {
+    this.formularioGrupo.agenda = [
+      ...this.formularioGrupo.agenda,
+      { id: proximoIdAgendaFormulario(), diaSemana: dia, horario: '' },
+    ];
+  }
+
+  definirHorarioGrupo(id: string, horario: string): void {
+    this.formularioGrupo.agenda = this.formularioGrupo.agenda.map((item) =>
+      item.id === id ? { ...item, horario } : item,
+    );
+  }
+
+  removerHorarioGrupo(id: string): void {
+    const removido = this.formularioGrupo.agenda.find((item) => item.id === id);
+    this.formularioGrupo.agenda = this.formularioGrupo.agenda.filter((item) => item.id !== id);
+    if (removido && !this.diaSelecionado(removido.diaSemana as DiaSemana)) {
+      queueMicrotask(() =>
+        this.formularioGrupoSecao?.nativeElement
+          .querySelector<HTMLInputElement>(`#grupo-dia-${removido.diaSemana}`)
+          ?.focus(),
+      );
+    }
+  }
+
   adicionarTelefoneGrupo(): void {
     this.formularioGrupo.telefones = [
       ...this.formularioGrupo.telefones,
@@ -744,17 +906,72 @@ export class AdminEscritoriosRegionais implements OnInit {
   }
 
   buscarCepGrupo(): void {
+    this.limparGeocodificacaoGrupo();
+    const token = ++this.tokenGeocodificacaoGrupo;
     this.buscarEnderecoPorCep(
       this.cepGrupo,
       this.numeroGrupo,
       (valor) => (this.buscandoCepGrupo = valor),
       (valor) => (this.erroCepGrupo = valor),
+      () => token === this.tokenGeocodificacaoGrupo,
       (endereco, logradouroComNumero) => {
+        if (this.estadoAtual && endereco.uf && endereco.uf !== this.estadoAtual.uf) {
+          this.erroCepGrupo = `O CEP pertence a ${endereco.uf}, mas este grupo está em ${this.estadoAtual.uf}. Mova pelo fluxo organizacional correto.`;
+          this.buscandoCepGrupo = false;
+          return;
+        }
         this.formularioGrupo.endereco = logradouroComNumero || this.formularioGrupo.endereco;
         this.formularioGrupo.bairro = endereco.bairro ?? this.formularioGrupo.bairro;
         this.formularioGrupo.cidade = [endereco.localidade, endereco.uf].filter(Boolean).join(' - ') || this.formularioGrupo.cidade;
+        this.dadosGeocodificacaoGrupo = {
+          cep: this.cepGrupo.replace(/\D/g, ''),
+          numero: this.numeroGrupo.trim() || undefined,
+          logradouro: endereco.logradouro || undefined,
+          estado: this.estadoAtual?.uf,
+        };
+        this.geocodificarEndereco(
+          [logradouroComNumero, endereco.bairro, endereco.localidade, endereco.uf].filter(Boolean).join(', '),
+          'grupo',
+          token,
+        );
       },
     );
+  }
+
+  limparGeocodificacaoGrupo(): void {
+    this.tokenGeocodificacaoGrupo += 1;
+    this.buscandoCepGrupo = false;
+    if (this.dadosGeocodificacaoGrupo.latitude !== undefined || this.dadosGeocodificacaoGrupo.longitude !== undefined) {
+      this.avisoGeocodificacaoGrupo = 'Endereço alterado. O marcador anterior foi removido; busque o CEP novamente.';
+    }
+    this.dadosGeocodificacaoGrupo = {};
+  }
+
+  private geocodificarEndereco(enderecoBase: string, alvo: 'endereco' | 'grupo', token: number): void {
+    this.enderecoLookupService.geocodificar(enderecoBase).subscribe((resultados) => {
+      const tokenAtual = alvo === 'endereco' ? this.tokenGeocodificacaoEndereco : this.tokenGeocodificacaoGrupo;
+      if (token !== tokenAtual) return;
+      if (alvo === 'endereco') this.buscandoCepEndereco = false;
+      else this.buscandoCepGrupo = false;
+      const primeiro = resultados[0];
+      if (!primeiro) {
+        const aviso = 'Endereço salvo sem marcador: não foi possível obter coordenadas. Tente buscar o CEP novamente.';
+        if (alvo === 'endereco') {
+          this.avisoGeocodificacaoEndereco = aviso;
+        } else {
+          this.avisoGeocodificacaoGrupo = aviso;
+        }
+        return;
+      }
+      const coordenadas = { latitude: Number(primeiro.lat), longitude: Number(primeiro.lon) };
+      if (alvo === 'endereco') {
+        this.dadosGeocodificacaoEndereco = { ...this.dadosGeocodificacaoEndereco, ...coordenadas };
+        this.avisoGeocodificacaoEndereco = 'Marcador atualizado a partir do endereço.';
+      } else {
+        this.dadosGeocodificacaoGrupo = { ...this.dadosGeocodificacaoGrupo, ...coordenadas };
+        this.avisoGeocodificacaoGrupo = 'Marcador atualizado a partir do endereço.';
+      }
+    });
   }
 
   private buscarEnderecoPorCep(
@@ -762,6 +979,7 @@ export class AdminEscritoriosRegionais implements OnInit {
     numero: string,
     setBuscando: (valor: boolean) => void,
     setErro: (valor: string) => void,
+    estaAtual: () => boolean,
     aoEncontrar: (endereco: EnderecoViaCep, logradouroComNumero: string) => void,
   ): void {
     const cepLimpo = cep.replace(/\D/g, '');
@@ -776,9 +994,10 @@ export class AdminEscritoriosRegionais implements OnInit {
     this.enderecoLookupService
       .buscarCep(cepLimpo)
       .subscribe((endereco) => {
-        setBuscando(false);
+        if (!estaAtual()) return;
 
         if (!endereco || endereco.erro) {
+          setBuscando(false);
           setErro('CEP não encontrado.');
           return;
         }
@@ -793,6 +1012,11 @@ export class AdminEscritoriosRegionais implements OnInit {
       return;
     }
     this.errosCampoGrupo = {};
+
+    if (this.buscandoCepGrupo) {
+      this.erroFormularioGrupo = 'Aguarde a busca do endereço terminar antes de salvar.';
+      return;
+    }
 
     if (!this.formularioGrupo.nome.trim()) {
       this.errosCampoGrupo['nome'] = 'Nome é obrigatório.';
@@ -814,6 +1038,11 @@ export class AdminEscritoriosRegionais implements OnInit {
     const horarioAusente = this.formularioGrupo.agenda.some((item) => !item.horario.trim());
     if (horarioAusente) {
       this.erroFormularioGrupo = 'Selecione um horário para cada dia da semana marcado.';
+      this.errosCampoGrupo['agenda'] = this.erroFormularioGrupo;
+      return;
+    }
+    if (this.temAgendaDuplicada(this.formularioGrupo.agenda)) {
+      this.erroFormularioGrupo = 'Não repita o mesmo horário no mesmo dia.';
       this.errosCampoGrupo['agenda'] = this.erroFormularioGrupo;
       return;
     }
@@ -843,6 +1072,8 @@ export class AdminEscritoriosRegionais implements OnInit {
         label: t.label.trim() || undefined,
         telefone: t.telefone.trim(),
       })),
+      atualizadoEm: this.grupoEmEdicao?.atualizadoEm,
+      ...this.dadosGeocodificacaoGrupo,
     };
 
     const estadoId = this.estadoAtual.id;
@@ -863,10 +1094,36 @@ export class AdminEscritoriosRegionais implements OnInit {
         this.modoFormularioGrupo = 'fechado';
         this.grupoEmEdicao = null;
       } else {
-        this.erroFormularioGrupo = envelope.error?.message ?? 'Não foi possível salvar o grupo.';
+        this.conflitoVersaoGrupo = envelope.error?.code === 'REUNIAO_VERSAO_CONFLITO';
+        this.erroFormularioGrupo = mensagemDeErro(envelope.error, 'Não foi possível salvar o grupo.');
         this.errosCampoGrupo = mapearErrosCampo(envelope.error?.fields);
       }
     });
+  }
+
+  recarregarGrupoAposConflito(): void {
+    const grupoId = this.grupoEmEdicao?.id;
+    if (!grupoId) return;
+    this.service.listarEstruturaAdmin().subscribe((envelope) => {
+      if (envelope.success && envelope.data) {
+        this.dados = envelope.data;
+        this.resincronizarSelecaoAtual();
+        const atualizado = envelope.data.regioes
+          .flatMap((regiao) => regiao.estados)
+          .flatMap((estado) => estado.grupos)
+          .find((grupo) => grupo.id === grupoId);
+        if (atualizado) this.grupoEmEdicao = atualizado;
+        this.conflitoVersaoGrupo = false;
+        this.erroFormularioGrupo = 'Dados recarregados. O rascunho foi preservado; revise e salve novamente.';
+      } else {
+        this.erroFormularioGrupo = mensagemDeErro(envelope.error, 'Não foi possível recarregar os dados.');
+      }
+    });
+  }
+
+  private temAgendaDuplicada(agenda: FormularioAgendaItem[]): boolean {
+    const chaves = agenda.map((item) => `${item.diaSemana}|${item.horario.trim()}`);
+    return new Set(chaves).size !== chaves.length;
   }
 
   private atualizarGruposDoEstado(

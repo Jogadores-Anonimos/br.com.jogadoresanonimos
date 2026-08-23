@@ -1,7 +1,8 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { ElementRef } from '@angular/core';
+import { of, Subject } from 'rxjs';
 
 import { AdminEscritoriosRegionais } from './admin-escritorios-regionais';
 import { EscritorioRegionalService } from '../../../services/escritorio-regional/escritorio-regional';
@@ -13,6 +14,9 @@ import {
   RegiaoIntergrupo,
 } from '../../../services/escritorio-regional/escritorio-regional.model';
 import { apiError, apiSuccess } from '../../../services/api-envelope';
+import { ReuniaoService } from '../../../services/reuniao/reuniao';
+import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
+import { EnderecoViaCep, ResultadoNominatim } from '../../../services/endereco-lookup/endereco-lookup.model';
 
 function grupoFake(overrides: Partial<GrupoIntergrupo> = {}): GrupoIntergrupo {
   return {
@@ -80,6 +84,7 @@ describe('AdminEscritoriosRegionais', () => {
   let fixture: ComponentFixture<AdminEscritoriosRegionais>;
   let httpMock: HttpTestingController;
   let serviceSpy: Record<string, ReturnType<typeof vi.fn>>;
+  let enderecoLookupService: EnderecoLookupService;
 
   const regiao1 = regiaoFake({ id: 'regiao-1', nome: 'Região Um', ordem: 0 });
   const regiao2 = regiaoFake({ id: 'regiao-2', nome: 'Região Dois', ordem: 1 });
@@ -108,6 +113,7 @@ describe('AdminEscritoriosRegionais', () => {
   beforeEach(async () => {
     serviceSpy = {
       listarEstruturaAdmin: vi.fn().mockReturnValue(of(apiSuccess(estruturaCompleta()))),
+      listarUnidadesFederativas: vi.fn().mockReturnValue(of(apiSuccess([]))),
       criarRegiaoAdmin: vi.fn().mockReturnValue(of(apiSuccess(regiaoFake()))),
       editarRegiaoAdmin: vi.fn().mockReturnValue(of(apiSuccess(regiaoFake()))),
       excluirRegiaoAdmin: vi.fn().mockReturnValue(of(apiSuccess({ mensagem: 'ok' }))),
@@ -119,6 +125,7 @@ describe('AdminEscritoriosRegionais', () => {
       moverEstadoParaCima: vi.fn().mockReturnValue(of(apiSuccess(estadoFake()))),
       moverEstadoParaBaixo: vi.fn().mockReturnValue(of(apiSuccess(estadoFake()))),
       criarGrupoAdmin: vi.fn().mockReturnValue(of(apiSuccess(grupoFake()))),
+      criarEnderecoAdmin: vi.fn().mockReturnValue(of(apiSuccess(grupoFake()))),
       editarGrupoAdmin: vi.fn().mockReturnValue(of(apiSuccess(grupoFake()))),
       excluirGrupoAdmin: vi.fn().mockReturnValue(of(apiSuccess({ mensagem: 'ok' }))),
       moverGrupoParaCima: vi.fn().mockReturnValue(of(apiSuccess(grupoFake()))),
@@ -136,6 +143,7 @@ describe('AdminEscritoriosRegionais', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: EscritorioRegionalService, useValue: serviceSpy },
+        { provide: ReuniaoService, useValue: { listarReunioesAdmin: vi.fn().mockReturnValue(of(apiSuccess([]))) } },
       ],
     }).compileComponents();
 
@@ -145,6 +153,7 @@ describe('AdminEscritoriosRegionais', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     httpMock = TestBed.inject(HttpTestingController);
+    enderecoLookupService = TestBed.inject(EnderecoLookupService);
   });
 
   afterEach(() => {
@@ -260,6 +269,101 @@ describe('AdminEscritoriosRegionais', () => {
       expect(component.erroFormularioGrupo).toContain('horário');
     });
 
+    it('salva múltiplos horários no mesmo dia e impede duplicados', () => {
+      component.abrirNovoGrupo();
+      component.formularioGrupo.nome = 'Grupo Dois Horários';
+      component.formularioGrupo.endereco = 'Rua X, 1';
+      component.formularioGrupo.cidade = 'Cidade X - UF';
+      component.alternarDiaSemana('SEGUNDA', true);
+      component.adicionarHorarioGrupo('SEGUNDA');
+      const itens = component.horariosDoDia('SEGUNDA');
+      component.definirHorarioGrupo(itens[0].id, '19:00');
+      component.definirHorarioGrupo(itens[1].id, '21:00');
+
+      component.salvarGrupo();
+
+      expect(serviceSpy['criarGrupoAdmin']).toHaveBeenCalledWith(
+        'estado-1',
+        expect.objectContaining({
+          agenda: [
+            { diaSemana: 'SEGUNDA', horario: '19:00' },
+            { diaSemana: 'SEGUNDA', horario: '21:00' },
+          ],
+        }),
+      );
+
+      component.abrirNovoGrupo();
+      component.formularioGrupo.nome = 'Duplicado';
+      component.formularioGrupo.endereco = 'Rua X';
+      component.formularioGrupo.cidade = 'Cidade X';
+      component.alternarDiaSemana('SEGUNDA', true);
+      component.adicionarHorarioGrupo('SEGUNDA');
+      for (const item of component.horariosDoDia('SEGUNDA')) component.definirHorarioGrupo(item.id, '19:00');
+      serviceSpy['criarGrupoAdmin'].mockClear();
+
+      component.salvarGrupo();
+
+      expect(serviceSpy['criarGrupoAdmin']).not.toHaveBeenCalled();
+      expect(component.erroFormularioGrupo).toContain('repita');
+    });
+
+    it('devolve o foco ao checkbox ao remover o último horário nos dois editores', async () => {
+      const secaoGrupo = document.createElement('section');
+      const checkboxGrupo = document.createElement('input');
+      checkboxGrupo.id = 'grupo-dia-SEGUNDA';
+      secaoGrupo.appendChild(checkboxGrupo);
+      document.body.appendChild(secaoGrupo);
+      component.formularioGrupoSecao = new ElementRef(secaoGrupo);
+      component.abrirNovoGrupo();
+      component.alternarDiaSemana('SEGUNDA', true);
+      component.removerHorarioGrupo(component.horariosDoDia('SEGUNDA')[0].id);
+      await Promise.resolve();
+      expect(document.activeElement).toBe(checkboxGrupo);
+
+      const secaoEndereco = document.createElement('section');
+      const checkboxEndereco = document.createElement('input');
+      checkboxEndereco.id = 'endereco-dia-TERCA';
+      secaoEndereco.appendChild(checkboxEndereco);
+      document.body.appendChild(secaoEndereco);
+      component.formularioEnderecoSecao = new ElementRef(secaoEndereco);
+      component.abrirFormularioEndereco();
+      component.alternarDiaSemanaEndereco('TERCA', true);
+      component.removerHorarioEndereco(component.horariosDoDiaEndereco('TERCA')[0].id);
+      await Promise.resolve();
+      expect(document.activeElement).toBe(checkboxEndereco);
+
+      secaoGrupo.remove();
+      secaoEndereco.remove();
+    });
+
+    it('preserva rascunho no conflito e envia a versão ao editar', () => {
+      serviceSpy['editarGrupoAdmin'].mockReturnValue(of(apiError('REUNIAO_VERSAO_CONFLITO', 'Conflito')));
+      component.abrirEdicaoGrupo(grupo1);
+      component.formularioGrupo.nome = 'Rascunho local';
+
+      component.salvarGrupo();
+
+      expect(component.formularioGrupo.nome).toBe('Rascunho local');
+      expect(component.modoFormularioGrupo).toBe('edicao');
+      expect(component.conflitoVersaoGrupo).toBe(true);
+      expect(serviceSpy['editarGrupoAdmin']).toHaveBeenCalledWith(
+        'estado-1',
+        'grupo-1',
+        expect.objectContaining({ atualizadoEm: grupo1.atualizadoEm }),
+      );
+
+      const versaoNova = grupoFake({ ...grupo1, atualizadoEm: '2026-08-23T01:00:00Z' });
+      const estruturaNova = estruturaCompleta();
+      estruturaNova.regioes[0].estados[0].grupos = [versaoNova, grupo2];
+      serviceSpy['listarEstruturaAdmin'].mockReturnValueOnce(of(apiSuccess(estruturaNova)));
+
+      component.recarregarGrupoAposConflito();
+
+      expect(component.grupoEmEdicao?.atualizadoEm).toBe('2026-08-23T01:00:00Z');
+      expect(component.formularioGrupo.nome).toBe('Rascunho local');
+      expect(component.conflitoVersaoGrupo).toBe(false);
+    });
+
     it('não salva grupo quando nenhum dia da semana está selecionado', () => {
       component.abrirNovoGrupo();
       component.formularioGrupo.nome = 'Grupo Sem Dia';
@@ -361,11 +465,32 @@ describe('AdminEscritoriosRegionais', () => {
         localidade: 'São Paulo',
         uf: 'SP',
       });
+      httpMock.expectOne((req) => req.url === 'https://nominatim.openstreetmap.org/search').flush([
+        { lat: '-23.56', lon: '-46.65' },
+      ]);
 
       expect(component.formularioGrupo.endereco).toBe('Avenida Paulista, 123');
       expect(component.formularioGrupo.bairro).toBe('Bela Vista');
       expect(component.formularioGrupo.cidade).toBe('São Paulo - SP');
       expect(component.erroCepGrupo).toBe('');
+      expect(component.dadosGeocodificacaoGrupo).toEqual(
+        expect.objectContaining({ cep: '01310100', logradouro: 'Avenida Paulista', estado: 'SP', latitude: -23.56, longitude: -46.65 }),
+      );
+    });
+
+    it('remove coordenadas antigas e permite salvar sem marcador quando a geocodificação falha', () => {
+      component.dadosGeocodificacaoGrupo = { latitude: -1, longitude: -2 };
+      component.cepGrupo = '01310-100';
+
+      component.buscarCepGrupo();
+      httpMock.expectOne('https://viacep.com.br/ws/01310100/json/').flush({
+        logradouro: 'Avenida Paulista', bairro: 'Bela Vista', localidade: 'São Paulo', uf: 'SP',
+      });
+      httpMock.expectOne((req) => req.url === 'https://nominatim.openstreetmap.org/search').flush([]);
+
+      expect(component.dadosGeocodificacaoGrupo.latitude).toBeUndefined();
+      expect(component.dadosGeocodificacaoGrupo.longitude).toBeUndefined();
+      expect(component.avisoGeocodificacaoGrupo).toContain('sem marcador');
     });
 
     it('mostra erro e não altera o formulário quando o CEP não é encontrado', () => {
@@ -398,6 +523,90 @@ describe('AdminEscritoriosRegionais', () => {
       chamada.error(new ProgressEvent('network error'));
 
       expect(component.erroCepGrupo).toBe('CEP não encontrado.');
+    });
+  });
+
+  describe('corridas de geocodificação', () => {
+    it('mantém no grupo apenas coordenadas da busca mais recente', () => {
+      const cepA = new Subject<EnderecoViaCep | null>();
+      const cepB = new Subject<EnderecoViaCep | null>();
+      const geoA = new Subject<ResultadoNominatim[]>();
+      const geoB = new Subject<ResultadoNominatim[]>();
+      vi.spyOn(enderecoLookupService, 'buscarCep').mockReturnValueOnce(cepA).mockReturnValueOnce(cepB);
+      vi.spyOn(enderecoLookupService, 'geocodificar').mockReturnValueOnce(geoA).mockReturnValueOnce(geoB);
+      const regiao = component.dados.regioes[0];
+      component.verEstados(regiao);
+      component.verGrupos(regiao.estados[0]);
+      component.abrirNovoGrupo();
+
+      component.cepGrupo = '01310100';
+      component.buscarCepGrupo();
+      cepA.next({ logradouro: 'Endereco A', localidade: 'Sao Paulo', uf: 'SP' });
+      component.cepGrupo = '01001000';
+      component.limparGeocodificacaoGrupo();
+      component.buscarCepGrupo();
+      cepB.next({ logradouro: 'Endereco B', localidade: 'Sao Paulo', uf: 'SP' });
+      geoB.next([{ lat: '-23.55', lon: '-46.63' }]);
+      geoA.next([{ lat: '-1', lon: '-2' }]);
+
+      expect(component.formularioGrupo.endereco).toBe('Endereco B');
+      expect(component.dadosGeocodificacaoGrupo).toEqual(expect.objectContaining({ latitude: -23.55, longitude: -46.63 }));
+      expect(component.buscandoCepGrupo).toBe(false);
+    });
+
+    it('impede salvar grupo durante ViaCEP ou Nominatim', () => {
+      const cep = new Subject<EnderecoViaCep | null>();
+      vi.spyOn(enderecoLookupService, 'buscarCep').mockReturnValueOnce(cep);
+      const regiao = component.dados.regioes[0];
+      component.verEstados(regiao);
+      component.verGrupos(regiao.estados[0]);
+      component.abrirNovoGrupo();
+      component.cepGrupo = '01310100';
+      component.buscarCepGrupo();
+
+      component.salvarGrupo();
+
+      expect(serviceSpy['criarGrupoAdmin']).not.toHaveBeenCalled();
+      expect(component.erroFormularioGrupo).toContain('Aguarde');
+      expect(component.buscandoCepGrupo).toBe(true);
+    });
+
+    it('mantém no endereço apenas coordenadas da busca mais recente', () => {
+      const cepA = new Subject<EnderecoViaCep | null>();
+      const cepB = new Subject<EnderecoViaCep | null>();
+      const geoA = new Subject<ResultadoNominatim[]>();
+      const geoB = new Subject<ResultadoNominatim[]>();
+      vi.spyOn(enderecoLookupService, 'buscarCep').mockReturnValueOnce(cepA).mockReturnValueOnce(cepB);
+      vi.spyOn(enderecoLookupService, 'geocodificar').mockReturnValueOnce(geoA).mockReturnValueOnce(geoB);
+      component.abrirFormularioEndereco();
+
+      component.cepEndereco = '01310100';
+      component.buscarCepEndereco();
+      cepA.next({ logradouro: 'Endereco A', localidade: 'Sao Paulo', uf: 'SP' });
+      component.cepEndereco = '01001000';
+      component.limparGeocodificacaoEndereco();
+      component.buscarCepEndereco();
+      cepB.next({ logradouro: 'Endereco B', localidade: 'Sao Paulo', uf: 'SP' });
+      geoB.next([{ lat: '-23.54', lon: '-46.62' }]);
+      geoA.next([{ lat: '-3', lon: '-4' }]);
+
+      expect(component.formularioEndereco.endereco).toBe('Endereco B');
+      expect(component.dadosGeocodificacaoEndereco).toEqual(expect.objectContaining({ latitude: -23.54, longitude: -46.62 }));
+      expect(component.buscandoCepEndereco).toBe(false);
+    });
+
+    it('impede salvar endereço durante a busca assíncrona', () => {
+      const cep = new Subject<EnderecoViaCep | null>();
+      vi.spyOn(enderecoLookupService, 'buscarCep').mockReturnValueOnce(cep);
+      component.abrirFormularioEndereco();
+      component.cepEndereco = '01310100';
+      component.buscarCepEndereco();
+
+      component.salvarEndereco();
+
+      expect(serviceSpy['criarEnderecoAdmin']).not.toHaveBeenCalled();
+      expect(component.erroFormularioEndereco).toContain('Aguarde');
+      expect(component.buscandoCepEndereco).toBe(true);
     });
   });
 

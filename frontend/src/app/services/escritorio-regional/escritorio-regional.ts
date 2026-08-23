@@ -1,11 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { catchError, delay } from 'rxjs/operators';
+import { catchError, delay, map } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
 import { ApiEnvelope, apiError, apiErrorDeHttpError, apiSuccess } from '../api-envelope';
 import {
+  AgendaItemGrupo,
   CriarEnderecoGrupoRequest,
   CriarEscritorioServicoRequest,
   CriarEstadoRequest,
@@ -23,6 +24,17 @@ import {
   UnidadeFederativaComRegiao,
 } from './escritorio-regional.model';
 import { ESCRITORIOS_REGIONAIS_MOCK } from './escritorio-regional.mock';
+import { compararHorarios } from '../reuniao/reuniao-horario';
+
+const ORDEM_DIAS_GRUPO: AgendaItemGrupo['diaSemana'][] = [
+  'DOMINGO',
+  'SEGUNDA',
+  'TERCA',
+  'QUARTA',
+  'QUINTA',
+  'SEXTA',
+  'SABADO',
+];
 
 let contadorIdMock = 0;
 function proximoIdMock(prefixo: string): string {
@@ -54,17 +66,19 @@ export class EscritorioRegionalService {
   listarEstrutura(): Observable<ApiEnvelope<EscritoriosRegionais>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<EscritoriosRegionais>>(this.publicaUrl).pipe(
+        map((resposta) => this.normalizarEnvelopeEstrutura(resposta)),
         catchError((erro) => of(apiErrorDeHttpError<EscritoriosRegionais>(erro, 'INTERNAL_ERROR', 'Não foi possível carregar os escritórios regionais.'))),
       );
     }
 
-    return of(apiSuccess(ESCRITORIOS_REGIONAIS_MOCK)).pipe(delay(400));
+    return of(apiSuccess(this.normalizarEstrutura(ESCRITORIOS_REGIONAIS_MOCK))).pipe(delay(400));
   }
 
 
   listarEstruturaAdmin(): Observable<ApiEnvelope<EscritoriosRegionais>> {
     if (!environment.useMocks) {
       return this.http.get<ApiEnvelope<EscritoriosRegionais>>(this.adminUrl).pipe(
+        map((resposta) => this.normalizarEnvelopeEstrutura(resposta)),
         catchError((erro) => of(apiErrorDeHttpError<EscritoriosRegionais>(erro, 'INTERNAL_ERROR', 'Não foi possível carregar os escritórios regionais.'))),
       );
     }
@@ -150,6 +164,7 @@ export class EscritorioRegionalService {
   criarEnderecoAdmin(regiaoId: string, req: CriarEnderecoGrupoRequest): Observable<ApiEnvelope<GrupoIntergrupo>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<GrupoIntergrupo>>(`${this.adminUrl}/regioes/${regiaoId}/enderecos`, req).pipe(
+        map((resposta) => this.normalizarEnvelopeGrupo(resposta)),
         catchError((erro) => of(apiErrorDeHttpError<GrupoIntergrupo>(erro, 'INTERNAL_ERROR', 'Não foi possível criar o endereço agora.'))),
       );
     }
@@ -189,7 +204,7 @@ export class EscritorioRegionalService {
       bairro: req.bairro?.trim() || null,
       cidade: req.cidade,
       telefones: (req.telefones ?? []).map((t) => ({ id: proximoIdMock('telefone'), label: t.label?.trim() || null, telefone: t.telefone })),
-      agenda: req.agenda,
+      agenda: this.ordenarAgenda(req.agenda),
       ordem: estado.grupos.length,
       criadoEm: agora,
       atualizadoEm: agora,
@@ -278,6 +293,7 @@ export class EscritorioRegionalService {
   criarGrupoAdmin(estadoId: string, req: CriarGrupoRequest): Observable<ApiEnvelope<GrupoIntergrupo>> {
     if (!environment.useMocks) {
       return this.http.post<ApiEnvelope<GrupoIntergrupo>>(`${this.adminUrl}/estados/${estadoId}/grupos`, req).pipe(
+        map((resposta) => this.normalizarEnvelopeGrupo(resposta)),
         catchError((erro) => of(apiErrorDeHttpError<GrupoIntergrupo>(erro, 'INTERNAL_ERROR', 'Não foi possível criar o grupo agora.'))),
       );
     }
@@ -298,7 +314,7 @@ export class EscritorioRegionalService {
       bairro: req.bairro?.trim() || null,
       cidade: req.cidade,
       telefones: (req.telefones ?? []).map((t) => ({ id: proximoIdMock('telefone'), label: t.label?.trim() || null, telefone: t.telefone })),
-      agenda: req.agenda,
+      agenda: this.ordenarAgenda(req.agenda),
       ordem: estado.grupos.length,
       criadoEm: agora,
       atualizadoEm: agora,
@@ -310,6 +326,7 @@ export class EscritorioRegionalService {
   editarGrupoAdmin(estadoId: string, id: string, req: EditarGrupoRequest): Observable<ApiEnvelope<GrupoIntergrupo>> {
     if (!environment.useMocks) {
       return this.http.put<ApiEnvelope<GrupoIntergrupo>>(`${this.adminUrl}/estados/${estadoId}/grupos/${id}`, req).pipe(
+        map((resposta) => this.normalizarEnvelopeGrupo(resposta)),
         catchError((erro) => of(apiErrorDeHttpError<GrupoIntergrupo>(erro, 'INTERNAL_ERROR', 'Não foi possível salvar as alterações.'))),
       );
     }
@@ -319,6 +336,14 @@ export class EscritorioRegionalService {
     if (!estado || !grupo) {
       return of(apiError<GrupoIntergrupo>('ESCRITORIO_GRUPO_NAO_ENCONTRADO', 'Estado ou grupo não encontrado.')).pipe(delay(300));
     }
+    if (req.atualizadoEm && req.atualizadoEm !== grupo.atualizadoEm) {
+      return of(
+        apiError<GrupoIntergrupo>(
+          'REUNIAO_VERSAO_CONFLITO',
+          'O registro foi alterado por outra operação; recarregue antes de salvar.',
+        ),
+      ).pipe(delay(300));
+    }
     if (!req.nome?.trim() || !req.endereco?.trim() || !req.cidade?.trim() || !req.agenda?.length) {
       return of(apiError<GrupoIntergrupo>('VALIDATION_ERROR', 'Preencha todos os campos obrigatórios.')).pipe(delay(300));
     }
@@ -327,7 +352,7 @@ export class EscritorioRegionalService {
     grupo.bairro = req.bairro?.trim() || null;
     grupo.cidade = req.cidade;
     grupo.telefones = (req.telefones ?? []).map((t) => ({ id: proximoIdMock('telefone'), label: t.label?.trim() || null, telefone: t.telefone }));
-    grupo.agenda = req.agenda;
+    grupo.agenda = this.ordenarAgenda(req.agenda);
     grupo.atualizadoEm = new Date().toISOString();
     return of(apiSuccess(grupo)).pipe(delay(400));
   }
@@ -360,7 +385,18 @@ export class EscritorioRegionalService {
     if (!environment.useMocks) {
       return this.http
         .post<ApiEnvelope<GrupoIntergrupo>>(`${this.adminUrl}/estados/${estadoId}/grupos/${id}/mover-${direcao}`, {})
-        .pipe(catchError((erro) => of(apiErrorDeHttpError<GrupoIntergrupo>(erro, 'INTERNAL_ERROR', 'Não foi possível reordenar o grupo agora.'))));
+        .pipe(
+          map((resposta) => this.normalizarEnvelopeGrupo(resposta)),
+          catchError((erro) =>
+            of(
+              apiErrorDeHttpError<GrupoIntergrupo>(
+                erro,
+                'INTERNAL_ERROR',
+                'Não foi possível reordenar o grupo agora.',
+              ),
+            ),
+          ),
+        );
     }
 
     const estado = this.encontrarEstadoPorId(estadoId);
@@ -372,7 +408,7 @@ export class EscritorioRegionalService {
       return of(apiError<GrupoIntergrupo>('ESCRITORIO_GRUPO_NAO_ENCONTRADO', 'Grupo não encontrado.')).pipe(delay(300));
     }
     const item = trocarOrdem(estado.grupos, indice, direcao);
-    return of(apiSuccess(item)).pipe(delay(300));
+    return of(apiSuccess(this.normalizarGrupo(item))).pipe(delay(300));
   }
 
   criarEscritorioServicoAdmin(req: CriarEscritorioServicoRequest): Observable<ApiEnvelope<EscritorioServico>> {
@@ -465,6 +501,49 @@ export class EscritorioRegionalService {
     }
     const item = trocarOrdem(lista, indice, direcao);
     return of(apiSuccess(item)).pipe(delay(300));
+  }
+
+  private normalizarEnvelopeEstrutura(
+    resposta: ApiEnvelope<EscritoriosRegionais>,
+  ): ApiEnvelope<EscritoriosRegionais> {
+    return {
+      ...resposta,
+      data: resposta.data ? this.normalizarEstrutura(resposta.data) : null,
+    };
+  }
+
+  private normalizarEnvelopeGrupo(resposta: ApiEnvelope<GrupoIntergrupo>): ApiEnvelope<GrupoIntergrupo> {
+    return {
+      ...resposta,
+      data: resposta.data ? this.normalizarGrupo(resposta.data) : null,
+    };
+  }
+
+  private normalizarEstrutura(estrutura: EscritoriosRegionais): EscritoriosRegionais {
+    return {
+      ...estrutura,
+      regioes: estrutura.regioes.map((regiao) => ({
+        ...regiao,
+        estados: regiao.estados.map((estado) => ({
+          ...estado,
+          grupos: estado.grupos.map((grupo) => this.normalizarGrupo(grupo)),
+        })),
+      })),
+    };
+  }
+
+  private normalizarGrupo(grupo: GrupoIntergrupo): GrupoIntergrupo {
+    return { ...grupo, agenda: this.ordenarAgenda(grupo.agenda ?? []) };
+  }
+
+  private ordenarAgenda(agenda: AgendaItemGrupo[]): AgendaItemGrupo[] {
+    return [...agenda]
+      .map((item) => ({ diaSemana: item.diaSemana, horario: item.horario.trim() }))
+      .sort(
+        (a, b) =>
+          ORDEM_DIAS_GRUPO.indexOf(a.diaSemana) - ORDEM_DIAS_GRUPO.indexOf(b.diaSemana) ||
+          compararHorarios(a.horario, b.horario),
+      );
   }
 }
 

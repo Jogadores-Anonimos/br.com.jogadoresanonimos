@@ -39,6 +39,10 @@ export interface Reuniao {
   estado: string | null;
   linkReuniao: string | null;
   avisos: AvisoReuniao[];
+  /** Ausente ou nulo para reuniões legadas e virtuais não vinculadas. */
+  grupoIntergrupoId?: string | null;
+  /** Versão canônica usada no controle de concorrência otimista. */
+  atualizadoEm?: string | null;
 }
 
 export interface CriarReuniaoRequest {
@@ -61,9 +65,12 @@ export interface CriarReuniaoRequest {
   cidade?: string;
   estado?: string;
   linkReuniao?: string;
+  grupoIntergrupoId?: string;
 }
 
-export type EditarReuniaoRequest = CriarReuniaoRequest;
+export type EditarReuniaoRequest = Omit<CriarReuniaoRequest, 'grupoIntergrupoId'> & {
+  atualizadoEm?: string;
+};
 
 export interface BackfillGeolocalizacaoFalha {
   reuniaoId: string;
