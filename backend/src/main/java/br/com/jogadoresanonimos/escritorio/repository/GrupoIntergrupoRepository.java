@@ -14,6 +14,12 @@ public interface GrupoIntergrupoRepository extends JpaRepository<GrupoIntergrupo
 
     List<GrupoIntergrupo> findAllByEstadoIdOrderByOrdemAsc(UUID estadoId);
 
+    @Query("SELECT g FROM GrupoIntergrupo g WHERE NOT EXISTS "
+            + "(SELECT 1 FROM Reuniao r WHERE r.grupoIntergrupo = g)")
+    List<GrupoIntergrupo> buscarOrfaosSemReuniao();
+
+    long countByEstadoId(UUID estadoId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT g FROM GrupoIntergrupo g WHERE g.id = :id")
     Optional<GrupoIntergrupo> buscarPorIdComLock(UUID id);

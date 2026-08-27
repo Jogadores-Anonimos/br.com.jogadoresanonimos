@@ -127,12 +127,11 @@
 
           <p class="admin-reunioes__corpo">{{ reuniao.descricao }}</p>
           <p class="admin-reunioes__local">{{ reuniao.local }}</p>
-          <p class="admin-reunioes__local">
-            <strong>{{ statusVinculo(reuniao) }}</strong>
-            @if (reuniao.grupoIntergrupoId) {
-              · <a href="/admin/escritorios-regionais">Abrir em Grupos por UF</a>
-            }
-          </p>
+          @if (reuniao.grupoIntergrupoId) {
+            <p class="admin-reunioes__local">
+              <a href="/admin/escritorios-regionais">Abrir em Grupos por UF</a>
+            </p>
+          }
 
           @if (erroExclusao && confirmandoExclusao === reuniao.id) {
             <p class="admin-reunioes__erro-card" role="alert">
@@ -205,16 +204,16 @@
             <legend>Vínculo com Grupos por UF</legend>
             @if (reuniaoEmEdicao) {
               <p class="admin-reunioes__ajuda">
-                <strong>{{ statusVinculo(reuniaoEmEdicao) }}</strong>. O vínculo é definido na criação e os dados compartilhados são sincronizados.
+                O vínculo é definido na criação e os dados compartilhados são sincronizados.
                 <a href="/admin/escritorios-regionais">Abrir Grupos por UF</a>
               </p>
             } @else {
-              <p class="admin-reunioes__ajuda">Opcional: vincule a reunião a um grupo existente ainda não sincronizado.</p>
+              <p class="admin-reunioes__ajuda">Vincule a reunião a um grupo existente ainda não sincronizado.</p>
               <div class="admin-reunioes__campo-linha">
                 <div class="admin-reunioes__campo">
                   <label for="reuniao-regiao">Região</label>
                   <select id="reuniao-regiao" name="regiaoId" [(ngModel)]="formulario.regiaoId" (ngModelChange)="selecionarRegiao()">
-                    <option value="">Sem vínculo</option>
+                    <option value="">Selecione</option>
                     @for (regiao of regioesComGrupos; track regiao.id) {
                       <option [value]="regiao.id">{{ regiao.nome }}</option>
                     }
@@ -232,8 +231,17 @@
               </div>
               <div class="admin-reunioes__campo">
                 <label for="reuniao-grupo">Grupo</label>
-                <select id="reuniao-grupo" name="grupoIntergrupoId" [(ngModel)]="formulario.grupoIntergrupoId" (ngModelChange)="selecionarGrupo()" [disabled]="!formulario.uf">
-                  <option value="">Sem vínculo</option>
+                <select
+                  id="reuniao-grupo"
+                  name="grupoIntergrupoId"
+                  [(ngModel)]="formulario.grupoIntergrupoId"
+                  (ngModelChange)="selecionarGrupo()"
+                  [disabled]="!formulario.uf"
+                  [class.campo-invalido]="errosCampo['grupoIntergrupoId']"
+                  [attr.aria-invalid]="errosCampo['grupoIntergrupoId'] ? 'true' : null"
+                  required
+                >
+                  <option value="">Selecione</option>
                   @for (grupo of gruposDoFormulario; track grupo.id) {
                     <option [value]="grupo.id">{{ grupo.nome }} — {{ grupo.cidade }}</option>
                   }

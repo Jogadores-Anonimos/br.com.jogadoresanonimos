@@ -56,6 +56,7 @@ public class ReuniaoService {
 
     @Transactional
     public ReuniaoResponse criar(CriarReuniaoRequest request) {
+        validarGrupoIntergrupoObrigatorio(request.categoria(), request.grupoIntergrupoId());
         DadosAgenda dadosAgenda = normalizarAgenda(request.agenda(), request.dia(), request.horario(),
                 request.diaSemana(), request.periodo());
         Reuniao reuniao = new Reuniao(request.nome().trim(), request.categoria(),
@@ -132,6 +133,13 @@ public class ReuniaoService {
             throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Descrição é obrigatória para reunião presencial");
         }
         return normalizada;
+    }
+
+    private void validarGrupoIntergrupoObrigatorio(CategoriaReuniao categoria, UUID grupoIntergrupoId) {
+        if (categoria == CategoriaReuniao.presencial && grupoIntergrupoId == null) {
+            throw new ValidationException(ErrorCode.REUNIAO_GRUPO_DADOS_INVALIDOS,
+                    "Reunião presencial exige grupo intergrupo vinculado");
+        }
     }
 
     private String validarEstadoVirtual(CategoriaReuniao categoria, String estado) {

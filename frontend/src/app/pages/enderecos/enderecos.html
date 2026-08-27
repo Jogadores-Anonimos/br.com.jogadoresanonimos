@@ -122,6 +122,11 @@
                         <p class="grupo-telefone">Tel: {{ formatarTelefones(grupo.telefones) }}</p>
                       }
                       <span class="grupo-horario">{{ formatarAgenda(grupo.agenda) }}</span>
+                      <div class="grupo-card-acoes">
+                        <button type="button" class="btn-detalhes" (click)="abrirDetalhesGrupo(grupo)">
+                          Ver detalhes
+                        </button>
+                      </div>
                     </div>
                   }
                 </div>
@@ -219,6 +224,54 @@
             rel="noopener"
           >
             Solicitar link da reunião
+          </a>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (grupoDetalhe) {
+    <div
+      class="detalhes-overlay"
+      (click)="fecharDetalhesSeCliqueForaDoPainel($event)"
+    >
+      <div
+        class="detalhes-painel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="detalhes-grupo-titulo"
+      >
+        <button
+          type="button"
+          class="detalhes-fechar"
+          (click)="fecharDetalhes()"
+          aria-label="Fechar detalhes do grupo"
+        >
+          &times;
+        </button>
+
+        <h3 id="detalhes-grupo-titulo">{{ grupoDetalhe.nome }}</h3>
+        <p class="reuniao-descricao">{{ enderecoCompletoGrupo(grupoDetalhe) }}</p>
+        @if (grupoDetalhe.telefones.length) {
+          <p class="grupo-telefone">Tel: {{ formatarTelefones(grupoDetalhe.telefones) }}</p>
+        }
+        <div class="detalhes-agenda">
+          <strong>Agenda:</strong>
+          <ul>
+            @for (item of grupoDetalhe.agenda; track item.diaSemana + item.horario) {
+              <li>{{ formatarAgenda([item]) }}</li>
+            }
+          </ul>
+        </div>
+
+        <div class="detalhes-acoes">
+          <a
+            class="btn-cta btn-whatsapp"
+            [href]="whatsappLinkGrupo(grupoDetalhe)"
+            target="_blank"
+            rel="noopener"
+          >
+            Falar no WhatsApp
           </a>
         </div>
       </div>

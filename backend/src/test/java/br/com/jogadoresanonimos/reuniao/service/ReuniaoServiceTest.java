@@ -56,7 +56,8 @@ class ReuniaoServiceTest {
     private CriarReuniaoRequest criarRequestPresencial() {
         return new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial, "descricao", "Segunda-feira",
                 "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP", "5599999999999", "Segunda", "Noite",
-                -23.5505, -46.6333, "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "SP", null);
+                -23.5505, -46.6333, "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "SP", null,
+                null, UUID.randomUUID());
     }
 
     private CriarReuniaoRequest criarRequestVirtual() {
@@ -95,7 +96,8 @@ class ReuniaoServiceTest {
     void criar_presencial_deveNormalizarEstadoParaMaiusculo() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "19h30", "local qualquer", null, null, null, null, null,
-                "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "sp", null);
+                "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "sp", null,
+                null, UUID.randomUUID());
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoService.criar(request);
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
@@ -107,7 +109,7 @@ class ReuniaoServiceTest {
     void criar_presencial_devePermitirCriacaoSemNenhumCampoDeEnderecoEstruturado() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123", null, null, null, null, null,
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, UUID.randomUUID());
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoService.criar(request);
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
@@ -121,7 +123,8 @@ class ReuniaoServiceTest {
     void criar_presencial_devePermitirCampoDeEnderecoParcialmentePreenchido() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123", null, null, null, null, null,
-                "01310-100", null, "Rua das Flores", "Centro", "São Paulo", "SP", null);
+                "01310-100", null, "Rua das Flores", "Centro", "São Paulo", "SP", null,
+                null, UUID.randomUUID());
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoService.criar(request);
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
@@ -337,7 +340,7 @@ class ReuniaoServiceTest {
     void criar_presencial_semEstado_deveContinuarPermitido() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123", null, null, null, null, null,
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, UUID.randomUUID());
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoService.criar(request);
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
@@ -453,7 +456,7 @@ class ReuniaoServiceTest {
                 "descricao", null, null, "local", null, null, null, null, null, null, null, null,
                 null, null, null, null, List.of(
                 new ReuniaoAgendaItemRequest("QUINTA", "20h"),
-                new ReuniaoAgendaItemRequest("SEGUNDA", "19h")));
+                new ReuniaoAgendaItemRequest("SEGUNDA", "19h")), UUID.randomUUID());
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         ReuniaoResponse resultado = reuniaoService.criar(request);
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
@@ -488,7 +491,7 @@ class ReuniaoServiceTest {
                 "descricao", null, null, "local", null, null, null, null, null, null, null, null,
                 null, null, null, null, List.of(
                 new ReuniaoAgendaItemRequest("SEGUNDA", "20h"),
-                new ReuniaoAgendaItemRequest("segunda-feira", "19h")));
+                new ReuniaoAgendaItemRequest("segunda-feira", "19h")), UUID.randomUUID());
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         ReuniaoResponse resultado = reuniaoService.criar(request);
         assertThat(resultado.agenda()).extracting("diaSemana", "horario")
@@ -506,7 +509,7 @@ class ReuniaoServiceTest {
                 new ReuniaoAgendaItemRequest("SEGUNDA", "19:30h"),
                 new ReuniaoAgendaItemRequest("SEGUNDA", "09:15"),
                 new ReuniaoAgendaItemRequest("SEGUNDA", "9h às 11h"),
-                new ReuniaoAgendaItemRequest("SEGUNDA", "9h")));
+                new ReuniaoAgendaItemRequest("SEGUNDA", "9h")), UUID.randomUUID());
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         ReuniaoResponse resultado = reuniaoService.criar(request);
         assertThat(resultado.agenda()).extracting("horario")

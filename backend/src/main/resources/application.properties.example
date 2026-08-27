@@ -39,6 +39,10 @@ app.admin-bootstrap.senha=${ADMIN_BOOTSTRAP_SENHA:}
 # Retencao do log de auditoria admin em dias (24 meses por padrao).
 app.auditoria.retencao-dias=${AUDITORIA_RETENCAO_DIAS:730}
 
+# Backfill one-shot do par Reuniao/GrupoIntergrupo orfao. Deixe em branco
+# no dia a dia; so setar dry-run ou apply quando for rodar a rotina.
+app.backfill.par-reuniao-grupo=${BACKFILL_PAR:}
+
 server.error.include-stacktrace=never
 server.error.include-message=never
 server.error.include-exception=false

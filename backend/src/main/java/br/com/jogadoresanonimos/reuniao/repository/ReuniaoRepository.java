@@ -17,6 +17,8 @@ public interface ReuniaoRepository extends JpaRepository<Reuniao, UUID> {
 
     List<Reuniao> findAllByCategoriaAndEstadoIsNullAndLatitudeIsNotNullAndLongitudeIsNotNull(CategoriaReuniao categoria);
 
+    List<Reuniao> findAllByCategoriaAndGrupoIntergrupoIsNull(CategoriaReuniao categoria);
+
     Optional<Reuniao> findByGrupoIntergrupoId(UUID grupoIntergrupoId);
 
     boolean existsByGrupoIntergrupoEstadoId(UUID estadoId);

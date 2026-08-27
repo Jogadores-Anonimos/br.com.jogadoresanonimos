@@ -6,6 +6,7 @@ import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.escritorio.entity.AgendaItemGrupo;
 import br.com.jogadoresanonimos.escritorio.entity.DiaSemana;
+import br.com.jogadoresanonimos.escritorio.entity.EstadoIntergrupo;
 import br.com.jogadoresanonimos.escritorio.entity.GrupoIntergrupo;
 import br.com.jogadoresanonimos.escritorio.repository.GrupoIntergrupoRepository;
 import br.com.jogadoresanonimos.escritorio.repository.EstadoIntergrupoRepository;
@@ -61,6 +62,16 @@ public class ReuniaoGrupoSincronizacaoService {
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
+    public GrupoIntergrupo criarGrupoParaReuniaoOrfa(Reuniao reuniao, EstadoIntergrupo estado, int ordem) {
+        validarCamposParaEspelho(reuniao);
+        GrupoIntergrupo grupo = new GrupoIntergrupo(estado, reuniao.getNome(), reuniao.getLocal(),
+                reuniao.getBairro(), reuniao.getCidade(), paraAgendaGrupo(reuniao.getAgenda()), ordem);
+        grupo = grupoRepository.save(grupo);
+        reuniao.vincularGrupoIntergrupo(grupo);
+        return grupo;
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
     public void vincularSeSolicitado(Reuniao reuniao, UUID grupoIntergrupoId) {
         if (reuniao.getCategoria() == CategoriaReuniao.virtual) {
             if (grupoIntergrupoId != null) {
@@ -70,7 +81,8 @@ public class ReuniaoGrupoSincronizacaoService {
             return;
         }
         if (grupoIntergrupoId == null) {
-            return; // dual-mode: presenciais legadas continuam sem vínculo durante o rollout
+            throw new ValidationException(ErrorCode.REUNIAO_GRUPO_DADOS_INVALIDOS,
+                    "Reunião presencial exige grupo intergrupo vinculado");
         }
         GrupoIntergrupo grupo = bloquearGrupo(grupoIntergrupoId);
         Optional<Reuniao> existente = reuniaoRepository.buscarPorGrupoIntergrupoIdComLock(grupoIntergrupoId);
@@ -88,6 +100,10 @@ public class ReuniaoGrupoSincronizacaoService {
     @Transactional(propagation = Propagation.MANDATORY)
     public void sincronizarAposEdicaoReuniao(Reuniao reuniao) {
         if (reuniao.getGrupoIntergrupo() == null) {
+            if (reuniao.getCategoria() == CategoriaReuniao.presencial) {
+                throw new ValidationException(ErrorCode.REUNIAO_GRUPO_DADOS_INVALIDOS,
+                        "Reunião presencial exige grupo intergrupo vinculado");
+            }
             return;
         }
         if (reuniao.getCategoria() == CategoriaReuniao.virtual) {

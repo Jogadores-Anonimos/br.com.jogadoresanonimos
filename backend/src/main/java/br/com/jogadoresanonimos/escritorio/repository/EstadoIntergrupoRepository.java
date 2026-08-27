@@ -19,6 +19,8 @@ public interface EstadoIntergrupoRepository extends JpaRepository<EstadoIntergru
 
     Optional<EstadoIntergrupo> findByRegiaoIdAndUf(UUID regiaoId, UnidadeFederativa uf);
 
+    Optional<EstadoIntergrupo> findByUf(UnidadeFederativa uf);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT e FROM EstadoIntergrupo e WHERE e.id = :id")
     Optional<EstadoIntergrupo> buscarPorIdComLock(UUID id);

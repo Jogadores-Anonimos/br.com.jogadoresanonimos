@@ -200,7 +200,6 @@ export class AdminEscritoriosRegionais implements OnInit {
   errosCampoEndereco: Record<string, string> = {};
   formularioEnderecoAberto = false;
   formularioEndereco: FormularioEndereco = formularioEnderecoVazio();
-  private readonly gruposSincronizadosNestaSessao = new Set<string>();
 
   cepEndereco = '';
   numeroEndereco = '';
@@ -318,11 +317,6 @@ export class AdminEscritoriosRegionais implements OnInit {
     if (!this.ufsEnderecoDisponiveis.some((item) => item.sigla === this.formularioEndereco.uf)) {
       this.formularioEndereco.uf = '';
     }
-  }
-
-  grupoEstaSincronizado(grupo: GrupoIntergrupo): boolean {
-    return this.gruposSincronizadosNestaSessao.has(grupo.id) ||
-      this.reunioesAdmin.some((reuniao) => reuniao.grupoIntergrupoId === grupo.id);
   }
 
   verEstados(regiao: RegiaoIntergrupo): void {
@@ -764,7 +758,6 @@ export class AdminEscritoriosRegionais implements OnInit {
 
       if (envelope.success && envelope.data) {
         const grupoCriado = envelope.data;
-        this.gruposSincronizadosNestaSessao.add(grupoCriado.id);
         const regiao = this.dados.regioes.find((r) => r.id === regiaoId);
         const estadoExistente = regiao?.estados.find((e) => e.uf === uf);
 

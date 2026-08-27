@@ -24,6 +24,7 @@ import { EscritorioRegionalService, derivarUfsFaltantesPorRegiao } from '../../s
 import {
   DiaSemana,
   EstadoIntergrupo,
+  GrupoIntergrupo,
   RegiaoIntergrupo,
   UnidadeFederativaComRegiao,
 } from '../../services/escritorio-regional/escritorio-regional.model';
@@ -75,6 +76,10 @@ const LABEL_DIA_SEMANA: Record<DiaSemana, string> = {
 };
 
 const ORDEM_REGIOES = ['SUDESTE', 'SUL', 'CENTRO_OESTE', 'NORTE', 'NORDESTE'];
+
+const ORDEM_UF_PRIORITARIA_POR_REGIAO: Record<string, string[]> = {
+  SUDESTE: ['SP', 'RJ'],
+};
 
 const RAIO_TERRA_KM = 6371;
 
@@ -205,6 +210,7 @@ export class Enderecos implements OnInit, OnDestroy {
   regiaoSelecionada: string | null = null;
 
   reuniaoDetalhe: Reuniao | null = null;
+  grupoDetalhe: GrupoIntergrupo | null = null;
 
   private readonly userCoords = signal<{ latitude: number; longitude: number } | null>(null);
   localizacaoPermitida = signal(false);
@@ -293,7 +299,21 @@ export class Enderecos implements OnInit, OnDestroy {
       uf: unidade.uf,
       unidade,
     }));
-    return [...comGrupo, ...semGrupo].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    const ordemPrioritaria = ORDEM_UF_PRIORITARIA_POR_REGIAO[regiao.codigo] ?? [];
+    return [...comGrupo, ...semGrupo].sort((a, b) => {
+      const prioridadeA = ordemPrioritaria.indexOf(a.uf);
+      const prioridadeB = ordemPrioritaria.indexOf(b.uf);
+      if (prioridadeA !== -1 || prioridadeB !== -1) {
+        if (prioridadeA === -1) {
+          return 1;
+        }
+        if (prioridadeB === -1) {
+          return -1;
+        }
+        return prioridadeA - prioridadeB;
+      }
+      return a.nome.localeCompare(b.nome, 'pt-BR');
+    });
   }
 
   reunioesOnlineDaUf(uf: string): Reuniao[] {
@@ -359,12 +379,26 @@ export class Enderecos implements OnInit, OnDestroy {
     return montarLinkWhatsapp(reuniao.whatsapp || WHATSAPP_PHONE_NUMBER);
   }
 
+  whatsappLinkGrupo(grupo: GrupoIntergrupo): string {
+    const telefoneGrupo = grupo.telefones[0]?.telefone;
+    return montarLinkWhatsapp(telefoneGrupo || WHATSAPP_PHONE_NUMBER);
+  }
+
+  enderecoCompletoGrupo(grupo: GrupoIntergrupo): string {
+    return `${grupo.endereco}${grupo.bairro ? `, ${grupo.bairro}` : ''}, ${grupo.cidade}`;
+  }
+
   abrirDetalhes(reuniao: Reuniao): void {
     this.reuniaoDetalhe = reuniao;
   }
 
+  abrirDetalhesGrupo(grupo: GrupoIntergrupo): void {
+    this.grupoDetalhe = grupo;
+  }
+
   fecharDetalhes(): void {
     this.reuniaoDetalhe = null;
+    this.grupoDetalhe = null;
   }
 
   fecharDetalhesSeCliqueForaDoPainel(evento: MouseEvent): void {
@@ -375,7 +409,7 @@ export class Enderecos implements OnInit, OnDestroy {
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    if (this.reuniaoDetalhe) {
+    if (this.reuniaoDetalhe || this.grupoDetalhe) {
       this.fecharDetalhes();
     }
   }

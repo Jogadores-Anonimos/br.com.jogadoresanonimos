@@ -293,10 +293,6 @@ export class AdminReunioes implements OnInit {
     this.formulario.agenda = this.agendaGrupoParaFormulario(grupo);
   }
 
-  statusVinculo(reuniao: Reuniao): string {
-    return reuniao.grupoIntergrupoId ? 'Sincronizada com Grupos por UF' : 'Não vinculada';
-  }
-
   private carregarReunioes(): void {
     this.carregando = true;
     this.erroCarregamento = '';
@@ -567,9 +563,12 @@ export class AdminReunioes implements OnInit {
     if (presencial && !this.formulario.local.trim()) {
       this.errosCampo['local'] = 'Local é obrigatório.';
     }
+    if (!this.reuniaoEmEdicao && presencial && !this.formulario.grupoIntergrupoId) {
+      this.errosCampo['grupoIntergrupoId'] = 'Grupo é obrigatório.';
+    }
     if (Object.keys(this.errosCampo).length > 0) {
       this.erroFormulario = presencial
-        ? 'Nome, descrição, agenda e local são obrigatórios.'
+        ? 'Nome, descrição, agenda, local e grupo são obrigatórios.'
         : 'Nome e agenda são obrigatórios.';
       return;
     }
