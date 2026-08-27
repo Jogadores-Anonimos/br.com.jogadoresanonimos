@@ -6,8 +6,6 @@ import type { LngLatLike, Map as MapLibreMap, Marker as MapLibreMarker, StyleSpe
 import { mapearErrosCampo, mensagemDeErro } from '../../../services/api-envelope';
 import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
 import { ReuniaoService } from '../../../services/reuniao/reuniao';
-import { EscritorioRegionalService } from '../../../services/escritorio-regional/escritorio-regional';
-import { GrupoIntergrupo, RegiaoIntergrupo } from '../../../services/escritorio-regional/escritorio-regional.model';
 import { compararHorarios } from '../../../services/reuniao/reuniao-horario';
 import {
   AgendaItemReuniao,
@@ -36,9 +34,6 @@ interface FormularioReuniao {
   cidade: string;
   estado: string;
   linkReuniao: string;
-  regiaoId: string;
-  uf: string;
-  grupoIntergrupoId: string;
 }
 
 interface AgendaFormularioItem {
@@ -83,9 +78,6 @@ function formularioVazio(): FormularioReuniao {
     cidade: '',
     estado: '',
     linkReuniao: '',
-    regiaoId: '',
-    uf: '',
-    grupoIntergrupoId: '',
   };
 }
 
@@ -145,7 +137,6 @@ function corPadraoJa(): string {
 })
 export class AdminReunioes implements OnInit {
   private readonly reuniaoService = inject(ReuniaoService);
-  private readonly escritorioRegionalService = inject(EscritorioRegionalService);
   private readonly enderecoLookupService = inject(EnderecoLookupService);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
@@ -154,7 +145,6 @@ export class AdminReunioes implements OnInit {
   carregando = true;
   erroCarregamento = '';
   readonly reunioes = signal<Reuniao[]>([]);
-  estruturaRegioes: RegiaoIntergrupo[] = [];
   conflitoVersao = false;
   avisoGeocodificacao = '';
 
@@ -243,54 +233,6 @@ export class AdminReunioes implements OnInit {
 
   ngOnInit(): void {
     this.carregarReunioes();
-    this.carregarGrupos();
-  }
-
-  private carregarGrupos(): void {
-    this.escritorioRegionalService.listarEstruturaAdmin().subscribe((envelope) => {
-      this.estruturaRegioes = envelope.success && envelope.data ? envelope.data.regioes : [];
-    });
-  }
-
-  get regioesComGrupos(): RegiaoIntergrupo[] {
-    return this.estruturaRegioes.filter((regiao) => regiao.estados.some((estado) => estado.grupos.length));
-  }
-
-  get ufsDoFormulario(): Array<{ uf: string; nome: string }> {
-    const regiao = this.estruturaRegioes.find((item) => item.id === this.formulario.regiaoId);
-    return (regiao?.estados ?? []).map((estado) => ({ uf: estado.uf, nome: estado.nome }));
-  }
-
-  get gruposDoFormulario(): GrupoIntergrupo[] {
-    const estado = this.estruturaRegioes
-      .find((regiao) => regiao.id === this.formulario.regiaoId)
-      ?.estados.find((item) => item.uf === this.formulario.uf);
-    const vinculados = new Set(
-      this.reunioes()
-        .filter((item) => item.id !== this.reuniaoEmEdicao?.id && item.grupoIntergrupoId)
-        .map((item) => item.grupoIntergrupoId),
-    );
-    return (estado?.grupos ?? []).filter((grupo) => !vinculados.has(grupo.id));
-  }
-
-  selecionarRegiao(): void {
-    this.formulario.uf = '';
-    this.formulario.grupoIntergrupoId = '';
-  }
-
-  selecionarUf(): void {
-    this.formulario.grupoIntergrupoId = '';
-  }
-
-  selecionarGrupo(): void {
-    const grupo = this.gruposDoFormulario.find((item) => item.id === this.formulario.grupoIntergrupoId);
-    if (!grupo) return;
-    this.formulario.nome = grupo.nome;
-    this.formulario.local = grupo.endereco;
-    this.formulario.bairro = grupo.bairro ?? '';
-    this.formulario.cidade = grupo.cidade;
-    this.formulario.estado = this.formulario.uf;
-    this.formulario.agenda = this.agendaGrupoParaFormulario(grupo);
   }
 
   private carregarReunioes(): void {
@@ -364,7 +306,6 @@ export class AdminReunioes implements OnInit {
       cidade: reuniao.cidade ?? '',
       estado: reuniao.estado ?? '',
       linkReuniao: reuniao.linkReuniao ?? '',
-      ...this.localizarGrupo(reuniao.grupoIntergrupoId),
     };
     this.erroCep = '';
     this.erroFormulario = '';
@@ -563,12 +504,12 @@ export class AdminReunioes implements OnInit {
     if (presencial && !this.formulario.local.trim()) {
       this.errosCampo['local'] = 'Local é obrigatório.';
     }
-    if (!this.reuniaoEmEdicao && presencial && !this.formulario.grupoIntergrupoId) {
-      this.errosCampo['grupoIntergrupoId'] = 'Grupo é obrigatório.';
+    if (presencial && !this.formulario.estado.trim()) {
+      this.errosCampo['estado'] = 'Estado é obrigatório.';
     }
     if (Object.keys(this.errosCampo).length > 0) {
       this.erroFormulario = presencial
-        ? 'Nome, descrição, agenda, local e grupo são obrigatórios.'
+        ? 'Nome, descrição, agenda, local e estado são obrigatórios.'
         : 'Nome e agenda são obrigatórios.';
       return;
     }
@@ -618,10 +559,8 @@ export class AdminReunioes implements OnInit {
       logradouro: this.formulario.logradouro.trim() || undefined,
       bairro: this.formulario.bairro.trim() || undefined,
       cidade: this.formulario.cidade.trim() || undefined,
-      estado: (this.reuniaoEmEdicao?.grupoIntergrupoId ? this.formulario.uf || this.formulario.estado : this.formulario.estado).trim() || undefined,
+      estado: this.formulario.estado.trim() || undefined,
       linkReuniao: this.formulario.linkReuniao.trim() || undefined,
-      grupoIntergrupoId:
-        !this.reuniaoEmEdicao && presencial ? this.formulario.grupoIntergrupoId || undefined : undefined,
     };
 
     const acao = this.reuniaoEmEdicao
@@ -668,30 +607,8 @@ export class AdminReunioes implements OnInit {
         if (atualizada) this.reuniaoEmEdicao = atualizada;
       }
     });
-    this.carregarGrupos();
     this.conflitoVersao = false;
     this.erroFormulario = 'Dados recarregados. Seu rascunho foi preservado; revise e salve novamente.';
-  }
-
-  private localizarGrupo(grupoId: string | null | undefined): Pick<FormularioReuniao, 'regiaoId' | 'uf' | 'grupoIntergrupoId'> {
-    for (const regiao of this.estruturaRegioes) {
-      for (const estado of regiao.estados) {
-        if (estado.grupos.some((grupo) => grupo.id === grupoId)) {
-          return { regiaoId: regiao.id, uf: estado.uf, grupoIntergrupoId: grupoId ?? '' };
-        }
-      }
-    }
-    return { regiaoId: '', uf: '', grupoIntergrupoId: grupoId ?? '' };
-  }
-
-  private agendaGrupoParaFormulario(grupo: GrupoIntergrupo): AgendaFormularioItem[] {
-    return DIAS_AGENDA.map((dia) => {
-      const horarios = grupo.agenda
-        .filter((item) => item.diaSemana === dia.diaSemana)
-        .map((item) => item.horario)
-        .sort(compararHorarios);
-      return { ...dia, selecionado: horarios.length > 0, horarios };
-    });
   }
 
   private agendaDaReuniao(reuniao: Reuniao): AgendaItemReuniao[] {

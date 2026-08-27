@@ -1,7 +1,6 @@
 package br.com.jogadoresanonimos.reuniao.service;
 
 import br.com.jogadoresanonimos.common.exception.ConflitoDeEstadoException;
-import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.escritorio.entity.AgendaItemGrupo;
 import br.com.jogadoresanonimos.escritorio.entity.DiaSemana;
 import br.com.jogadoresanonimos.escritorio.entity.EstadoIntergrupo;
@@ -19,6 +18,7 @@ import br.com.jogadoresanonimos.reuniao.repository.ReuniaoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -60,12 +60,32 @@ class ReuniaoGrupoSincronizacaoServiceTest {
     }
 
     @Test
-    void vincularSeSolicitado_deveRejeitarGrupoEmReuniaoVirtual() {
+    void criarGrupoParaReuniaoPresencial_deveIgnorarReuniaoVirtual() {
         Reuniao virtual = novaReuniao(CategoriaReuniao.virtual);
 
-        assertThatThrownBy(() -> service.vincularSeSolicitado(virtual, UUID.randomUUID()))
-                .isInstanceOf(ValidationException.class);
+        service.criarGrupoParaReuniaoPresencial(virtual);
+
+        assertThat(virtual.getGrupoIntergrupo()).isNull();
         verifyNoInteractions(grupoRepository);
+    }
+
+    @Test
+    void criarGrupoParaReuniaoPresencial_deveCriarGrupoEVincularReuniaoPresencial() {
+        RegiaoIntergrupo regiao = new RegiaoIntergrupo("Sudeste", RegiaoCodigo.SUDESTE, 0);
+        EstadoIntergrupo estado = new EstadoIntergrupo(regiao, UnidadeFederativa.SP, 0);
+        setId(estado, UUID.randomUUID());
+        Reuniao presencial = novaReuniao(CategoriaReuniao.presencial);
+        when(estadoRepository.findByUf(UnidadeFederativa.SP)).thenReturn(Optional.of(estado));
+        when(estadoRepository.buscarPorIdComLock(estado.getId())).thenReturn(Optional.of(estado));
+        when(grupoRepository.buscarMaiorOrdemPorEstadoId(estado.getId())).thenReturn(2);
+        when(grupoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.criarGrupoParaReuniaoPresencial(presencial);
+
+        ArgumentCaptor<GrupoIntergrupo> captor = ArgumentCaptor.forClass(GrupoIntergrupo.class);
+        verify(grupoRepository).save(captor.capture());
+        assertThat(captor.getValue().getOrdem()).isEqualTo(3);
+        assertThat(presencial.getGrupoIntergrupo()).isSameAs(captor.getValue());
     }
 
     @Test

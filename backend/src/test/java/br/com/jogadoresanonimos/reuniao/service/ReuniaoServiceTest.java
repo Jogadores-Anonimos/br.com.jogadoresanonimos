@@ -1,5 +1,6 @@
 package br.com.jogadoresanonimos.reuniao.service;
 
+import br.com.jogadoresanonimos.common.exception.ErrorCode;
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
 import br.com.jogadoresanonimos.reuniao.dto.CriarReuniaoRequest;
@@ -34,11 +35,14 @@ class ReuniaoServiceTest {
     @Mock
     ReuniaoRepository reuniaoRepository;
 
+    @Mock
+    ReuniaoGrupoSincronizacaoService sincronizacaoService;
+
     ReuniaoService reuniaoService;
 
     @BeforeEach
     void setUp() {
-        reuniaoService = new ReuniaoService(reuniaoRepository);
+        reuniaoService = new ReuniaoService(reuniaoRepository, sincronizacaoService);
     }
 
     private Reuniao reuniao() {
@@ -50,14 +54,14 @@ class ReuniaoServiceTest {
     private Reuniao reuniaoLegadaSemEnderecoEstruturado() {
         return new Reuniao("Grupo Centro", CategoriaReuniao.presencial, "descricao", "Segunda-feira",
                 "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP", "5599999999999", "Segunda", "Noite",
-                -23.5505, -46.6333, null, null, null, null, null, null, null);
+                -23.5505, -46.6333, null, null, null, null, null, "SP", null);
     }
 
     private CriarReuniaoRequest criarRequestPresencial() {
         return new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial, "descricao", "Segunda-feira",
                 "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP", "5599999999999", "Segunda", "Noite",
                 -23.5505, -46.6333, "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "SP", null,
-                null, UUID.randomUUID());
+                null);
     }
 
     private CriarReuniaoRequest criarRequestVirtual() {
@@ -93,11 +97,19 @@ class ReuniaoServiceTest {
     }
 
     @Test
+    void criar_presencial_deveChamarSincronizacaoServiceParaCriarGrupo() {
+        CriarReuniaoRequest request = criarRequestPresencial();
+        when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        reuniaoService.criar(request);
+        verify(sincronizacaoService).criarGrupoParaReuniaoPresencial(any(Reuniao.class));
+    }
+
+    @Test
     void criar_presencial_deveNormalizarEstadoParaMaiusculo() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "19h30", "local qualquer", null, null, null, null, null,
                 "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "sp", null,
-                null, UUID.randomUUID());
+                null);
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoService.criar(request);
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
@@ -106,17 +118,27 @@ class ReuniaoServiceTest {
     }
 
     @Test
-    void criar_presencial_devePermitirCriacaoSemNenhumCampoDeEnderecoEstruturado() {
+    void criar_presencial_devePermitirCriacaoSemCamposDeEnderecoEstruturadoExcetoEstado() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123", null, null, null, null, null,
-                null, null, null, null, null, null, null, null, UUID.randomUUID());
+                null, null, null, null, null, "SP", null);
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoService.criar(request);
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
         verify(reuniaoRepository).save(captor.capture());
         assertThat(captor.getValue().getLocal()).isEqualTo("Rua das Flores, 123");
         assertThat(captor.getValue().getCep()).isNull();
-        assertThat(captor.getValue().getEstado()).isNull();
+        assertThat(captor.getValue().getEstado()).isEqualTo("SP");
+    }
+
+    @Test
+    void criar_presencial_semEstado_deveLancarExcecaoValidationException() {
+        CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
+                "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123", null, null, null, null, null,
+                null, null, null, null, null, null, null);
+        assertThatThrownBy(() -> reuniaoService.criar(request))
+                .isInstanceOf(ValidationException.class);
+        verify(reuniaoRepository, never()).save(any());
     }
 
     @Test
@@ -124,7 +146,7 @@ class ReuniaoServiceTest {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123", null, null, null, null, null,
                 "01310-100", null, "Rua das Flores", "Centro", "São Paulo", "SP", null,
-                null, UUID.randomUUID());
+                null);
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoService.criar(request);
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
@@ -182,7 +204,7 @@ class ReuniaoServiceTest {
     void editar_deveAplicarWhatsappPadraoQuandoNaoInformado() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniao();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP", null, null,
                 null, null, null, "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "SP", null);
@@ -191,10 +213,22 @@ class ReuniaoServiceTest {
     }
 
     @Test
+    void editar_deveChamarSincronizacaoServiceParaSincronizarAposEdicao() {
+        UUID id = UUID.randomUUID();
+        Reuniao reuniao = reuniao();
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
+        EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
+                "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP", null, null,
+                null, null, null, "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "SP", null);
+        reuniaoService.editar(id, request);
+        verify(sincronizacaoService).sincronizarAposEdicaoReuniao(reuniao);
+    }
+
+    @Test
     void editar_presencialParaVirtualComCamposDeEnderecoNulosNoRequest_devePersistirNulos() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniao();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Novo", CategoriaReuniao.virtual,
                 "nova descricao", "Terça-feira", "20h00", "link", null, null, null, null, null,
                 null, null, null, null, null, "SP", "https://meet.google.com/abc-defg-hij");
@@ -210,21 +244,34 @@ class ReuniaoServiceTest {
     void editar_reuniaoPresencialLegadaSemEnderecoEstruturado_devePermitirEdicaoSemPreencherOsSeisCampos() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniaoLegadaSemEnderecoEstruturado();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro Atualizado", CategoriaReuniao.presencial,
                 "descricao atualizada", "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP",
-                null, null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, "SP", null);
         ReuniaoResponse resultado = reuniaoService.editar(id, request);
         assertThat(resultado.nome()).isEqualTo("Grupo Centro Atualizado");
         assertThat(resultado.local()).isEqualTo("Rua das Flores, 123 - Centro, São Paulo - SP");
         assertThat(resultado.cep()).isNull();
-        assertThat(resultado.estado()).isNull();
+        assertThat(resultado.estado()).isEqualTo("SP");
+    }
+
+    @Test
+    void editar_presencial_semEstado_deveLancarExcecaoValidationException() {
+        UUID id = UUID.randomUUID();
+        Reuniao reuniao = reuniao();
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
+        EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
+                "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP", null, null,
+                null, null, null, "01310-100", "123", "Rua das Flores", "Centro", null, null, null);
+        assertThatThrownBy(() -> reuniaoService.editar(id, request))
+                .isInstanceOf(ValidationException.class);
     }
 
     @Test
     void editar_deveLancarExcecaoQuandoReuniaoNaoExiste() {
         UUID id = UUID.randomUUID();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.empty());
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id))
+                .thenThrow(new RecursoNaoEncontradoException(ErrorCode.REUNIAO_NAO_ENCONTRADA, "Reunião não encontrada"));
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Novo", CategoriaReuniao.virtual,
                 "nova descricao", "Terça-feira", "20h00", "link", null, null, null, null, null,
                 null, null, null, null, null, null, null);
@@ -284,7 +331,7 @@ class ReuniaoServiceTest {
     void editar_virtual_devePermitirLocalAusenteEPersistirVazio() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniao();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Novo", CategoriaReuniao.virtual,
                 "nova descricao", "Terça-feira", "20h00", null, null, null, null, null, null,
                 null, null, null, null, null, "SP", "https://meet.google.com/abc-defg-hij");
@@ -316,7 +363,7 @@ class ReuniaoServiceTest {
     void editar_virtual_semEstado_deveLancarExcecaoValidationException() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniao();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Novo", CategoriaReuniao.virtual,
                 "nova descricao", "Terça-feira", "20h00", "link", null, null, null, null, null,
                 null, null, null, null, null, null, "https://meet.google.com/abc-defg-hij");
@@ -328,24 +375,12 @@ class ReuniaoServiceTest {
     void editar_virtual_comEstado_devePersistirComSucesso() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniao();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Novo", CategoriaReuniao.virtual,
                 "nova descricao", "Terça-feira", "20h00", "link", null, null, null, null, null,
                 null, null, null, null, null, "rj", "https://meet.google.com/abc-defg-hij");
         ReuniaoResponse resultado = reuniaoService.editar(id, request);
         assertThat(resultado.estado()).isEqualTo("RJ");
-    }
-
-    @Test
-    void criar_presencial_semEstado_deveContinuarPermitido() {
-        CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
-                "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123", null, null, null, null, null,
-                null, null, null, null, null, null, null, null, UUID.randomUUID());
-        when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        reuniaoService.criar(request);
-        ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
-        verify(reuniaoRepository).save(captor.capture());
-        assertThat(captor.getValue().getEstado()).isNull();
     }
 
     @Test
@@ -362,7 +397,7 @@ class ReuniaoServiceTest {
     void editar_presencial_deveLancarExcecaoQuandoDescricaoEmBranco() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniao();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "   ", "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP", null, null,
                 null, null, null, "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "SP", null);
@@ -374,7 +409,7 @@ class ReuniaoServiceTest {
     void editar_devePersistirEGerarAvisoQuandoCidadeMudaSemLocalMudar() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniao();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP", null, null,
                 null, null, null, "01310-100", "123", "Rua das Flores", "Centro", "Guarulhos", "SP", null);
@@ -388,7 +423,7 @@ class ReuniaoServiceTest {
     void editar_devePersistirEGerarAvisoQuandoEstadoMudaSemLocalMudar() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniao();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP", null, null,
                 null, null, null, "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "RJ", null);
@@ -400,7 +435,7 @@ class ReuniaoServiceTest {
     void editar_naoDeveGerarAvisoQuandoCidadeMudaELocalTambemMuda() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniao();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "19h30", "Rua Nova, 45 - Centro, Guarulhos - SP", null, null,
                 null, null, null, "01310-100", "123", "Rua das Flores", "Centro", "Guarulhos", "SP", null);
@@ -412,7 +447,7 @@ class ReuniaoServiceTest {
     void editar_naoDeveGerarAvisoQuandoEnderecoEstruturadoNaoMuda() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniao();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro Atualizado", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP", null, null,
                 null, null, null, "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "SP", null);
@@ -424,39 +459,52 @@ class ReuniaoServiceTest {
     void editar_naoDeveGerarAvisoParaReuniaoLegadaSemEnderecoEstruturadoQuandoNadaMuda() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniaoLegadaSemEnderecoEstruturado();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123 - Centro, São Paulo - SP",
-                null, null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, "SP", null);
         ReuniaoResponse resultado = reuniaoService.editar(id, request);
         assertThat(resultado.avisos()).isEmpty();
     }
 
     @Test
-    void remover_deveDeletarQuandoExiste() {
+    void remover_deveDelegarParaSincronizacaoServiceQuandoExiste() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniao();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         reuniaoService.remover(id);
-        verify(reuniaoRepository).delete(reuniao);
+        verify(sincronizacaoService).removerPorReuniao(reuniao);
+        verify(reuniaoRepository, never()).delete(any());
     }
 
     @Test
     void remover_deveLancarExcecaoQuandoNaoExiste() {
         UUID id = UUID.randomUUID();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.empty());
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id))
+                .thenThrow(new RecursoNaoEncontradoException(ErrorCode.REUNIAO_NAO_ENCONTRADA, "Reunião não encontrada"));
         assertThatThrownBy(() -> reuniaoService.remover(id))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
         verify(reuniaoRepository, never()).delete(any());
+        verify(sincronizacaoService, never()).removerPorReuniao(any());
+    }
+
+    @Test
+    void remover_semSincronizacaoService_deveDeletarDireto() {
+        ReuniaoService servicoSemSincronizacao = new ReuniaoService(reuniaoRepository);
+        UUID id = UUID.randomUUID();
+        Reuniao reuniao = reuniao();
+        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        servicoSemSincronizacao.remover(id);
+        verify(reuniaoRepository).delete(reuniao);
     }
 
     @Test
     void criar_comAgendaDeMultiplosDias_devePersistirOrdenadaEDualWriteDoPrimeiroItem() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", null, null, "local", null, null, null, null, null, null, null, null,
-                null, null, null, null, List.of(
+                null, null, "SP", null, List.of(
                 new ReuniaoAgendaItemRequest("QUINTA", "20h"),
-                new ReuniaoAgendaItemRequest("SEGUNDA", "19h")), UUID.randomUUID());
+                new ReuniaoAgendaItemRequest("SEGUNDA", "19h")));
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         ReuniaoResponse resultado = reuniaoService.criar(request);
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
@@ -472,7 +520,7 @@ class ReuniaoServiceTest {
     void editar_comAgendaNova_deveSubstituirAgendaAnterior() {
         UUID id = UUID.randomUUID();
         Reuniao reuniao = reuniao();
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", null, null, "Rua das Flores, 123 - Centro, São Paulo - SP", null, null, null,
                 null, null, "01310-100", "123", "Rua das Flores", "Centro", "São Paulo", "SP", null,
@@ -489,9 +537,9 @@ class ReuniaoServiceTest {
     void criar_comMultiplosHorariosNoMesmoDia_devePersistirOrdenado() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", null, null, "local", null, null, null, null, null, null, null, null,
-                null, null, null, null, List.of(
+                null, null, "SP", null, List.of(
                 new ReuniaoAgendaItemRequest("SEGUNDA", "20h"),
-                new ReuniaoAgendaItemRequest("segunda-feira", "19h")), UUID.randomUUID());
+                new ReuniaoAgendaItemRequest("segunda-feira", "19h")));
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         ReuniaoResponse resultado = reuniaoService.criar(request);
         assertThat(resultado.agenda()).extracting("diaSemana", "horario")
@@ -503,13 +551,13 @@ class ReuniaoServiceTest {
     void criar_comFormatosMistos_deveOrdenarCronologicamenteEFazerDualWriteDoPrimeiro() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", null, null, "local", null, null, null, null, null, null, null, null,
-                null, null, null, null, List.of(
+                null, null, "SP", null, List.of(
                 new ReuniaoAgendaItemRequest("SEGUNDA", "texto livre"),
                 new ReuniaoAgendaItemRequest("SEGUNDA", "19h30"),
                 new ReuniaoAgendaItemRequest("SEGUNDA", "19:30h"),
                 new ReuniaoAgendaItemRequest("SEGUNDA", "09:15"),
                 new ReuniaoAgendaItemRequest("SEGUNDA", "9h às 11h"),
-                new ReuniaoAgendaItemRequest("SEGUNDA", "9h")), UUID.randomUUID());
+                new ReuniaoAgendaItemRequest("SEGUNDA", "9h")));
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         ReuniaoResponse resultado = reuniaoService.criar(request);
         assertThat(resultado.agenda()).extracting("horario")
@@ -568,7 +616,7 @@ class ReuniaoServiceTest {
         reuniao.substituirAgenda(List.of(
                 new AgendaItemReuniao(DiaSemanaReuniao.SEGUNDA, "19h"),
                 new AgendaItemReuniao(DiaSemanaReuniao.QUINTA, "20h")));
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "21h", "Rua das Flores, 123 - Centro, São Paulo - SP",
                 null, "Segunda", "Noite", null, null, "01310-100", "123", "Rua das Flores", "Centro",
@@ -585,7 +633,7 @@ class ReuniaoServiceTest {
         reuniao.substituirAgenda(List.of(
                 new AgendaItemReuniao(DiaSemanaReuniao.SEGUNDA, "19h"),
                 new AgendaItemReuniao(DiaSemanaReuniao.QUINTA, "20h")));
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Quinta-feira", "22h", "Rua das Flores, 123 - Centro, São Paulo - SP",
                 null, "Quinta", "Noite", null, null, "01310-100", "123", "Rua das Flores", "Centro",
@@ -605,7 +653,7 @@ class ReuniaoServiceTest {
                 new AgendaItemReuniao(DiaSemanaReuniao.SEGUNDA, "18h"),
                 new AgendaItemReuniao(DiaSemanaReuniao.SEGUNDA, "20h"),
                 new AgendaItemReuniao(DiaSemanaReuniao.QUINTA, "19h")));
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "19h", "Rua das Flores, 123 - Centro, São Paulo - SP",
                 null, "Segunda", "Noite", null, null, "01310-100", "123", "Rua das Flores", "Centro",
@@ -623,7 +671,7 @@ class ReuniaoServiceTest {
         reuniao.substituirAgenda(List.of(
                 new AgendaItemReuniao(DiaSemanaReuniao.SEGUNDA, "18h"),
                 new AgendaItemReuniao(DiaSemanaReuniao.SEGUNDA, "20h")));
-        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        when(sincronizacaoService.bloquearReuniaoParaEscrita(id)).thenReturn(reuniao);
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
                 "descricao", "Segunda-feira", "20h", "Rua das Flores, 123 - Centro, São Paulo - SP",
                 null, "Segunda", "Noite", null, null, "01310-100", "123", "Rua das Flores", "Centro",

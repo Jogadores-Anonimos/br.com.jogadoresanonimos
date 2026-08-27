@@ -938,12 +938,14 @@ lados. Reuniões virtuais nunca aceitam o vínculo. Durante o dual-mode,
 presenciais antigas sem vínculo continuam funcionando e a aplicação não
 tenta pareá-las automaticamente.
 
-`CriarReuniaoRequest` aceita `grupoIntergrupoId` opcional. Quando
-informado numa presencial, a mesma transação bloqueia o grupo, valida a
-unicidade, cria o vínculo e atualiza o espelho. `EditarReuniaoRequest`
-aceita `atualizadoEm` opcional; quando informado, divergência com a
-versão lida retorna `409 REUNIAO_VERSAO_CONFLITO`. A ausência preserva
-clientes da fase anterior.
+Nessa fase inicial (dual-mode, hoje superada — ver seção seguinte),
+`CriarReuniaoRequest` aceitava `grupoIntergrupoId` opcional. Quando
+informado numa presencial, a mesma transação bloqueava o grupo,
+validava a unicidade, criava o vínculo e atualizava o espelho.
+`EditarReuniaoRequest` aceita `atualizadoEm` opcional; quando
+informado, divergência com a versão lida retorna
+`409 REUNIAO_VERSAO_CONFLITO`. A ausência preserva clientes da fase
+anterior.
 
 Edição vinculada bloqueia os dois registros, atualiza a reunião e
 depois o espelho. Não há listener JPA nem trigger. Excluir qualquer
@@ -955,3 +957,34 @@ O mapa permanece uma projeção de `Reuniao`. Alteração de endereço sem
 novas coordenadas validadas limpa latitude/longitude para evitar marcador
 obsoleto. O script `backend/scripts/relatorio_backfill_reuniao_grupo.sql`
 é somente-leitura: classifica candidatos, mas nunca grava a FK.
+
+## SDD 2026-08-26 — criação automática de grupo, sem input do cliente
+
+Superou o dual-mode acima: `CriarReuniaoRequest` **não recebe mais**
+`grupoIntergrupoId` do cliente — o campo foi removido do record
+principal. O cliente nunca escolhe nem informa o vínculo.
+
+`ReuniaoService.criar()` chama
+`ReuniaoGrupoSincronizacaoService.criarGrupoParaReuniaoPresencial(reuniao)`
+depois de persistir a reunião presencial, sempre, na mesma transação.
+Esse método resolve o `EstadoIntergrupo` a partir da UF da reunião,
+calcula a próxima ordem (`maiorOrdem + 1`) dentro daquele estado, cria
+o `GrupoIntergrupo` espelhando nome/local/bairro/cidade/agenda, e
+vincula os dois lados. Reunião virtual não passa por esse fluxo (early
+return). Falta de UF ou de UF cadastrada em `EstadoIntergrupo` lança
+erro de validação — presencial sem estado resolvível não cria reunião
+utilizável.
+
+`ReuniaoService.editar()` chama
+`ReuniaoGrupoSincronizacaoService.sincronizarAposEdicaoReuniao(reuniao)`
+sempre. Se a reunião já tem grupo vinculado, mantém o vínculo existente
+e apenas atualiza o espelho (nome/local/bairro/cidade/agenda) — nunca
+cria um segundo grupo. Se é presencial sem vínculo (não deveria
+acontecer em dado criado depois desta mudança, mas cobre dado legado
+migrado), lança erro exigindo vínculo. Editar para virtual com vínculo
+existente continua retornando conflito, como antes.
+
+Efeito prático: não existe mais caminho para o cliente forçar um
+vínculo específico ou pular a criação do grupo — toda reunião
+presencial criada por este fluxo sempre nasce com grupo intergrupo
+próprio.

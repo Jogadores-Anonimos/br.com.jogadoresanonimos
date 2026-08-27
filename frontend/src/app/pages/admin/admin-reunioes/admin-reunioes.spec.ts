@@ -8,7 +8,6 @@ import { AdminReunioes } from './admin-reunioes';
 import { ReuniaoService } from '../../../services/reuniao/reuniao';
 import { Reuniao } from '../../../services/reuniao/reuniao.model';
 import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
-import { EscritorioRegionalService } from '../../../services/escritorio-regional/escritorio-regional';
 import { EnderecoViaCep, ResultadoNominatim } from '../../../services/endereco-lookup/endereco-lookup.model';
 import { apiError, apiSuccess } from '../../../services/api-envelope';
 
@@ -92,10 +91,6 @@ describe('AdminReunioes', () => {
         provideHttpClientTesting(),
         { provide: ReuniaoService, useValue: reuniaoServiceSpy },
         { provide: EnderecoLookupService, useValue: enderecoLookupServiceSpy },
-        {
-          provide: EscritorioRegionalService,
-          useValue: { listarEstruturaAdmin: vi.fn().mockReturnValue(of(apiSuccess({ escritorios: [], regioes: [] }))) },
-        },
       ],
     }).compileComponents();
 
@@ -367,19 +362,18 @@ describe('AdminReunioes', () => {
       expect(component.errosCampo['agenda.SEGUNDA']).toContain('repita');
     });
 
-    it('envia vínculo escolhido somente na criação presencial', () => {
+    it('não envia grupoIntergrupoId ao criar reunião presencial — grupo é criado pelo backend', () => {
       component.abrirNovo();
-      component.formulario.nome = 'Grupo vinculado';
+      component.formulario.nome = 'Grupo novo';
       component.formulario.descricao = 'Descrição';
       component.formulario.local = 'Rua Um';
-      component.formulario.grupoIntergrupoId = 'grupo-1';
+      component.formulario.estado = 'SP';
       selecionarAgenda('SEGUNDA', '19:00');
 
       component.salvar();
 
-      expect(reuniaoServiceSpy['criarReuniaoAdmin']).toHaveBeenCalledWith(
-        expect.objectContaining({ grupoIntergrupoId: 'grupo-1' }),
-      );
+      const chamada = reuniaoServiceSpy['criarReuniaoAdmin'].mock.calls[0][0];
+      expect(chamada.grupoIntergrupoId).toBeUndefined();
     });
 
     it('preserva o rascunho e oferece recarga no conflito de versão', () => {

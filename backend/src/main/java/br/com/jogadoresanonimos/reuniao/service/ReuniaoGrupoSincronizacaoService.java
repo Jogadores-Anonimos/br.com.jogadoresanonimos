@@ -8,6 +8,7 @@ import br.com.jogadoresanonimos.escritorio.entity.AgendaItemGrupo;
 import br.com.jogadoresanonimos.escritorio.entity.DiaSemana;
 import br.com.jogadoresanonimos.escritorio.entity.EstadoIntergrupo;
 import br.com.jogadoresanonimos.escritorio.entity.GrupoIntergrupo;
+import br.com.jogadoresanonimos.escritorio.entity.UnidadeFederativa;
 import br.com.jogadoresanonimos.escritorio.repository.GrupoIntergrupoRepository;
 import br.com.jogadoresanonimos.escritorio.repository.EstadoIntergrupoRepository;
 import br.com.jogadoresanonimos.reuniao.entity.AgendaItemReuniao;
@@ -72,29 +73,36 @@ public class ReuniaoGrupoSincronizacaoService {
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
-    public void vincularSeSolicitado(Reuniao reuniao, UUID grupoIntergrupoId) {
+    public void criarGrupoParaReuniaoPresencial(Reuniao reuniao) {
         if (reuniao.getCategoria() == CategoriaReuniao.virtual) {
-            if (grupoIntergrupoId != null) {
-                throw new ValidationException(ErrorCode.REUNIAO_GRUPO_DADOS_INVALIDOS,
-                        "Reunião virtual não pode possuir grupo intergrupo");
-            }
             return;
         }
-        if (grupoIntergrupoId == null) {
-            throw new ValidationException(ErrorCode.REUNIAO_GRUPO_DADOS_INVALIDOS,
-                    "Reunião presencial exige grupo intergrupo vinculado");
-        }
-        GrupoIntergrupo grupo = bloquearGrupo(grupoIntergrupoId);
-        Optional<Reuniao> existente = reuniaoRepository.buscarPorGrupoIntergrupoIdComLock(grupoIntergrupoId);
-        if (existente.isPresent() && !existente.get().getId().equals(reuniao.getId())) {
-            throw new ConflitoDeEstadoException(ErrorCode.REUNIAO_GRUPO_CONFLITO,
-                    "Grupo intergrupo já está vinculado a outra reunião");
-        }
         validarCamposParaEspelho(reuniao);
+        UnidadeFederativa uf = converterUf(reuniao.getEstado());
+        EstadoIntergrupo estado = estadoRepository.findByUf(uf)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_ESTADO_NAO_ENCONTRADO,
+                        "Estado do grupo intergrupo não encontrado"));
+        estadoRepository.buscarPorIdComLock(estado.getId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_ESTADO_NAO_ENCONTRADO,
+                        "Estado do grupo intergrupo não encontrado"));
+        int ordem = grupoRepository.buscarMaiorOrdemPorEstadoId(estado.getId()) + 1;
+        GrupoIntergrupo grupo = new GrupoIntergrupo(estado, reuniao.getNome(), reuniao.getLocal(),
+                reuniao.getBairro(), reuniao.getCidade(), paraAgendaGrupo(reuniao.getAgenda()), ordem);
+        grupo = grupoRepository.save(grupo);
         reuniao.vincularGrupoIntergrupo(grupo);
-        validarUfOrganizacional(reuniao, grupo);
         reuniao.atualizarPeriodo(resolverPeriodo(reuniao.getAgenda().getFirst().getHorario()));
-        espelharReuniaoNoGrupo(reuniao, grupo);
+    }
+
+    private UnidadeFederativa converterUf(String estado) {
+        if (estado == null || estado.isBlank()) {
+            throw new ValidationException(ErrorCode.REUNIAO_GRUPO_DADOS_INVALIDOS,
+                    "Reunião presencial exige estado (UF) para criação do grupo intergrupo");
+        }
+        try {
+            return UnidadeFederativa.valueOf(estado.toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new ValidationException(ErrorCode.REUNIAO_GRUPO_DADOS_INVALIDOS, "UF inválida");
+        }
     }
 
     @Transactional(propagation = Propagation.MANDATORY)

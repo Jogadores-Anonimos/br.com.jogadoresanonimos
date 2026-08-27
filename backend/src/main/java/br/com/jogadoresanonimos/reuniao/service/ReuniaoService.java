@@ -56,7 +56,6 @@ public class ReuniaoService {
 
     @Transactional
     public ReuniaoResponse criar(CriarReuniaoRequest request) {
-        validarGrupoIntergrupoObrigatorio(request.categoria(), request.grupoIntergrupoId());
         DadosAgenda dadosAgenda = normalizarAgenda(request.agenda(), request.dia(), request.horario(),
                 request.diaSemana(), request.periodo());
         Reuniao reuniao = new Reuniao(request.nome().trim(), request.categoria(),
@@ -65,12 +64,12 @@ public class ReuniaoService {
                 normalizarWhatsapp(request.whatsapp()), dadosAgenda.diaSemana(), dadosAgenda.periodo(),
                 request.latitude(), request.longitude(), normalizar(request.cep()), normalizar(request.numero()),
                 normalizar(request.logradouro()), normalizar(request.bairro()), normalizar(request.cidade()),
-                validarEstadoVirtual(request.categoria(), normalizarEstado(request.estado())),
+                validarEstado(request.categoria(), normalizarEstado(request.estado())),
                 normalizar(request.linkReuniao()));
         reuniao.substituirAgenda(dadosAgenda.itens());
         reuniao = reuniaoRepository.save(reuniao);
         if (sincronizacaoService != null) {
-            sincronizacaoService.vincularSeSolicitado(reuniao, request.grupoIntergrupoId());
+            sincronizacaoService.criarGrupoParaReuniaoPresencial(reuniao);
         }
         return ReuniaoResponse.from(reuniao);
     }
@@ -87,7 +86,7 @@ public class ReuniaoService {
         String estadoAntes = reuniao.getEstado();
         String localDepois = normalizarLocal(request.local());
         String cidadeDepois = normalizar(request.cidade());
-        String estadoDepois = validarEstadoVirtual(request.categoria(), normalizarEstado(request.estado()));
+        String estadoDepois = validarEstado(request.categoria(), normalizarEstado(request.estado()));
         reuniao.editar(request.nome().trim(), request.categoria(),
                 validarEDescricao(request.categoria(), request.descricao()),
                 dadosAgenda.dia(), dadosAgenda.horario(), localDepois,
@@ -135,16 +134,12 @@ public class ReuniaoService {
         return normalizada;
     }
 
-    private void validarGrupoIntergrupoObrigatorio(CategoriaReuniao categoria, UUID grupoIntergrupoId) {
-        if (categoria == CategoriaReuniao.presencial && grupoIntergrupoId == null) {
-            throw new ValidationException(ErrorCode.REUNIAO_GRUPO_DADOS_INVALIDOS,
-                    "Reunião presencial exige grupo intergrupo vinculado");
-        }
-    }
-
-    private String validarEstadoVirtual(CategoriaReuniao categoria, String estado) {
-        if (categoria == CategoriaReuniao.virtual && estado == null) {
-            throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Estado é obrigatório para reunião virtual");
+    private String validarEstado(CategoriaReuniao categoria, String estado) {
+        if (estado == null) {
+            String mensagem = categoria == CategoriaReuniao.virtual
+                    ? "Estado é obrigatório para reunião virtual"
+                    : "Estado é obrigatório para reunião presencial";
+            throw new ValidationException(ErrorCode.VALIDATION_ERROR, mensagem);
         }
         return estado;
     }

@@ -97,7 +97,7 @@ export class ReuniaoService {
       estado: req.estado?.trim() || null,
       linkReuniao: req.linkReuniao?.trim() || null,
       avisos: [],
-      grupoIntergrupoId: req.grupoIntergrupoId?.trim() || null,
+      grupoIntergrupoId: null,
       atualizadoEm: agora,
     };
     REUNIOES_MOCK.push(nova);

@@ -65,10 +65,9 @@ export interface CriarReuniaoRequest {
   cidade?: string;
   estado?: string;
   linkReuniao?: string;
-  grupoIntergrupoId?: string;
 }
 
-export type EditarReuniaoRequest = Omit<CriarReuniaoRequest, 'grupoIntergrupoId'> & {
+export type EditarReuniaoRequest = CriarReuniaoRequest & {
   atualizadoEm?: string;
 };
 
