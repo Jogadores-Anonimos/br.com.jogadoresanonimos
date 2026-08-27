@@ -7,9 +7,12 @@ import {
   OnInit,
   PLATFORM_ID,
   ViewChild,
+  computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import type {
@@ -89,6 +92,8 @@ const ZOOM_REGIAO_USUARIO = 10;
 const ZOOM_MINIMO_BOUNDS = 11;
 const ZOOM_MAXIMO_BOUNDS = 13;
 const PADDING_BOUNDS_PX = 48;
+
+const DEBOUNCE_FILTRO_TEXTO_MS = 200;
 
 const DIAS_AGENDA: ReadonlyArray<{ diaSemana: DiaSemanaAgendaReuniao; rotulo: DiaSemanaCurto }> = [
   { diaSemana: 'SEGUNDA', rotulo: 'Segunda' },
@@ -190,7 +195,7 @@ function corBranca(): string {
 @Component({
   selector: 'app-enderecos',
   standalone: true,
-  imports: [CommonModule, RouterLink, ResourceLayout],
+  imports: [CommonModule, FormsModule, RouterLink, ResourceLayout],
   templateUrl: './enderecos.html',
   styleUrl: './enderecos.css',
 })
@@ -207,7 +212,12 @@ export class Enderecos implements OnInit, OnDestroy {
 
   readonly mapaAberto = signal(false);
 
-  regiaoSelecionada: string | null = null;
+  readonly filtroTexto = signal('');
+  private readonly filtroTextoDebounced = signal('');
+  private debounceFiltroTextoId?: ReturnType<typeof setTimeout>;
+  readonly filtroUf = signal<string | 'todas'>('todas');
+
+  readonly regiaoSelecionada = signal<string | null>(null);
 
   reuniaoDetalhe: Reuniao | null = null;
   grupoDetalhe: GrupoIntergrupo | null = null;
@@ -240,6 +250,14 @@ export class Enderecos implements OnInit, OnDestroy {
     }
   }
 
+  constructor() {
+    effect(() => {
+      this.filtroTextoDebounced();
+      this.filtroUf();
+      this.atualizarDadosMapa();
+    });
+  }
+
   ngOnInit(): void {
     forkJoin({
       estrutura: this.escritorioRegionalService.listarEstrutura(),
@@ -253,7 +271,7 @@ export class Enderecos implements OnInit, OnDestroy {
             (a, b) => ORDEM_REGIOES.indexOf(a.codigo) - ORDEM_REGIOES.indexOf(b.codigo),
           );
           this.regioes.set(regioesOrdenadas);
-          this.regiaoSelecionada = regioesOrdenadas[0]?.id ?? null;
+          this.regiaoSelecionada.set(regioesOrdenadas[0]?.id ?? null);
           if (unidadesFederativas.success && unidadesFederativas.data) {
             this.ufsFaltantesPorRegiao.set(
               derivarUfsFaltantesPorRegiao(regioesOrdenadas, unidadesFederativas.data),
@@ -275,30 +293,101 @@ export class Enderecos implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    clearTimeout(this.debounceFiltroTextoId);
     this.destruirMapa();
   }
 
   get regiaoAtual(): RegiaoIntergrupo | undefined {
-    return this.regioes().find((r) => r.id === this.regiaoSelecionada);
+    return this.regioes().find((r) => r.id === this.regiaoSelecionada());
   }
 
-  get estadosRegiaoAtual(): EstadoRegiaoItem[] {
+  aplicarFiltroTexto(valor: string): void {
+    this.filtroTexto.set(valor);
+    clearTimeout(this.debounceFiltroTextoId);
+    this.debounceFiltroTextoId = setTimeout(() => {
+      this.filtroTextoDebounced.set(valor);
+    }, DEBOUNCE_FILTRO_TEXTO_MS);
+  }
+
+  aplicarFiltroUf(valor: string | 'todas'): void {
+    this.filtroUf.set(valor);
+  }
+
+  readonly ufsDisponiveis = computed<{ uf: string; nome: string }[]>(() => {
     const regiao = this.regiaoAtual;
     if (!regiao) {
       return [];
     }
-    const comGrupo: EstadoRegiaoItem[] = regiao.estados.map((estado) => ({
-      tipo: 'com-grupo',
-      nome: estado.nome,
-      uf: estado.uf,
-      estado,
-    }));
-    const semGrupo: EstadoRegiaoItem[] = (this.ufsFaltantesPorRegiao().get(regiao.codigo) ?? []).map((unidade) => ({
-      tipo: 'sem-grupo',
-      nome: unidade.nome,
-      uf: unidade.uf,
-      unidade,
-    }));
+    const valores = new Map<string, string>();
+    for (const estado of regiao.estados) {
+      valores.set(estado.uf, estado.nome);
+    }
+    return [...valores.entries()]
+      .map(([uf, nome]) => ({ uf, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  });
+
+  private grupoCorrespondeAoFiltro(grupo: GrupoIntergrupo, texto: string): boolean {
+    if (texto === '') {
+      return true;
+    }
+    return (
+      grupo.nome.toLowerCase().includes(texto) ||
+      grupo.cidade.toLowerCase().includes(texto) ||
+      (grupo.bairro ?? '').toLowerCase().includes(texto) ||
+      grupo.endereco.toLowerCase().includes(texto)
+    );
+  }
+
+  private reuniaoOnlineCorrespondeAoFiltro(reuniao: Reuniao, texto: string): boolean {
+    if (texto === '') {
+      return true;
+    }
+    return (
+      reuniao.nome.toLowerCase().includes(texto) ||
+      reuniao.local.toLowerCase().includes(texto) ||
+      reuniao.descricao.toLowerCase().includes(texto)
+    );
+  }
+
+  readonly estadosRegiaoAtual = computed<EstadoRegiaoItem[]>(() => {
+    const regiao = this.regiaoAtual;
+    if (!regiao) {
+      return [];
+    }
+
+    const textoFiltro = this.filtroTextoDebounced().trim().toLowerCase();
+    const ufFiltro = this.filtroUf();
+
+    const comGrupo: EstadoRegiaoItemComGrupo[] = regiao.estados
+      .filter((estado) => ufFiltro === 'todas' || estado.uf === ufFiltro)
+      .map((estado) => ({
+        tipo: 'com-grupo' as const,
+        nome: estado.nome,
+        uf: estado.uf,
+        estado: {
+          ...estado,
+          grupos: estado.grupos.filter((grupo) => this.grupoCorrespondeAoFiltro(grupo, textoFiltro)),
+        },
+      }))
+      .filter((item) => {
+        const temGrupo = item.estado.grupos.length > 0;
+        const temOnline = this.reunioesOnlineDaUf(item.uf).length > 0;
+        return textoFiltro === '' || temGrupo || temOnline;
+      });
+
+    const semGrupo: EstadoRegiaoItem[] =
+      textoFiltro !== ''
+        ? []
+        : (this.ufsFaltantesPorRegiao().get(regiao.codigo) ?? [])
+            .filter((unidade) => ufFiltro === 'todas' || unidade.uf === ufFiltro)
+            .map((unidade) => ({
+              tipo: 'sem-grupo' as const,
+              nome: unidade.nome,
+              uf: unidade.uf,
+              unidade,
+            }));
+
     const ordemPrioritaria = ORDEM_UF_PRIORITARIA_POR_REGIAO[regiao.codigo] ?? [];
     return [...comGrupo, ...semGrupo].sort((a, b) => {
       const prioridadeA = ordemPrioritaria.indexOf(a.uf);
@@ -314,10 +403,18 @@ export class Enderecos implements OnInit, OnDestroy {
       }
       return a.nome.localeCompare(b.nome, 'pt-BR');
     });
-  }
+  });
+
+  readonly nenhumResultadoFiltro = computed<boolean>(() => {
+    const temFiltroAtivo = this.filtroTextoDebounced().trim() !== '' || this.filtroUf() !== 'todas';
+    return temFiltroAtivo && this.regiaoAtual !== undefined && this.estadosRegiaoAtual().length === 0;
+  });
 
   reunioesOnlineDaUf(uf: string): Reuniao[] {
-    return this.reunioes().filter((r) => r.categoria === 'virtual' && r.estado === uf);
+    const textoFiltro = this.filtroTextoDebounced().trim().toLowerCase();
+    return this.reunioes().filter(
+      (r) => r.categoria === 'virtual' && r.estado === uf && this.reuniaoOnlineCorrespondeAoFiltro(r, textoFiltro),
+    );
   }
 
   linkWhatsappGrupoInexistente(): string {
@@ -325,7 +422,8 @@ export class Enderecos implements OnInit, OnDestroy {
   }
 
   selecionarRegiao(regiao: RegiaoIntergrupo): void {
-    this.regiaoSelecionada = regiao.id;
+    this.regiaoSelecionada.set(regiao.id);
+    this.filtroUf.set('todas');
   }
 
   formatarAgenda(agenda: { diaSemana: DiaSemana; horario: string }[]): string {
@@ -465,8 +563,37 @@ export class Enderecos implements OnInit, OnDestroy {
     );
   }
 
+  private grupoIdsVisiveisAposFiltro(): Set<string> | null {
+    const textoFiltro = this.filtroTextoDebounced().trim().toLowerCase();
+    const ufFiltro = this.filtroUf();
+    if (textoFiltro === '' && ufFiltro === 'todas') {
+      return null;
+    }
+
+    const ids = new Set<string>();
+    for (const regiao of this.regioes()) {
+      for (const estado of regiao.estados) {
+        if (ufFiltro !== 'todas' && estado.uf !== ufFiltro) {
+          continue;
+        }
+        for (const grupo of estado.grupos) {
+          if (this.grupoCorrespondeAoFiltro(grupo, textoFiltro)) {
+            ids.add(grupo.id);
+          }
+        }
+      }
+    }
+    return ids;
+  }
+
   private reunioesPresenciaisComCoordenadas(): Reuniao[] {
-    return this.reunioes().filter((r) => r.categoria === 'presencial' && !!r.grupoIntergrupoId);
+    const idsVisiveis = this.grupoIdsVisiveisAposFiltro();
+    return this.reunioes().filter(
+      (r) =>
+        r.categoria === 'presencial' &&
+        !!r.grupoIntergrupoId &&
+        (idsVisiveis === null || idsVisiveis.has(r.grupoIntergrupoId)),
+    );
   }
 
   private atualizarDadosMapa(): void {

@@ -18,7 +18,8 @@ public interface GrupoIntergrupoRepository extends JpaRepository<GrupoIntergrupo
             + "(SELECT 1 FROM Reuniao r WHERE r.grupoIntergrupo = g)")
     List<GrupoIntergrupo> buscarOrfaosSemReuniao();
 
-    long countByEstadoId(UUID estadoId);
+    @Query("SELECT COALESCE(MAX(g.ordem), -1) FROM GrupoIntergrupo g WHERE g.estado.id = :estadoId")
+    int buscarMaiorOrdemPorEstadoId(UUID estadoId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT g FROM GrupoIntergrupo g WHERE g.id = :id")

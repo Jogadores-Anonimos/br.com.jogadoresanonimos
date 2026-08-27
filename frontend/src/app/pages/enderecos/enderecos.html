@@ -84,8 +84,8 @@
         <button
           type="button"
           class="regiao-tab"
-          [class.regiao-tab--ativa]="regiaoSelecionada === regiao.id"
-          [attr.aria-pressed]="regiaoSelecionada === regiao.id"
+          [class.regiao-tab--ativa]="regiaoSelecionada() === regiao.id"
+          [attr.aria-pressed]="regiaoSelecionada() === regiao.id"
           (click)="selecionarRegiao(regiao)"
         >
           {{ regiao.nome }}
@@ -95,7 +95,49 @@
     }
 
     @if (regiaoAtual) {
-      @for (item of estadosRegiaoAtual; track item.nome) {
+      <div class="filtros" role="group" aria-label="Filtrar grupos">
+        <span class="filtros-titulo">Filtrar grupos</span>
+
+        <div class="filtros-campos">
+          <label class="filtro-campo filtro-campo--busca">
+            <span>Buscar</span>
+            <span class="filtro-busca-wrapper">
+              <svg class="filtro-busca-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"/>
+                <line x1="21" y1="21" x2="16.5" y2="16.5"/>
+              </svg>
+              <input
+                type="search"
+                name="filtroTexto"
+                [ngModel]="filtroTexto()"
+                (ngModelChange)="aplicarFiltroTexto($event)"
+                placeholder="Nome do grupo, cidade, bairro ou endereço"
+                aria-label="Buscar grupo por nome, cidade, bairro ou endereço"
+              />
+            </span>
+          </label>
+
+          <label class="filtro-campo">
+            <span>Estado</span>
+            <select
+              name="filtroUf"
+              [ngModel]="filtroUf()"
+              (ngModelChange)="aplicarFiltroUf($event)"
+            >
+              <option value="todas">Todos os estados da região</option>
+              @for (uf of ufsDisponiveis(); track uf.uf) {
+                <option [value]="uf.uf">{{ uf.nome }}</option>
+              }
+            </select>
+          </label>
+        </div>
+      </div>
+
+      @if (nenhumResultadoFiltro()) {
+        <p class="estado">Nenhum grupo encontrado para esta busca.</p>
+      }
+
+      @for (item of estadosRegiaoAtual(); track item.nome) {
         <div class="estado-bloco">
           <div class="estado-header">
             <h3>{{ item.nome }}</h3>

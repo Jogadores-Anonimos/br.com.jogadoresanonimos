@@ -83,13 +83,29 @@ class ReuniaoGrupoBackfillParItemServiceTest {
         GrupoIntergrupo grupoCriado = grupoOrfao();
         when(reuniaoRepository.buscarPorIdComLock(reuniao.getId())).thenReturn(Optional.of(reuniao));
         when(estadoRepository.findByUf(UnidadeFederativa.SP)).thenReturn(Optional.of(estado));
-        when(grupoRepository.countByEstadoId(estado.getId())).thenReturn(0L);
+        when(grupoRepository.buscarMaiorOrdemPorEstadoId(estado.getId())).thenReturn(-1);
         when(sincronizacaoService.criarGrupoParaReuniaoOrfa(reuniao, estado, 0)).thenReturn(grupoCriado);
 
         Optional<UUID> resultado = itemService.criarGrupoParaReuniaoOrfaSeAindaOrfa(reuniao.getId());
 
         assertThat(resultado).contains(grupoCriado.getId());
         verify(sincronizacaoService).criarGrupoParaReuniaoOrfa(reuniao, estado, 0);
+    }
+
+    @Test
+    void criarGrupoParaReuniaoOrfaSeAindaOrfa_ordemConsideraGapsExistentesUsandoMaiorOrdemMaisUm() {
+        Reuniao reuniao = reuniaoOrfaComEstado("SP");
+        EstadoIntergrupo estado = estadoIntergrupo(UnidadeFederativa.SP);
+        GrupoIntergrupo grupoCriado = grupoOrfao();
+        when(reuniaoRepository.buscarPorIdComLock(reuniao.getId())).thenReturn(Optional.of(reuniao));
+        when(estadoRepository.findByUf(UnidadeFederativa.SP)).thenReturn(Optional.of(estado));
+        when(grupoRepository.buscarMaiorOrdemPorEstadoId(estado.getId())).thenReturn(3);
+        when(sincronizacaoService.criarGrupoParaReuniaoOrfa(reuniao, estado, 4)).thenReturn(grupoCriado);
+
+        Optional<UUID> resultado = itemService.criarGrupoParaReuniaoOrfaSeAindaOrfa(reuniao.getId());
+
+        assertThat(resultado).contains(grupoCriado.getId());
+        verify(sincronizacaoService).criarGrupoParaReuniaoOrfa(reuniao, estado, 4);
     }
 
     @Test

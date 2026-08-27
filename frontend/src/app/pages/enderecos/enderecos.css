@@ -150,6 +150,87 @@
   transform: none;
 }
 
+.filtros {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.filtros-titulo {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cor-padrao-ja);
+  margin-bottom: var(--spacing-sm);
+}
+
+.filtros-campos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-md);
+}
+
+.filtro-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.filtro-campo select {
+  font-size: 0.95rem;
+  color: var(--color-text);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 13px 12px;
+  min-width: 200px;
+}
+
+.filtro-campo select:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.filtro-busca-wrapper {
+  position: relative;
+  display: block;
+}
+
+.filtro-busca-icone {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.filtro-campo--busca input {
+  font-size: 0.95rem;
+  color: var(--color-text);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 13px 12px 13px 40px;
+  min-width: 200px;
+  width: 100%;
+}
+
+.filtro-campo--busca input:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
 .estado-bloco {
   margin-bottom: var(--spacing-lg);
 }
@@ -459,6 +540,17 @@
 
   .mapa-wrapper {
     min-height: 260px;
+  }
+
+  .filtros-campos {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filtro-campo select,
+  .filtro-campo--busca input {
+    min-width: 0;
+    width: 100%;
   }
 
   .detalhes-painel {

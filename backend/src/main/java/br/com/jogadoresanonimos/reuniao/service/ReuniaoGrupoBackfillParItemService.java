@@ -44,7 +44,7 @@ public class ReuniaoGrupoBackfillParItemService {
         EstadoIntergrupo estado = estadoRepository.findByUf(uf)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(ErrorCode.ESCRITORIO_ESTADO_NAO_ENCONTRADO,
                         "Estado do grupo intergrupo não encontrado"));
-        int ordem = (int) grupoRepository.countByEstadoId(estado.getId());
+        int ordem = grupoRepository.buscarMaiorOrdemPorEstadoId(estado.getId()) + 1;
         GrupoIntergrupo grupo = sincronizacaoService.criarGrupoParaReuniaoOrfa(reuniao, estado, ordem);
         return Optional.of(grupo.getId());
     }

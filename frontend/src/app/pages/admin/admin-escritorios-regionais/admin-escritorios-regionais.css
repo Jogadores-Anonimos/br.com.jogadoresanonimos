@@ -293,7 +293,8 @@
 }
 
 .admin-escritorios__campo input[type='text'],
-.admin-escritorios__campo input[type='number'] {
+.admin-escritorios__campo input[type='number'],
+.admin-escritorios__campo input[type='search'] {
   width: 100%;
   box-sizing: border-box;
   padding: var(--spacing-xs);
@@ -323,6 +324,10 @@
 .admin-escritorios__campo select:focus-visible {
   outline: 2px solid var(--cor-padrao-ja);
   outline-offset: 2px;
+}
+
+.admin-escritorios__campo--busca {
+  max-width: 28rem;
 }
 
 .admin-escritorios__dias-semana {

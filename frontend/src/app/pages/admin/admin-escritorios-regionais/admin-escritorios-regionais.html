@@ -761,13 +761,31 @@
             </form>
           }
 
+          @if (gruposOrdenados.length > 0) {
+            <div class="admin-escritorios__campo admin-escritorios__campo--busca">
+              <label for="grupo-filtro-busca">Buscar grupo</label>
+              <input
+                id="grupo-filtro-busca"
+                type="search"
+                name="filtroGrupoTexto"
+                [(ngModel)]="filtroGrupoTexto"
+                placeholder="Nome, cidade, bairro ou endereço"
+                aria-label="Buscar grupo por nome, cidade, bairro ou endereço"
+              />
+            </div>
+          }
+
           @if (gruposOrdenados.length === 0) {
             <p class="admin-escritorios__estado">Nenhum grupo cadastrado neste estado ainda.</p>
           }
 
-          @if (gruposOrdenados.length > 0) {
+          @if (gruposOrdenados.length > 0 && gruposFiltrados.length === 0) {
+            <p class="admin-escritorios__estado">Nenhum grupo encontrado para esta busca.</p>
+          }
+
+          @if (gruposFiltrados.length > 0) {
             <ul class="admin-escritorios__lista">
-              @for (grupo of gruposOrdenados; track grupo.id) {
+              @for (grupo of gruposFiltrados; track grupo.id) {
                 <li class="admin-escritorios__item">
                   <div class="admin-escritorios__item-info">
                     <p class="admin-escritorios__item-nome">{{ grupo.nome }}</p>

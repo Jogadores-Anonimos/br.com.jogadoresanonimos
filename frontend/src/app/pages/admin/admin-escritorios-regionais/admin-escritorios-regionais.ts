@@ -165,6 +165,8 @@ export class AdminEscritoriosRegionais implements OnInit {
   regiaoAtual: RegiaoIntergrupo | null = null;
   estadoAtual: EstadoIntergrupo | null = null;
 
+  filtroGrupoTexto = '';
+
   salvandoRegiao = false;
   erroFormularioRegiao = '';
   errosCampoRegiao: Record<string, string> = {};
@@ -282,6 +284,20 @@ export class AdminEscritoriosRegionais implements OnInit {
     return this.estadoAtual ? [...this.estadoAtual.grupos].sort((a, b) => a.ordem - b.ordem) : [];
   }
 
+  get gruposFiltrados(): GrupoIntergrupo[] {
+    const texto = this.filtroGrupoTexto.trim().toLowerCase();
+    if (texto === '') {
+      return this.gruposOrdenados;
+    }
+    return this.gruposOrdenados.filter(
+      (grupo) =>
+        grupo.nome.toLowerCase().includes(texto) ||
+        grupo.cidade.toLowerCase().includes(texto) ||
+        (grupo.bairro ?? '').toLowerCase().includes(texto) ||
+        grupo.endereco.toLowerCase().includes(texto),
+    );
+  }
+
   onEscritorioServicoSalvo(escritorio: EscritorioServico): void {
     this.dados = {
       ...this.dados,
@@ -328,6 +344,7 @@ export class AdminEscritoriosRegionais implements OnInit {
   verGrupos(estado: EstadoIntergrupo): void {
     this.estadoAtual = estado;
     this.nivel = 'grupos';
+    this.filtroGrupoTexto = '';
   }
 
   irParaRegioes(): void {

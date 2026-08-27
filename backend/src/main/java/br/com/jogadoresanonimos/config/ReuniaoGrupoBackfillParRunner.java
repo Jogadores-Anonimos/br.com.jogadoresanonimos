@@ -1,6 +1,8 @@
 package br.com.jogadoresanonimos.config;
 
 import br.com.jogadoresanonimos.reuniao.service.ReuniaoGrupoBackfillParService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ReuniaoGrupoBackfillParRunner implements ApplicationRunner {
 
+    private static final Logger log = LoggerFactory.getLogger(ReuniaoGrupoBackfillParRunner.class);
     private static final String MODO_DRY_RUN = "dry-run";
     private static final String MODO_APPLY = "apply";
 
@@ -30,6 +33,10 @@ public class ReuniaoGrupoBackfillParRunner implements ApplicationRunner {
             throw new IllegalStateException(
                     "BACKFILL_PAR inválido: valores aceitos são 'dry-run' ou 'apply'");
         }
-        backfillService.executar(MODO_APPLY.equals(modo));
+        try {
+            backfillService.executar(MODO_DRY_RUN.equals(modo));
+        } catch (RuntimeException e) {
+            log.error("backfill_par_reuniao_grupo_falhou modo={} tipoErro={}", modo, e.getClass().getSimpleName());
+        }
     }
 }
