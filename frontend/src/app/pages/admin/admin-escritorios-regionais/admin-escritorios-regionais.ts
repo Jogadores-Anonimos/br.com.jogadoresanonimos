@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 import { mapearErrosCampo, mensagemDeErro } from '../../../services/api-envelope';
@@ -142,6 +143,7 @@ export class AdminEscritoriosRegionais implements OnInit {
   private readonly service = inject(EscritorioRegionalService);
   private readonly enderecoLookupService = inject(EnderecoLookupService);
   private readonly reuniaoService = inject(ReuniaoService);
+  private readonly route = inject(ActivatedRoute);
 
   @ViewChild('formularioEnderecoSecao') formularioEnderecoSecao?: ElementRef<HTMLElement>;
   @ViewChild('formularioGrupoSecao') formularioGrupoSecao?: ElementRef<HTMLElement>;
@@ -157,6 +159,7 @@ export class AdminEscritoriosRegionais implements OnInit {
   dados: EscritoriosRegionais = { escritorios: [], regioes: [] };
 
   aba: Aba = 'escritorios';
+  abaFixa = false;
 
   nivel: Nivel = 'regioes';
   regiaoAtual: RegiaoIntergrupo | null = null;
@@ -220,6 +223,11 @@ export class AdminEscritoriosRegionais implements OnInit {
   }
 
   ngOnInit(): void {
+    const abaRota = this.route.snapshot.data['aba'] as Aba | undefined;
+    if (abaRota) {
+      this.aba = abaRota;
+      this.abaFixa = true;
+    }
     this.carregarEstrutura();
     this.service.listarUnidadesFederativas().subscribe((envelope) => {
       this.unidadesFederativasComRegiao = envelope.success && envelope.data ? envelope.data : [];

@@ -35,6 +35,6 @@ describe('PaginaNaoEncontrada', () => {
 
     expect(links).toHaveLength(2);
     expect(links[0].getAttribute('href')).toBe('/');
-    expect(links[1].getAttribute('href')).toBe('/reunioes');
+    expect(links[1].getAttribute('href')).toBe('/enderecos');
   });
 });

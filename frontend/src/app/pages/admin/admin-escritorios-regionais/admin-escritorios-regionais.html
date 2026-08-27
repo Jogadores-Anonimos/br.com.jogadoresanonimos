@@ -1,35 +1,41 @@
 <section class="admin-escritorios">
   <div class="admin-escritorios__cabecalho">
     <div>
-      <h1 class="admin-escritorios__titulo">Endereços</h1>
+      <h1 class="admin-escritorios__titulo">{{ aba === 'escritorios' ? 'Escritórios' : 'Grupos por UF' }}</h1>
       <p class="admin-escritorios__descricao">
-        Gerencie os escritórios regionais de serviço e a hierarquia de regiões, estados e grupos exibidos no site.
+        @if (aba === 'escritorios') {
+          Gerencie os escritórios regionais de serviço exibidos no site.
+        } @else {
+          Gerencie a hierarquia de regiões, estados e grupos que alimentam a página pública de Endereços.
+        }
       </p>
     </div>
   </div>
 
-  <div class="admin-escritorios__abas" role="tablist" aria-label="Seções de endereços">
-    <button
-      type="button"
-      role="tab"
-      class="admin-escritorios__aba"
-      [class.admin-escritorios__aba--ativa]="aba === 'escritorios'"
-      [attr.aria-selected]="aba === 'escritorios'"
-      (click)="selecionarAba('escritorios')"
-    >
-      Escritórios Regionais de Serviço
-    </button>
-    <button
-      type="button"
-      role="tab"
-      class="admin-escritorios__aba"
-      [class.admin-escritorios__aba--ativa]="aba === 'enderecos'"
-      [attr.aria-selected]="aba === 'enderecos'"
-      (click)="selecionarAba('enderecos')"
-    >
-      Endereços por Região
-    </button>
-  </div>
+  @if (!abaFixa) {
+    <div class="admin-escritorios__abas" role="tablist" aria-label="Seções de endereços">
+      <button
+        type="button"
+        role="tab"
+        class="admin-escritorios__aba"
+        [class.admin-escritorios__aba--ativa]="aba === 'escritorios'"
+        [attr.aria-selected]="aba === 'escritorios'"
+        (click)="selecionarAba('escritorios')"
+      >
+        Escritórios Regionais de Serviço
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="admin-escritorios__aba"
+        [class.admin-escritorios__aba--ativa]="aba === 'enderecos'"
+        [attr.aria-selected]="aba === 'enderecos'"
+        (click)="selecionarAba('enderecos')"
+      >
+        Endereços por Região
+      </button>
+    </div>
+  }
 
   @if (carregando) {
     <p class="admin-escritorios__estado" role="status">Carregando…</p>
@@ -776,8 +782,8 @@
                       }
                     </p>
                     <p class="admin-escritorios__item-meta">
-                      <strong>{{ grupoEstaSincronizado(grupo) ? 'Sincronizado com Reuniões' : 'Não vinculado' }}</strong>
-                      · <a href="/admin/reunioes">Abrir Reuniões</a>
+                      <strong>{{ grupoEstaSincronizado(grupo) ? 'Sincronizado com Endereços' : 'Não vinculado' }}</strong>
+                      · <a href="/admin/enderecos">Abrir Endereços</a>
                     </p>
                   </div>
 

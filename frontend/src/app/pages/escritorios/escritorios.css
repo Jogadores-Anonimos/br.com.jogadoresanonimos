@@ -1,0 +1,67 @@
+.section {
+  padding: var(--spacing-md) 0;
+}
+
+.section:first-of-type {
+  padding-bottom: 0;
+}
+
+.section h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: var(--cor-padrao-ja);
+  margin-bottom: var(--spacing-md);
+}
+
+.lead {
+  color: var(--color-text);
+  font-size: 1.1rem;
+  line-height: 1.8;
+  margin-bottom: var(--spacing-md);
+}
+
+.estado {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.estado--erro {
+  color: var(--color-danger);
+}
+
+.escritorios-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-md);
+}
+
+.escritorio-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.escritorio-card h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--cor-padrao-ja);
+  margin-bottom: var(--spacing-xs);
+}
+
+.escritorio-card p {
+  color: var(--color-text);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 1300px) {
+  .escritorios-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: var(--spacing-md) 0;
+  }
+}

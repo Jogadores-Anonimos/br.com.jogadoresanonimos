@@ -28,7 +28,7 @@ import {
   DiaSemanaAgendaReuniao,
   Reuniao,
 } from '../../services/reuniao/reuniao.model';
-import { montarLinkWhatsapp } from '../../config/whatsapp.config';
+import { WHATSAPP_PHONE_NUMBER, montarLinkWhatsapp } from '../../config/whatsapp.config';
 import { configurarMapLibreWorker } from '../../config/maplibre-worker.config';
 
 type DiaSemana = 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo';
@@ -67,7 +67,6 @@ const ZOOM_MAXIMO_BOUNDS = 13;
 const PADDING_BOUNDS_PX = 48;
 const ITENS_POR_PAGINA = 10;
 
-const WHATSAPP_PLACEHOLDER = '5599999999999';
 const DEBOUNCE_FILTRO_TEXTO_MS = 200;
 
 const DIAS_AGENDA: ReadonlyArray<{ diaSemana: DiaSemanaAgendaReuniao; rotulo: DiaSemana }> = [
@@ -358,7 +357,7 @@ export class Reunioes implements OnInit, OnDestroy {
   }
 
   whatsappLink(reuniao: Reuniao): string {
-    return montarLinkWhatsapp(reuniao.whatsapp || WHATSAPP_PLACEHOLDER);
+    return montarLinkWhatsapp(reuniao.whatsapp || WHATSAPP_PHONE_NUMBER);
   }
 
   private readonly reunioesPresenciais = computed<Reuniao[]>(() =>

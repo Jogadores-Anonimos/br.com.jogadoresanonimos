@@ -64,7 +64,8 @@ public class ReuniaoService {
                 normalizarWhatsapp(request.whatsapp()), dadosAgenda.diaSemana(), dadosAgenda.periodo(),
                 request.latitude(), request.longitude(), normalizar(request.cep()), normalizar(request.numero()),
                 normalizar(request.logradouro()), normalizar(request.bairro()), normalizar(request.cidade()),
-                normalizarEstado(request.estado()), normalizar(request.linkReuniao()));
+                validarEstadoVirtual(request.categoria(), normalizarEstado(request.estado())),
+                normalizar(request.linkReuniao()));
         reuniao.substituirAgenda(dadosAgenda.itens());
         reuniao = reuniaoRepository.save(reuniao);
         if (sincronizacaoService != null) {
@@ -85,7 +86,7 @@ public class ReuniaoService {
         String estadoAntes = reuniao.getEstado();
         String localDepois = normalizarLocal(request.local());
         String cidadeDepois = normalizar(request.cidade());
-        String estadoDepois = normalizarEstado(request.estado());
+        String estadoDepois = validarEstadoVirtual(request.categoria(), normalizarEstado(request.estado()));
         reuniao.editar(request.nome().trim(), request.categoria(),
                 validarEDescricao(request.categoria(), request.descricao()),
                 dadosAgenda.dia(), dadosAgenda.horario(), localDepois,
@@ -131,6 +132,13 @@ public class ReuniaoService {
             throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Descrição é obrigatória para reunião presencial");
         }
         return normalizada;
+    }
+
+    private String validarEstadoVirtual(CategoriaReuniao categoria, String estado) {
+        if (categoria == CategoriaReuniao.virtual && estado == null) {
+            throw new ValidationException(ErrorCode.VALIDATION_ERROR, "Estado é obrigatório para reunião virtual");
+        }
+        return estado;
     }
 
     private String normalizar(String valor) {

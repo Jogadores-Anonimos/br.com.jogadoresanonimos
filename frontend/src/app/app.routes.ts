@@ -69,10 +69,18 @@ export const routes: Routes = [
         data: { titulo: 'Editar página' },
       },
       {
-        path: 'reunioes',
+        path: 'enderecos',
         loadComponent: () =>
           import('./pages/admin/admin-reunioes/admin-reunioes').then((m) => m.AdminReunioes),
-        data: { titulo: 'Reuniões' },
+        data: { titulo: 'Endereços' },
+      },
+      {
+        path: 'escritorios',
+        loadComponent: () =>
+          import('./pages/admin/admin-escritorios-regionais/admin-escritorios-regionais').then(
+            (m) => m.AdminEscritoriosRegionais,
+          ),
+        data: { titulo: 'Escritórios', aba: 'escritorios' },
       },
       {
         path: 'escritorios-regionais',
@@ -80,7 +88,7 @@ export const routes: Routes = [
           import('./pages/admin/admin-escritorios-regionais/admin-escritorios-regionais').then(
             (m) => m.AdminEscritoriosRegionais,
           ),
-        data: { titulo: 'Endereços' },
+        data: { titulo: 'Grupos por UF', aba: 'enderecos' },
       },
       {
         path: 'hotlines',
@@ -305,7 +313,21 @@ export const routes: Routes = [
       },
     },
   },
-  { path: 'escritorios-regionais', redirectTo: 'enderecos', pathMatch: 'full' },
+  {
+    path: 'escritorios',
+    loadComponent: () =>
+      import('./pages/escritorios/escritorios').then((m) => m.Escritorios),
+    data: {
+      seo: {
+        title: 'Escritórios | Jogadores Anônimos do Brasil',
+        description:
+          'Encontre os escritórios regionais de serviço da Jogadores Anônimos do Brasil.',
+        ogTitle: 'Escritórios Regionais | JA Brasil',
+        ogDescription: 'Escritórios regionais de serviço da JA Brasil.',
+      },
+    },
+  },
+  { path: 'escritorios-regionais', redirectTo: 'escritorios', pathMatch: 'full' },
   {
     path: 'reflexao-do-dia',
     loadComponent: () =>
@@ -320,19 +342,7 @@ export const routes: Routes = [
       },
     },
   },
-  {
-    path: 'reunioes',
-    loadComponent: () => import('./pages/reunioes/reunioes').then((m) => m.Reunioes),
-    data: {
-      seo: {
-        title: 'Encontre uma Reunião | Jogadores Anônimos do Brasil',
-        description:
-          'Encontre reuniões da Jogadores Anônimos perto de você, presenciais ou online, em todo o Brasil.',
-        ogTitle: 'Encontre uma Reunião | JA Brasil',
-        ogDescription: 'Reuniões presenciais e online em todo o Brasil.',
-      },
-    },
-  },
+  { path: 'reunioes', redirectTo: 'enderecos', pathMatch: 'full' },
   {
     path: 'hotlines',
     loadComponent: () => import('./pages/hotlines/hotlines').then((m) => m.Hotlines),

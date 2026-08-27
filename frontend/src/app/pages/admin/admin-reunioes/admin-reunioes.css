@@ -303,7 +303,7 @@
   gap: var(--spacing-xs);
 }
 
-.admin-reunioes__agenda-horario select {
+.admin-reunioes__agenda-horario input[type='time'] {
   width: 100%;
   box-sizing: border-box;
   padding: var(--spacing-xs);

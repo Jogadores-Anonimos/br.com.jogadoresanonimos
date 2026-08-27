@@ -2,6 +2,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideHttpClient } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ElementRef } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { of, Subject } from 'rxjs';
 
 import { AdminEscritoriosRegionais } from './admin-escritorios-regionais';
@@ -142,6 +143,7 @@ describe('AdminEscritoriosRegionais', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideRouter([]),
         { provide: EscritorioRegionalService, useValue: serviceSpy },
         { provide: ReuniaoService, useValue: { listarReunioesAdmin: vi.fn().mockReturnValue(of(apiSuccess([]))) } },
       ],

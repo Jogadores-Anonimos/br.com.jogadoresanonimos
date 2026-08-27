@@ -18,46 +18,59 @@
   </section>
 
   @if (!carregando() && !erro()) {
-  <section class="section">
-    <h2>Escritórios Regionais de Serviço</h2>
-
-    @if (escritorios().length === 0) {
-      <p class="estado">
-        Nenhum escritório regional cadastrado no momento.
-      </p>
-    }
-
-    @if (escritorios().length > 0) {
-    <div class="escritorios-grid">
-      @for (item of escritorios(); track item.id) {
-        <div class="escritorio-card">
-          <h3>{{ item.nome }}</h3>
-          <p>{{ item.endereco }}</p>
-          @if (item.complemento) {
-            <p>{{ item.complemento }}</p>
-          }
-          <p>{{ item.cidade }}</p>
-          @if (item.telefones.length) {
-            @for (telefone of item.telefones; track telefone.id) {
-              <p>{{ telefone.label ? telefone.label + ': ' : '' }}{{ telefone.telefone }}</p>
-            }
-          }
-          @if (item.emails.length) {
-            @for (email of item.emails; track email) {
-              <p>{{ email }}</p>
-            }
-          }
-        </div>
-      }
-    </div>
-    }
-  </section>
-
   <section class="section section-alt">
     <h2>Endereços</h2>
     <p class="lead">
       Selecione uma região para ver os grupos de apoio agrupados por estado.
     </p>
+
+    <button
+      type="button"
+      class="btn-mapa-toggle"
+      (click)="toggleMapa()"
+      [attr.aria-expanded]="mapaAberto()"
+      aria-controls="mapa-enderecos-painel"
+    >
+      {{ mapaAberto() ? 'Recolher mapa' : 'Ver no mapa' }}
+    </button>
+
+    @if (mapaAberto()) {
+      <div id="mapa-enderecos-painel" class="mapa-bloco">
+        <div class="mapa-wrapper">
+          <div class="mapa-maplibre" #mapaContainer></div>
+        </div>
+
+        @if (!localizacaoPermitida()) {
+          <div class="localizacao-bloco">
+            <p>
+              Permita o acesso à sua localização aproximada para ver o mapa
+              centralizado perto de você.
+            </p>
+            <button
+              type="button"
+              class="btn-cta"
+              (click)="solicitarLocalizacao()"
+              [attr.aria-busy]="localizacaoCarregando()"
+            >
+              {{ localizacaoCarregando() ? 'Obtendo localização…' : 'Permitir localização' }}
+            </button>
+            @if (localizacaoIndisponivel()) {
+              <p class="mapa-erro" role="alert">
+                Não foi possível acessar sua localização. Você ainda pode
+                ver o mapa com todos os grupos presenciais disponíveis.
+              </p>
+            }
+          </div>
+        }
+
+        @if (localizacaoPermitida()) {
+          <p class="mapa-status">
+            Localização aproximada obtida. Ela não é salva nem enviada a
+            nenhum servidor.
+          </p>
+        }
+      </div>
+    }
 
     @if (regioes().length === 0) {
       <p class="estado">
@@ -89,20 +102,57 @@
           </div>
 
           @if (item.tipo === 'com-grupo') {
-            <div class="grupos-grid">
-              @for (grupo of item.estado.grupos; track grupo.id) {
-                <div class="grupo-card">
-                  <h4>{{ grupo.nome }}</h4>
-                  <p class="grupo-endereco">
-                    {{ grupo.endereco }}@if (grupo.bairro) {, {{ grupo.bairro }}}, {{ grupo.cidade }}
-                  </p>
-                  @if (grupo.telefones.length) {
-                    <p class="grupo-telefone">Tel: {{ formatarTelefones(grupo.telefones) }}</p>
+            @if (item.estado.grupos.length > 0) {
+              <div class="estado-subsecao">
+                <h4 class="estado-subsecao-titulo">
+                  <svg class="subsecao-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 22s7-6.2 7-12A7 7 0 0 0 5 10c0 5.8 7 12 7 12z"/>
+                    <circle cx="12" cy="10" r="2.5"/>
+                  </svg>
+                  Presencial
+                </h4>
+                <div class="grupos-grid">
+                  @for (grupo of item.estado.grupos; track grupo.id) {
+                    <div class="grupo-card">
+                      <h4>{{ grupo.nome }}</h4>
+                      <p class="grupo-endereco">
+                        {{ grupo.endereco }}@if (grupo.bairro) {, {{ grupo.bairro }}}, {{ grupo.cidade }}
+                      </p>
+                      @if (grupo.telefones.length) {
+                        <p class="grupo-telefone">Tel: {{ formatarTelefones(grupo.telefones) }}</p>
+                      }
+                      <span class="grupo-horario">{{ formatarAgenda(grupo.agenda) }}</span>
+                    </div>
                   }
-                  <span class="grupo-horario">{{ formatarAgenda(grupo.agenda) }}</span>
                 </div>
-              }
-            </div>
+              </div>
+            }
+
+            @if (reunioesOnlineDaUf(item.uf).length > 0) {
+              <div class="estado-subsecao">
+                <h4 class="estado-subsecao-titulo">
+                  <svg class="subsecao-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="14" rx="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                    <line x1="12" y1="18" x2="12" y2="21"/>
+                  </svg>
+                  Online
+                </h4>
+                <div class="grupos-grid">
+                  @for (reuniao of reunioesOnlineDaUf(item.uf); track reuniao.id) {
+                    <div class="grupo-card">
+                      <h4>{{ reuniao.nome }}</h4>
+                      <p class="grupo-endereco grupo-agenda-resumo">{{ resumoAgenda(reuniao) }}</p>
+                      <div class="grupo-card-acoes">
+                        <button type="button" class="btn-detalhes" (click)="abrirDetalhes(reuniao)">
+                          Ver detalhes
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
           }
 
           @if (item.tipo === 'sem-grupo') {
@@ -120,6 +170,59 @@
       }
     }
   </section>
+  }
+
+  @if (reuniaoDetalhe) {
+    <div
+      class="detalhes-overlay"
+      (click)="fecharDetalhesSeCliqueForaDoPainel($event)"
+    >
+      <div
+        class="detalhes-painel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="detalhes-titulo"
+      >
+        <button
+          type="button"
+          class="detalhes-fechar"
+          (click)="fecharDetalhes()"
+          aria-label="Fechar detalhes da reunião"
+        >
+          &times;
+        </button>
+
+        <h3 id="detalhes-titulo">{{ reuniaoDetalhe.nome }}</h3>
+        <p class="reuniao-descricao">{{ reuniaoDetalhe.descricao }}</p>
+        <div class="detalhes-agenda">
+          <strong>Agenda:</strong>
+          <ul>
+            @for (item of agendaAgrupadaDaReuniao(reuniaoDetalhe); track item.diaSemana) {
+              <li>{{ rotuloDiaAgenda(item) }} às {{ item.horarios.join(', ') }}</li>
+            }
+          </ul>
+        </div>
+
+        <div class="detalhes-acoes">
+          <a
+            class="btn-cta btn-whatsapp"
+            [href]="whatsappLink(reuniaoDetalhe)"
+            target="_blank"
+            rel="noopener"
+          >
+            Falar no WhatsApp
+          </a>
+          <a
+            class="btn-cta btn-cta--outline"
+            [href]="whatsappLink(reuniaoDetalhe)"
+            target="_blank"
+            rel="noopener"
+          >
+            Solicitar link da reunião
+          </a>
+        </div>
+      </div>
+    </div>
   }
 
   <section class="cta-final">

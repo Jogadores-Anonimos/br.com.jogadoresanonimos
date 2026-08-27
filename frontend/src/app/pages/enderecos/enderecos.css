@@ -34,30 +34,79 @@
   color: var(--color-danger);
 }
 
-.escritorios-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-md);
+.btn-mapa-toggle {
+  display: inline-block;
+  background: transparent;
+  color: var(--cor-padrao-ja);
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: 2px solid var(--cor-padrao-ja);
+  border-radius: var(--radius-sm);
+  padding: 12px 24px;
+  cursor: pointer;
+  margin-bottom: var(--spacing-md);
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-.escritorio-card {
-  background: var(--color-bg-surface);
+.btn-mapa-toggle:hover {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+}
+
+.btn-mapa-toggle:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 3px;
+}
+
+.mapa-bloco {
+  margin-bottom: var(--spacing-lg);
+}
+
+.mapa-wrapper {
+  position: relative;
+  z-index: 0;
+  min-height: 320px;
+  border: 1px solid var(--color-border);
+  background: var(--color-map-panel);
+  overflow: hidden;
+}
+
+.mapa-maplibre {
+  position: absolute;
+  inset: 0;
+}
+
+.localizacao-bloco {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+  background: var(--color-bg-section);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: var(--spacing-md);
 }
 
-.escritorio-card h3 {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--cor-padrao-ja);
-  margin-bottom: var(--spacing-xs);
-}
-
-.escritorio-card p {
+.localizacao-bloco p {
   color: var(--color-text);
+  max-width: 420px;
   font-size: 0.95rem;
   line-height: 1.6;
+}
+
+.mapa-erro {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.mapa-status {
+  margin-top: var(--spacing-sm);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
 }
 
 .regiao-tabs {
@@ -121,6 +170,31 @@
   font-weight: 800;
 }
 
+.estado-subsecao {
+  margin-bottom: var(--spacing-lg);
+}
+
+.estado-subsecao:last-child {
+  margin-bottom: 0;
+}
+
+.estado-subsecao-titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--cor-padrao-ja);
+  margin-bottom: var(--spacing-sm);
+}
+
+.subsecao-icone {
+  width: 20px;
+  height: 20px;
+  color: var(--cor-padrao-ja);
+  flex-shrink: 0;
+}
+
 .grupos-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -147,6 +221,10 @@
   font-size: 0.95rem;
   line-height: 1.6;
   margin-bottom: var(--spacing-xs);
+}
+
+.grupo-agenda-resumo {
+  line-height: 1.5;
 }
 
 .grupo-telefone {
@@ -179,6 +257,129 @@
   margin-top: var(--spacing-xs);
 }
 
+.grupo-card-acoes {
+  margin-top: var(--spacing-sm);
+}
+
+.btn-detalhes {
+  display: inline-block;
+  background: transparent;
+  color: var(--cor-padrao-ja);
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  padding: 14px 20px;
+  border: 2px solid var(--cor-padrao-ja);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.btn-detalhes:hover {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+}
+
+.btn-detalhes:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 3px;
+}
+
+.detalhes-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+  background: rgba(var(--color-background-dark-rgb), 0.65);
+  touch-action: manipulation;
+}
+
+.detalhes-painel {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-lg);
+}
+
+.detalhes-painel h3 {
+  color: var(--cor-padrao-ja);
+  font-size: 1.3rem;
+  margin-bottom: var(--spacing-sm);
+  padding-right: var(--spacing-lg);
+}
+
+.reuniao-descricao {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: var(--spacing-sm);
+}
+
+.detalhes-agenda {
+  margin: var(--spacing-sm) 0;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.detalhes-agenda ul {
+  margin: var(--spacing-xs) 0 0;
+  padding-left: var(--spacing-md);
+}
+
+.detalhes-fechar {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  z-index: 1;
+}
+
+.detalhes-fechar:hover {
+  color: var(--cor-padrao-ja);
+  border-color: var(--cor-padrao-ja);
+}
+
+.detalhes-fechar:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.detalhes-acoes {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.detalhes-acoes .btn-cta {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+}
+
+.btn-whatsapp {
+  background: var(--color-success);
+  color: var(--white);
+  border-color: transparent;
+}
+
 .cta-final {
   text-align: center;
   padding: var(--spacing-xl) var(--spacing-md);
@@ -209,6 +410,7 @@
   font-size: 1rem;
   text-decoration: none;
   padding: 14px 32px;
+  border: 2px solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
@@ -224,8 +426,17 @@
   outline-offset: 3px;
 }
 
+.btn-cta--outline {
+  background: transparent;
+  border-color: var(--cor-padrao-ja);
+  color: var(--cor-padrao-ja);
+}
+
+.btn-cta--outline:hover {
+  background: var(--color-bg-surface);
+}
+
 @media (max-width: 1300px) {
-  .escritorios-grid,
   .grupos-grid {
     grid-template-columns: 1fr;
   }
@@ -244,5 +455,20 @@
   .regiao-tab {
     padding: var(--spacing-xs) var(--spacing-sm);
     font-size: 0.9rem;
+  }
+
+  .mapa-wrapper {
+    min-height: 260px;
+  }
+
+  .detalhes-painel {
+    padding: var(--spacing-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .detalhes-acoes .btn-cta {
+    padding: 10px 14px;
+    font-size: 0.85rem;
   }
 }

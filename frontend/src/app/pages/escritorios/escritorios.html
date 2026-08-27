@@ -1,0 +1,56 @@
+<app-resource-layout titulo="Escritórios">
+
+  <section class="section">
+    <p class="lead">
+      Pontos de contato administrativo e de serviço da irmandade.
+    </p>
+
+    @if (carregando()) {
+      <p class="estado" role="status">Carregando escritórios…</p>
+    }
+
+    @if (!carregando() && erro()) {
+      <p class="estado estado--erro" role="alert">
+        Não foi possível carregar os escritórios agora. Tente novamente mais tarde.
+      </p>
+    }
+  </section>
+
+  @if (!carregando() && !erro()) {
+  <section class="section">
+    <h2>Escritórios Regionais de Serviço</h2>
+
+    @if (escritorios().length === 0) {
+      <p class="estado">
+        Nenhum escritório regional cadastrado no momento.
+      </p>
+    }
+
+    @if (escritorios().length > 0) {
+    <div class="escritorios-grid">
+      @for (item of escritorios(); track item.id) {
+        <div class="escritorio-card">
+          <h3>{{ item.nome }}</h3>
+          <p>{{ item.endereco }}</p>
+          @if (item.complemento) {
+            <p>{{ item.complemento }}</p>
+          }
+          <p>{{ item.cidade }}</p>
+          @if (item.telefones.length) {
+            @for (telefone of item.telefones; track telefone.id) {
+              <p>{{ telefone.label ? telefone.label + ': ' : '' }}{{ telefone.telefone }}</p>
+            }
+          }
+          @if (item.emails.length) {
+            @for (email of item.emails; track email) {
+              <p>{{ email }}</p>
+            }
+          }
+        </div>
+      }
+    </div>
+    }
+  </section>
+  }
+
+</app-resource-layout>

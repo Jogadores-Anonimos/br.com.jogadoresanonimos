@@ -61,6 +61,12 @@ class ReuniaoServiceTest {
 
     private CriarReuniaoRequest criarRequestVirtual() {
         return new CriarReuniaoRequest("Grupo Virtual", CategoriaReuniao.virtual, "descricao", "Segunda-feira",
+                "20h00", "link", "  ", "", null, null, null, null, null, null, null, null, "SP",
+                "https://meet.google.com/abc-defg-hij");
+    }
+
+    private CriarReuniaoRequest criarRequestVirtualSemEstado() {
+        return new CriarReuniaoRequest("Grupo Virtual", CategoriaReuniao.virtual, "descricao", "Segunda-feira",
                 "20h00", "link", "  ", "", null, null, null, null, null, null, null, null, null,
                 "https://meet.google.com/abc-defg-hij");
     }
@@ -133,7 +139,7 @@ class ReuniaoServiceTest {
         verify(reuniaoRepository).save(captor.capture());
         assertThat(captor.getValue().getLocal()).isEqualTo("link");
         assertThat(captor.getValue().getCep()).isNull();
-        assertThat(captor.getValue().getEstado()).isNull();
+        assertThat(captor.getValue().getEstado()).isEqualTo("SP");
         assertThat(captor.getValue().getLinkReuniao()).isEqualTo("https://meet.google.com/abc-defg-hij");
     }
 
@@ -141,7 +147,7 @@ class ReuniaoServiceTest {
     void criar_deveNormalizarLinkReuniaoEmBrancoParaNulo() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Virtual", CategoriaReuniao.virtual,
                 "descricao", "Segunda-feira", "20h00", "link", null, null, null, null, null,
-                null, null, null, null, null, null, "   ");
+                null, null, null, null, null, "SP", "   ");
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoService.criar(request);
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
@@ -188,7 +194,7 @@ class ReuniaoServiceTest {
         when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Novo", CategoriaReuniao.virtual,
                 "nova descricao", "Terça-feira", "20h00", "link", null, null, null, null, null,
-                null, null, null, null, null, null, "https://meet.google.com/abc-defg-hij");
+                null, null, null, null, null, "SP", "https://meet.google.com/abc-defg-hij");
         ReuniaoResponse resultado = reuniaoService.editar(id, request);
         assertThat(resultado.nome()).isEqualTo("Grupo Novo");
         assertThat(resultado.categoria()).isEqualTo(CategoriaReuniao.virtual);
@@ -227,7 +233,7 @@ class ReuniaoServiceTest {
     void criar_virtual_devePermitirDescricaoAusenteEPersistirVazia() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Virtual", CategoriaReuniao.virtual,
                 null, "Segunda-feira", "20h00", "link", null, null, null, null, null,
-                null, null, null, null, null, null, "https://meet.google.com/abc-defg-hij");
+                null, null, null, null, null, "SP", "https://meet.google.com/abc-defg-hij");
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoService.criar(request);
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
@@ -239,7 +245,7 @@ class ReuniaoServiceTest {
     void criar_virtual_devePermitirDescricaoEmBrancoEPersistirVazia() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Virtual", CategoriaReuniao.virtual,
                 "   ", "Segunda-feira", "20h00", "link", null, null, null, null, null,
-                null, null, null, null, null, null, "https://meet.google.com/abc-defg-hij");
+                null, null, null, null, null, "SP", "https://meet.google.com/abc-defg-hij");
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoService.criar(request);
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
@@ -251,7 +257,7 @@ class ReuniaoServiceTest {
     void criar_virtual_devePermitirLocalAusenteEPersistirVazio() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Virtual", CategoriaReuniao.virtual,
                 "descricao", "Segunda-feira", "20h00", null, null, null, null, null, null,
-                null, null, null, null, null, null, "https://meet.google.com/abc-defg-hij");
+                null, null, null, null, null, "SP", "https://meet.google.com/abc-defg-hij");
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoService.criar(request);
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
@@ -263,7 +269,7 @@ class ReuniaoServiceTest {
     void criar_virtual_devePermitirLocalEmBrancoEPersistirVazio() {
         CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Virtual", CategoriaReuniao.virtual,
                 "descricao", "Segunda-feira", "20h00", "   ", null, null, null, null, null,
-                null, null, null, null, null, null, "https://meet.google.com/abc-defg-hij");
+                null, null, null, null, null, "SP", "https://meet.google.com/abc-defg-hij");
         when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoService.criar(request);
         ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
@@ -278,9 +284,65 @@ class ReuniaoServiceTest {
         when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
         EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Novo", CategoriaReuniao.virtual,
                 "nova descricao", "Terça-feira", "20h00", null, null, null, null, null, null,
-                null, null, null, null, null, null, "https://meet.google.com/abc-defg-hij");
+                null, null, null, null, null, "SP", "https://meet.google.com/abc-defg-hij");
         ReuniaoResponse resultado = reuniaoService.editar(id, request);
         assertThat(resultado.local()).isEmpty();
+    }
+
+    @Test
+    void criar_virtual_semEstado_deveLancarExcecaoValidationException() {
+        CriarReuniaoRequest request = criarRequestVirtualSemEstado();
+        assertThatThrownBy(() -> reuniaoService.criar(request))
+                .isInstanceOf(ValidationException.class);
+        verify(reuniaoRepository, never()).save(any());
+    }
+
+    @Test
+    void criar_virtual_comEstado_devePersistirComSucesso() {
+        CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Virtual", CategoriaReuniao.virtual,
+                "descricao", "Segunda-feira", "20h00", "link", null, null, null, null, null,
+                null, null, null, null, null, "sp", "https://meet.google.com/abc-defg-hij");
+        when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        reuniaoService.criar(request);
+        ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
+        verify(reuniaoRepository).save(captor.capture());
+        assertThat(captor.getValue().getEstado()).isEqualTo("SP");
+    }
+
+    @Test
+    void editar_virtual_semEstado_deveLancarExcecaoValidationException() {
+        UUID id = UUID.randomUUID();
+        Reuniao reuniao = reuniao();
+        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Novo", CategoriaReuniao.virtual,
+                "nova descricao", "Terça-feira", "20h00", "link", null, null, null, null, null,
+                null, null, null, null, null, null, "https://meet.google.com/abc-defg-hij");
+        assertThatThrownBy(() -> reuniaoService.editar(id, request))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void editar_virtual_comEstado_devePersistirComSucesso() {
+        UUID id = UUID.randomUUID();
+        Reuniao reuniao = reuniao();
+        when(reuniaoRepository.findById(id)).thenReturn(Optional.of(reuniao));
+        EditarReuniaoRequest request = new EditarReuniaoRequest("Grupo Novo", CategoriaReuniao.virtual,
+                "nova descricao", "Terça-feira", "20h00", "link", null, null, null, null, null,
+                null, null, null, null, null, "rj", "https://meet.google.com/abc-defg-hij");
+        ReuniaoResponse resultado = reuniaoService.editar(id, request);
+        assertThat(resultado.estado()).isEqualTo("RJ");
+    }
+
+    @Test
+    void criar_presencial_semEstado_deveContinuarPermitido() {
+        CriarReuniaoRequest request = new CriarReuniaoRequest("Grupo Centro", CategoriaReuniao.presencial,
+                "descricao", "Segunda-feira", "19h30", "Rua das Flores, 123", null, null, null, null, null,
+                null, null, null, null, null, null, null);
+        when(reuniaoRepository.save(any(Reuniao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        reuniaoService.criar(request);
+        ArgumentCaptor<Reuniao> captor = ArgumentCaptor.forClass(Reuniao.class);
+        verify(reuniaoRepository).save(captor.capture());
+        assertThat(captor.getValue().getEstado()).isNull();
     }
 
     @Test

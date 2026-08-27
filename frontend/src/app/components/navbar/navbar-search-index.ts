@@ -76,17 +76,13 @@ export const NAVBAR_SEARCH_INDEX: SearchIndexItem[] = [
   {
     titulo: 'Endereços',
     rota: '/enderecos',
-    keywords: ['endereços', 'escritórios regionais', 'regional', 'contato regional', 'onde fica', 'grupos de apoio']
-  },
-  {
-    titulo: 'Reflexão do Dia',
-    rota: '/reflexao-do-dia',
-    keywords: ['reflexão do dia', 'reflexão diária', 'pensamento do dia', 'mensagem do dia']
-  },
-  {
-    titulo: 'Encontrar uma Reunião',
-    rota: '/reunioes',
     keywords: [
+      'endereços',
+      'escritórios regionais',
+      'regional',
+      'contato regional',
+      'onde fica',
+      'grupos de apoio',
       'reuniões',
       'encontrar reunião',
       'encontrar uma reunião',
@@ -95,6 +91,16 @@ export const NAVBAR_SEARCH_INDEX: SearchIndexItem[] = [
       'onde tem reunião',
       'reunião perto de mim'
     ]
+  },
+  {
+    titulo: 'Escritórios',
+    rota: '/escritorios',
+    keywords: ['escritórios', 'escritório regional', 'sede', 'administrativo', 'contato regional']
+  },
+  {
+    titulo: 'Reflexão do Dia',
+    rota: '/reflexao-do-dia',
+    keywords: ['reflexão do dia', 'reflexão diária', 'pensamento do dia', 'mensagem do dia']
   },
   {
     titulo: 'Linhas de Ajuda',

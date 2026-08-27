@@ -89,16 +89,6 @@ function formularioVazio(): FormularioReuniao {
   };
 }
 
-function gerarHorarios(): string[] {
-  const horarios: string[] = [];
-  for (let h = 0; h < 24; h++) {
-    for (const m of ['00', '30']) {
-      horarios.push(`${String(h).padStart(2, '0')}:${m}`);
-    }
-  }
-  return horarios;
-}
-
 function periodoParaHorario(horario: string): 'Manhã' | 'Tarde' | 'Noite' {
   const hora = Number(horario.split(':')[0]);
   if (hora >= 5 && hora < 12) return 'Manhã';
@@ -159,7 +149,6 @@ export class AdminReunioes implements OnInit {
   private readonly enderecoLookupService = inject(EnderecoLookupService);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
-  readonly horarios = gerarHorarios();
   readonly diasSemanaFiltro = DIAS_SEMANA;
 
   carregando = true;
@@ -305,7 +294,7 @@ export class AdminReunioes implements OnInit {
   }
 
   statusVinculo(reuniao: Reuniao): string {
-    return reuniao.grupoIntergrupoId ? 'Sincronizada com Endereços' : 'Não vinculada';
+    return reuniao.grupoIntergrupoId ? 'Sincronizada com Grupos por UF' : 'Não vinculada';
   }
 
   private carregarReunioes(): void {

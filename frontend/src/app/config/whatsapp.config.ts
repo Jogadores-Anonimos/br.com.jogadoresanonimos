@@ -1,4 +1,4 @@
-const WHATSAPP_PHONE_NUMBER = '5521994721933';
+export const WHATSAPP_PHONE_NUMBER = '5521994721933';
 const DDI_BRASIL = '55';
 
 export function montarLinkWhatsapp(numeroCru: string, mensagem?: string): string {
