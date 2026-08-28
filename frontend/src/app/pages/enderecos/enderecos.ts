@@ -13,7 +13,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import type {
   GeoJSONSource,
@@ -205,6 +205,7 @@ export class Enderecos implements OnInit, OnDestroy {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly escritorioRegionalService = inject(EscritorioRegionalService);
   private readonly reuniaoService = inject(ReuniaoService);
+  private readonly activatedRoute = inject(ActivatedRoute);
 
   readonly regioes = signal<RegiaoIntergrupo[]>([]);
   readonly ufsFaltantesPorRegiao = signal<Map<string, UnidadeFederativaComRegiao[]>>(new Map());
@@ -222,6 +223,7 @@ export class Enderecos implements OnInit, OnDestroy {
   readonly regiaoSelecionada = signal<string | null>(null);
 
   private readonly abaAtivaPorUf = signal<Map<string, AbaEnderecoUf>>(new Map());
+  private abaEnderecoUfPadrao: AbaEnderecoUf = 'presencial';
 
   reuniaoDetalhe: Reuniao | null = null;
   grupoDetalhe: GrupoIntergrupo | null = null;
@@ -264,6 +266,9 @@ export class Enderecos implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    if (this.activatedRoute.snapshot.queryParamMap.get('tipo') === 'online') {
+      this.abaEnderecoUfPadrao = 'online';
+    }
     forkJoin({
       estrutura: this.escritorioRegionalService.listarEstrutura(),
       unidadesFederativas: this.escritorioRegionalService.listarUnidadesFederativas(),
@@ -422,18 +427,16 @@ export class Enderecos implements OnInit, OnDestroy {
   }
 
   abaAtivaDaUf(item: EstadoRegiaoItem): AbaEnderecoUf {
+    const escolhaExplicita = this.abaAtivaPorUf().get(item.uf);
+    if (escolhaExplicita) {
+      return escolhaExplicita;
+    }
     const temPresencial = this.temPresencialNoBloco(item);
     const temOnline = this.temOnlineNoBloco(item);
-
-    const abaSalva = this.abaAtivaPorUf().get(item.uf) ?? 'presencial';
-
-    if (abaSalva === 'presencial' && !temPresencial) {
-      return 'online';
+    if (this.abaEnderecoUfPadrao === 'online') {
+      return temOnline || !temPresencial ? 'online' : 'presencial';
     }
-    if (abaSalva === 'online' && !temOnline) {
-      return 'presencial';
-    }
-    return abaSalva;
+    return temPresencial || !temOnline ? 'presencial' : 'online';
   }
 
   selecionarAbaUf(uf: string, aba: AbaEnderecoUf): void {
