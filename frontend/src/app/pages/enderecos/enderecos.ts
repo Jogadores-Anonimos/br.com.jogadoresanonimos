@@ -376,17 +376,15 @@ export class Enderecos implements OnInit, OnDestroy {
         return textoFiltro === '' || temGrupo || temOnline;
       });
 
-    const semGrupo: EstadoRegiaoItem[] =
-      textoFiltro !== ''
-        ? []
-        : (this.ufsFaltantesPorRegiao().get(regiao.codigo) ?? [])
-            .filter((unidade) => ufFiltro === 'todas' || unidade.uf === ufFiltro)
-            .map((unidade) => ({
-              tipo: 'sem-grupo' as const,
-              nome: unidade.nome,
-              uf: unidade.uf,
-              unidade,
-            }));
+    const semGrupo: EstadoRegiaoItem[] = (this.ufsFaltantesPorRegiao().get(regiao.codigo) ?? [])
+      .filter((unidade) => ufFiltro === 'todas' || unidade.uf === ufFiltro)
+      .filter((unidade) => textoFiltro === '' || this.reunioesOnlineDaUf(unidade.uf).length > 0)
+      .map((unidade) => ({
+        tipo: 'sem-grupo' as const,
+        nome: unidade.nome,
+        uf: unidade.uf,
+        unidade,
+      }));
 
     const ordemPrioritaria = ORDEM_UF_PRIORITARIA_POR_REGIAO[regiao.codigo] ?? [];
     return [...comGrupo, ...semGrupo].sort((a, b) => {

@@ -174,35 +174,9 @@
                 </div>
               </div>
             }
-
-            @if (reunioesOnlineDaUf(item.uf).length > 0) {
-              <div class="estado-subsecao">
-                <h4 class="estado-subsecao-titulo">
-                  <svg class="subsecao-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <rect x="2" y="4" width="20" height="14" rx="2"/>
-                    <line x1="8" y1="21" x2="16" y2="21"/>
-                    <line x1="12" y1="18" x2="12" y2="21"/>
-                  </svg>
-                  Online
-                </h4>
-                <div class="grupos-grid">
-                  @for (reuniao of reunioesOnlineDaUf(item.uf); track reuniao.id) {
-                    <div class="grupo-card">
-                      <h4>{{ reuniao.nome }}</h4>
-                      <p class="grupo-endereco grupo-agenda-resumo">{{ resumoAgenda(reuniao) }}</p>
-                      <div class="grupo-card-acoes">
-                        <button type="button" class="btn-detalhes" (click)="abrirDetalhes(reuniao)">
-                          Ver detalhes
-                        </button>
-                      </div>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
           }
 
-          @if (item.tipo === 'sem-grupo') {
+          @if (item.tipo === 'sem-grupo' && reunioesOnlineDaUf(item.uf).length === 0) {
             <div class="grupos-grid">
               <div class="grupo-card grupo-card--sem-grupo">
                 <p class="grupo-endereco">
@@ -210,6 +184,32 @@
                   WhatsApp — e é assim que os grupos físicos começam. Fale com a Linha de Ajuda:
                   <a [href]="linkWhatsappGrupoInexistente()" target="_blank" rel="noopener">21 99472-1933</a>
                 </p>
+              </div>
+            </div>
+          }
+
+          @if (reunioesOnlineDaUf(item.uf).length > 0) {
+            <div class="estado-subsecao">
+              <h4 class="estado-subsecao-titulo">
+                <svg class="subsecao-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="4" width="20" height="14" rx="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="18" x2="12" y2="21"/>
+                </svg>
+                Online
+              </h4>
+              <div class="grupos-grid">
+                @for (reuniao of reunioesOnlineDaUf(item.uf); track reuniao.id) {
+                  <div class="grupo-card">
+                    <h4>{{ reuniao.nome }}</h4>
+                    <p class="grupo-endereco grupo-agenda-resumo">{{ resumoAgenda(reuniao) }}</p>
+                    <div class="grupo-card-acoes">
+                      <button type="button" class="btn-detalhes" (click)="abrirDetalhes(reuniao)">
+                        Ver detalhes
+                      </button>
+                    </div>
+                  </div>
+                }
               </div>
             </div>
           }

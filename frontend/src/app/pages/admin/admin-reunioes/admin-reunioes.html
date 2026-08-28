@@ -394,33 +394,33 @@
                 (ngModelChange)="limparCoordenadas()"
               />
             </div>
-
-            <div class="admin-reunioes__campo">
-              <label for="reuniao-estado">Estado (UF)</label>
-              <select
-                id="reuniao-estado"
-                name="estado"
-                [(ngModel)]="formulario.estado"
-                (ngModelChange)="limparCoordenadas()"
-                [disabled]="!!reuniaoEmEdicao?.grupoIntergrupoId"
-                [class.campo-invalido]="errosCampo['estado']"
-                [attr.aria-invalid]="errosCampo['estado'] ? 'true' : null"
-                [attr.aria-describedby]="errosCampo['estado'] ? 'reuniao-estado-erro' : null"
-              >
-                <option value="" disabled>Selecione a UF</option>
-                @for (uf of ufsBrasil; track uf.sigla) {
-                  <option [value]="uf.sigla">{{ uf.sigla }} — {{ uf.nome }}</option>
-                }
-              </select>
-              @if (errosCampo['estado']) {
-                <span id="reuniao-estado-erro" class="admin-reunioes__campo-erro" role="alert">{{ errosCampo['estado'] }}</span>
-              }
-              @if (reuniaoEmEdicao?.grupoIntergrupoId) {
-                <span class="admin-reunioes__ajuda">A UF é definida pelo grupo vinculado e não pode divergir.</span>
-              }
-            </div>
           </div>
         }
+
+        <div class="admin-reunioes__campo">
+          <label for="reuniao-estado">Estado (UF)</label>
+          <select
+            id="reuniao-estado"
+            name="estado"
+            [(ngModel)]="formulario.estado"
+            (ngModelChange)="limparCoordenadas()"
+            [disabled]="!!reuniaoEmEdicao?.grupoIntergrupoId"
+            [class.campo-invalido]="errosCampo['estado']"
+            [attr.aria-invalid]="errosCampo['estado'] ? 'true' : null"
+            [attr.aria-describedby]="errosCampo['estado'] ? 'reuniao-estado-erro' : null"
+          >
+            <option value="" disabled>Selecione a UF</option>
+            @for (uf of ufsBrasil; track uf.sigla) {
+              <option [value]="uf.sigla">{{ uf.sigla }} — {{ uf.nome }}</option>
+            }
+          </select>
+          @if (errosCampo['estado']) {
+            <span id="reuniao-estado-erro" class="admin-reunioes__campo-erro" role="alert">{{ errosCampo['estado'] }}</span>
+          }
+          @if (reuniaoEmEdicao?.grupoIntergrupoId) {
+            <span class="admin-reunioes__ajuda">A UF é definida pelo grupo vinculado e não pode divergir.</span>
+          }
+        </div>
 
         <div class="admin-reunioes__campo">
           <label for="reuniao-whatsapp">{{ formulario.categoria === 'virtual' ? 'Número/contato (opcional)' : 'WhatsApp (opcional)' }}</label>

@@ -557,7 +557,7 @@ export class AdminReunioes implements OnInit {
     if (presencial && !this.formulario.local.trim()) {
       this.errosCampo['local'] = 'Endereço é obrigatório para reunião presencial.';
     }
-    if (presencial && !this.formulario.estado.trim()) {
+    if (!this.formulario.estado.trim()) {
       this.errosCampo['estado'] = 'Selecione o estado (UF) da reunião.';
     }
     if (Object.keys(this.errosCampo).length > 0) {
