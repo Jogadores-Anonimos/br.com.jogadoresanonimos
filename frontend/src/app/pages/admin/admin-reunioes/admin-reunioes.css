@@ -297,27 +297,21 @@
 }
 
 .admin-reunioes__agenda-horario-linha {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-xs);
 }
 
-.admin-reunioes__agenda-horario input[type='time'] {
-  width: 100%;
-  box-sizing: border-box;
-  padding: var(--spacing-xs);
-  color: var(--color-text);
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+.admin-reunioes__agenda-horario {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .admin-reunioes__agenda-adicionar,
 .admin-reunioes__agenda-remover {
   width: fit-content;
+  flex: 0 0 auto;
   padding: 0.35rem 0.55rem;
   color: var(--cor-padrao-ja);
   font-family: var(--font-body);
@@ -401,6 +395,12 @@
 .admin-reunioes__campo textarea:focus-visible {
   outline: 2px solid var(--cor-padrao-ja);
   outline-offset: 2px;
+}
+
+.admin-reunioes__campo-erro {
+  color: var(--color-danger);
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
 
 .admin-reunioes__ajuda {
@@ -496,10 +496,6 @@
   }
 
   .admin-reunioes__agenda-item {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-reunioes__agenda-horario-linha {
     grid-template-columns: 1fr;
   }
 

@@ -202,7 +202,7 @@ describe('AdminReunioes', () => {
       component.salvar();
 
       expect(reuniaoServiceSpy['criarReuniaoAdmin']).not.toHaveBeenCalled();
-      expect(component.erroFormulario).toContain('obrigatórios');
+      expect(component.erroFormulario).toContain('Corrija os campos destacados abaixo');
       expect(component.errosCampo['nome']).toBeTruthy();
     });
 
@@ -359,7 +359,7 @@ describe('AdminReunioes', () => {
       component.salvar();
 
       expect(reuniaoServiceSpy['criarReuniaoAdmin']).not.toHaveBeenCalled();
-      expect(component.errosCampo['agenda.SEGUNDA']).toContain('repita');
+      expect(component.errosCampo['agenda.SEGUNDA']).toContain('repetidos');
     });
 
     it('não envia grupoIntergrupoId ao criar reunião presencial — grupo é criado pelo backend', () => {
@@ -419,6 +419,26 @@ describe('AdminReunioes', () => {
       expect(segunda.selecionado).toBe(false);
       expect(document.activeElement).toBe(checkbox);
       secao.remove();
+    });
+  });
+
+  describe('estado (UF)', () => {
+    it('expõe as 27 UFs do Brasil para o select', () => {
+      expect(component.ufsBrasil).toHaveLength(27);
+      expect(component.ufsBrasil.find((uf) => uf.sigla === 'SP')?.nome).toBe('São Paulo');
+    });
+
+    it('mostra erro claro apontando o campo Estado quando UF não é selecionada', () => {
+      component.abrirNovo();
+      component.formulario.nome = 'Grupo X';
+      component.formulario.descricao = 'Descrição válida.';
+      component.formulario.local = 'Rua Nova, 1';
+      selecionarAgenda('TERCA', '20:00');
+
+      component.salvar();
+
+      expect(component.errosCampo['estado']).toContain('UF');
+      expect(component.erroFormulario).toContain('Estado (UF)');
     });
   });
 

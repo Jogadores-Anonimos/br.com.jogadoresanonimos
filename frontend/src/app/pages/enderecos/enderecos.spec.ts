@@ -384,7 +384,7 @@ describe('Enderecos', () => {
       );
       await criarComponente([]);
 
-      const item = component.estadosRegiaoAtual.find((i) => i.uf === 'SP');
+      const item = component.estadosRegiaoAtual().find((i) => i.uf === 'SP');
       expect(item?.tipo).toBe('com-grupo');
       if (item?.tipo === 'com-grupo') {
         expect(item.estado.grupos).toEqual([grupo]);

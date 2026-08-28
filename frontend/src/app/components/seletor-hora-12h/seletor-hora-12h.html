@@ -1,0 +1,52 @@
+<fieldset class="seletor-hora-12h" [disabled]="desabilitado">
+  <legend class="sr-only">{{ rotuloAcessivel }}</legend>
+  <div class="seletor-hora-12h__campo">
+    <label class="sr-only" [for]="idBase + '-hora'">Hora ({{ rotuloAcessivel }})</label>
+    <select
+      [id]="idBase + '-hora'"
+      class="seletor-hora-12h__select"
+      [(ngModel)]="hora"
+      (ngModelChange)="atualizar()"
+    >
+      @for (opcaoHora of horas; track opcaoHora) {
+        <option [value]="opcaoHora">{{ opcaoHora }}</option>
+      }
+    </select>
+  </div>
+  <span class="seletor-hora-12h__separador" aria-hidden="true">:</span>
+  <div class="seletor-hora-12h__campo">
+    <label class="sr-only" [for]="idBase + '-minuto'">Minuto ({{ rotuloAcessivel }})</label>
+    <select
+      [id]="idBase + '-minuto'"
+      class="seletor-hora-12h__select"
+      [(ngModel)]="minuto"
+      (ngModelChange)="atualizar()"
+    >
+      @for (opcaoMinuto of minutos; track opcaoMinuto) {
+        <option [value]="opcaoMinuto">{{ opcaoMinuto < 10 ? '0' + opcaoMinuto : opcaoMinuto }}</option>
+      }
+    </select>
+  </div>
+  <div class="seletor-hora-12h__periodo" role="group" [attr.aria-label]="'Período do dia (' + rotuloAcessivel + ')'">
+    <button
+      type="button"
+      class="seletor-hora-12h__periodo-botao"
+      [class.seletor-hora-12h__periodo-botao--ativo]="periodo === 'AM'"
+      [attr.aria-pressed]="periodo === 'AM'"
+      [disabled]="desabilitado"
+      (click)="selecionarPeriodo('AM')"
+    >
+      AM
+    </button>
+    <button
+      type="button"
+      class="seletor-hora-12h__periodo-botao"
+      [class.seletor-hora-12h__periodo-botao--ativo]="periodo === 'PM'"
+      [attr.aria-pressed]="periodo === 'PM'"
+      [disabled]="desabilitado"
+      (click)="selecionarPeriodo('PM')"
+    >
+      PM
+    </button>
+  </div>
+</fieldset>

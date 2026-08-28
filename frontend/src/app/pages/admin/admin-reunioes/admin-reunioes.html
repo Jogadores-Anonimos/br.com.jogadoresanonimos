@@ -127,11 +127,6 @@
 
           <p class="admin-reunioes__corpo">{{ reuniao.descricao }}</p>
           <p class="admin-reunioes__local">{{ reuniao.local }}</p>
-          @if (reuniao.grupoIntergrupoId) {
-            <p class="admin-reunioes__local">
-              <a href="/admin/escritorios-regionais">Abrir em Grupos por UF</a>
-            </p>
-          }
 
           @if (erroExclusao && confirmandoExclusao === reuniao.id) {
             <p class="admin-reunioes__erro-card" role="alert">
@@ -186,7 +181,7 @@
     <div class="admin-reunioes__grid">
       <div class="admin-reunioes__campos">
         <div class="admin-reunioes__campo">
-          <label for="reuniao-nome">Nome</label>
+          <label for="reuniao-nome">Nome do grupo</label>
           <input
             id="reuniao-nome"
             #campoNome
@@ -195,16 +190,13 @@
             [(ngModel)]="formulario.nome"
             [class.campo-invalido]="errosCampo['nome']"
             [attr.aria-invalid]="errosCampo['nome'] ? 'true' : null"
+            [attr.aria-describedby]="errosCampo['nome'] ? 'reuniao-nome-erro' : null"
             required
           />
+          @if (errosCampo['nome']) {
+            <span id="reuniao-nome-erro" class="admin-reunioes__campo-erro" role="alert">{{ errosCampo['nome'] }}</span>
+          }
         </div>
-
-        @if (formulario.categoria === 'presencial' && reuniaoEmEdicao) {
-          <p class="admin-reunioes__ajuda">
-            O grupo vinculado a esta reunião é sincronizado automaticamente com os dados abaixo.
-            <a href="/admin/escritorios-regionais">Abrir Grupos por UF</a>
-          </p>
-        }
 
         <div class="admin-reunioes__campo">
           <label for="reuniao-categoria">Categoria</label>
@@ -224,8 +216,12 @@
               [(ngModel)]="formulario.descricao"
               [class.campo-invalido]="errosCampo['descricao']"
               [attr.aria-invalid]="errosCampo['descricao'] ? 'true' : null"
+              [attr.aria-describedby]="errosCampo['descricao'] ? 'reuniao-descricao-erro' : null"
               required
             ></textarea>
+            @if (errosCampo['descricao']) {
+              <span id="reuniao-descricao-erro" class="admin-reunioes__campo-erro" role="alert">{{ errosCampo['descricao'] }}</span>
+            }
           </div>
         }
 
@@ -253,18 +249,14 @@
                   <div class="admin-reunioes__agenda-horarios">
                     @for (horario of item.horarios; track $index; let indice = $index) {
                       <div class="admin-reunioes__agenda-horario-linha">
-                        <label class="admin-reunioes__agenda-horario" [for]="'agenda-horario-' + item.diaSemana + '-' + indice">
-                          <span class="sr-only">Horário {{ indice + 1 }} de {{ item.rotulo }}</span>
-                          <input
-                            type="time"
-                            [id]="'agenda-horario-' + item.diaSemana + '-' + indice"
-                            [name]="'agendaHorario-' + item.diaSemana + '-' + indice"
-                            [(ngModel)]="item.horarios[indice]"
-                            (change)="atualizarHorario(item)"
-                            [attr.aria-invalid]="errosCampo['agenda.' + item.diaSemana] ? 'true' : null"
-                            [attr.aria-describedby]="errosCampo['agenda.' + item.diaSemana] ? 'agenda-erro-' + item.diaSemana : null"
-                          />
-                        </label>
+                        <app-seletor-hora-12h
+                          class="admin-reunioes__agenda-horario"
+                          [idBase]="'agenda-horario-' + item.diaSemana + '-' + indice"
+                          [rotuloAcessivel]="'Horário ' + (indice + 1) + ' de ' + item.rotulo"
+                          [name]="'agendaHorario-' + item.diaSemana + '-' + indice"
+                          [(ngModel)]="item.horarios[indice]"
+                          (ngModelChange)="atualizarHorario(item)"
+                        ></app-seletor-hora-12h>
                         <button
                           type="button"
                           class="admin-reunioes__agenda-remover"
@@ -351,8 +343,12 @@
               (change)="limparCoordenadas()"
               [class.campo-invalido]="errosCampo['local']"
               [attr.aria-invalid]="errosCampo['local'] ? 'true' : null"
+              [attr.aria-describedby]="errosCampo['local'] ? 'reuniao-local-erro' : null"
               required
             />
+            @if (errosCampo['local']) {
+              <span id="reuniao-local-erro" class="admin-reunioes__campo-erro" role="alert">{{ errosCampo['local'] }}</span>
+            }
             @if (avisoEnderecoLocalDivergente) {
               <div class="admin-reunioes__aviso-endereco" role="status">
                 <p class="admin-reunioes__aviso-endereco-texto">
@@ -400,16 +396,25 @@
             </div>
 
             <div class="admin-reunioes__campo">
-              <label for="reuniao-estado">Estado</label>
-              <input
+              <label for="reuniao-estado">Estado (UF)</label>
+              <select
                 id="reuniao-estado"
-                type="text"
                 name="estado"
-                maxlength="2"
                 [(ngModel)]="formulario.estado"
                 (ngModelChange)="limparCoordenadas()"
                 [disabled]="!!reuniaoEmEdicao?.grupoIntergrupoId"
-              />
+                [class.campo-invalido]="errosCampo['estado']"
+                [attr.aria-invalid]="errosCampo['estado'] ? 'true' : null"
+                [attr.aria-describedby]="errosCampo['estado'] ? 'reuniao-estado-erro' : null"
+              >
+                <option value="" disabled>Selecione a UF</option>
+                @for (uf of ufsBrasil; track uf.sigla) {
+                  <option [value]="uf.sigla">{{ uf.sigla }} — {{ uf.nome }}</option>
+                }
+              </select>
+              @if (errosCampo['estado']) {
+                <span id="reuniao-estado-erro" class="admin-reunioes__campo-erro" role="alert">{{ errosCampo['estado'] }}</span>
+              }
               @if (reuniaoEmEdicao?.grupoIntergrupoId) {
                 <span class="admin-reunioes__ajuda">A UF é definida pelo grupo vinculado e não pode divergir.</span>
               }
@@ -428,7 +433,11 @@
             (blur)="validarWhatsapp()"
             [class.campo-invalido]="errosCampo['whatsapp']"
             [attr.aria-invalid]="errosCampo['whatsapp'] ? 'true' : null"
+            [attr.aria-describedby]="errosCampo['whatsapp'] ? 'reuniao-whatsapp-erro' : null"
           />
+          @if (errosCampo['whatsapp']) {
+            <span id="reuniao-whatsapp-erro" class="admin-reunioes__campo-erro" role="alert">{{ errosCampo['whatsapp'] }}</span>
+          }
         </div>
 
         @if (formulario.categoria === 'virtual') {
@@ -458,7 +467,11 @@
                 (ngModelChange)="atualizarMapaPreview()"
                 [class.campo-invalido]="errosCampo['latitude']"
                 [attr.aria-invalid]="errosCampo['latitude'] ? 'true' : null"
+                [attr.aria-describedby]="errosCampo['latitude'] ? 'reuniao-latitude-erro' : null"
               />
+              @if (errosCampo['latitude']) {
+                <span id="reuniao-latitude-erro" class="admin-reunioes__campo-erro" role="alert">{{ errosCampo['latitude'] }}</span>
+              }
             </div>
 
             <div class="admin-reunioes__campo">
@@ -473,7 +486,11 @@
                 (ngModelChange)="atualizarMapaPreview()"
                 [class.campo-invalido]="errosCampo['longitude']"
                 [attr.aria-invalid]="errosCampo['longitude'] ? 'true' : null"
+                [attr.aria-describedby]="errosCampo['longitude'] ? 'reuniao-longitude-erro' : null"
               />
+              @if (errosCampo['longitude']) {
+                <span id="reuniao-longitude-erro" class="admin-reunioes__campo-erro" role="alert">{{ errosCampo['longitude'] }}</span>
+              }
             </div>
           </div>
         }

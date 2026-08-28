@@ -3,6 +3,7 @@ import { Component, ElementRef, OnInit, PLATFORM_ID, ViewChild, computed, inject
 import { FormsModule } from '@angular/forms';
 import type { LngLatLike, Map as MapLibreMap, Marker as MapLibreMarker, StyleSpecification } from 'maplibre-gl';
 
+import { SeletorHora12h } from '../../../components/seletor-hora-12h/seletor-hora-12h';
 import { mapearErrosCampo, mensagemDeErro } from '../../../services/api-envelope';
 import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
 import { ReuniaoService } from '../../../services/reuniao/reuniao';
@@ -117,6 +118,36 @@ const ESTILO_OSM: StyleSpecification = {
 
 const DIAS_SEMANA = DIAS_AGENDA.map((dia) => dia.rotulo);
 
+const UFS_BRASIL: ReadonlyArray<{ sigla: string; nome: string }> = [
+  { sigla: 'AC', nome: 'Acre' },
+  { sigla: 'AL', nome: 'Alagoas' },
+  { sigla: 'AP', nome: 'Amapá' },
+  { sigla: 'AM', nome: 'Amazonas' },
+  { sigla: 'BA', nome: 'Bahia' },
+  { sigla: 'CE', nome: 'Ceará' },
+  { sigla: 'DF', nome: 'Distrito Federal' },
+  { sigla: 'ES', nome: 'Espírito Santo' },
+  { sigla: 'GO', nome: 'Goiás' },
+  { sigla: 'MA', nome: 'Maranhão' },
+  { sigla: 'MT', nome: 'Mato Grosso' },
+  { sigla: 'MS', nome: 'Mato Grosso do Sul' },
+  { sigla: 'MG', nome: 'Minas Gerais' },
+  { sigla: 'PA', nome: 'Pará' },
+  { sigla: 'PB', nome: 'Paraíba' },
+  { sigla: 'PR', nome: 'Paraná' },
+  { sigla: 'PE', nome: 'Pernambuco' },
+  { sigla: 'PI', nome: 'Piauí' },
+  { sigla: 'RJ', nome: 'Rio de Janeiro' },
+  { sigla: 'RN', nome: 'Rio Grande do Norte' },
+  { sigla: 'RS', nome: 'Rio Grande do Sul' },
+  { sigla: 'RO', nome: 'Rondônia' },
+  { sigla: 'RR', nome: 'Roraima' },
+  { sigla: 'SC', nome: 'Santa Catarina' },
+  { sigla: 'SP', nome: 'São Paulo' },
+  { sigla: 'SE', nome: 'Sergipe' },
+  { sigla: 'TO', nome: 'Tocantins' },
+];
+
 const WHATSAPP_DIGITOS_REGEX = /^(?:55)?\d{10,11}$/;
 
 function whatsappFormatoValido(valor: string): boolean {
@@ -131,7 +162,7 @@ function corPadraoJa(): string {
 @Component({
   selector: 'app-admin-reunioes',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SeletorHora12h],
   templateUrl: './admin-reunioes.html',
   styleUrl: './admin-reunioes.css',
 })
@@ -141,6 +172,7 @@ export class AdminReunioes implements OnInit {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   readonly diasSemanaFiltro = DIAS_SEMANA;
+  readonly ufsBrasil = UFS_BRASIL;
 
   carregando = true;
   erroCarregamento = '';
@@ -474,13 +506,34 @@ export class AdminReunioes implements OnInit {
     this.mapaPreview.setZoom(ZOOM_MARCADOR);
   }
 
+  private construirErroFormulario(): string {
+    const rotulos: Record<string, string> = {
+      nome: 'Nome do grupo',
+      descricao: 'Descrição',
+      agenda: 'Agenda (dias e horários)',
+      local: 'Endereço',
+      estado: 'Estado (UF)',
+    };
+    const camposComErro = Object.keys(this.errosCampo)
+      .filter((campo) => !campo.startsWith('agenda.'))
+      .map((campo) => rotulos[campo] ?? campo);
+    const temErroDeAgenda = Object.keys(this.errosCampo).some((campo) => campo.startsWith('agenda.'));
+    if (temErroDeAgenda && !camposComErro.includes(rotulos['agenda'])) {
+      camposComErro.push(rotulos['agenda']);
+    }
+    if (camposComErro.length === 1) {
+      return `Corrija o campo "${camposComErro[0]}" destacado abaixo.`;
+    }
+    return `Corrija os campos destacados abaixo: ${camposComErro.join(', ')}.`;
+  }
+
   salvar(): void {
     this.errosCampo = {};
 
     const presencial = this.formulario.categoria === 'presencial';
 
     if (!this.formulario.nome.trim()) {
-      this.errosCampo['nome'] = 'Nome é obrigatório.';
+      this.errosCampo['nome'] = 'Nome do grupo é obrigatório.';
     }
     if (presencial && !this.formulario.descricao.trim()) {
       this.errosCampo['descricao'] = 'Descrição é obrigatória.';
@@ -491,32 +544,30 @@ export class AdminReunioes implements OnInit {
         horarios.map((horario) => ({ diaSemana, horario: horario.trim() })),
       );
     if (agenda.length === 0) {
-      this.errosCampo['agenda'] = 'Selecione pelo menos um dia da semana.';
+      this.errosCampo['agenda'] = 'Selecione ao menos um dia da semana e informe o horário.';
     }
     for (const dia of this.formulario.agenda.filter((item) => item.selecionado)) {
       const horarios = dia.horarios.map((horario) => horario.trim());
       if (horarios.length === 0 || horarios.some((horario) => !horario)) {
-        this.errosCampo[`agenda.${dia.diaSemana}`] = `Informe todos os horários de ${ROTULO_DIA[dia.diaSemana]}.`;
+        this.errosCampo[`agenda.${dia.diaSemana}`] = `Informe o horário de todas as linhas marcadas em ${ROTULO_DIA[dia.diaSemana]}.`;
       } else if (new Set(horarios).size !== horarios.length) {
-        this.errosCampo[`agenda.${dia.diaSemana}`] = `Não repita horários em ${ROTULO_DIA[dia.diaSemana]}.`;
+        this.errosCampo[`agenda.${dia.diaSemana}`] = `Há horários repetidos em ${ROTULO_DIA[dia.diaSemana]} — remova a duplicata.`;
       }
     }
     if (presencial && !this.formulario.local.trim()) {
-      this.errosCampo['local'] = 'Local é obrigatório.';
+      this.errosCampo['local'] = 'Endereço é obrigatório para reunião presencial.';
     }
     if (presencial && !this.formulario.estado.trim()) {
-      this.errosCampo['estado'] = 'Estado é obrigatório.';
+      this.errosCampo['estado'] = 'Selecione o estado (UF) da reunião.';
     }
     if (Object.keys(this.errosCampo).length > 0) {
-      this.erroFormulario = presencial
-        ? 'Nome, descrição, agenda, local e estado são obrigatórios.'
-        : 'Nome e agenda são obrigatórios.';
+      this.erroFormulario = this.construirErroFormulario();
       return;
     }
 
     this.validarWhatsapp();
     if (this.errosCampo['whatsapp']) {
-      this.erroFormulario = this.errosCampo['whatsapp'];
+      this.erroFormulario = `Corrija o campo "WhatsApp" destacado abaixo: ${this.errosCampo['whatsapp']}`;
       return;
     }
 
@@ -524,13 +575,17 @@ export class AdminReunioes implements OnInit {
     const longitude = this.formulario.longitude.trim() ? Number(this.formulario.longitude) : undefined;
 
     if (latitude !== undefined && Number.isNaN(latitude)) {
-      this.errosCampo['latitude'] = 'Latitude precisa ser um número válido.';
+      this.errosCampo['latitude'] = 'Latitude precisa ser um número válido (ex: -23.55).';
     }
     if (longitude !== undefined && Number.isNaN(longitude)) {
-      this.errosCampo['longitude'] = 'Longitude precisa ser um número válido.';
+      this.errosCampo['longitude'] = 'Longitude precisa ser um número válido (ex: -46.63).';
     }
     if (Object.keys(this.errosCampo).length > 0) {
-      this.erroFormulario = 'Latitude e longitude precisam ser números válidos.';
+      const camposInvalidos = ['latitude', 'longitude'].filter((campo) => this.errosCampo[campo]);
+      this.erroFormulario =
+        camposInvalidos.length === 1
+          ? `Corrija o campo "${camposInvalidos[0] === 'latitude' ? 'Latitude' : 'Longitude'}" destacado abaixo.`
+          : 'Corrija os campos "Latitude" e "Longitude" destacados abaixo.';
       return;
     }
 
