@@ -53,6 +53,8 @@ interface EstadoRegiaoItemSemGrupo {
 
 type EstadoRegiaoItem = EstadoRegiaoItemComGrupo | EstadoRegiaoItemSemGrupo;
 
+type AbaEnderecoUf = 'presencial' | 'online';
+
 type DiaSemanaCurto = 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo';
 
 interface AgendaDiaAgrupada {
@@ -218,6 +220,8 @@ export class Enderecos implements OnInit, OnDestroy {
   readonly filtroUf = signal<string | 'todas'>('todas');
 
   readonly regiaoSelecionada = signal<string | null>(null);
+
+  private readonly abaAtivaPorUf = signal<Map<string, AbaEnderecoUf>>(new Map());
 
   reuniaoDetalhe: Reuniao | null = null;
   grupoDetalhe: GrupoIntergrupo | null = null;
@@ -407,6 +411,45 @@ export class Enderecos implements OnInit, OnDestroy {
     const temFiltroAtivo = this.filtroTextoDebounced().trim() !== '' || this.filtroUf() !== 'todas';
     return temFiltroAtivo && this.regiaoAtual !== undefined && this.estadosRegiaoAtual().length === 0;
   });
+
+  temPresencialNoBloco(item: EstadoRegiaoItem): boolean {
+    return item.tipo === 'com-grupo' && item.estado.grupos.length > 0;
+  }
+
+  temOnlineNoBloco(item: EstadoRegiaoItem): boolean {
+    return this.reunioesOnlineDaUf(item.uf).length > 0;
+  }
+
+  mostraToggleNoBloco(item: EstadoRegiaoItem): boolean {
+    return this.temPresencialNoBloco(item) && this.temOnlineNoBloco(item);
+  }
+
+  abaAtivaDaUf(item: EstadoRegiaoItem): AbaEnderecoUf {
+    const temPresencial = this.temPresencialNoBloco(item);
+    const temOnline = this.temOnlineNoBloco(item);
+
+    if (!this.mostraToggleNoBloco(item)) {
+      return temPresencial ? 'presencial' : 'online';
+    }
+
+    const abaSalva = this.abaAtivaPorUf().get(item.uf) ?? 'presencial';
+
+    if (abaSalva === 'presencial' && !temPresencial) {
+      return 'online';
+    }
+    if (abaSalva === 'online' && !temOnline) {
+      return 'presencial';
+    }
+    return abaSalva;
+  }
+
+  selecionarAbaUf(uf: string, aba: AbaEnderecoUf): void {
+    this.abaAtivaPorUf.update((mapa) => {
+      const novoMapa = new Map(mapa);
+      novoMapa.set(uf, aba);
+      return novoMapa;
+    });
+  }
 
   reunioesOnlineDaUf(uf: string): Reuniao[] {
     const textoFiltro = this.filtroTextoDebounced().trim().toLowerCase();

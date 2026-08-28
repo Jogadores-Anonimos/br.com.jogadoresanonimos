@@ -141,39 +141,73 @@
         <div class="estado-bloco">
           <div class="estado-header">
             <h3>{{ item.nome }}</h3>
-          </div>
 
-          @if (item.tipo === 'com-grupo') {
-            @if (item.estado.grupos.length > 0) {
-              <div class="estado-subsecao">
-                <h4 class="estado-subsecao-titulo">
-                  <svg class="subsecao-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M12 22s7-6.2 7-12A7 7 0 0 0 5 10c0 5.8 7 12 7 12z"/>
-                    <circle cx="12" cy="10" r="2.5"/>
-                  </svg>
+            @if (mostraToggleNoBloco(item)) {
+              <div class="estado-toggle" role="tablist" [attr.aria-label]="'Tipo de reunião em ' + item.nome">
+                <button
+                  type="button"
+                  role="tab"
+                  [id]="'tab-presencial-' + item.uf"
+                  class="estado-toggle-btn"
+                  [class.estado-toggle-btn--ativa]="abaAtivaDaUf(item) === 'presencial'"
+                  [attr.aria-selected]="abaAtivaDaUf(item) === 'presencial'"
+                  [attr.aria-controls]="'panel-presencial-' + item.uf"
+                  [attr.tabindex]="abaAtivaDaUf(item) === 'presencial' ? 0 : -1"
+                  (click)="selecionarAbaUf(item.uf, 'presencial')"
+                >
                   Presencial
-                </h4>
-                <div class="grupos-grid">
-                  @for (grupo of item.estado.grupos; track grupo.id) {
-                    <div class="grupo-card">
-                      <h4>{{ grupo.nome }}</h4>
-                      <p class="grupo-endereco">
-                        {{ grupo.endereco }}@if (grupo.bairro) {, {{ grupo.bairro }}}, {{ grupo.cidade }}
-                      </p>
-                      @if (grupo.telefones.length) {
-                        <p class="grupo-telefone">Tel: {{ formatarTelefones(grupo.telefones) }}</p>
-                      }
-                      <span class="grupo-horario">{{ formatarAgenda(grupo.agenda) }}</span>
-                      <div class="grupo-card-acoes">
-                        <button type="button" class="btn-detalhes" (click)="abrirDetalhesGrupo(grupo)">
-                          Ver detalhes
-                        </button>
-                      </div>
-                    </div>
-                  }
-                </div>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  [id]="'tab-online-' + item.uf"
+                  class="estado-toggle-btn"
+                  [class.estado-toggle-btn--ativa]="abaAtivaDaUf(item) === 'online'"
+                  [attr.aria-selected]="abaAtivaDaUf(item) === 'online'"
+                  [attr.aria-controls]="'panel-online-' + item.uf"
+                  [attr.tabindex]="abaAtivaDaUf(item) === 'online' ? 0 : -1"
+                  (click)="selecionarAbaUf(item.uf, 'online')"
+                >
+                  Online
+                </button>
               </div>
             }
+          </div>
+
+          @if (item.tipo === 'com-grupo' && item.estado.grupos.length > 0 && abaAtivaDaUf(item) === 'presencial') {
+            <div
+              class="estado-subsecao"
+              role="tabpanel"
+              [id]="'panel-presencial-' + item.uf"
+              [attr.aria-labelledby]="mostraToggleNoBloco(item) ? 'tab-presencial-' + item.uf : null"
+            >
+              <h4 class="estado-subsecao-titulo">
+                <svg class="subsecao-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 22s7-6.2 7-12A7 7 0 0 0 5 10c0 5.8 7 12 7 12z"/>
+                  <circle cx="12" cy="10" r="2.5"/>
+                </svg>
+                Presencial
+              </h4>
+              <div class="grupos-grid">
+                @for (grupo of item.estado.grupos; track grupo.id) {
+                  <div class="grupo-card">
+                    <h4>{{ grupo.nome }}</h4>
+                    <p class="grupo-endereco">
+                      {{ grupo.endereco }}@if (grupo.bairro) {, {{ grupo.bairro }}}, {{ grupo.cidade }}
+                    </p>
+                    @if (grupo.telefones.length) {
+                      <p class="grupo-telefone">Tel: {{ formatarTelefones(grupo.telefones) }}</p>
+                    }
+                    <span class="grupo-horario">{{ formatarAgenda(grupo.agenda) }}</span>
+                    <div class="grupo-card-acoes">
+                      <button type="button" class="btn-detalhes" (click)="abrirDetalhesGrupo(grupo)">
+                        Ver detalhes
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
           }
 
           @if (item.tipo === 'sem-grupo' && reunioesOnlineDaUf(item.uf).length === 0) {
@@ -188,8 +222,13 @@
             </div>
           }
 
-          @if (reunioesOnlineDaUf(item.uf).length > 0) {
-            <div class="estado-subsecao">
+          @if (reunioesOnlineDaUf(item.uf).length > 0 && abaAtivaDaUf(item) === 'online') {
+            <div
+              class="estado-subsecao"
+              role="tabpanel"
+              [id]="'panel-online-' + item.uf"
+              [attr.aria-labelledby]="mostraToggleNoBloco(item) ? 'tab-online-' + item.uf : null"
+            >
               <h4 class="estado-subsecao-titulo">
                 <svg class="subsecao-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect x="2" y="4" width="20" height="14" rx="2"/>
