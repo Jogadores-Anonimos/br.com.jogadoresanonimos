@@ -439,13 +439,13 @@ export class AdminReunioes implements OnInit {
   }
 
   alternarDiaAgenda(item: AgendaFormularioItem): void {
-    item.horarios = item.selecionado ? (item.horarios.length ? item.horarios : ['']) : [];
+    item.horarios = item.selecionado ? (item.horarios.length ? item.horarios : ['19:00']) : [];
     delete this.errosCampo['agenda'];
     delete this.errosCampo[`agenda.${item.diaSemana}`];
   }
 
   adicionarHorario(item: AgendaFormularioItem): void {
-    item.horarios.push('');
+    item.horarios.push('19:00');
     delete this.errosCampo[`agenda.${item.diaSemana}`];
   }
 
