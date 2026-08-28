@@ -355,15 +355,18 @@
   margin-bottom: var(--spacing-xs);
 }
 
-.grupo-card--sem-grupo {
+.grupo-card--sem-grupo,
+.grupo-card--sem-online {
   grid-column: 1 / -1;
 }
 
-.grupo-card--sem-grupo .grupo-endereco {
+.grupo-card--sem-grupo .grupo-endereco,
+.grupo-card--sem-online .grupo-endereco {
   margin-bottom: 0;
 }
 
-.grupo-card--sem-grupo a {
+.grupo-card--sem-grupo a,
+.grupo-card--sem-online a {
   color: var(--cor-padrao-ja);
   font-weight: 700;
   text-decoration: underline;

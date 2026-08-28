@@ -1,4 +1,4 @@
-<app-resource-layout titulo="Endereços">
+<app-resource-layout titulo="Reuniões/Endereços">
 
   <section class="section">
     <p class="lead">
@@ -142,36 +142,34 @@
           <div class="estado-header">
             <h3>{{ item.nome }}</h3>
 
-            @if (mostraToggleNoBloco(item)) {
-              <div class="estado-toggle" role="tablist" [attr.aria-label]="'Tipo de reunião em ' + item.nome">
-                <button
-                  type="button"
-                  role="tab"
-                  [id]="'tab-presencial-' + item.uf"
-                  class="estado-toggle-btn"
-                  [class.estado-toggle-btn--ativa]="abaAtivaDaUf(item) === 'presencial'"
-                  [attr.aria-selected]="abaAtivaDaUf(item) === 'presencial'"
-                  [attr.aria-controls]="'panel-presencial-' + item.uf"
-                  [attr.tabindex]="abaAtivaDaUf(item) === 'presencial' ? 0 : -1"
-                  (click)="selecionarAbaUf(item.uf, 'presencial')"
-                >
-                  Presencial
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  [id]="'tab-online-' + item.uf"
-                  class="estado-toggle-btn"
-                  [class.estado-toggle-btn--ativa]="abaAtivaDaUf(item) === 'online'"
-                  [attr.aria-selected]="abaAtivaDaUf(item) === 'online'"
-                  [attr.aria-controls]="'panel-online-' + item.uf"
-                  [attr.tabindex]="abaAtivaDaUf(item) === 'online' ? 0 : -1"
-                  (click)="selecionarAbaUf(item.uf, 'online')"
-                >
-                  Online
-                </button>
-              </div>
-            }
+            <div class="estado-toggle" role="tablist" [attr.aria-label]="'Tipo de reunião em ' + item.nome">
+              <button
+                type="button"
+                role="tab"
+                [id]="'tab-presencial-' + item.uf"
+                class="estado-toggle-btn"
+                [class.estado-toggle-btn--ativa]="abaAtivaDaUf(item) === 'presencial'"
+                [attr.aria-selected]="abaAtivaDaUf(item) === 'presencial'"
+                [attr.aria-controls]="'panel-presencial-' + item.uf"
+                [attr.tabindex]="abaAtivaDaUf(item) === 'presencial' ? 0 : -1"
+                (click)="selecionarAbaUf(item.uf, 'presencial')"
+              >
+                Presencial
+              </button>
+              <button
+                type="button"
+                role="tab"
+                [id]="'tab-online-' + item.uf"
+                class="estado-toggle-btn"
+                [class.estado-toggle-btn--ativa]="abaAtivaDaUf(item) === 'online'"
+                [attr.aria-selected]="abaAtivaDaUf(item) === 'online'"
+                [attr.aria-controls]="'panel-online-' + item.uf"
+                [attr.tabindex]="abaAtivaDaUf(item) === 'online' ? 0 : -1"
+                (click)="selecionarAbaUf(item.uf, 'online')"
+              >
+                Online
+              </button>
+            </div>
           </div>
 
           @if (item.tipo === 'com-grupo' && item.estado.grupos.length > 0 && abaAtivaDaUf(item) === 'presencial') {
@@ -179,7 +177,7 @@
               class="estado-subsecao"
               role="tabpanel"
               [id]="'panel-presencial-' + item.uf"
-              [attr.aria-labelledby]="mostraToggleNoBloco(item) ? 'tab-presencial-' + item.uf : null"
+              [attr.aria-labelledby]="'tab-presencial-' + item.uf"
             >
               <h4 class="estado-subsecao-titulo">
                 <svg class="subsecao-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -210,7 +208,7 @@
             </div>
           }
 
-          @if (item.tipo === 'sem-grupo' && reunioesOnlineDaUf(item.uf).length === 0) {
+          @if (abaAtivaDaUf(item) === 'presencial' && !temPresencialNoBloco(item)) {
             <div class="grupos-grid">
               <div class="grupo-card grupo-card--sem-grupo">
                 <p class="grupo-endereco">
@@ -222,12 +220,25 @@
             </div>
           }
 
+          @if (abaAtivaDaUf(item) === 'online' && !temOnlineNoBloco(item)) {
+            <div class="grupos-grid">
+              <div class="grupo-card grupo-card--sem-online">
+                <p class="grupo-endereco">
+                  Ainda não temos reunião online cadastrada para este estado. Você pode participar
+                  de uma reunião online de outra região — é assim que a irmandade funciona, sem
+                  fronteiras — ou falar com a Linha de Ajuda:
+                  <a [href]="linkWhatsappGrupoInexistente()" target="_blank" rel="noopener">21 99472-1933</a>
+                </p>
+              </div>
+            </div>
+          }
+
           @if (reunioesOnlineDaUf(item.uf).length > 0 && abaAtivaDaUf(item) === 'online') {
             <div
               class="estado-subsecao"
               role="tabpanel"
               [id]="'panel-online-' + item.uf"
-              [attr.aria-labelledby]="mostraToggleNoBloco(item) ? 'tab-online-' + item.uf : null"
+              [attr.aria-labelledby]="'tab-online-' + item.uf"
             >
               <h4 class="estado-subsecao-titulo">
                 <svg class="subsecao-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

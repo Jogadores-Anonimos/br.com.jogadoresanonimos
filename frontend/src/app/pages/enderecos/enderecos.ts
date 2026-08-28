@@ -258,6 +258,7 @@ export class Enderecos implements OnInit, OnDestroy {
     effect(() => {
       this.filtroTextoDebounced();
       this.filtroUf();
+      this.regiaoSelecionada();
       this.atualizarDadosMapa();
     });
   }
@@ -420,17 +421,9 @@ export class Enderecos implements OnInit, OnDestroy {
     return this.reunioesOnlineDaUf(item.uf).length > 0;
   }
 
-  mostraToggleNoBloco(item: EstadoRegiaoItem): boolean {
-    return this.temPresencialNoBloco(item) && this.temOnlineNoBloco(item);
-  }
-
   abaAtivaDaUf(item: EstadoRegiaoItem): AbaEnderecoUf {
     const temPresencial = this.temPresencialNoBloco(item);
     const temOnline = this.temOnlineNoBloco(item);
-
-    if (!this.mostraToggleNoBloco(item)) {
-      return temPresencial ? 'presencial' : 'online';
-    }
 
     const abaSalva = this.abaAtivaPorUf().get(item.uf) ?? 'presencial';
 
@@ -604,23 +597,22 @@ export class Enderecos implements OnInit, OnDestroy {
     );
   }
 
-  private grupoIdsVisiveisAposFiltro(): Set<string> | null {
+  private grupoIdsVisiveisAposFiltro(): Set<string> {
     const textoFiltro = this.filtroTextoDebounced().trim().toLowerCase();
     const ufFiltro = this.filtroUf();
-    if (textoFiltro === '' && ufFiltro === 'todas') {
-      return null;
-    }
+    const regiao = this.regiaoAtual;
 
     const ids = new Set<string>();
-    for (const regiao of this.regioes()) {
-      for (const estado of regiao.estados) {
-        if (ufFiltro !== 'todas' && estado.uf !== ufFiltro) {
-          continue;
-        }
-        for (const grupo of estado.grupos) {
-          if (this.grupoCorrespondeAoFiltro(grupo, textoFiltro)) {
-            ids.add(grupo.id);
-          }
+    if (!regiao) {
+      return ids;
+    }
+    for (const estado of regiao.estados) {
+      if (ufFiltro !== 'todas' && estado.uf !== ufFiltro) {
+        continue;
+      }
+      for (const grupo of estado.grupos) {
+        if (this.grupoCorrespondeAoFiltro(grupo, textoFiltro)) {
+          ids.add(grupo.id);
         }
       }
     }
@@ -630,10 +622,7 @@ export class Enderecos implements OnInit, OnDestroy {
   private reunioesPresenciaisComCoordenadas(): Reuniao[] {
     const idsVisiveis = this.grupoIdsVisiveisAposFiltro();
     return this.reunioes().filter(
-      (r) =>
-        r.categoria === 'presencial' &&
-        !!r.grupoIntergrupoId &&
-        (idsVisiveis === null || idsVisiveis.has(r.grupoIntergrupoId)),
+      (r) => r.categoria === 'presencial' && !!r.grupoIntergrupoId && idsVisiveis.has(r.grupoIntergrupoId),
     );
   }
 
