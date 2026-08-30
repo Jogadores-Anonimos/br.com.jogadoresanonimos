@@ -34,6 +34,8 @@ import {
 import { ReuniaoService } from '../../services/reuniao/reuniao';
 import { compararHorarios } from '../../services/reuniao/reuniao-horario';
 import { AgendaItemReuniao, DiaSemanaAgendaReuniao, Reuniao } from '../../services/reuniao/reuniao.model';
+import { ReuniaoOnlineService } from '../../services/reuniao-online/reuniao-online';
+import { ReuniaoOnline } from '../../services/reuniao-online/reuniao-online.model';
 import { WHATSAPP_PHONE_NUMBER, montarLinkWhatsapp } from '../../config/whatsapp.config';
 import { configurarMapLibreWorker } from '../../config/maplibre-worker.config';
 
@@ -53,12 +55,18 @@ interface EstadoRegiaoItemSemGrupo {
 
 type EstadoRegiaoItem = EstadoRegiaoItemComGrupo | EstadoRegiaoItemSemGrupo;
 
-type AbaEnderecoUf = 'presencial' | 'online';
+type ModoExibicaoEnderecos = 'presencial' | 'online';
 
 type DiaSemanaCurto = 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo';
 
 interface AgendaDiaAgrupada {
   diaSemana: DiaSemanaAgendaReuniao;
+  horarios: string[];
+}
+
+interface GrupoReuniaoOnlinePorDia {
+  diaSemana: DiaSemanaAgendaReuniao;
+  reuniao: ReuniaoOnline;
   horarios: string[];
 }
 
@@ -205,11 +213,13 @@ export class Enderecos implements OnInit, OnDestroy {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly escritorioRegionalService = inject(EscritorioRegionalService);
   private readonly reuniaoService = inject(ReuniaoService);
+  private readonly reuniaoOnlineService = inject(ReuniaoOnlineService);
   private readonly activatedRoute = inject(ActivatedRoute);
 
   readonly regioes = signal<RegiaoIntergrupo[]>([]);
   readonly ufsFaltantesPorRegiao = signal<Map<string, UnidadeFederativaComRegiao[]>>(new Map());
   readonly reunioes = signal<Reuniao[]>([]);
+  readonly reunioesOnline = signal<ReuniaoOnline[]>([]);
   readonly carregando = signal(true);
   readonly erro = signal(false);
 
@@ -222,11 +232,11 @@ export class Enderecos implements OnInit, OnDestroy {
 
   readonly regiaoSelecionada = signal<string | null>(null);
 
-  private readonly abaAtivaPorUf = signal<Map<string, AbaEnderecoUf>>(new Map());
-  private abaEnderecoUfPadrao: AbaEnderecoUf = 'presencial';
+  readonly modoExibicao = signal<ModoExibicaoEnderecos>('presencial');
 
   reuniaoDetalhe: Reuniao | null = null;
   grupoDetalhe: GrupoIntergrupo | null = null;
+  reuniaoOnlineDetalhe: ReuniaoOnline | null = null;
 
   private readonly userCoords = signal<{ latitude: number; longitude: number } | null>(null);
   localizacaoPermitida = signal(false);
@@ -267,14 +277,15 @@ export class Enderecos implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     if (this.activatedRoute.snapshot.queryParamMap.get('tipo') === 'online') {
-      this.abaEnderecoUfPadrao = 'online';
+      this.modoExibicao.set('online');
     }
     forkJoin({
       estrutura: this.escritorioRegionalService.listarEstrutura(),
       unidadesFederativas: this.escritorioRegionalService.listarUnidadesFederativas(),
       reunioes: this.reuniaoService.listarReunioes(),
+      reunioesOnline: this.reuniaoOnlineService.listarReunioesOnline(),
     }).subscribe({
-      next: ({ estrutura, unidadesFederativas, reunioes }) => {
+      next: ({ estrutura, unidadesFederativas, reunioes, reunioesOnline }) => {
         this.carregando.set(false);
         if (estrutura.success && estrutura.data) {
           const regioesOrdenadas = [...estrutura.data.regioes].sort(
@@ -294,12 +305,20 @@ export class Enderecos implements OnInit, OnDestroy {
         if (reunioes.success && reunioes.data) {
           this.reunioes.set(reunioes.data);
         }
+
+        if (reunioesOnline.success && reunioesOnline.data) {
+          this.reunioesOnline.set(reunioesOnline.data);
+        }
       },
       error: () => {
         this.carregando.set(false);
         this.erro.set(true);
       },
     });
+  }
+
+  selecionarModoExibicao(modo: ModoExibicaoEnderecos): void {
+    this.modoExibicao.set(modo);
   }
 
   ngOnDestroy(): void {
@@ -349,17 +368,6 @@ export class Enderecos implements OnInit, OnDestroy {
     );
   }
 
-  private reuniaoOnlineCorrespondeAoFiltro(reuniao: Reuniao, texto: string): boolean {
-    if (texto === '') {
-      return true;
-    }
-    return (
-      reuniao.nome.toLowerCase().includes(texto) ||
-      reuniao.local.toLowerCase().includes(texto) ||
-      reuniao.descricao.toLowerCase().includes(texto)
-    );
-  }
-
   readonly estadosRegiaoAtual = computed<EstadoRegiaoItem[]>(() => {
     const regiao = this.regiaoAtual;
     if (!regiao) {
@@ -380,15 +388,11 @@ export class Enderecos implements OnInit, OnDestroy {
           grupos: estado.grupos.filter((grupo) => this.grupoCorrespondeAoFiltro(grupo, textoFiltro)),
         },
       }))
-      .filter((item) => {
-        const temGrupo = item.estado.grupos.length > 0;
-        const temOnline = this.reunioesOnlineDaUf(item.uf).length > 0;
-        return textoFiltro === '' || temGrupo || temOnline;
-      });
+      .filter((item) => textoFiltro === '' || item.estado.grupos.length > 0);
 
     const semGrupo: EstadoRegiaoItem[] = (this.ufsFaltantesPorRegiao().get(regiao.codigo) ?? [])
       .filter((unidade) => ufFiltro === 'todas' || unidade.uf === ufFiltro)
-      .filter((unidade) => textoFiltro === '' || this.reunioesOnlineDaUf(unidade.uf).length > 0)
+      .filter((unidade) => textoFiltro === '')
       .map((unidade) => ({
         tipo: 'sem-grupo' as const,
         nome: unidade.nome,
@@ -422,37 +426,21 @@ export class Enderecos implements OnInit, OnDestroy {
     return item.tipo === 'com-grupo' && item.estado.grupos.length > 0;
   }
 
-  temOnlineNoBloco(item: EstadoRegiaoItem): boolean {
-    return this.reunioesOnlineDaUf(item.uf).length > 0;
-  }
-
-  abaAtivaDaUf(item: EstadoRegiaoItem): AbaEnderecoUf {
-    const escolhaExplicita = this.abaAtivaPorUf().get(item.uf);
-    if (escolhaExplicita) {
-      return escolhaExplicita;
-    }
-    const temPresencial = this.temPresencialNoBloco(item);
-    const temOnline = this.temOnlineNoBloco(item);
-    if (this.abaEnderecoUfPadrao === 'online') {
-      return temOnline || !temPresencial ? 'online' : 'presencial';
-    }
-    return temPresencial || !temOnline ? 'presencial' : 'online';
-  }
-
-  selecionarAbaUf(uf: string, aba: AbaEnderecoUf): void {
-    this.abaAtivaPorUf.update((mapa) => {
-      const novoMapa = new Map(mapa);
-      novoMapa.set(uf, aba);
-      return novoMapa;
-    });
-  }
-
-  reunioesOnlineDaUf(uf: string): Reuniao[] {
-    const textoFiltro = this.filtroTextoDebounced().trim().toLowerCase();
-    return this.reunioes().filter(
-      (r) => r.categoria === 'virtual' && r.estado === uf && this.reuniaoOnlineCorrespondeAoFiltro(r, textoFiltro),
-    );
-  }
+  readonly reunioesOnlinePorDia = computed<{ diaSemana: DiaSemanaAgendaReuniao; rotulo: DiaSemanaCurto; grupos: GrupoReuniaoOnlinePorDia[] }[]>(() => {
+    const reunioesOnline = this.reunioesOnline();
+    return DIAS_AGENDA.map(({ diaSemana, rotulo }) => {
+      const grupos: GrupoReuniaoOnlinePorDia[] = reunioesOnline
+        .filter((reuniao) => reuniao.agenda.some((item) => item.diaSemana === diaSemana))
+        .map((reuniao) => ({
+          diaSemana,
+          reuniao,
+          horarios: [...new Set(
+            reuniao.agenda.filter((item) => item.diaSemana === diaSemana).map((item) => item.horario),
+          )].sort(compararHorarios),
+        }));
+      return { diaSemana, rotulo, grupos };
+    }).filter((dia) => dia.grupos.length > 0);
+  });
 
   linkWhatsappGrupoInexistente(): string {
     return montarLinkWhatsapp(WHATSAPP_PHONE_NUMBER, 'Olá! Gostaria de saber sobre grupos na minha região.');
@@ -510,6 +498,15 @@ export class Enderecos implements OnInit, OnDestroy {
     return ROTULO_DIA[item.diaSemana];
   }
 
+  agendaAgrupadaDaReuniaoOnline(reuniao: ReuniaoOnline): AgendaDiaAgrupada[] {
+    return DIAS_AGENDA.flatMap(({ diaSemana }) => {
+      const horarios = [...new Set(
+        reuniao.agenda.filter((item) => item.diaSemana === diaSemana).map((item) => item.horario),
+      )].sort(compararHorarios);
+      return horarios.length ? [{ diaSemana, horarios }] : [];
+    });
+  }
+
   whatsappLink(reuniao: Reuniao): string {
     return montarLinkWhatsapp(reuniao.whatsapp || WHATSAPP_PHONE_NUMBER);
   }
@@ -517,6 +514,10 @@ export class Enderecos implements OnInit, OnDestroy {
   whatsappLinkGrupo(grupo: GrupoIntergrupo): string {
     const telefoneGrupo = grupo.telefones[0]?.telefone;
     return montarLinkWhatsapp(telefoneGrupo || WHATSAPP_PHONE_NUMBER);
+  }
+
+  whatsappLinkReuniaoOnline(reuniao: ReuniaoOnline): string {
+    return montarLinkWhatsapp(reuniao.telefone || WHATSAPP_PHONE_NUMBER);
   }
 
   enderecoCompletoGrupo(grupo: GrupoIntergrupo): string {
@@ -531,9 +532,14 @@ export class Enderecos implements OnInit, OnDestroy {
     this.grupoDetalhe = grupo;
   }
 
+  abrirDetalhesReuniaoOnline(reuniao: ReuniaoOnline): void {
+    this.reuniaoOnlineDetalhe = reuniao;
+  }
+
   fecharDetalhes(): void {
     this.reuniaoDetalhe = null;
     this.grupoDetalhe = null;
+    this.reuniaoOnlineDetalhe = null;
   }
 
   fecharDetalhesSeCliqueForaDoPainel(evento: MouseEvent): void {
@@ -544,7 +550,7 @@ export class Enderecos implements OnInit, OnDestroy {
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    if (this.reuniaoDetalhe || this.grupoDetalhe) {
+    if (this.reuniaoDetalhe || this.grupoDetalhe || this.reuniaoOnlineDetalhe) {
       this.fecharDetalhes();
     }
   }
