@@ -1,5 +1,16 @@
 # Contrato de API — Módulo Reunião Online
 
+> **Nota de 2026-08-31**: uma proposta anterior, dentro desta mesma
+> sessão de trabalho, chegou a cogitar reverter `ReuniaoOnline` de volta
+> para `Reuniao` com `categoria=virtual`. Essa proposta **não foi
+> implementada** e foi descartada — a direção final confirmada é a
+> oposta: `ReuniaoOnline` continua sendo a entidade viva para reunião
+> virtual, e registros legados de `Reuniao.categoria='virtual'` (órfãos,
+> de antes desta entidade existir) são migrados **para**
+> `reuniao_online`, não o contrário. Ver seção "Migration — `V17`
+> (migração de órfãos)" abaixo. Ignorar qualquer menção a uma
+> "Reversão — 2026-08-31" que ainda apareça em `contrato-reunioes.md`.
+
 ## Decisão de modelagem — entidade nova `ReuniaoOnline`, não `categoria='virtual'` em `Reuniao`
 
 Decisão de negócio do cliente. Reunião online passou a ser organizada
@@ -23,8 +34,9 @@ com `GrupoIntergrupo` por região). Modelar como entidade separada evita:
 ## Modelo de dados
 
 Tabela `reuniao_online`: `nome` (nome do grupo, texto obrigatório),
-`telefone` (WhatsApp de contato, mesmo formato/validação de
-`Reuniao.whatsapp`), `criado_em`, `atualizado_em`.
+`telefone` (WhatsApp de contato — desde 2026-08-31, sempre a constante
+institucional fixa, ver seção abaixo), `descricao` (opcional, desde
+`V17`), `criado_em`, `atualizado_em`.
 
 Tabela `reuniao_online_horario`: um item por horário de cada grupo, com
 `reuniao_online_id` (`ON DELETE CASCADE`), `dia_semana` canônico
@@ -34,8 +46,61 @@ horario)` — mesmo padrão de `reuniao_horario`/`AgendaItemReuniao`,
 permitindo múltiplos horários no mesmo dia, mas não repetir a
 combinação exata.
 
-Sem: `descricao`, `email`, endereço, `latitude`/`longitude`, UF, link
-de reunião — confirmado com o cliente como fora do modelo.
+Sem: `email`, endereço, `latitude`/`longitude`, UF, link de reunião —
+confirmado com o cliente como fora do modelo.
+
+### Telefone institucional fixo (2026-08-31)
+
+Toda `ReuniaoOnline` exibe o mesmo telefone institucional fixo:
+**21 99472-1933**, configurável via
+`@Value("${reuniao.telefone-institucional-online:21 99472-1933}")` em
+`ReuniaoOnlineService` (não é segredo, default já cobre produção — a
+env só existe para trocar sem novo deploy). `ReuniaoOnlineService`
+ignora qualquer `telefone` recebido em `CriarReuniaoOnlineRequest`/
+`EditarReuniaoOnlineRequest` — o campo continua presente no DTO de
+request só para não quebrar payload de cliente legado que ainda o
+envie, mas o valor nunca é persistido; `ReuniaoOnlineResponse.telefone`
+sempre reflete a constante.
+
+### Migration — `V17__migra_reuniao_virtual_orfa_para_reuniao_online.sql` (migração de órfãos)
+
+**Contexto**: registros legados em `reuniao` com `categoria='virtual'`
+criados antes da entidade `ReuniaoOnline` existir (`V15`) ficaram
+órfãos — sem tela de edição no CMS (o admin de `reuniao` foi adaptado
+para reunião presencial) e sem aparecer na página pública (que lê só
+`ReuniaoOnline` para conteúdo virtual). Decisão confirmada: migrar
+automaticamente, não descartar nem exigir recadastro manual.
+
+O que a migration faz, em ordem:
+1. `ALTER TABLE reuniao_online ADD COLUMN descricao VARCHAR(2000)` —
+   coluna nova, nullable, padrão *expand*.
+2. Insere em `reuniao_online` uma linha por linha de `reuniao` com
+   `categoria='virtual'`, preservando o mesmo `id` (evita quebrar
+   referência externa a essa reunião, se existir), copiando `nome` e
+   `descricao` (`NULLIF(descricao, '')`, já que `reuniao.descricao` é
+   `NOT NULL` e pode conter string vazia — vira `NULL` em
+   `reuniao_online.descricao`, coluna opcional). `telefone` grava
+   sempre a constante institucional fixa (`21 99472-1933`) — **não**
+   copia `reuniao.whatsapp` do registro de origem, mesmo que
+   preenchido, pela mesma regra de negócio nova (reunião online não
+   tem telefone editável por registro).
+3. Insere em `reuniao_online_horario` uma linha por linha de
+   `reuniao_horario` das reuniões migradas — mesmo formato livre de
+   `dia_semana`/`horario`, sem conversão (as duas tabelas usam o mesmo
+   texto livre `VARCHAR(50)` para `horario`, sem `CHECK` de formato).
+4. `DELETE` dessas linhas em `reuniao_horario` e em `reuniao`, para não
+   ficarem duplicadas/mortas nas duas tabelas.
+
+**Sem dado real a migrar no momento em que este arquivo foi escrito**:
+conferido `V2__baseline_conteudo.sql` (seed) e não existe nenhum
+`INSERT INTO reuniao` com `categoria='virtual'` — a migration é
+salvaguarda para dado legado que possa existir em produção (fora do
+que está versionado no repositório), não para um caso conhecido hoje.
+Roda de forma segura com zero linhas afetadas.
+
+Reservada como `V17`, sequência imediata após
+`V16__seed_grupo_salvador_reuniao_online.sql` (última migration
+existente no momento em que este arquivo foi escrito).
 
 Sem paginação — mesmo raciocínio de baixo volume institucional do
 módulo `reuniao`. Toda listagem devolve o array completo, ordenado por
@@ -66,7 +131,8 @@ Convenções gerais (mesmas do restante do projeto):
     {
       "id": "uuid",
       "nome": "Grupo Online Quinta",
-      "telefone": "5511994721933",
+      "telefone": "21 99472-1933",
+      "descricao": "string ou null",
       "agenda": [
         { "diaSemana": "QUINTA", "horario": "20h00" },
         { "diaSemana": "SABADO", "horario": "10h00" }
@@ -108,7 +174,8 @@ Convenções gerais (mesmas do restante do projeto):
 ```json
 {
   "nome": "string, 1-200 chars",
-  "telefone": "string, até 20 chars, opcional — mesmo padrão @Pattern de Reuniao.whatsapp",
+  "telefone": "ignorado pelo backend — ver seção 'Telefone institucional fixo' acima, campo mantido no DTO só por compatibilidade de payload legado",
+  "descricao": "string, até 2000 chars, opcional",
   "agenda": [
     { "diaSemana": "QUINTA", "horario": "20h00" },
     { "diaSemana": "SABADO", "horario": "10h00" }
@@ -124,21 +191,20 @@ até 50 caracteres. Não permite repetir a mesma combinação `diaSemana` +
 dia por hora/minuto inicial reconhecida (mesmo
 `AgendaItemReuniaoComparator` reaproveitado de `reuniao`).
 
-`telefone`: mesma regex de `Reuniao.whatsapp`
-(`^$|^(\+?55)?\s?\(?\d{2}\)?[\s-]?\d{4,5}[\s-]?\d{4}$`). Diferente de
-`Reuniao.whatsapp`, **não há telefone padrão institucional aplicado
-quando ausente** — reunião online é organizada por grupo próprio, sem
-fallback para o número da associação; campo fica `null` quando não
-informado. Essa é uma divergência deliberada do padrão herdado de
-`Reuniao` (que aplica `"11 99571-6942"` como default), porque aqui o
-contato é sempre do grupo, nunca da associação.
+`telefone`: desde 2026-08-31, sempre a constante institucional fixa
+(`21 99472-1933`) — ver seção "Telefone institucional fixo" acima.
+Qualquer valor enviado neste campo é silenciosamente ignorado.
+
+`descricao`: texto livre opcional, sem regra de obrigatoriedade (não há
+distinção de categoria como em `Reuniao` — toda `ReuniaoOnline` é
+virtual por definição).
 
 **Response 201**: `ReuniaoOnlineResponse` criado.
 
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
-| 400 | `VALIDATION_ERROR` | `nome` ausente/fora do tamanho; `agenda` vazia/ausente/duplicada/além do limite; `telefone` fora do formato de telefone BR |
+| 400 | `VALIDATION_ERROR` | `nome` ausente/fora do tamanho; `agenda` vazia/ausente/duplicada/além do limite; `descricao` além do tamanho |
 | 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
 
 ---
@@ -216,6 +282,10 @@ existente no momento desta tarefa).
 Sem índice adicional além da PK/FK/UNIQUE — mesmo raciocínio de volume
 baixo institucional do restante do módulo `reuniao`.
 
+`telefone`/`descricao` acima refletem o schema original de `V15`; a
+coluna `descricao` só existe a partir de `V17` (ver seção "Migration —
+`V17`" acima).
+
 ## Implementação (backend)
 
 - Pacote `br.com.jogadoresanonimos.reuniao`, mesmo módulo de `Reuniao`
@@ -242,9 +312,13 @@ baixo institucional do restante do módulo `reuniao`.
 
 ## Pendências explícitas para outros agentes
 
-- `frontend-services`: novo service Angular consumindo os endpoints
-  acima. Model `ReuniaoOnline { id, nome, telefone, agenda: { diaSemana,
-  horario }[], atualizadoEm }`.
+- `frontend-services`: service Angular consumindo os endpoints acima.
+  Model `ReuniaoOnline { id, nome, telefone, descricao, agenda: {
+  diaSemana, horario }[], atualizadoEm }` — `descricao` (`string | null`)
+  e `telefone` sempre igual à constante institucional (não editável
+  pelo formulário, campo pode até ser removido do form de admin já que
+  o backend ignora qualquer valor enviado) são os campos novos desde
+  2026-08-31.
 - `frontend`/`ux-ui`: decidir onde a lista de reuniões online aparece
   na página pública (hoje reunião virtual aparece misturada em
   `reunioes.ts` via `categoria=virtual`) — fora do escopo desta

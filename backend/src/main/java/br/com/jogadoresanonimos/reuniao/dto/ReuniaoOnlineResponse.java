@@ -7,7 +7,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-public record ReuniaoOnlineResponse(UUID id, String nome, String telefone,
+public record ReuniaoOnlineResponse(UUID id, String nome, String telefone, String descricao,
                                      List<ReuniaoOnlineAgendaItemResponse> agenda, Instant atualizadoEm) {
 
     public static ReuniaoOnlineResponse from(ReuniaoOnline reuniaoOnline) {
@@ -16,6 +16,6 @@ public record ReuniaoOnlineResponse(UUID id, String nome, String telefone,
                 .map(ReuniaoOnlineAgendaItemResponse::from)
                 .toList();
         return new ReuniaoOnlineResponse(reuniaoOnline.getId(), reuniaoOnline.getNome(),
-                reuniaoOnline.getTelefone(), agenda, reuniaoOnline.getAtualizadoEm());
+                reuniaoOnline.getTelefone(), reuniaoOnline.getDescricao(), agenda, reuniaoOnline.getAtualizadoEm());
     }
 }

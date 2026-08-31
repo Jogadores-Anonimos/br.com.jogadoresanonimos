@@ -75,14 +75,6 @@ export const routes: Routes = [
         data: { titulo: 'Endereços' },
       },
       {
-        path: 'reunioes-online',
-        loadComponent: () =>
-          import('./pages/admin/admin-reunioes-online/admin-reunioes-online').then(
-            (m) => m.AdminReunioesOnline,
-          ),
-        data: { titulo: 'Reuniões Online' },
-      },
-      {
         path: 'escritorios',
         loadComponent: () =>
           import('./pages/admin/admin-escritorios-regionais/admin-escritorios-regionais').then(

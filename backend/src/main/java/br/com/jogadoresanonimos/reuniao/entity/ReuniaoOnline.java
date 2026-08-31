@@ -29,6 +29,9 @@ public class ReuniaoOnline {
     @Column(length = 20)
     private String telefone;
 
+    @Column(length = 2000)
+    private String descricao;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "reuniao_online_horario", joinColumns = @JoinColumn(name = "reuniao_online_id"))
     private List<AgendaItemReuniaoOnline> agenda = new ArrayList<>();
@@ -42,17 +45,19 @@ public class ReuniaoOnline {
     protected ReuniaoOnline() {
     }
 
-    public ReuniaoOnline(String nome, String telefone, List<AgendaItemReuniaoOnline> agenda) {
+    public ReuniaoOnline(String nome, String telefone, String descricao, List<AgendaItemReuniaoOnline> agenda) {
         this.nome = nome;
         this.telefone = telefone;
+        this.descricao = descricao;
         this.agenda = new ArrayList<>(agenda);
         this.criadoEm = Instant.now();
         this.atualizadoEm = Instant.now();
     }
 
-    public void editar(String nome, String telefone, List<AgendaItemReuniaoOnline> agenda) {
+    public void editar(String nome, String telefone, String descricao, List<AgendaItemReuniaoOnline> agenda) {
         this.nome = nome;
         this.telefone = telefone;
+        this.descricao = descricao;
         this.agenda.clear();
         this.agenda.addAll(agenda);
         this.atualizadoEm = Instant.now();
@@ -68,6 +73,10 @@ public class ReuniaoOnline {
 
     public String getTelefone() {
         return telefone;
+    }
+
+    public String getDescricao() {
+        return descricao;
     }
 
     public List<AgendaItemReuniaoOnline> getAgenda() {

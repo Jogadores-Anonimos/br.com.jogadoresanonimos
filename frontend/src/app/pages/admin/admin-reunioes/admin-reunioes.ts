@@ -15,9 +15,30 @@ import {
   DiaSemanaAgendaReuniao,
   Reuniao,
 } from '../../../services/reuniao/reuniao.model';
+import { ReuniaoOnlineService } from '../../../services/reuniao-online/reuniao-online';
+import { CriarReuniaoOnlineRequest, ReuniaoOnline } from '../../../services/reuniao-online/reuniao-online.model';
 import { configurarMapLibreWorker } from '../../../config/maplibre-worker.config';
+import { WHATSAPP_PHONE_NUMBER } from '../../../config/whatsapp.config';
 
 const CODIGO_AVISO_ENDERECO_LOCAL_DIVERGENTE = 'ENDERECO_LOCAL_DIVERGENTE';
+
+type OrigemReuniao = 'presencial' | 'virtual';
+
+interface ReuniaoListaItem {
+  origem: OrigemReuniao;
+  id: string;
+  nome: string;
+  descricao: string;
+  local: string;
+  resumoAgenda: string;
+  agendaOrdenacao: Array<{ diaSemana: DiaSemanaAgendaReuniao; horarios: string[] }>;
+  cep: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  estado: string | null;
+  reuniao?: Reuniao;
+  reuniaoOnline?: ReuniaoOnline;
+}
 
 interface FormularioReuniao {
   nome: string;
@@ -157,6 +178,14 @@ function corPadraoJa(): string {
   return getComputedStyle(document.documentElement).getPropertyValue('--cor-padrao-ja').trim();
 }
 
+function formatarWhatsapp(numeroCru: string): string {
+  const digitos = numeroCru.replace(/\D/g, '').replace(/^55/, '');
+  const ddd = digitos.slice(0, 2);
+  const restante = digitos.slice(2);
+  const parteFinal = restante.length > 4 ? `${restante.slice(0, -4)}-${restante.slice(-4)}` : restante;
+  return `(${ddd}) ${parteFinal}`;
+}
+
 @Component({
   selector: 'app-admin-reunioes',
   standalone: true,
@@ -166,15 +195,18 @@ function corPadraoJa(): string {
 })
 export class AdminReunioes implements OnInit {
   private readonly reuniaoService = inject(ReuniaoService);
+  private readonly reuniaoOnlineService = inject(ReuniaoOnlineService);
   private readonly enderecoLookupService = inject(EnderecoLookupService);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   readonly diasSemanaFiltro = DIAS_SEMANA;
   readonly ufsBrasil = UFS_BRASIL;
+  readonly whatsappInstitucionalFormatado = formatarWhatsapp(WHATSAPP_PHONE_NUMBER);
 
   carregando = true;
   erroCarregamento = '';
-  readonly reunioes = signal<Reuniao[]>([]);
+  private readonly reunioes = signal<Reuniao[]>([]);
+  private readonly reunioesOnline = signal<ReuniaoOnline[]>([]);
   conflitoVersao = false;
   avisoGeocodificacao = '';
 
@@ -186,25 +218,30 @@ export class AdminReunioes implements OnInit {
     () => this.filtroTexto().trim() !== '' || this.filtroCategoria() !== '' || this.filtroDiaSemana() !== '',
   );
 
-  readonly reunioesFiltradas = computed(() => {
+  readonly itensLista = computed<ReuniaoListaItem[]>(() => {
+    const presenciais = this.reunioes().map((reuniao) => this.reuniaoParaItemLista(reuniao));
+    const virtuais = this.reunioesOnline().map((reuniaoOnline) => this.reuniaoOnlineParaItemLista(reuniaoOnline));
+    return [...presenciais, ...virtuais].sort((a, b) => a.nome.localeCompare(b.nome));
+  });
+
+  readonly itensFiltrados = computed(() => {
     const texto = this.filtroTexto().trim().toLowerCase();
     const digitosTexto = texto.replace(/\D/g, '');
     const categoria = this.filtroCategoria();
     const diaSemana = this.filtroDiaSemana();
 
-    return this.reunioes().filter((reuniao) => {
+    return this.itensLista().filter((item) => {
       const combinaTexto =
         texto === '' ||
-        reuniao.nome.toLowerCase().includes(texto) ||
-        reuniao.local.toLowerCase().includes(texto) ||
-        (reuniao.logradouro ?? '').toLowerCase().includes(texto) ||
-        (reuniao.bairro ?? '').toLowerCase().includes(texto) ||
-        (reuniao.cidade ?? '').toLowerCase().includes(texto) ||
-        (reuniao.estado ?? '').toLowerCase().includes(texto) ||
-        (digitosTexto !== '' && (reuniao.cep ?? '').replace(/\D/g, '').includes(digitosTexto));
-      const combinaCategoria = categoria === '' || reuniao.categoria === categoria;
+        item.nome.toLowerCase().includes(texto) ||
+        item.local.toLowerCase().includes(texto) ||
+        (item.bairro ?? '').toLowerCase().includes(texto) ||
+        (item.cidade ?? '').toLowerCase().includes(texto) ||
+        (item.estado ?? '').toLowerCase().includes(texto) ||
+        (digitosTexto !== '' && (item.cep ?? '').replace(/\D/g, '').includes(digitosTexto));
+      const combinaCategoria = categoria === '' || item.origem === categoria;
       const combinaDiaSemana =
-        diaSemana === '' || this.agendaDaReuniao(reuniao).some((item) => ROTULO_DIA[item.diaSemana] === diaSemana);
+        diaSemana === '' || item.agendaOrdenacao.some((agendaItem) => ROTULO_DIA[agendaItem.diaSemana] === diaSemana);
       return combinaTexto && combinaCategoria && combinaDiaSemana;
     });
   });
@@ -217,6 +254,7 @@ export class AdminReunioes implements OnInit {
 
   modo: 'lista' | 'formulario' = 'lista';
   reuniaoEmEdicao: Reuniao | null = null;
+  reuniaoOnlineEmEdicao: ReuniaoOnline | null = null;
   formulario: FormularioReuniao = formularioVazio();
   salvando = false;
   erroFormulario = '';
@@ -269,16 +307,72 @@ export class AdminReunioes implements OnInit {
     this.carregando = true;
     this.erroCarregamento = '';
 
-    this.reuniaoService.listarReunioesAdmin().subscribe((envelope) => {
-      this.carregando = false;
+    let presenciaisCarregadas = false;
+    let virtuaisCarregadas = false;
+    let erro = '';
 
+    const finalizarSeCompleto = () => {
+      if (presenciaisCarregadas && virtuaisCarregadas) {
+        this.carregando = false;
+        this.erroCarregamento = erro;
+      }
+    };
+
+    this.reuniaoService.listarReunioesAdmin().subscribe((envelope) => {
+      presenciaisCarregadas = true;
       if (envelope.success && envelope.data) {
         this.reunioes.set(envelope.data);
       } else {
         this.reunioes.set([]);
-        this.erroCarregamento = envelope.error?.message ?? 'Não foi possível carregar as reuniões.';
+        erro = envelope.error?.message ?? 'Não foi possível carregar as reuniões.';
       }
+      finalizarSeCompleto();
     });
+
+    this.reuniaoOnlineService.listarReunioesOnlineAdmin().subscribe((envelope) => {
+      virtuaisCarregadas = true;
+      if (envelope.success && envelope.data) {
+        this.reunioesOnline.set(envelope.data);
+      } else {
+        this.reunioesOnline.set([]);
+        erro = erro || envelope.error?.message || 'Não foi possível carregar as reuniões online.';
+      }
+      finalizarSeCompleto();
+    });
+  }
+
+  private reuniaoParaItemLista(reuniao: Reuniao): ReuniaoListaItem {
+    return {
+      origem: 'presencial',
+      id: reuniao.id,
+      nome: reuniao.nome,
+      descricao: reuniao.descricao,
+      local: reuniao.local,
+      resumoAgenda: this.resumoAgendaDeItens(this.agendaAgrupada(this.agendaDaReuniao(reuniao))),
+      agendaOrdenacao: this.agendaAgrupada(this.agendaDaReuniao(reuniao)),
+      cep: reuniao.cep,
+      bairro: reuniao.bairro,
+      cidade: reuniao.cidade,
+      estado: reuniao.estado,
+      reuniao,
+    };
+  }
+
+  private reuniaoOnlineParaItemLista(reuniaoOnline: ReuniaoOnline): ReuniaoListaItem {
+    return {
+      origem: 'virtual',
+      id: reuniaoOnline.id,
+      nome: reuniaoOnline.nome,
+      descricao: reuniaoOnline.descricao ?? '',
+      local: '',
+      resumoAgenda: this.resumoAgendaDeItens(this.agendaAgrupada(reuniaoOnline.agenda)),
+      agendaOrdenacao: this.agendaAgrupada(reuniaoOnline.agenda),
+      cep: null,
+      bairro: null,
+      cidade: null,
+      estado: null,
+      reuniaoOnline,
+    };
   }
 
   preencherGeolocalizacao(): void {
@@ -307,6 +401,7 @@ export class AdminReunioes implements OnInit {
 
   abrirNovo(): void {
     this.reuniaoEmEdicao = null;
+    this.reuniaoOnlineEmEdicao = null;
     this.formulario = formularioVazio();
     this.erroCep = '';
     this.erroFormulario = '';
@@ -318,27 +413,41 @@ export class AdminReunioes implements OnInit {
     this.focarFormulario();
   }
 
-  abrirEdicao(reuniao: Reuniao): void {
-    if (reuniao.categoria !== 'presencial') {
+  abrirEdicao(item: ReuniaoListaItem): void {
+    if (item.origem === 'presencial' && item.reuniao) {
+      const reuniao = item.reuniao;
+      this.reuniaoEmEdicao = reuniao;
+      this.reuniaoOnlineEmEdicao = null;
+      this.formulario = {
+        nome: reuniao.nome,
+        categoria: 'presencial',
+        descricao: reuniao.descricao,
+        agenda: this.agendaParaFormulario(this.agendaDaReuniao(reuniao)),
+        local: reuniao.local,
+        whatsapp: reuniao.whatsapp ?? '',
+        latitude: reuniao.latitude !== null ? String(reuniao.latitude) : '',
+        longitude: reuniao.longitude !== null ? String(reuniao.longitude) : '',
+        cep: reuniao.cep ?? '',
+        numero: reuniao.numero ?? '',
+        logradouro: reuniao.logradouro ?? '',
+        bairro: reuniao.bairro ?? '',
+        cidade: reuniao.cidade ?? '',
+        estado: reuniao.estado ?? '',
+      };
+    } else if (item.origem === 'virtual' && item.reuniaoOnline) {
+      const reuniaoOnline = item.reuniaoOnline;
+      this.reuniaoOnlineEmEdicao = reuniaoOnline;
+      this.reuniaoEmEdicao = null;
+      this.formulario = {
+        ...formularioVazio(),
+        nome: reuniaoOnline.nome,
+        categoria: 'virtual',
+        descricao: reuniaoOnline.descricao ?? '',
+        agenda: this.agendaParaFormulario(reuniaoOnline.agenda),
+      };
+    } else {
       return;
     }
-    this.reuniaoEmEdicao = reuniao;
-    this.formulario = {
-      nome: reuniao.nome,
-      categoria: 'presencial',
-      descricao: reuniao.descricao,
-      agenda: this.agendaParaFormulario(reuniao),
-      local: reuniao.local,
-      whatsapp: reuniao.whatsapp ?? '',
-      latitude: reuniao.latitude !== null ? String(reuniao.latitude) : '',
-      longitude: reuniao.longitude !== null ? String(reuniao.longitude) : '',
-      cep: reuniao.cep ?? '',
-      numero: reuniao.numero ?? '',
-      logradouro: reuniao.logradouro ?? '',
-      bairro: reuniao.bairro ?? '',
-      cidade: reuniao.cidade ?? '',
-      estado: reuniao.estado ?? '',
-    };
     this.erroCep = '';
     this.erroFormulario = '';
     this.errosCampo = {};
@@ -347,6 +456,18 @@ export class AdminReunioes implements OnInit {
     this.avisoGeocodificacao = '';
     this.modo = 'formulario';
     this.focarFormulario();
+  }
+
+  alternarCategoriaFormulario(categoria: CategoriaReuniao): void {
+    if (this.reuniaoEmEdicao || this.reuniaoOnlineEmEdicao) {
+      return;
+    }
+    this.formulario = { ...formularioVazio(), categoria };
+    this.erroCep = '';
+    this.erroFormulario = '';
+    this.errosCampo = {};
+    this.avisoEnderecoLocalDivergente = false;
+    this.avisoGeocodificacao = '';
   }
 
   private focarFormulario(): void {
@@ -364,6 +485,7 @@ export class AdminReunioes implements OnInit {
   cancelar(): void {
     this.modo = 'lista';
     this.reuniaoEmEdicao = null;
+    this.reuniaoOnlineEmEdicao = null;
     this.erroFormulario = '';
     this.errosCampo = {};
     this.avisoEnderecoLocalDivergente = false;
@@ -467,10 +589,8 @@ export class AdminReunioes implements OnInit {
     delete this.errosCampo[`agenda.${item.diaSemana}`];
   }
 
-  resumoAgenda(reuniao: Reuniao): string {
-    return this.agendaAgrupadaDaReuniao(reuniao)
-      .map((item) => `${ROTULO_DIA[item.diaSemana]} ${item.horarios.join(', ')}`)
-      .join(' · ');
+  private resumoAgendaDeItens(agendaAgrupada: Array<{ diaSemana: DiaSemanaAgendaReuniao; horarios: string[] }>): string {
+    return agendaAgrupada.map((item) => `${ROTULO_DIA[item.diaSemana]} ${item.horarios.join(', ')}`).join(' · ');
   }
 
   atualizarMapaPreview(): void {
@@ -529,6 +649,7 @@ export class AdminReunioes implements OnInit {
 
   salvar(): void {
     this.errosCampo = {};
+    const virtual = this.formulario.categoria === 'virtual';
 
     if (!this.formulario.nome.trim()) {
       this.errosCampo['nome'] = 'Nome do grupo é obrigatório.';
@@ -552,43 +673,54 @@ export class AdminReunioes implements OnInit {
         this.errosCampo[`agenda.${dia.diaSemana}`] = `Há horários repetidos em ${ROTULO_DIA[dia.diaSemana]} — remova a duplicata.`;
       }
     }
-    if (!this.formulario.local.trim()) {
-      this.errosCampo['local'] = 'Endereço é obrigatório para reunião presencial.';
-    }
-    if (!this.formulario.estado.trim()) {
-      this.errosCampo['estado'] = 'Selecione o estado (UF) da reunião.';
+    if (!virtual) {
+      if (!this.formulario.local.trim()) {
+        this.errosCampo['local'] = 'Endereço é obrigatório para reunião presencial.';
+      }
+      if (!this.formulario.estado.trim()) {
+        this.errosCampo['estado'] = 'Selecione o estado (UF) da reunião.';
+      }
     }
     if (Object.keys(this.errosCampo).length > 0) {
       this.erroFormulario = this.construirErroFormulario();
       return;
     }
 
-    this.validarWhatsapp();
-    if (this.errosCampo['whatsapp']) {
-      this.erroFormulario = `Corrija o campo "WhatsApp" destacado abaixo: ${this.errosCampo['whatsapp']}`;
-      return;
+    if (!virtual) {
+      this.validarWhatsapp();
+      if (this.errosCampo['whatsapp']) {
+        this.erroFormulario = `Corrija o campo "WhatsApp" destacado abaixo: ${this.errosCampo['whatsapp']}`;
+        return;
+      }
     }
 
     const latitude = this.formulario.latitude.trim() ? Number(this.formulario.latitude) : undefined;
     const longitude = this.formulario.longitude.trim() ? Number(this.formulario.longitude) : undefined;
 
-    if (latitude !== undefined && Number.isNaN(latitude)) {
-      this.errosCampo['latitude'] = 'Latitude precisa ser um número válido (ex: -23.55).';
-    }
-    if (longitude !== undefined && Number.isNaN(longitude)) {
-      this.errosCampo['longitude'] = 'Longitude precisa ser um número válido (ex: -46.63).';
-    }
-    if (Object.keys(this.errosCampo).length > 0) {
-      const camposInvalidos = ['latitude', 'longitude'].filter((campo) => this.errosCampo[campo]);
-      this.erroFormulario =
-        camposInvalidos.length === 1
-          ? `Corrija o campo "${camposInvalidos[0] === 'latitude' ? 'Latitude' : 'Longitude'}" destacado abaixo.`
-          : 'Corrija os campos "Latitude" e "Longitude" destacados abaixo.';
-      return;
+    if (!virtual) {
+      if (latitude !== undefined && Number.isNaN(latitude)) {
+        this.errosCampo['latitude'] = 'Latitude precisa ser um número válido (ex: -23.55).';
+      }
+      if (longitude !== undefined && Number.isNaN(longitude)) {
+        this.errosCampo['longitude'] = 'Longitude precisa ser um número válido (ex: -46.63).';
+      }
+      if (Object.keys(this.errosCampo).length > 0) {
+        const camposInvalidos = ['latitude', 'longitude'].filter((campo) => this.errosCampo[campo]);
+        this.erroFormulario =
+          camposInvalidos.length === 1
+            ? `Corrija o campo "${camposInvalidos[0] === 'latitude' ? 'Latitude' : 'Longitude'}" destacado abaixo.`
+            : 'Corrija os campos "Latitude" e "Longitude" destacados abaixo.';
+        return;
+      }
     }
 
     this.salvando = true;
     this.erroFormulario = '';
+
+    if (virtual) {
+      this.salvarVirtual(agenda);
+      return;
+    }
 
     const primeiroItem = agenda[0];
     const diaSemana = ROTULO_DIA[primeiroItem.diaSemana];
@@ -650,6 +782,36 @@ export class AdminReunioes implements OnInit {
     });
   }
 
+  private salvarVirtual(agenda: AgendaItemReuniao[]): void {
+    const request: CriarReuniaoOnlineRequest = {
+      nome: this.formulario.nome.trim(),
+      descricao: this.formulario.descricao.trim(),
+      agenda,
+    };
+
+    const acao = this.reuniaoOnlineEmEdicao
+      ? this.reuniaoOnlineService.editarReuniaoOnlineAdmin(this.reuniaoOnlineEmEdicao.id, request)
+      : this.reuniaoOnlineService.criarReuniaoOnlineAdmin(request);
+
+    acao.subscribe((envelope) => {
+      this.salvando = false;
+
+      if (envelope.success && envelope.data) {
+        const salva = envelope.data;
+        const reunioesOnline = this.reuniaoOnlineEmEdicao
+          ? this.reunioesOnline().map((r) => (r.id === salva.id ? salva : r))
+          : [...this.reunioesOnline(), salva];
+        reunioesOnline.sort((a, b) => a.nome.localeCompare(b.nome));
+        this.reunioesOnline.set(reunioesOnline);
+        this.modo = 'lista';
+        this.reuniaoOnlineEmEdicao = null;
+      } else {
+        this.erroFormulario = mensagemDeErro(envelope.error, 'Não foi possível salvar a reunião online.');
+        this.errosCampo = mapearErrosCampo(envelope.error?.fields);
+      }
+    });
+  }
+
   recarregarAposConflito(): void {
     const reuniaoId = this.reuniaoEmEdicao?.id;
     this.reuniaoService.listarReunioesAdmin().subscribe((envelope) => {
@@ -671,9 +833,9 @@ export class AdminReunioes implements OnInit {
     return dia && reuniao.horario ? [{ diaSemana: dia.diaSemana, horario: reuniao.horario }] : [];
   }
 
-  private agendaAgrupadaDaReuniao(reuniao: Reuniao): Array<{ diaSemana: DiaSemanaAgendaReuniao; horarios: string[] }> {
+  private agendaAgrupada(agenda: AgendaItemReuniao[]): Array<{ diaSemana: DiaSemanaAgendaReuniao; horarios: string[] }> {
     return DIAS_AGENDA.flatMap(({ diaSemana }) => {
-      const horarios = this.agendaDaReuniao(reuniao)
+      const horarios = agenda
         .filter((item) => item.diaSemana === diaSemana)
         .map((item) => item.horario)
         .sort(compararHorarios);
@@ -681,8 +843,7 @@ export class AdminReunioes implements OnInit {
     });
   }
 
-  private agendaParaFormulario(reuniao: Reuniao): AgendaFormularioItem[] {
-    const agenda = this.agendaDaReuniao(reuniao);
+  private agendaParaFormulario(agenda: AgendaItemReuniao[]): AgendaFormularioItem[] {
     return DIAS_AGENDA.map((dia) => {
       const horarios = agenda
         .filter((item) => item.diaSemana === dia.diaSemana)
@@ -692,8 +853,8 @@ export class AdminReunioes implements OnInit {
     });
   }
 
-  pedirConfirmacaoExclusao(reuniao: Reuniao): void {
-    this.confirmandoExclusao = reuniao.id;
+  pedirConfirmacaoExclusao(item: ReuniaoListaItem): void {
+    this.confirmandoExclusao = item.id;
     this.erroExclusao = '';
   }
 
@@ -702,16 +863,25 @@ export class AdminReunioes implements OnInit {
     this.erroExclusao = '';
   }
 
-  confirmarExclusao(reuniao: Reuniao): void {
+  confirmarExclusao(item: ReuniaoListaItem): void {
     this.excluindo = true;
     this.erroExclusao = '';
 
-    this.reuniaoService.excluirReuniaoAdmin(reuniao.id).subscribe((envelope) => {
+    const acao =
+      item.origem === 'presencial'
+        ? this.reuniaoService.excluirReuniaoAdmin(item.id)
+        : this.reuniaoOnlineService.excluirReuniaoOnlineAdmin(item.id);
+
+    acao.subscribe((envelope) => {
       this.excluindo = false;
       this.confirmandoExclusao = null;
 
       if (envelope.success) {
-        this.reunioes.update((atuais) => atuais.filter((r) => r.id !== reuniao.id));
+        if (item.origem === 'presencial') {
+          this.reunioes.update((atuais) => atuais.filter((r) => r.id !== item.id));
+        } else {
+          this.reunioesOnline.update((atuais) => atuais.filter((r) => r.id !== item.id));
+        }
       } else {
         this.erroExclusao = envelope.error?.message ?? 'Não foi possível excluir a reunião.';
       }

@@ -62,7 +62,6 @@ export class AdminLayout {
       titulo: 'Estrutura de apoio',
       itens: [
         { label: 'Endereços', rota: 'enderecos' },
-        { label: 'Reuniões Online', rota: 'reunioes-online' },
         { label: 'Escritórios', rota: 'escritorios' },
         { label: 'Linhas de Ajuda', rota: 'hotlines' },
         { label: 'Perguntas Frequentes', rota: 'perguntas-e-respostas' },

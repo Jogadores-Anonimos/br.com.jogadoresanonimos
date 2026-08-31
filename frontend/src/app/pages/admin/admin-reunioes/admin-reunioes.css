@@ -209,6 +209,43 @@
   color: var(--white);
 }
 
+.admin-reunioes__toggle-categoria {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0.2rem;
+  background: var(--color-bg-frame);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin-reunioes__toggle-opcao {
+  padding: var(--spacing-xs) var(--spacing-md);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.admin-reunioes__toggle-opcao--ativa {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+}
+
+.admin-reunioes__toggle-opcao:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.admin-reunioes__toggle-opcao:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
 .admin-reunioes__formulario {
   display: flex;
   flex-direction: column;

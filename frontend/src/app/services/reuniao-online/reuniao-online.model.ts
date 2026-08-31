@@ -9,13 +9,14 @@ export interface ReuniaoOnline {
   id: string;
   nome: string;
   telefone: string | null;
+  descricao: string | null;
   agenda: AgendaItemReuniaoOnline[];
   atualizadoEm: string;
 }
 
 export interface CriarReuniaoOnlineRequest {
   nome: string;
-  telefone?: string;
+  descricao?: string;
   agenda: AgendaItemReuniaoOnline[];
 }
 

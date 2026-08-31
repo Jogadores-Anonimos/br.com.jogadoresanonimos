@@ -24,11 +24,15 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ReuniaoOnlineServiceTest {
+
+    private static final String TELEFONE_INSTITUCIONAL = "21 99472-1933";
 
     @Mock
     ReuniaoOnlineRepository reuniaoOnlineRepository;
@@ -37,120 +41,207 @@ class ReuniaoOnlineServiceTest {
 
     @BeforeEach
     void setUp() {
-        reuniaoOnlineService = new ReuniaoOnlineService(reuniaoOnlineRepository);
+        reuniaoOnlineService = new ReuniaoOnlineService(reuniaoOnlineRepository, TELEFONE_INSTITUCIONAL);
     }
 
     private ReuniaoOnline reuniaoOnline() {
-        return new ReuniaoOnline("Grupo Online Quinta", "5511994721933",
-                List.of(new AgendaItemReuniaoOnline(DiaSemanaReuniao.QUINTA, "20h00")));
+        return new ReuniaoOnline("Grupo Online Segunda", TELEFONE_INSTITUCIONAL, "descricao",
+                List.of(new AgendaItemReuniaoOnline(DiaSemanaReuniao.SEGUNDA, "19h")));
     }
 
     private CriarReuniaoOnlineRequest criarRequest() {
-        return new CriarReuniaoOnlineRequest("Grupo Online Quinta", "5511994721933",
-                List.of(new ReuniaoOnlineAgendaItemRequest("QUINTA", "20h00")));
+        return new CriarReuniaoOnlineRequest("Grupo Online Segunda", "11 90000-0000", "descricao",
+                List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
     }
 
     private EditarReuniaoOnlineRequest editarRequest() {
-        return new EditarReuniaoOnlineRequest("Grupo Online Quinta editado", "  ",
-                List.of(new ReuniaoOnlineAgendaItemRequest("SABADO", "10h00")));
+        return new EditarReuniaoOnlineRequest("Grupo Online Editado", "11 90000-0000", "nova descricao",
+                List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
     }
 
     @Test
     void listarTodas_deveDelegarParaRepositoryEMapear() {
-        ReuniaoOnline entidade = reuniaoOnline();
-        when(reuniaoOnlineRepository.findAllByOrderByNomeAsc()).thenReturn(List.of(entidade));
+        when(reuniaoOnlineRepository.findAllByOrderByNomeAsc()).thenReturn(List.of(reuniaoOnline()));
         List<ReuniaoOnlineResponse> resultado = reuniaoOnlineService.listarTodas();
-        assertThat(resultado).extracting(ReuniaoOnlineResponse::nome).containsExactly("Grupo Online Quinta");
+        assertThat(resultado).hasSize(1);
+        assertThat(resultado.get(0).nome()).isEqualTo("Grupo Online Segunda");
     }
 
     @Test
-    void criar_devePersistirComNomeTrimEAgendaOrdenada() {
-        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("  Grupo Online  ", "5511994721933",
-                List.of(new ReuniaoOnlineAgendaItemRequest("SABADO", "10h00"),
-                        new ReuniaoOnlineAgendaItemRequest("QUINTA", "20h00")));
-        ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
-        when(reuniaoOnlineRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        ReuniaoOnlineResponse resultado = reuniaoOnlineService.criar(request);
-
-        ReuniaoOnline persistido = captor.getValue();
-        assertThat(persistido.getNome()).isEqualTo("Grupo Online");
-        assertThat(persistido.getTelefone()).isEqualTo("5511994721933");
-        assertThat(resultado.agenda()).extracting("diaSemana", "horario")
-                .containsExactly(tuple("QUINTA", "20h00"), tuple("SABADO", "10h00"));
-    }
-
-    @Test
-    void criar_deveNormalizarTelefoneEmBrancoParaNull() {
-        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online", "   ",
-                List.of(new ReuniaoOnlineAgendaItemRequest("QUINTA", "20h00")));
-        ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
-        when(reuniaoOnlineRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
-
+    void criar_deveGravarTelefoneInstitucionalIgnorandoTelefoneDoRequest() {
+        CriarReuniaoOnlineRequest request = criarRequest();
+        when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoOnlineService.criar(request);
-
-        assertThat(captor.getValue().getTelefone()).isNull();
+        ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
+        verify(reuniaoOnlineRepository).save(captor.capture());
+        assertThat(captor.getValue().getTelefone()).isEqualTo(TELEFONE_INSTITUCIONAL);
     }
 
     @Test
-    void criar_deveFalharQuandoAgendaTemDiaInvalido() {
-        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online", null,
-                List.of(new ReuniaoOnlineAgendaItemRequest("FERIADO", "20h00")));
+    void criar_comTelefoneNuloNoRequest_deveGravarTelefoneInstitucional() {
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
+                List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+        when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        reuniaoOnlineService.criar(request);
+        ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
+        verify(reuniaoOnlineRepository).save(captor.capture());
+        assertThat(captor.getValue().getTelefone()).isEqualTo(TELEFONE_INSTITUCIONAL);
+    }
 
+    @Test
+    void criar_devePersistirDescricaoNormalizada() {
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null,
+                "  descricao com espacos  ", List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+        when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        reuniaoOnlineService.criar(request);
+        ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
+        verify(reuniaoOnlineRepository).save(captor.capture());
+        assertThat(captor.getValue().getDescricao()).isEqualTo("descricao com espacos");
+    }
+
+    @Test
+    void criar_comDescricaoEmBranco_devePersistirNulo() {
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "   ",
+                List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+        when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        reuniaoOnlineService.criar(request);
+        ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
+        verify(reuniaoOnlineRepository).save(captor.capture());
+        assertThat(captor.getValue().getDescricao()).isNull();
+    }
+
+    @Test
+    void criar_devePersistirNomeSemEspacosNasBordas() {
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("  Grupo Online Segunda  ", null,
+                "descricao", List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+        when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        reuniaoOnlineService.criar(request);
+        ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
+        verify(reuniaoOnlineRepository).save(captor.capture());
+        assertThat(captor.getValue().getNome()).isEqualTo("Grupo Online Segunda");
+    }
+
+    @Test
+    void criar_comAgendaDeDiaEHorarioDuplicado_deveRejeitarSemPersistir() {
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
+                List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h"),
+                        new ReuniaoOnlineAgendaItemRequest("segunda-feira", " 19h ")));
         assertThatThrownBy(() -> reuniaoOnlineService.criar(request))
                 .isInstanceOf(ValidationException.class);
+        verify(reuniaoOnlineRepository, never()).save(any());
     }
 
     @Test
-    void criar_deveFalharQuandoAgendaRepeteCombinacao() {
-        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online", null,
-                List.of(new ReuniaoOnlineAgendaItemRequest("QUINTA", "20h00"),
-                        new ReuniaoOnlineAgendaItemRequest("QUINTA", "20h00")));
-
-        assertThatThrownBy(() -> reuniaoOnlineService.criar(request))
-                .isInstanceOf(ValidationException.class);
-    }
-
-    @Test
-    void editar_deveAtualizarEntidadeExistente() {
-        UUID id = UUID.randomUUID();
-        ReuniaoOnline existente = reuniaoOnline();
-        when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(existente));
-
-        ReuniaoOnlineResponse resultado = reuniaoOnlineService.editar(id, editarRequest());
-
-        assertThat(resultado.nome()).isEqualTo("Grupo Online Quinta editado");
-        assertThat(resultado.telefone()).isNull();
+    void criar_comAgendaMesmoDiaHorariosDiferentes_devePersistirAmbos() {
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
+                List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h"),
+                        new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "20h")));
+        when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        ReuniaoOnlineResponse resultado = reuniaoOnlineService.criar(request);
         assertThat(resultado.agenda()).extracting("diaSemana", "horario")
-                .containsExactly(tuple("SABADO", "10h00"));
+                .containsExactlyInAnyOrder(tuple("SEGUNDA", "19h"), tuple("SEGUNDA", "20h"));
     }
 
     @Test
-    void editar_deveFalharQuandoIdNaoExiste() {
+    void criar_comDiaSemanaComAcentoESufixoFeira_deveConverterCorretamente() {
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Terça", null, "descricao",
+                List.of(new ReuniaoOnlineAgendaItemRequest("Terça-feira", "20h")));
+        when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
+        reuniaoOnlineService.criar(request);
+        verify(reuniaoOnlineRepository).save(captor.capture());
+        assertThat(captor.getValue().getAgenda()).extracting(AgendaItemReuniaoOnline::getDiaSemana)
+                .containsExactly(DiaSemanaReuniao.TERCA);
+    }
+
+    @Test
+    void criar_comDiaSemanaInvalido_deveRejeitarSemPersistir() {
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
+                List.of(new ReuniaoOnlineAgendaItemRequest("Ferias", "19h")));
+        assertThatThrownBy(() -> reuniaoOnlineService.criar(request))
+                .isInstanceOf(ValidationException.class);
+        verify(reuniaoOnlineRepository, never()).save(any());
+    }
+
+    @Test
+    void criar_comHorarioEmBranco_deveRejeitarSemPersistir() {
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
+                List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "   ")));
+        assertThatThrownBy(() -> reuniaoOnlineService.criar(request))
+                .isInstanceOf(ValidationException.class);
+        verify(reuniaoOnlineRepository, never()).save(any());
+    }
+
+    @Test
+    void editar_deIdInexistente_deveLancarRecursoNaoEncontradoException() {
         UUID id = UUID.randomUUID();
         when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> reuniaoOnlineService.editar(id, editarRequest()))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
 
     @Test
-    void remover_deveDeletarQuandoExiste() {
+    void editar_deveAplicarTelefoneInstitucionalENovaDescricao() {
         UUID id = UUID.randomUUID();
-        ReuniaoOnline existente = reuniaoOnline();
-        when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(existente));
-
-        reuniaoOnlineService.remover(id);
-
-        verify(reuniaoOnlineRepository).delete(existente);
+        ReuniaoOnline reuniaoOnline = reuniaoOnline();
+        when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
+        ReuniaoOnlineResponse resultado = reuniaoOnlineService.editar(id, editarRequest());
+        assertThat(resultado.telefone()).isEqualTo(TELEFONE_INSTITUCIONAL);
+        assertThat(resultado.descricao()).isEqualTo("nova descricao");
+        assertThat(resultado.nome()).isEqualTo("Grupo Online Editado");
     }
 
     @Test
-    void remover_deveFalharQuandoIdNaoExiste() {
+    void editar_comAgendaDeDiaEHorarioDuplicado_deveRejeitarSemAlterarEntidade() {
+        UUID id = UUID.randomUUID();
+        ReuniaoOnline reuniaoOnline = reuniaoOnline();
+        when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
+        EditarReuniaoOnlineRequest request = new EditarReuniaoOnlineRequest("Grupo Online Editado", null,
+                "nova descricao", List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h"),
+                new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
+        assertThatThrownBy(() -> reuniaoOnlineService.editar(id, request))
+                .isInstanceOf(ValidationException.class);
+        assertThat(reuniaoOnline.getNome()).isEqualTo("Grupo Online Segunda");
+    }
+
+    @Test
+    void editar_comDescricaoEmBranco_devePersistirNulo() {
+        UUID id = UUID.randomUUID();
+        ReuniaoOnline reuniaoOnline = reuniaoOnline();
+        when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
+        EditarReuniaoOnlineRequest request = new EditarReuniaoOnlineRequest("Grupo Online Editado", null, "   ",
+                List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
+        ReuniaoOnlineResponse resultado = reuniaoOnlineService.editar(id, request);
+        assertThat(resultado.descricao()).isNull();
+    }
+
+    @Test
+    void editar_devePermitirConversaoDeDiaSemanaComAcentoESufixoFeira() {
+        UUID id = UUID.randomUUID();
+        ReuniaoOnline reuniaoOnline = reuniaoOnline();
+        when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
+        EditarReuniaoOnlineRequest request = new EditarReuniaoOnlineRequest("Grupo Online Editado", null,
+                "nova descricao", List.of(new ReuniaoOnlineAgendaItemRequest("sábado", "10h")));
+        ReuniaoOnlineResponse resultado = reuniaoOnlineService.editar(id, request);
+        assertThat(resultado.agenda()).extracting("diaSemana")
+                .containsExactly("SABADO");
+    }
+
+    @Test
+    void remover_deIdInexistente_deveLancarRecursoNaoEncontradoException() {
         UUID id = UUID.randomUUID();
         when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> reuniaoOnlineService.remover(id))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
+        verify(reuniaoOnlineRepository, never()).delete(any());
+    }
+
+    @Test
+    void remover_deIdExistente_deveDelegarParaRepository() {
+        UUID id = UUID.randomUUID();
+        ReuniaoOnline reuniaoOnline = reuniaoOnline();
+        when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
+        reuniaoOnlineService.remover(id);
+        verify(reuniaoOnlineRepository).delete(reuniaoOnline);
     }
 }

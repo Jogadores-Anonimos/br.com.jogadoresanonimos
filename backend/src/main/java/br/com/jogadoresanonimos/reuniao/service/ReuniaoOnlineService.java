@@ -11,6 +11,7 @@ import br.com.jogadoresanonimos.reuniao.entity.AgendaItemReuniaoOnline;
 import br.com.jogadoresanonimos.reuniao.entity.DiaSemanaReuniao;
 import br.com.jogadoresanonimos.reuniao.entity.ReuniaoOnline;
 import br.com.jogadoresanonimos.reuniao.repository.ReuniaoOnlineRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,9 +27,12 @@ import java.util.UUID;
 public class ReuniaoOnlineService {
 
     private final ReuniaoOnlineRepository reuniaoOnlineRepository;
+    private final String telefoneInstitucional;
 
-    public ReuniaoOnlineService(ReuniaoOnlineRepository reuniaoOnlineRepository) {
+    public ReuniaoOnlineService(ReuniaoOnlineRepository reuniaoOnlineRepository,
+                                 @Value("${reuniao.telefone-institucional-online:21 99472-1933}") String telefoneInstitucional) {
         this.reuniaoOnlineRepository = reuniaoOnlineRepository;
+        this.telefoneInstitucional = telefoneInstitucional;
     }
 
     @Transactional(readOnly = true)
@@ -41,7 +45,8 @@ public class ReuniaoOnlineService {
     @Transactional
     public ReuniaoOnlineResponse criar(CriarReuniaoOnlineRequest request) {
         List<AgendaItemReuniaoOnline> agenda = normalizarAgenda(request.agenda());
-        ReuniaoOnline reuniaoOnline = new ReuniaoOnline(request.nome().trim(), normalizar(request.telefone()), agenda);
+        ReuniaoOnline reuniaoOnline = new ReuniaoOnline(request.nome().trim(), telefoneInstitucional,
+                normalizar(request.descricao()), agenda);
         reuniaoOnline = reuniaoOnlineRepository.save(reuniaoOnline);
         return ReuniaoOnlineResponse.from(reuniaoOnline);
     }
@@ -50,7 +55,7 @@ public class ReuniaoOnlineService {
     public ReuniaoOnlineResponse editar(UUID id, EditarReuniaoOnlineRequest request) {
         ReuniaoOnline reuniaoOnline = buscarOuFalhar(id);
         List<AgendaItemReuniaoOnline> agenda = normalizarAgenda(request.agenda());
-        reuniaoOnline.editar(request.nome().trim(), normalizar(request.telefone()), agenda);
+        reuniaoOnline.editar(request.nome().trim(), telefoneInstitucional, normalizar(request.descricao()), agenda);
         return ReuniaoOnlineResponse.from(reuniaoOnline);
     }
 

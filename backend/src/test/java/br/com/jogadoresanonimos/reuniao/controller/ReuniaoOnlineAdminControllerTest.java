@@ -8,6 +8,9 @@ import br.com.jogadoresanonimos.reuniao.dto.ReuniaoOnlineAgendaItemRequest;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoOnlineAgendaItemResponse;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoOnlineResponse;
 import br.com.jogadoresanonimos.reuniao.service.ReuniaoOnlineService;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,24 +36,33 @@ class ReuniaoOnlineAdminControllerTest {
 
     ReuniaoOnlineAdminController reuniaoOnlineAdminController;
 
+    Validator validator;
+
     @BeforeEach
     void setUp() {
         reuniaoOnlineAdminController = new ReuniaoOnlineAdminController(reuniaoOnlineService);
+        validator = Validation.buildDefaultValidatorFactory().getValidator();
+    }
+
+    private List<ReuniaoOnlineAgendaItemRequest> agendaRequest() {
+        return List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h30"));
+    }
+
+    private List<ReuniaoOnlineAgendaItemResponse> agendaResponse() {
+        return List.of(new ReuniaoOnlineAgendaItemResponse("SEGUNDA", "19h30"));
     }
 
     private ReuniaoOnlineResponse reuniaoOnlineResponse(UUID id) {
-        return new ReuniaoOnlineResponse(id, "Grupo Online Quinta", "5511994721933",
-                List.of(new ReuniaoOnlineAgendaItemResponse("QUINTA", "20h00")), Instant.now());
+        return new ReuniaoOnlineResponse(id, "Grupo Salvador", "21 99472-1933", "descrição",
+                agendaResponse(), Instant.now());
     }
 
     private CriarReuniaoOnlineRequest criarRequest() {
-        return new CriarReuniaoOnlineRequest("Grupo Online Quinta", "5511994721933",
-                List.of(new ReuniaoOnlineAgendaItemRequest("QUINTA", "20h00")));
+        return new CriarReuniaoOnlineRequest("Grupo Salvador", null, "descrição", agendaRequest());
     }
 
     private EditarReuniaoOnlineRequest editarRequest() {
-        return new EditarReuniaoOnlineRequest("Grupo Online Quinta editado", null,
-                List.of(new ReuniaoOnlineAgendaItemRequest("SABADO", "10h00")));
+        return new EditarReuniaoOnlineRequest("Grupo Salvador editado", null, "descrição editada", agendaRequest());
     }
 
     @Test
@@ -62,14 +75,24 @@ class ReuniaoOnlineAdminControllerTest {
     }
 
     @Test
-    void criar_deveRetornarCreatedComRespostaDoService() {
+    void criar_deveRetornarCreatedComRespostaDoServiceIncluindoDescricao() {
         CriarReuniaoOnlineRequest request = criarRequest();
         ReuniaoOnlineResponse esperado = reuniaoOnlineResponse(UUID.randomUUID());
         when(reuniaoOnlineService.criar(request)).thenReturn(esperado);
         ResponseEntity<ApiResponse<ReuniaoOnlineResponse>> resposta = reuniaoOnlineAdminController.criar(request);
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(resposta.getBody().data()).isEqualTo(esperado);
+        assertThat(resposta.getBody().data().descricao()).isEqualTo("descrição");
+        assertThat(resposta.getBody().data().telefone()).isEqualTo("21 99472-1933");
         verify(reuniaoOnlineService).criar(request);
+    }
+
+    @Test
+    void criar_comNomeEmBranco_deveFalharValidacao() {
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest(" ", null, "descrição", agendaRequest());
+        Set<ConstraintViolation<CriarReuniaoOnlineRequest>> violacoes = validator.validate(request);
+        assertThat(violacoes)
+                .anyMatch(violacao -> violacao.getPropertyPath().toString().equals("nome"));
     }
 
     @Test
