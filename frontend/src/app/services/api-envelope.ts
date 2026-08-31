@@ -80,6 +80,7 @@ export const ERROR_CODE_MENSAGENS: Record<string, string> = {
   REUNIAO_GRUPO_DADOS_INVALIDOS: 'Confira os dados compartilhados entre a reunião e o endereço.',
   AUTH_EMAIL_CONFIRMACAO_TOKEN_INVALIDO: 'Link de confirmação inválido ou expirado.',
   USUARIO_SENHA_IGUAL_ATUAL: 'A nova senha não pode ser igual à senha atual.',
+  REUNIAO_ONLINE_NAO_ENCONTRADA: 'Reunião online não encontrada.',
 };
 
 export function mensagemDeErro(error: ApiError | null | undefined, mensagemFallback: string): string {

@@ -34,7 +34,6 @@ interface FormularioReuniao {
   bairro: string;
   cidade: string;
   estado: string;
-  linkReuniao: string;
 }
 
 interface AgendaFormularioItem {
@@ -78,7 +77,6 @@ function formularioVazio(): FormularioReuniao {
     bairro: '',
     cidade: '',
     estado: '',
-    linkReuniao: '',
   };
 }
 
@@ -321,10 +319,13 @@ export class AdminReunioes implements OnInit {
   }
 
   abrirEdicao(reuniao: Reuniao): void {
+    if (reuniao.categoria !== 'presencial') {
+      return;
+    }
     this.reuniaoEmEdicao = reuniao;
     this.formulario = {
       nome: reuniao.nome,
-      categoria: reuniao.categoria,
+      categoria: 'presencial',
       descricao: reuniao.descricao,
       agenda: this.agendaParaFormulario(reuniao),
       local: reuniao.local,
@@ -337,7 +338,6 @@ export class AdminReunioes implements OnInit {
       bairro: reuniao.bairro ?? '',
       cidade: reuniao.cidade ?? '',
       estado: reuniao.estado ?? '',
-      linkReuniao: reuniao.linkReuniao ?? '',
     };
     this.erroCep = '';
     this.erroFormulario = '';
@@ -530,12 +530,10 @@ export class AdminReunioes implements OnInit {
   salvar(): void {
     this.errosCampo = {};
 
-    const presencial = this.formulario.categoria === 'presencial';
-
     if (!this.formulario.nome.trim()) {
       this.errosCampo['nome'] = 'Nome do grupo é obrigatório.';
     }
-    if (presencial && !this.formulario.descricao.trim()) {
+    if (!this.formulario.descricao.trim()) {
       this.errosCampo['descricao'] = 'Descrição é obrigatória.';
     }
     const agenda = this.formulario.agenda
@@ -554,7 +552,7 @@ export class AdminReunioes implements OnInit {
         this.errosCampo[`agenda.${dia.diaSemana}`] = `Há horários repetidos em ${ROTULO_DIA[dia.diaSemana]} — remova a duplicata.`;
       }
     }
-    if (presencial && !this.formulario.local.trim()) {
+    if (!this.formulario.local.trim()) {
       this.errosCampo['local'] = 'Endereço é obrigatório para reunião presencial.';
     }
     if (!this.formulario.estado.trim()) {
@@ -598,7 +596,7 @@ export class AdminReunioes implements OnInit {
 
     const request: CriarReuniaoRequest = {
       nome: this.formulario.nome.trim(),
-      categoria: this.formulario.categoria,
+      categoria: 'presencial',
       descricao: this.formulario.descricao.trim(),
       agenda,
       dia: diaSemana,
@@ -615,7 +613,6 @@ export class AdminReunioes implements OnInit {
       bairro: this.formulario.bairro.trim() || undefined,
       cidade: this.formulario.cidade.trim() || undefined,
       estado: this.formulario.estado.trim() || undefined,
-      linkReuniao: this.formulario.linkReuniao.trim() || undefined,
     };
 
     const acao = this.reuniaoEmEdicao
