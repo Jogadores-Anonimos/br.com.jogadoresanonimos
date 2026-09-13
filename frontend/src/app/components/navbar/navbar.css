@@ -456,6 +456,31 @@
   white-space: nowrap;
 }
 
+.dropdown-label--button {
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.03em;
+  color: var(--color-text);
+  padding: 0 0 4px;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.dropdown-label--button:hover,
+.dropdown-label--button:focus-visible,
+.dropdown-label--button[aria-expanded="true"] {
+  color: var(--cor-padrao-ja);
+  border-bottom-color: var(--cor-padrao-ja);
+}
+
 .dropdown-toggle {
   background: none;
   border: none;
@@ -715,6 +740,12 @@
   .dropdown-label:hover,
   .dropdown-label.active {
     border-bottom-color: transparent;
+  }
+
+  .dropdown-label--button {
+    justify-content: flex-start;
+    text-align: left;
+    width: 100%;
   }
 
   .dropdown-toggle {

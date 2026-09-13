@@ -32,6 +32,12 @@ public class ReuniaoOnline {
     @Column(length = 2000)
     private String descricao;
 
+    @Column(name = "video_url", length = 500)
+    private String videoUrl;
+
+    @Column(name = "panfleto_imagem_id")
+    private UUID panfletoImagemId;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "reuniao_online_horario", joinColumns = @JoinColumn(name = "reuniao_online_id"))
     private List<AgendaItemReuniaoOnline> agenda = new ArrayList<>();
@@ -45,19 +51,25 @@ public class ReuniaoOnline {
     protected ReuniaoOnline() {
     }
 
-    public ReuniaoOnline(String nome, String telefone, String descricao, List<AgendaItemReuniaoOnline> agenda) {
+    public ReuniaoOnline(String nome, String telefone, String descricao, String videoUrl, UUID panfletoImagemId,
+                          List<AgendaItemReuniaoOnline> agenda) {
         this.nome = nome;
         this.telefone = telefone;
         this.descricao = descricao;
+        this.videoUrl = videoUrl;
+        this.panfletoImagemId = panfletoImagemId;
         this.agenda = new ArrayList<>(agenda);
         this.criadoEm = Instant.now();
         this.atualizadoEm = Instant.now();
     }
 
-    public void editar(String nome, String telefone, String descricao, List<AgendaItemReuniaoOnline> agenda) {
+    public void editar(String nome, String telefone, String descricao, String videoUrl, UUID panfletoImagemId,
+                        List<AgendaItemReuniaoOnline> agenda) {
         this.nome = nome;
         this.telefone = telefone;
         this.descricao = descricao;
+        this.videoUrl = videoUrl;
+        this.panfletoImagemId = panfletoImagemId;
         this.agenda.clear();
         this.agenda.addAll(agenda);
         this.atualizadoEm = Instant.now();
@@ -77,6 +89,14 @@ public class ReuniaoOnline {
 
     public String getDescricao() {
         return descricao;
+    }
+
+    public String getVideoUrl() {
+        return videoUrl;
+    }
+
+    public UUID getPanfletoImagemId() {
+        return panfletoImagemId;
     }
 
     public List<AgendaItemReuniaoOnline> getAgenda() {

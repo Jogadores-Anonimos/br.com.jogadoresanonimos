@@ -505,6 +505,58 @@
           <p class="admin-reunioes__ajuda">
             Todas as reuniões virtuais usam o WhatsApp institucional fixo {{ whatsappInstitucionalFormatado }} — não é possível definir um número por reunião.
           </p>
+
+          <div class="admin-reunioes__campo">
+            <label for="reuniao-video-url">Link do vídeo (YouTube, opcional)</label>
+            <input
+              id="reuniao-video-url"
+              type="text"
+              name="videoUrl"
+              placeholder="https://www.youtube.com/watch?v=..."
+              [(ngModel)]="formulario.videoUrl"
+              [class.campo-invalido]="errosCampo['videoUrl']"
+              [attr.aria-invalid]="errosCampo['videoUrl'] ? 'true' : null"
+              [attr.aria-describedby]="errosCampo['videoUrl'] ? 'reuniao-video-url-erro' : null"
+            />
+            @if (errosCampo['videoUrl']) {
+              <span id="reuniao-video-url-erro" class="admin-reunioes__campo-erro" role="alert">{{ errosCampo['videoUrl'] }}</span>
+            }
+            @if (!videoUrlInvalida() && embedPreviewUrl(); as previewUrl) {
+              <div class="admin-reunioes__preview-video">
+                <iframe
+                  [src]="previewUrl"
+                  title="Pré-visualização do vídeo"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                ></iframe>
+              </div>
+            }
+          </div>
+
+          <div class="admin-reunioes__campo">
+            <label for="reuniao-panfleto">Panfleto (imagem, opcional)</label>
+            <input
+              id="reuniao-panfleto"
+              type="file"
+              accept="image/*"
+              [disabled]="enviandoPanfleto"
+              (change)="onArquivoPanfletoSelecionado($event)"
+            />
+            @if (enviandoPanfleto) {
+              <p class="admin-reunioes__ajuda" role="status">Enviando panfleto…</p>
+            }
+            @if (!enviandoPanfleto && erroUploadPanfleto) {
+              <p class="admin-reunioes__erro-card" role="alert">{{ erroUploadPanfleto }}</p>
+            }
+            @if (!enviandoPanfleto && panfletoImagemUrl) {
+              <div class="admin-reunioes__panfleto-preview">
+                <img [src]="panfletoImagemUrl" alt="Pré-visualização do panfleto da reunião" loading="lazy" />
+                <button type="button" class="admin-reunioes__botao admin-reunioes__botao--secundario" (click)="removerPanfleto()">
+                  Remover panfleto
+                </button>
+              </div>
+            }
+          </div>
         }
       </div>
 

@@ -16,6 +16,7 @@ public interface ImagemRepository extends JpaRepository<Imagem, UUID> {
             WHERE i.criadoEm < :limite
             AND NOT EXISTS (SELECT 1 FROM CmsBloco b WHERE b.imagemId = i.id)
             AND NOT EXISTS (SELECT 1 FROM BannerMural m WHERE m.imagemId = i.id)
+            AND NOT EXISTS (SELECT 1 FROM ReuniaoOnline r WHERE r.panfletoImagemId = i.id)
             """)
     List<UUID> buscarIdsOrfaasAnterioresA(@Param("limite") Instant limite);
 

@@ -57,16 +57,12 @@ export const routes: Routes = [
         data: { titulo: 'Relatos' },
       },
       {
-        path: 'paginas',
+        path: 'vinte-perguntas',
         loadComponent: () =>
-          import('./pages/admin/paginas-lista/paginas-lista').then((m) => m.PaginasLista),
-        data: { titulo: 'Páginas do site' },
-      },
-      {
-        path: 'paginas/:slug',
-        loadComponent: () =>
-          import('./pages/admin/pagina-editor/pagina-editor').then((m) => m.PaginaEditor),
-        data: { titulo: 'Editar página' },
+          import('./pages/admin/admin-vinte-perguntas/admin-vinte-perguntas').then(
+            (m) => m.AdminVintePerguntas,
+          ),
+        data: { titulo: '20 Perguntas' },
       },
       {
         path: 'enderecos',

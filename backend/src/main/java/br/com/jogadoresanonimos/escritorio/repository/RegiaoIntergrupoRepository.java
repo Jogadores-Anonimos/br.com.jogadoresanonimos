@@ -2,6 +2,7 @@ package br.com.jogadoresanonimos.escritorio.repository;
 
 import br.com.jogadoresanonimos.escritorio.entity.EstadoIntergrupo;
 import br.com.jogadoresanonimos.escritorio.entity.GrupoIntergrupo;
+import br.com.jogadoresanonimos.escritorio.entity.RegiaoCodigo;
 import br.com.jogadoresanonimos.escritorio.entity.RegiaoIntergrupo;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -36,4 +37,6 @@ public interface RegiaoIntergrupoRepository extends JpaRepository<RegiaoIntergru
     List<GrupoIntergrupo> carregarTelefonesDosGrupos(List<EstadoIntergrupo> estados);
 
     boolean existsByNomeIgnoreCase(String nome);
+
+    Optional<RegiaoIntergrupo> findByCodigo(RegiaoCodigo codigo);
 }

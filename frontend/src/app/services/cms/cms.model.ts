@@ -30,24 +30,3 @@ export interface CmsPaginaPublica {
   titulo: string;
   blocos: CmsBloco[];
 }
-
-export interface CmsPaginaAdminResumo {
-  slug: string;
-  titulo: string;
-  atualizadoEm: string;
-  atualizadoPor: string;
-}
-
-export interface CmsPaginaAdminDetalhe extends CmsPaginaPublica {
-  atualizadoEm: string;
-  atualizadoPor: string;
-}
-
-export interface CmsPaginaUpdateRequest {
-  blocos: CmsBloco[];
-}
-
-export interface CmsPaginaCreateRequest extends CmsPaginaUpdateRequest {
-  slug: string;
-  titulo: string;
-}

@@ -1,5 +1,16 @@
 # Contrato de API — Módulo Reunião Online
 
+> **Nota de 2026-09-12**: adicionado conteúdo de apoio opcional por
+> grupo — `videoUrl` (embed, ex: YouTube) e `panfletoImagemId` (upload
+> de imagem, mesmo pipeline de storage do CMS/mural). Ver seção
+> "Conteúdo de apoio — vídeo e panfleto (2026-09-12)" abaixo. Isso
+> **altera o contrato já consumido pelo `frontend-services`**
+> (`ReuniaoOnlineResponse`, `CriarReuniaoOnlineRequest`,
+> `EditarReuniaoOnlineRequest`) — mudança aditiva (campos novos e
+> opcionais, nenhum campo existente muda de nome/tipo/obrigatoriedade),
+> não é breaking: cliente antigo que não enviar os campos novos continua
+> funcionando (persistem como `null`).
+
 > **Nota de 2026-08-31**: uma proposta anterior, dentro desta mesma
 > sessão de trabalho, chegou a cogitar reverter `ReuniaoOnline` de volta
 > para `Reuniao` com `categoria=virtual`. Essa proposta **não foi
@@ -61,6 +72,61 @@ ignora qualquer `telefone` recebido em `CriarReuniaoOnlineRequest`/
 request só para não quebrar payload de cliente legado que ainda o
 envie, mas o valor nunca é persistido; `ReuniaoOnlineResponse.telefone`
 sempre reflete a constante.
+
+### Conteúdo de apoio — vídeo e panfleto (2026-09-12)
+
+Cada grupo de `ReuniaoOnline` pode opcionalmente ter:
+- `videoUrl` (`VARCHAR(500)`, nullable): link de embed de vídeo, mesma
+  regra de validação já usada em `BannerMural.videoUrl` — precisa conter
+  `youtube.com` ou `youtu.be`. Só isso, nenhuma outra plataforma aceita
+  por ora (mesmo escopo do mural, não expandido aqui).
+- `panfletoImagemId` (`UUID`, nullable, sem FK física — mesmo padrão de
+  `BannerMural.imagemId`): referência solta a um registro já existente
+  em `imagem`, criado via upload prévio em
+  `POST /api/v1/admin/imagens` (pipeline já existente: EXIF strip,
+  validação por magic bytes, sem SVG, storage via `StorageClient`). Não
+  há endpoint de upload dedicado para panfleto — reaproveita o mesmo
+  fluxo de upload genérico do CMS/mural, só muda quem referencia o id
+  depois.
+
+**Por que sem FK física**: mesmo raciocínio já aplicado a
+`BannerMural.imagemId` neste projeto — evita acoplar a ordem de exclusão
+entre os dois módulos, e a checagem de existência é feita em
+nível de aplicação (`ImagemRepository.existsById`) no momento de
+criar/editar. A consequência prática (e aceita, por precedente) é que
+GC de imagem órfã (`ImagemOrfaGcJob`) precisa considerar
+`reuniao_online.panfleto_imagem_id` como "em uso", assim como já
+considera `cms_bloco` e `banner_mural` — feito nesta mesma entrega via
+`ImagemRepository.buscarIdsOrfaasAnterioresA`.
+
+**Ambos os campos são independentes e opcionais** — grupo pode ter só
+vídeo, só panfleto, os dois, ou nenhum. Diferente do `BannerMural`
+(que exige exatamente um entre imagem OU vídeo), aqui não há
+exclusividade nem obrigatoriedade: card público deve renderizar
+normalmente sem nenhum dos dois.
+
+**Nunca exposto**: nenhum campo novo ou existente desta entidade
+carrega link de sala de reunião (Zoom ou similar), ID de sala ou senha —
+fora de escopo por definição de produto (grupo online divulga só
+vídeo institucional/panfleto informativo e telefone de contato fixo,
+contato real de acesso à sala acontece por outro canal, fora do site).
+
+`panfletoImagemUrl` (resolvida a partir de `panfletoImagemId`, mesma
+lógica de `BannerMuralService.resolverUrl`) só aparece na resposta
+(`GET`/`POST`/`PUT`), nunca é campo de request — request sempre envia
+`panfletoImagemId`.
+
+### Migration — `V18__adiciona_video_panfleto_reuniao_online.sql`
+
+```sql
+ALTER TABLE reuniao_online ADD COLUMN video_url VARCHAR(500);
+ALTER TABLE reuniao_online ADD COLUMN panfleto_imagem_id UUID;
+```
+
+Aditiva, sem FK física (ver justificativa acima), sem dado a migrar.
+Reservada como `V18`, sequência imediata após
+`V17__migra_reuniao_virtual_orfa_para_reuniao_online.sql` (última
+migration existente no momento em que esta tarefa começou).
 
 ### Migration — `V17__migra_reuniao_virtual_orfa_para_reuniao_online.sql` (migração de órfãos)
 
@@ -133,6 +199,9 @@ Convenções gerais (mesmas do restante do projeto):
       "nome": "Grupo Online Quinta",
       "telefone": "21 99472-1933",
       "descricao": "string ou null",
+      "videoUrl": "string (link YouTube) ou null",
+      "panfletoImagemId": "uuid ou null",
+      "panfletoImagemUrl": "string ou null (resolvida a partir de panfletoImagemId, só leitura)",
       "agenda": [
         { "diaSemana": "QUINTA", "horario": "20h00" },
         { "diaSemana": "SABADO", "horario": "10h00" }
@@ -176,6 +245,8 @@ Convenções gerais (mesmas do restante do projeto):
   "nome": "string, 1-200 chars",
   "telefone": "ignorado pelo backend — ver seção 'Telefone institucional fixo' acima, campo mantido no DTO só por compatibilidade de payload legado",
   "descricao": "string, até 2000 chars, opcional",
+  "videoUrl": "string, até 500 chars, opcional — deve conter youtube.com ou youtu.be quando enviado",
+  "panfletoImagemId": "uuid, opcional — precisa corresponder a um upload já existente em POST /api/v1/admin/imagens",
   "agenda": [
     { "diaSemana": "QUINTA", "horario": "20h00" },
     { "diaSemana": "SABADO", "horario": "10h00" }
@@ -199,12 +270,22 @@ Qualquer valor enviado neste campo é silenciosamente ignorado.
 distinção de categoria como em `Reuniao` — toda `ReuniaoOnline` é
 virtual por definição).
 
+`videoUrl`: opcional, sem exclusividade com `panfletoImagemId` (grupo
+pode ter os dois, um ou nenhum — diferente de `BannerMural`). Quando
+enviado, precisa conter `youtube.com` ou `youtu.be`.
+
+`panfletoImagemId`: opcional. Quando enviado, precisa corresponder a um
+registro existente em `imagem` (`ImagemRepository.existsById`) — upload
+feito antes, via `POST /api/v1/admin/imagens` (endpoint já existente,
+não duplicado aqui).
+
 **Response 201**: `ReuniaoOnlineResponse` criado.
 
 **Erros**:
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | `nome` ausente/fora do tamanho; `agenda` vazia/ausente/duplicada/além do limite; `descricao` além do tamanho |
+| 400 | `REUNIAO_ONLINE_MIDIA_INVALIDA` | `videoUrl` fora do padrão aceito (não é link YouTube); `panfletoImagemId` não corresponde a upload existente |
 | 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
 
 ---
@@ -227,6 +308,7 @@ legado consumindo este contrato).
 | Código HTTP | `error.code` | Motivo |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | mesmo do create |
+| 400 | `REUNIAO_ONLINE_MIDIA_INVALIDA` | mesmo do create |
 | 403 | `AUTH_FORBIDDEN` | sem `ROLE_ADMIN` |
 | 404 | `REUNIAO_ONLINE_NAO_ENCONTRADA` | id não existe |
 
@@ -309,17 +391,31 @@ coluna `descricao` só existe a partir de `V17` (ver seção "Migration —
   `ReuniaoOnlineAdminControllerTest` (mockando `ReuniaoOnlineService`,
   sem `MockMvc`), mesmo padrão de `ReuniaoServiceTest`/
   `ReuniaoAdminControllerTest`.
+- `ReuniaoOnlineService` passa a depender de `ImagemRepository` (só
+  `existsById`, para validar `panfletoImagemId`) e `StorageClient` (só
+  `urlPublicaPara`, para resolver `panfletoImagemUrl` na resposta) —
+  mesmo padrão de dependência já usado por `BannerMuralService`.
+- `ImagemRepository.buscarIdsOrfaasAnterioresA` ganha mais um
+  `NOT EXISTS` cobrindo `ReuniaoOnline.panfletoImagemId`, para o GC de
+  imagem órfã não apagar panfleto em uso.
 
 ## Pendências explícitas para outros agentes
 
 - `frontend-services`: service Angular consumindo os endpoints acima.
-  Model `ReuniaoOnline { id, nome, telefone, descricao, agenda: {
-  diaSemana, horario }[], atualizadoEm }` — `descricao` (`string | null`)
-  e `telefone` sempre igual à constante institucional (não editável
-  pelo formulário, campo pode até ser removido do form de admin já que
-  o backend ignora qualquer valor enviado) são os campos novos desde
-  2026-08-31.
+  Model `ReuniaoOnline { id, nome, telefone, descricao, videoUrl,
+  panfletoImagemId, panfletoImagemUrl, agenda: { diaSemana, horario }[],
+  atualizadoEm }` — `descricao` e `telefone` já documentados desde
+  2026-08-31; `videoUrl` (`string | null`), `panfletoImagemId`
+  (`string | null`, uuid) e `panfletoImagemUrl` (`string | null`, só
+  leitura, resolvida pelo backend) são os campos novos desde
+  2026-09-12. Fluxo de upload de panfleto no admin: reaproveitar o
+  service Angular já existente que chama
+  `POST /api/v1/admin/imagens` (mesmo fluxo do CMS/mural) e só enviar o
+  `id` retornado como `panfletoImagemId` no payload de
+  criar/editar reunião online — não criar endpoint de upload novo.
 - `frontend`/`ux-ui`: decidir onde a lista de reuniões online aparece
   na página pública (hoje reunião virtual aparece misturada em
   `reunioes.ts` via `categoria=virtual`) — fora do escopo desta
-  entrega de backend.
+  entrega de backend. Nesta entrega: exibir `videoUrl` (embed) e
+  `panfletoImagemUrl` (imagem) no card de cada grupo, ambos opcionais —
+  card deve renderizar normalmente quando ambos forem `null`.

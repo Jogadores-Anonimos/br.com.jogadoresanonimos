@@ -38,12 +38,20 @@ import { ReuniaoOnlineService } from '../../services/reuniao-online/reuniao-onli
 import { ReuniaoOnline } from '../../services/reuniao-online/reuniao-online.model';
 import { WHATSAPP_PHONE_NUMBER, montarLinkWhatsapp } from '../../config/whatsapp.config';
 import { configurarMapLibreWorker } from '../../config/maplibre-worker.config';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { extrairYoutubeVideoId } from '../../services/mural-de-apoio/youtube.util';
+
+interface CidadeComGrupos {
+  cidade: string;
+  grupos: GrupoIntergrupo[];
+}
 
 interface EstadoRegiaoItemComGrupo {
   tipo: 'com-grupo';
   nome: string;
   uf: string;
   estado: EstadoIntergrupo;
+  cidades: CidadeComGrupos[];
 }
 
 interface EstadoRegiaoItemSemGrupo {
@@ -215,6 +223,7 @@ export class Enderecos implements OnInit, OnDestroy {
   private readonly reuniaoService = inject(ReuniaoService);
   private readonly reuniaoOnlineService = inject(ReuniaoOnlineService);
   private readonly activatedRoute = inject(ActivatedRoute);
+  private readonly sanitizer = inject(DomSanitizer);
 
   readonly regioes = signal<RegiaoIntergrupo[]>([]);
   readonly ufsFaltantesPorRegiao = signal<Map<string, UnidadeFederativaComRegiao[]>>(new Map());
@@ -379,15 +388,19 @@ export class Enderecos implements OnInit, OnDestroy {
 
     const comGrupo: EstadoRegiaoItemComGrupo[] = regiao.estados
       .filter((estado) => ufFiltro === 'todas' || estado.uf === ufFiltro)
-      .map((estado) => ({
-        tipo: 'com-grupo' as const,
-        nome: estado.nome,
-        uf: estado.uf,
-        estado: {
-          ...estado,
-          grupos: estado.grupos.filter((grupo) => this.grupoCorrespondeAoFiltro(grupo, textoFiltro)),
-        },
-      }))
+      .map((estado) => {
+        const gruposFiltrados = estado.grupos.filter((grupo) => this.grupoCorrespondeAoFiltro(grupo, textoFiltro));
+        return {
+          tipo: 'com-grupo' as const,
+          nome: estado.nome,
+          uf: estado.uf,
+          estado: {
+            ...estado,
+            grupos: gruposFiltrados,
+          },
+          cidades: this.agruparGruposPorCidade(gruposFiltrados),
+        };
+      })
       .filter((item) => textoFiltro === '' || item.estado.grupos.length > 0);
 
     const semGrupo: EstadoRegiaoItem[] = (this.ufsFaltantesPorRegiao().get(regiao.codigo) ?? [])
@@ -424,6 +437,20 @@ export class Enderecos implements OnInit, OnDestroy {
 
   temPresencialNoBloco(item: EstadoRegiaoItem): boolean {
     return item.tipo === 'com-grupo' && item.estado.grupos.length > 0;
+  }
+
+  private agruparGruposPorCidade(grupos: GrupoIntergrupo[]): CidadeComGrupos[] {
+    const porCidade = new Map<string, GrupoIntergrupo[]>();
+    for (const grupo of grupos) {
+      const chave = grupo.cidade.trim();
+      const grupoExistente = porCidade.get(chave);
+      if (grupoExistente) {
+        grupoExistente.push(grupo);
+      } else {
+        porCidade.set(chave, [grupo]);
+      }
+    }
+    return [...porCidade.entries()].map(([cidade, gruposDaCidade]) => ({ cidade, grupos: gruposDaCidade }));
   }
 
   readonly reunioesOnlinePorDia = computed<{ diaSemana: DiaSemanaAgendaReuniao; rotulo: DiaSemanaCurto; grupos: GrupoReuniaoOnlinePorDia[] }[]>(() => {
@@ -518,6 +545,21 @@ export class Enderecos implements OnInit, OnDestroy {
 
   whatsappLinkReuniaoOnline(reuniao: ReuniaoOnline): string {
     return montarLinkWhatsapp(reuniao.telefone || WHATSAPP_PHONE_NUMBER);
+  }
+
+  embedVideoReuniaoOnline(reuniao: ReuniaoOnline): SafeResourceUrl | null {
+    const videoId = extrairYoutubeVideoId(reuniao.videoUrl);
+    if (!videoId) {
+      return null;
+    }
+    return this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube-nocookie.com/embed/${videoId}`);
+  }
+
+  linkWhatsappFalarComGrupoOnline(reuniao: ReuniaoOnline): string {
+    return montarLinkWhatsapp(
+      WHATSAPP_PHONE_NUMBER,
+      `Olá! Gostaria de saber mais sobre o grupo online ${reuniao.nome}.`,
+    );
   }
 
   enderecoCompletoGrupo(grupo: GrupoIntergrupo): string {

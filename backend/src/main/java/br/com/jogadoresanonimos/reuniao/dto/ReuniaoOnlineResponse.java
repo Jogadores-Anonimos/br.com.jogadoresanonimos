@@ -7,15 +7,17 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-public record ReuniaoOnlineResponse(UUID id, String nome, String telefone, String descricao,
+public record ReuniaoOnlineResponse(UUID id, String nome, String telefone, String descricao, String videoUrl,
+                                     UUID panfletoImagemId, String panfletoImagemUrl,
                                      List<ReuniaoOnlineAgendaItemResponse> agenda, Instant atualizadoEm) {
 
-    public static ReuniaoOnlineResponse from(ReuniaoOnline reuniaoOnline) {
+    public static ReuniaoOnlineResponse from(ReuniaoOnline reuniaoOnline, String panfletoImagemUrl) {
         List<ReuniaoOnlineAgendaItemResponse> agenda = reuniaoOnline.getAgenda().stream()
                 .sorted(AgendaItemReuniaoOnlineComparator.porDiaEHorario())
                 .map(ReuniaoOnlineAgendaItemResponse::from)
                 .toList();
         return new ReuniaoOnlineResponse(reuniaoOnline.getId(), reuniaoOnline.getNome(),
-                reuniaoOnline.getTelefone(), reuniaoOnline.getDescricao(), agenda, reuniaoOnline.getAtualizadoEm());
+                reuniaoOnline.getTelefone(), reuniaoOnline.getDescricao(), reuniaoOnline.getVideoUrl(),
+                reuniaoOnline.getPanfletoImagemId(), panfletoImagemUrl, agenda, reuniaoOnline.getAtualizadoEm());
     }
 }

@@ -53,16 +53,17 @@ class ReuniaoOnlineAdminControllerTest {
     }
 
     private ReuniaoOnlineResponse reuniaoOnlineResponse(UUID id) {
-        return new ReuniaoOnlineResponse(id, "Grupo Salvador", "21 99472-1933", "descrição",
+        return new ReuniaoOnlineResponse(id, "Grupo Salvador", "21 99472-1933", "descrição", null, null, null,
                 agendaResponse(), Instant.now());
     }
 
     private CriarReuniaoOnlineRequest criarRequest() {
-        return new CriarReuniaoOnlineRequest("Grupo Salvador", null, "descrição", agendaRequest());
+        return new CriarReuniaoOnlineRequest("Grupo Salvador", null, "descrição", null, null, agendaRequest());
     }
 
     private EditarReuniaoOnlineRequest editarRequest() {
-        return new EditarReuniaoOnlineRequest("Grupo Salvador editado", null, "descrição editada", agendaRequest());
+        return new EditarReuniaoOnlineRequest("Grupo Salvador editado", null, "descrição editada", null, null,
+                agendaRequest());
     }
 
     @Test
@@ -89,7 +90,8 @@ class ReuniaoOnlineAdminControllerTest {
 
     @Test
     void criar_comNomeEmBranco_deveFalharValidacao() {
-        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest(" ", null, "descrição", agendaRequest());
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest(" ", null, "descrição", null, null,
+                agendaRequest());
         Set<ConstraintViolation<CriarReuniaoOnlineRequest>> violacoes = validator.validate(request);
         assertThat(violacoes)
                 .anyMatch(violacao -> violacao.getPropertyPath().toString().equals("nome"));

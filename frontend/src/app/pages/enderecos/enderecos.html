@@ -53,6 +53,11 @@
 
     @if (modoExibicao() === 'presencial') {
     <div id="painel-modo-presencial" role="tabpanel" aria-labelledby="tab-modo-presencial">
+    <p class="lead lead-presencial-intro">
+      Verifique se há reuniões presenciais em sua região — elas estão organizadas por
+      estado a seguir. Se não houver reuniões presenciais, clique em online. Priorize
+      reuniões presenciais (por conta do acolhimento e mais recursos).
+    </p>
     <button
       type="button"
       class="btn-mapa-toggle"
@@ -173,25 +178,30 @@
           </div>
 
           @if (item.tipo === 'com-grupo' && item.estado.grupos.length > 0) {
-            <div class="grupos-grid">
-              @for (grupo of item.estado.grupos; track grupo.id) {
-                <div class="grupo-card">
-                  <h4>{{ grupo.nome }}</h4>
-                  <p class="grupo-endereco">
-                    {{ grupo.endereco }}@if (grupo.bairro) {, {{ grupo.bairro }}}, {{ grupo.cidade }}
-                  </p>
-                  @if (grupo.telefones.length) {
-                    <p class="grupo-telefone">Tel: {{ formatarTelefones(grupo.telefones) }}</p>
+            @for (cidade of item.cidades; track cidade.cidade) {
+              <div class="cidade-bloco">
+                <h4 class="cidade-titulo">{{ cidade.cidade }}</h4>
+                <div class="grupos-grid">
+                  @for (grupo of cidade.grupos; track grupo.id) {
+                    <div class="grupo-card">
+                      <h5>{{ grupo.nome }}</h5>
+                      <p class="grupo-endereco">
+                        {{ grupo.endereco }}@if (grupo.bairro) {, {{ grupo.bairro }}}
+                      </p>
+                      @if (grupo.telefones.length) {
+                        <p class="grupo-telefone">Tel: {{ formatarTelefones(grupo.telefones) }}</p>
+                      }
+                      <span class="grupo-horario">{{ formatarAgenda(grupo.agenda) }}</span>
+                      <div class="grupo-card-acoes">
+                        <button type="button" class="btn-detalhes" (click)="abrirDetalhesGrupo(grupo)">
+                          Ver detalhes
+                        </button>
+                      </div>
+                    </div>
                   }
-                  <span class="grupo-horario">{{ formatarAgenda(grupo.agenda) }}</span>
-                  <div class="grupo-card-acoes">
-                    <button type="button" class="btn-detalhes" (click)="abrirDetalhesGrupo(grupo)">
-                      Ver detalhes
-                    </button>
-                  </div>
                 </div>
-              }
-            </div>
+              </div>
+            }
           }
 
           @if (!temPresencialNoBloco(item)) {
@@ -231,10 +241,37 @@
                 @if (grupo.reuniao.telefone) {
                   <p class="grupo-telefone">Tel: {{ grupo.reuniao.telefone }}</p>
                 }
+                @if (embedVideoReuniaoOnline(grupo.reuniao); as videoEmbedUrl) {
+                  <div class="grupo-video-embed">
+                    <iframe
+                      [src]="videoEmbedUrl"
+                      title="Vídeo do grupo {{ grupo.reuniao.nome }}"
+                      allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowfullscreen
+                      loading="lazy"
+                    ></iframe>
+                  </div>
+                }
+                @if (grupo.reuniao.panfletoImagemUrl) {
+                  <img
+                    class="grupo-panfleto"
+                    [src]="grupo.reuniao.panfletoImagemUrl"
+                    [alt]="'Panfleto do grupo ' + grupo.reuniao.nome"
+                    loading="lazy"
+                  />
+                }
                 <div class="grupo-card-acoes">
                   <button type="button" class="btn-detalhes" (click)="abrirDetalhesReuniaoOnline(grupo.reuniao)">
                     Ver detalhes
                   </button>
+                  <a
+                    class="btn-falar-grupo"
+                    [href]="linkWhatsappFalarComGrupoOnline(grupo.reuniao)"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    Falar com o grupo
+                  </a>
                 </div>
               </div>
             }
@@ -381,6 +418,26 @@
             }
           </ul>
         </div>
+
+        @if (embedVideoReuniaoOnline(reuniaoOnlineDetalhe); as videoEmbedUrl) {
+          <div class="grupo-video-embed">
+            <iframe
+              [src]="videoEmbedUrl"
+              title="Vídeo do grupo {{ reuniaoOnlineDetalhe.nome }}"
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+              loading="lazy"
+            ></iframe>
+          </div>
+        }
+        @if (reuniaoOnlineDetalhe.panfletoImagemUrl) {
+          <img
+            class="grupo-panfleto"
+            [src]="reuniaoOnlineDetalhe.panfletoImagemUrl"
+            [alt]="'Panfleto do grupo ' + reuniaoOnlineDetalhe.nome"
+            loading="lazy"
+          />
+        }
 
         <div class="detalhes-acoes">
           <a

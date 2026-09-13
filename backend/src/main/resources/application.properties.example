@@ -43,6 +43,10 @@ app.auditoria.retencao-dias=${AUDITORIA_RETENCAO_DIAS:730}
 # no dia a dia; so setar dry-run ou apply quando for rodar a rotina.
 app.backfill.par-reuniao-grupo=${BACKFILL_PAR:}
 
+# Seed one-shot do Grupo Porto Velho/RO. So roda se o estado RO ainda nao
+# existir no escritorio regional; deixe false no dia a dia.
+app.seed.grupo-porto-velho=${SEED_GRUPO_PORTO_VELHO:false}
+
 server.error.include-stacktrace=never
 server.error.include-message=never
 server.error.include-exception=false

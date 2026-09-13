@@ -118,6 +118,11 @@
   font-style: italic;
 }
 
+.footer-helpline-text {
+  font-size: 0.95rem;
+  margin-bottom: var(--spacing-md);
+}
+
 .footer-social-link {
   display: inline-flex;
   align-items: center;

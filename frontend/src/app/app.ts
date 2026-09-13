@@ -4,7 +4,6 @@ import { filter } from 'rxjs';
 import { Navbar } from './components/navbar/navbar';
 import { Footer } from './components/footer/footer';
 import { BarraDeslizante } from './components/barra-deslizante/barra-deslizante';
-import { WhatsappFlutuante } from './components/whatsapp-flutuante/whatsapp-flutuante';
 import { VoltarAoTopo } from './components/voltar-ao-topo/voltar-ao-topo';
 import { Seo } from './services/seo';
 import { Auth } from './services/auth/auth';
@@ -13,7 +12,7 @@ import { AvisoEmailNaoConfirmado } from './components/aviso-email-nao-confirmado
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, Navbar, Footer, BarraDeslizante, WhatsappFlutuante, VoltarAoTopo, AvisoEmailNaoConfirmado],
+  imports: [RouterOutlet, Navbar, Footer, BarraDeslizante, VoltarAoTopo, AvisoEmailNaoConfirmado],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

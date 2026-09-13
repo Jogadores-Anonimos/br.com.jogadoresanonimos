@@ -201,8 +201,8 @@
   gap: var(--spacing-xs);
   margin-top: var(--spacing-xs);
   padding: 0.85rem 2rem;
-  background: var(--color-whatsapp);
-  color: var(--white);
+  background: var(--yellow-btn);
+  color: var(--black);
   font-weight: var(--font-weight-bold);
   text-decoration: none;
   border-radius: var(--radius-sm);

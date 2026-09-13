@@ -10,6 +10,9 @@ export interface ReuniaoOnline {
   nome: string;
   telefone: string | null;
   descricao: string | null;
+  videoUrl: string | null;
+  panfletoImagemId: string | null;
+  panfletoImagemUrl: string | null;
   agenda: AgendaItemReuniaoOnline[];
   atualizadoEm: string;
 }
@@ -17,6 +20,8 @@ export interface ReuniaoOnline {
 export interface CriarReuniaoOnlineRequest {
   nome: string;
   descricao?: string;
+  videoUrl?: string;
+  panfletoImagemId?: string;
   agenda: AgendaItemReuniaoOnline[];
 }
 

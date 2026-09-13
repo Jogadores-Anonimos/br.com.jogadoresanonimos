@@ -2,6 +2,12 @@
   @if (mostrarSidebar) {
     <aside class="resource-sidebar" aria-label="Navegação de páginas de recursos">
       <ng-content select="[sidebar]">
+        <div class="resource-sidebar-cta">
+          <h2>Comece sua jornada de recuperação</h2>
+          <p>Encontre uma reunião perto de você e dê o primeiro passo.</p>
+          <a class="resource-sidebar-cta__btn" routerLink="/enderecos">Participar de uma Reunião</a>
+        </div>
+
         <nav class="resource-nav">
           <h2 class="resource-sidebar-title">Recursos</h2>
 
@@ -42,12 +48,6 @@
             <li><a routerLink="/loja" routerLinkActive="active">Loja</a></li>
           </ul>
         </nav>
-
-        <div class="resource-sidebar-cta">
-          <h2>Comece sua jornada de recuperação</h2>
-          <p>Encontre uma reunião perto de você e dê o primeiro passo.</p>
-          <a class="resource-sidebar-cta__btn" routerLink="/enderecos">Participar de uma Reunião</a>
-        </div>
       </ng-content>
     </aside>
   }

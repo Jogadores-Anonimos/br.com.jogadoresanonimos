@@ -2,6 +2,9 @@ package br.com.jogadoresanonimos.reuniao.service;
 
 import br.com.jogadoresanonimos.common.exception.RecursoNaoEncontradoException;
 import br.com.jogadoresanonimos.common.exception.ValidationException;
+import br.com.jogadoresanonimos.imagem.entity.Imagem;
+import br.com.jogadoresanonimos.imagem.repository.ImagemRepository;
+import br.com.jogadoresanonimos.imagem.service.StorageClient;
 import br.com.jogadoresanonimos.reuniao.dto.CriarReuniaoOnlineRequest;
 import br.com.jogadoresanonimos.reuniao.dto.EditarReuniaoOnlineRequest;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoOnlineAgendaItemRequest;
@@ -25,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,25 +41,32 @@ class ReuniaoOnlineServiceTest {
     @Mock
     ReuniaoOnlineRepository reuniaoOnlineRepository;
 
+    @Mock
+    ImagemRepository imagemRepository;
+
+    @Mock
+    StorageClient storageClient;
+
     ReuniaoOnlineService reuniaoOnlineService;
 
     @BeforeEach
     void setUp() {
-        reuniaoOnlineService = new ReuniaoOnlineService(reuniaoOnlineRepository, TELEFONE_INSTITUCIONAL);
+        reuniaoOnlineService = new ReuniaoOnlineService(reuniaoOnlineRepository, imagemRepository, storageClient,
+                TELEFONE_INSTITUCIONAL);
     }
 
     private ReuniaoOnline reuniaoOnline() {
-        return new ReuniaoOnline("Grupo Online Segunda", TELEFONE_INSTITUCIONAL, "descricao",
+        return new ReuniaoOnline("Grupo Online Segunda", TELEFONE_INSTITUCIONAL, "descricao", null, null,
                 List.of(new AgendaItemReuniaoOnline(DiaSemanaReuniao.SEGUNDA, "19h")));
     }
 
     private CriarReuniaoOnlineRequest criarRequest() {
-        return new CriarReuniaoOnlineRequest("Grupo Online Segunda", "11 90000-0000", "descricao",
+        return new CriarReuniaoOnlineRequest("Grupo Online Segunda", "11 90000-0000", "descricao", null, null,
                 List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
     }
 
     private EditarReuniaoOnlineRequest editarRequest() {
-        return new EditarReuniaoOnlineRequest("Grupo Online Editado", "11 90000-0000", "nova descricao",
+        return new EditarReuniaoOnlineRequest("Grupo Online Editado", "11 90000-0000", "nova descricao", null, null,
                 List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
     }
 
@@ -80,7 +91,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comTelefoneNuloNoRequest_deveGravarTelefoneInstitucional() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
-                List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
         when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoOnlineService.criar(request);
         ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
@@ -91,7 +102,8 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_devePersistirDescricaoNormalizada() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null,
-                "  descricao com espacos  ", List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+                "  descricao com espacos  ", null, null,
+                List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
         when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoOnlineService.criar(request);
         ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
@@ -102,7 +114,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comDescricaoEmBranco_devePersistirNulo() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "   ",
-                List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
         when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoOnlineService.criar(request);
         ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
@@ -113,7 +125,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_devePersistirNomeSemEspacosNasBordas() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("  Grupo Online Segunda  ", null,
-                "descricao", List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+                "descricao", null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
         when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoOnlineService.criar(request);
         ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
@@ -124,7 +136,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comAgendaDeDiaEHorarioDuplicado_deveRejeitarSemPersistir() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
-                List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h"),
+                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h"),
                         new ReuniaoOnlineAgendaItemRequest("segunda-feira", " 19h ")));
         assertThatThrownBy(() -> reuniaoOnlineService.criar(request))
                 .isInstanceOf(ValidationException.class);
@@ -134,7 +146,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comAgendaMesmoDiaHorariosDiferentes_devePersistirAmbos() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
-                List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h"),
+                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h"),
                         new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "20h")));
         when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         ReuniaoOnlineResponse resultado = reuniaoOnlineService.criar(request);
@@ -145,7 +157,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comDiaSemanaComAcentoESufixoFeira_deveConverterCorretamente() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Terça", null, "descricao",
-                List.of(new ReuniaoOnlineAgendaItemRequest("Terça-feira", "20h")));
+                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("Terça-feira", "20h")));
         when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
         reuniaoOnlineService.criar(request);
@@ -157,7 +169,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comDiaSemanaInvalido_deveRejeitarSemPersistir() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
-                List.of(new ReuniaoOnlineAgendaItemRequest("Ferias", "19h")));
+                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("Ferias", "19h")));
         assertThatThrownBy(() -> reuniaoOnlineService.criar(request))
                 .isInstanceOf(ValidationException.class);
         verify(reuniaoOnlineRepository, never()).save(any());
@@ -166,10 +178,54 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comHorarioEmBranco_deveRejeitarSemPersistir() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
-                List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "   ")));
+                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "   ")));
         assertThatThrownBy(() -> reuniaoOnlineService.criar(request))
                 .isInstanceOf(ValidationException.class);
         verify(reuniaoOnlineRepository, never()).save(any());
+    }
+
+    @Test
+    void criar_comVideoUrlForaDoPadraoYoutube_deveRejeitarSemPersistir() {
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
+                "https://vimeo.com/123", null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+        assertThatThrownBy(() -> reuniaoOnlineService.criar(request))
+                .isInstanceOf(ValidationException.class);
+        verify(reuniaoOnlineRepository, never()).save(any());
+    }
+
+    @Test
+    void criar_comVideoUrlDoYoutube_devePersistir() {
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
+                "https://youtu.be/abc123", null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+        when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        ReuniaoOnlineResponse resultado = reuniaoOnlineService.criar(request);
+        assertThat(resultado.videoUrl()).isEqualTo("https://youtu.be/abc123");
+    }
+
+    @Test
+    void criar_comPanfletoImagemIdInexistente_deveRejeitarSemPersistir() {
+        UUID imagemId = UUID.randomUUID();
+        when(imagemRepository.existsById(imagemId)).thenReturn(false);
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
+                null, imagemId, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+        assertThatThrownBy(() -> reuniaoOnlineService.criar(request))
+                .isInstanceOf(ValidationException.class);
+        verify(reuniaoOnlineRepository, never()).save(any());
+    }
+
+    @Test
+    void criar_comPanfletoImagemIdExistente_devePersistirEResolverUrl() {
+        UUID imagemId = UUID.randomUUID();
+        Imagem imagem = new Imagem("panfleto.jpg", "chave-panfleto.jpg", 1000L, "alt", UUID.randomUUID());
+        when(imagemRepository.existsById(imagemId)).thenReturn(true);
+        lenient().when(imagemRepository.findById(imagemId)).thenReturn(Optional.of(imagem));
+        lenient().when(storageClient.urlPublicaPara("chave-panfleto.jpg")).thenReturn("https://storage/chave-panfleto.jpg");
+        when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
+                null, imagemId, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+        ReuniaoOnlineResponse resultado = reuniaoOnlineService.criar(request);
+        assertThat(resultado.panfletoImagemId()).isEqualTo(imagemId);
+        assertThat(resultado.panfletoImagemUrl()).isEqualTo("https://storage/chave-panfleto.jpg");
     }
 
     @Test
@@ -197,7 +253,7 @@ class ReuniaoOnlineServiceTest {
         ReuniaoOnline reuniaoOnline = reuniaoOnline();
         when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
         EditarReuniaoOnlineRequest request = new EditarReuniaoOnlineRequest("Grupo Online Editado", null,
-                "nova descricao", List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h"),
+                "nova descricao", null, null, List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h"),
                 new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
         assertThatThrownBy(() -> reuniaoOnlineService.editar(id, request))
                 .isInstanceOf(ValidationException.class);
@@ -210,7 +266,7 @@ class ReuniaoOnlineServiceTest {
         ReuniaoOnline reuniaoOnline = reuniaoOnline();
         when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
         EditarReuniaoOnlineRequest request = new EditarReuniaoOnlineRequest("Grupo Online Editado", null, "   ",
-                List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
+                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
         ReuniaoOnlineResponse resultado = reuniaoOnlineService.editar(id, request);
         assertThat(resultado.descricao()).isNull();
     }
@@ -221,10 +277,37 @@ class ReuniaoOnlineServiceTest {
         ReuniaoOnline reuniaoOnline = reuniaoOnline();
         when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
         EditarReuniaoOnlineRequest request = new EditarReuniaoOnlineRequest("Grupo Online Editado", null,
-                "nova descricao", List.of(new ReuniaoOnlineAgendaItemRequest("sábado", "10h")));
+                "nova descricao", null, null, List.of(new ReuniaoOnlineAgendaItemRequest("sábado", "10h")));
         ReuniaoOnlineResponse resultado = reuniaoOnlineService.editar(id, request);
         assertThat(resultado.agenda()).extracting("diaSemana")
                 .containsExactly("SABADO");
+    }
+
+    @Test
+    void editar_comVideoUrlForaDoPadraoYoutube_deveRejeitarSemAlterarEntidade() {
+        UUID id = UUID.randomUUID();
+        ReuniaoOnline reuniaoOnline = reuniaoOnline();
+        when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
+        EditarReuniaoOnlineRequest request = new EditarReuniaoOnlineRequest("Grupo Online Editado", null,
+                "nova descricao", "https://vimeo.com/123", null,
+                List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
+        assertThatThrownBy(() -> reuniaoOnlineService.editar(id, request))
+                .isInstanceOf(ValidationException.class);
+        assertThat(reuniaoOnline.getVideoUrl()).isNull();
+    }
+
+    @Test
+    void editar_comPanfletoImagemIdInexistente_deveRejeitarSemAlterarEntidade() {
+        UUID id = UUID.randomUUID();
+        UUID imagemId = UUID.randomUUID();
+        ReuniaoOnline reuniaoOnline = reuniaoOnline();
+        when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
+        when(imagemRepository.existsById(imagemId)).thenReturn(false);
+        EditarReuniaoOnlineRequest request = new EditarReuniaoOnlineRequest("Grupo Online Editado", null,
+                "nova descricao", null, imagemId, List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
+        assertThatThrownBy(() -> reuniaoOnlineService.editar(id, request))
+                .isInstanceOf(ValidationException.class);
+        assertThat(reuniaoOnline.getPanfletoImagemId()).isNull();
     }
 
     @Test

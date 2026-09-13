@@ -1,0 +1,205 @@
+:host {
+  display: block;
+}
+
+.admin-vinte-perguntas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.admin-vinte-perguntas__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.admin-vinte-perguntas__titulo {
+  color: var(--color-text);
+  font-size: 1.4rem;
+  font-weight: var(--font-weight-heading);
+}
+
+.admin-vinte-perguntas__descricao {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 70ch;
+  margin-top: var(--spacing-xs);
+}
+
+.admin-vinte-perguntas__estado {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.admin-vinte-perguntas__estado--erro {
+  color: var(--color-danger);
+}
+
+.admin-vinte-perguntas__lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.admin-vinte-perguntas__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-vinte-perguntas__card-cabecalho {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: var(--spacing-sm);
+  align-items: start;
+}
+
+.admin-vinte-perguntas__numero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  width: 32px;
+  border-radius: 50%;
+  background: var(--color-bg-section);
+  color: var(--cor-padrao-ja);
+  font-weight: var(--font-weight-heading);
+  font-size: 0.9rem;
+}
+
+.admin-vinte-perguntas__corpo {
+  color: var(--color-text);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.admin-vinte-perguntas__erro-card {
+  color: var(--color-danger);
+  font-size: 0.9rem;
+}
+
+.admin-vinte-perguntas__confirmacao {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+  align-self: center;
+}
+
+.admin-vinte-perguntas__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+}
+
+.admin-vinte-perguntas__botao {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.admin-vinte-perguntas__botao:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-vinte-perguntas__botao:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.admin-vinte-perguntas__botao--primario {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+}
+
+.admin-vinte-perguntas__botao--secundario {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.admin-vinte-perguntas__botao--perigo {
+  background: var(--color-danger);
+  color: var(--white);
+}
+
+.admin-vinte-perguntas__botao--pequeno {
+  padding: 0.4em 0.8em;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.admin-vinte-perguntas__formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-width: 60ch;
+}
+
+.admin-vinte-perguntas__campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.admin-vinte-perguntas__campo label {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-vinte-perguntas__campo textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-xs);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  resize: vertical;
+}
+
+.admin-vinte-perguntas__campo textarea:focus-visible {
+  outline: 2px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .admin-vinte-perguntas__cabecalho {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-vinte-perguntas__botao--primario {
+    width: 100%;
+  }
+
+  .admin-vinte-perguntas__acoes {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-vinte-perguntas__acoes .admin-vinte-perguntas__botao {
+    width: 100%;
+  }
+}

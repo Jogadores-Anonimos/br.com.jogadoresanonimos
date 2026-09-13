@@ -19,6 +19,9 @@ import { ReuniaoOnlineService } from '../../../services/reuniao-online/reuniao-o
 import { CriarReuniaoOnlineRequest, ReuniaoOnline } from '../../../services/reuniao-online/reuniao-online.model';
 import { configurarMapLibreWorker } from '../../../config/maplibre-worker.config';
 import { WHATSAPP_PHONE_NUMBER } from '../../../config/whatsapp.config';
+import { Imagem } from '../../../services/imagem/imagem';
+import { extrairYoutubeVideoId, paraYoutubeEmbedUrl } from '../../../services/mural-de-apoio/youtube.util';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 const CODIGO_AVISO_ENDERECO_LOCAL_DIVERGENTE = 'ENDERECO_LOCAL_DIVERGENTE';
 
@@ -55,6 +58,8 @@ interface FormularioReuniao {
   bairro: string;
   cidade: string;
   estado: string;
+  videoUrl: string;
+  panfletoImagemId: string;
 }
 
 interface AgendaFormularioItem {
@@ -98,6 +103,8 @@ function formularioVazio(): FormularioReuniao {
     bairro: '',
     cidade: '',
     estado: '',
+    videoUrl: '',
+    panfletoImagemId: '',
   };
 }
 
@@ -174,6 +181,29 @@ function whatsappFormatoValido(valor: string): boolean {
   return WHATSAPP_DIGITOS_REGEX.test(digitos);
 }
 
+const CONECTIVOS_MINUSCULOS = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'a', 'o', 'no', 'na']);
+
+function paraTitleCase(valor: string): string {
+  return valor
+    .toLowerCase()
+    .split(' ')
+    .map((palavra, indice) => {
+      if (!palavra) return palavra;
+      if (indice > 0 && CONECTIVOS_MINUSCULOS.has(palavra)) return palavra;
+      return palavra.charAt(0).toUpperCase() + palavra.slice(1);
+    })
+    .join(' ');
+}
+
+function normalizarTextoLivre(valor: string): string {
+  const semEspacosExtras = valor.trim().replace(/\s+/g, ' ');
+  if (!semEspacosExtras) return semEspacosExtras;
+  const proporcaoMaiusculas =
+    (semEspacosExtras.match(/[A-ZÀ-Ú]/g) ?? []).length / (semEspacosExtras.match(/[A-Za-zÀ-ÿ]/g) ?? ['']).length;
+  if (proporcaoMaiusculas < 0.6) return semEspacosExtras;
+  return paraTitleCase(semEspacosExtras);
+}
+
 function corPadraoJa(): string {
   return getComputedStyle(document.documentElement).getPropertyValue('--cor-padrao-ja').trim();
 }
@@ -197,6 +227,8 @@ export class AdminReunioes implements OnInit {
   private readonly reuniaoService = inject(ReuniaoService);
   private readonly reuniaoOnlineService = inject(ReuniaoOnlineService);
   private readonly enderecoLookupService = inject(EnderecoLookupService);
+  private readonly imagemService = inject(Imagem);
+  private readonly sanitizer = inject(DomSanitizer);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   readonly diasSemanaFiltro = DIAS_SEMANA;
@@ -263,6 +295,10 @@ export class AdminReunioes implements OnInit {
 
   buscandoCep = false;
   erroCep = '';
+
+  panfletoImagemUrl: string | null = null;
+  enviandoPanfleto = false;
+  erroUploadPanfleto = '';
 
   confirmandoExclusao: string | null = null;
   excluindo = false;
@@ -409,6 +445,8 @@ export class AdminReunioes implements OnInit {
     this.avisoEnderecoLocalDivergente = false;
     this.conflitoVersao = false;
     this.avisoGeocodificacao = '';
+    this.panfletoImagemUrl = null;
+    this.erroUploadPanfleto = '';
     this.modo = 'formulario';
     this.focarFormulario();
   }
@@ -433,7 +471,10 @@ export class AdminReunioes implements OnInit {
         bairro: reuniao.bairro ?? '',
         cidade: reuniao.cidade ?? '',
         estado: reuniao.estado ?? '',
+        videoUrl: '',
+        panfletoImagemId: '',
       };
+      this.panfletoImagemUrl = null;
     } else if (item.origem === 'virtual' && item.reuniaoOnline) {
       const reuniaoOnline = item.reuniaoOnline;
       this.reuniaoOnlineEmEdicao = reuniaoOnline;
@@ -444,7 +485,10 @@ export class AdminReunioes implements OnInit {
         categoria: 'virtual',
         descricao: reuniaoOnline.descricao ?? '',
         agenda: this.agendaParaFormulario(reuniaoOnline.agenda),
+        videoUrl: reuniaoOnline.videoUrl ?? '',
+        panfletoImagemId: reuniaoOnline.panfletoImagemId ?? '',
       };
+      this.panfletoImagemUrl = reuniaoOnline.panfletoImagemUrl ?? null;
     } else {
       return;
     }
@@ -454,6 +498,7 @@ export class AdminReunioes implements OnInit {
     this.avisoEnderecoLocalDivergente = false;
     this.conflitoVersao = false;
     this.avisoGeocodificacao = '';
+    this.erroUploadPanfleto = '';
     this.modo = 'formulario';
     this.focarFormulario();
   }
@@ -468,6 +513,8 @@ export class AdminReunioes implements OnInit {
     this.errosCampo = {};
     this.avisoEnderecoLocalDivergente = false;
     this.avisoGeocodificacao = '';
+    this.panfletoImagemUrl = null;
+    this.erroUploadPanfleto = '';
   }
 
   private focarFormulario(): void {
@@ -536,6 +583,46 @@ export class AdminReunioes implements OnInit {
         this.atualizarMapaPreview();
       });
     });
+  }
+
+  onArquivoPanfletoSelecionado(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const arquivo = input.files && input.files.length > 0 ? input.files[0] : null;
+    if (!arquivo) return;
+
+    this.enviandoPanfleto = true;
+    this.erroUploadPanfleto = '';
+
+    this.imagemService
+      .uploadImagem({ arquivo, alt: `Panfleto da reunião ${this.formulario.nome.trim() || 'online'}` })
+      .subscribe((envelope) => {
+        this.enviandoPanfleto = false;
+
+        if (envelope.success && envelope.data) {
+          this.formulario.panfletoImagemId = envelope.data.id;
+          this.panfletoImagemUrl = envelope.data.url;
+        } else {
+          this.erroUploadPanfleto = envelope.error?.message ?? 'Não foi possível enviar o panfleto.';
+        }
+
+        input.value = '';
+      });
+  }
+
+  removerPanfleto(): void {
+    this.formulario.panfletoImagemId = '';
+    this.panfletoImagemUrl = null;
+    this.erroUploadPanfleto = '';
+  }
+
+  videoUrlInvalida(): boolean {
+    const valor = this.formulario.videoUrl.trim();
+    return valor.length > 0 && !extrairYoutubeVideoId(valor);
+  }
+
+  embedPreviewUrl(): SafeResourceUrl | null {
+    const embedUrl = paraYoutubeEmbedUrl(this.formulario.videoUrl.trim());
+    return embedUrl ? this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl) : null;
   }
 
   validarWhatsapp(): void {
@@ -633,6 +720,7 @@ export class AdminReunioes implements OnInit {
       agenda: 'Agenda (dias e horários)',
       local: 'Endereço',
       estado: 'Estado (UF)',
+      videoUrl: 'URL do vídeo',
     };
     const camposComErro = Object.keys(this.errosCampo)
       .filter((campo) => !campo.startsWith('agenda.'))
@@ -681,6 +769,9 @@ export class AdminReunioes implements OnInit {
         this.errosCampo['estado'] = 'Selecione o estado (UF) da reunião.';
       }
     }
+    if (virtual && this.videoUrlInvalida()) {
+      this.errosCampo['videoUrl'] = 'URL do YouTube inválida.';
+    }
     if (Object.keys(this.errosCampo).length > 0) {
       this.erroFormulario = this.construirErroFormulario();
       return;
@@ -727,13 +818,13 @@ export class AdminReunioes implements OnInit {
     const horario = primeiroItem.horario;
 
     const request: CriarReuniaoRequest = {
-      nome: this.formulario.nome.trim(),
+      nome: normalizarTextoLivre(this.formulario.nome),
       categoria: 'presencial',
-      descricao: this.formulario.descricao.trim(),
+      descricao: normalizarTextoLivre(this.formulario.descricao),
       agenda,
       dia: diaSemana,
       horario,
-      local: this.formulario.local.trim(),
+      local: normalizarTextoLivre(this.formulario.local),
       whatsapp: this.formulario.whatsapp.trim() || undefined,
       diaSemana,
       periodo: periodoParaHorario(horario),
@@ -741,9 +832,9 @@ export class AdminReunioes implements OnInit {
       longitude,
       cep: this.formulario.cep.trim() || undefined,
       numero: this.formulario.numero.trim() || undefined,
-      logradouro: this.formulario.logradouro.trim() || undefined,
-      bairro: this.formulario.bairro.trim() || undefined,
-      cidade: this.formulario.cidade.trim() || undefined,
+      logradouro: normalizarTextoLivre(this.formulario.logradouro) || undefined,
+      bairro: normalizarTextoLivre(this.formulario.bairro) || undefined,
+      cidade: normalizarTextoLivre(this.formulario.cidade) || undefined,
       estado: this.formulario.estado.trim() || undefined,
     };
 
@@ -784,9 +875,11 @@ export class AdminReunioes implements OnInit {
 
   private salvarVirtual(agenda: AgendaItemReuniao[]): void {
     const request: CriarReuniaoOnlineRequest = {
-      nome: this.formulario.nome.trim(),
-      descricao: this.formulario.descricao.trim(),
+      nome: normalizarTextoLivre(this.formulario.nome),
+      descricao: normalizarTextoLivre(this.formulario.descricao),
       agenda,
+      videoUrl: this.formulario.videoUrl.trim() || undefined,
+      panfletoImagemId: this.formulario.panfletoImagemId.trim() || undefined,
     };
 
     const acao = this.reuniaoOnlineEmEdicao

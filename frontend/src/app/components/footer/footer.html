@@ -27,13 +27,14 @@
     </div>
 
     <div class="footer-column">
-      <h2 class="footer-heading">Contato</h2>
+      <h2 class="footer-heading">Escritórios de Serviço</h2>
       <div class="footer-region">
         <h3 class="footer-region-title">São Paulo</h3>
         <ul class="footer-contact">
           <li><span class="footer-contact-label">Telefone:</span> <a href="tel:+5511995716942">(11) 99571-6942</a></li>
           <li><span class="footer-contact-label">E-mail:</span> <a href="mailto:jogadoresanonimossaopaulo@gmail.com">jogadoresanonimossaopaulo@gmail.com</a></li>
         </ul>
+        <p class="footer-address">Rua Paulino Guimarães, 93 - Sala 12 - Luz - Centro, São Paulo - SP, CEP 01109-020</p>
       </div>
       <div class="footer-region">
         <h3 class="footer-region-title">Rio de Janeiro</h3>
@@ -41,6 +42,7 @@
           <li><span class="footer-contact-label">Telefone:</span> <a href="tel:+5521997503174">(21) 99750-3174</a></li>
           <li><span class="footer-contact-label">E-mail:</span> <a href="mailto:jogadoresanonimos@yahoo.com.br">jogadoresanonimos@yahoo.com.br</a></li>
         </ul>
+        <p class="footer-address">Av. Presidente Vargas, 542 - Sala 1407 - Centro, Rio de Janeiro - RJ, CEP 20071-000</p>
       </div>
       <a
         class="footer-social-link"
@@ -57,16 +59,16 @@
     </div>
 
     <div class="footer-column">
-      <h2 class="footer-heading">Endereço</h2>
-      <div class="footer-region">
-        <h3 class="footer-region-title">São Paulo</h3>
-        <p class="footer-address">Rua Paulino Guimarães, 93 - Sala 12 - Luz - Centro, São Paulo - SP, CEP 01109-020</p>
-      </div>
-      <div class="footer-region">
-        <h3 class="footer-region-title">Rio de Janeiro</h3>
-        <p class="footer-address">Av. Presidente Vargas, 542 - Sala 1407 - Centro, Rio de Janeiro - RJ, CEP 20071-000</p>
-      </div>
-      <a class="footer-cta" routerLink="/enderecos">Encontrar uma Reunião</a>
+      <h2 class="footer-heading">Linha de Ajuda</h2>
+      <p class="footer-helpline-text">Fale com a gente pelo WhatsApp, com total anonimato.</p>
+      <a
+        class="footer-cta footer-cta--whatsapp"
+        [href]="whatsappChatUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        WhatsApp: (21) 99472-1933
+      </a>
     </div>
   </div>
 

@@ -1,0 +1,145 @@
+@if (modo === 'lista') {
+<section class="admin-vinte-perguntas">
+  <div class="admin-vinte-perguntas__cabecalho">
+    <div>
+      <h1 class="admin-vinte-perguntas__titulo">20 Perguntas</h1>
+      <p class="admin-vinte-perguntas__descricao">
+        Gerencie as perguntas do questionário de autorreflexão. Use as setas para reordenar a
+        sequência de exibição. É preciso manter ao menos uma pergunta.
+      </p>
+    </div>
+    <button type="button" class="admin-vinte-perguntas__botao admin-vinte-perguntas__botao--primario" (click)="abrirNovo()">
+      + Adicionar nova
+    </button>
+  </div>
+
+  @if (carregando) {
+    <p class="admin-vinte-perguntas__estado" role="status">Carregando perguntas…</p>
+  }
+
+  @if (!carregando && erroCarregamento) {
+    <p class="admin-vinte-perguntas__estado admin-vinte-perguntas__estado--erro" role="alert">
+      {{ erroCarregamento }}
+    </p>
+  }
+
+  @if (!carregando && !erroCarregamento && perguntas.length === 0) {
+    <p class="admin-vinte-perguntas__estado">
+      Nenhuma pergunta cadastrada ainda.
+    </p>
+  }
+
+  @if (!carregando && perguntas.length > 0) {
+    <ol class="admin-vinte-perguntas__lista">
+      @for (pergunta of perguntas; track pergunta.id; let primeiro = $first; let ultimo = $last) {
+        <li class="admin-vinte-perguntas__card">
+          <div class="admin-vinte-perguntas__card-cabecalho">
+            <span class="admin-vinte-perguntas__numero">{{ pergunta.numero }}</span>
+            <p class="admin-vinte-perguntas__corpo">{{ pergunta.texto }}</p>
+          </div>
+
+          @if (erroExclusao && confirmandoExclusao === pergunta.id) {
+            <p class="admin-vinte-perguntas__erro-card" role="alert">
+              {{ erroExclusao }}
+            </p>
+          }
+
+          @if (erroMover && movendoId === pergunta.id) {
+            <p class="admin-vinte-perguntas__erro-card" role="alert">
+              {{ erroMover }}
+            </p>
+          }
+
+          <div class="admin-vinte-perguntas__acoes">
+            <button
+              type="button"
+              class="admin-vinte-perguntas__botao admin-vinte-perguntas__botao--secundario admin-vinte-perguntas__botao--pequeno"
+              [disabled]="primeiro || movendoId === pergunta.id"
+              [attr.aria-label]="'Mover pergunta ' + pergunta.numero + ' para cima'"
+              (click)="moverParaCima(pergunta)"
+            >
+              ▲
+            </button>
+            <button
+              type="button"
+              class="admin-vinte-perguntas__botao admin-vinte-perguntas__botao--secundario admin-vinte-perguntas__botao--pequeno"
+              [disabled]="ultimo || movendoId === pergunta.id"
+              [attr.aria-label]="'Mover pergunta ' + pergunta.numero + ' para baixo'"
+              (click)="moverParaBaixo(pergunta)"
+            >
+              ▼
+            </button>
+
+            @if (confirmandoExclusao !== pergunta.id) {
+              <button type="button" class="admin-vinte-perguntas__botao admin-vinte-perguntas__botao--secundario" (click)="abrirEdicao(pergunta)">
+                Editar
+              </button>
+              <button
+                type="button"
+                class="admin-vinte-perguntas__botao admin-vinte-perguntas__botao--perigo"
+                [disabled]="perguntas.length <= 1"
+                [title]="perguntas.length <= 1 ? 'É preciso manter ao menos uma pergunta' : 'Excluir pergunta'"
+                (click)="pedirConfirmacaoExclusao(pergunta)"
+              >
+                Excluir
+              </button>
+            } @else {
+              <p class="admin-vinte-perguntas__confirmacao">Excluir esta pergunta permanentemente?</p>
+              <button
+                type="button"
+                class="admin-vinte-perguntas__botao admin-vinte-perguntas__botao--perigo"
+                [disabled]="excluindo"
+                (click)="confirmarExclusao(pergunta)"
+              >
+                Confirmar exclusão
+              </button>
+              <button
+                type="button"
+                class="admin-vinte-perguntas__botao admin-vinte-perguntas__botao--secundario"
+                [disabled]="excluindo"
+                (click)="cancelarExclusao()"
+              >
+                Cancelar
+              </button>
+            }
+          </div>
+        </li>
+      }
+    </ol>
+  }
+</section>
+}
+
+@if (modo === 'formulario') {
+<section class="admin-vinte-perguntas">
+  <h1 class="admin-vinte-perguntas__titulo">{{ perguntaEmEdicao ? 'Editar pergunta' : 'Nova pergunta' }}</h1>
+
+  <form class="admin-vinte-perguntas__formulario" (ngSubmit)="salvar()">
+    <div class="admin-vinte-perguntas__campo">
+      <label for="vinte-perguntas-texto">Texto da pergunta</label>
+      <textarea
+        id="vinte-perguntas-texto"
+        name="texto"
+        rows="3"
+        [(ngModel)]="textoFormulario"
+        [class.campo-invalido]="errosCampo['texto']"
+        [attr.aria-invalid]="errosCampo['texto'] ? 'true' : null"
+        required
+      ></textarea>
+    </div>
+
+    @if (erroFormulario) {
+      <p class="admin-vinte-perguntas__erro-card" role="alert">{{ erroFormulario }}</p>
+    }
+
+    <div class="admin-vinte-perguntas__acoes">
+      <button type="submit" class="admin-vinte-perguntas__botao admin-vinte-perguntas__botao--primario" [disabled]="salvando">
+        {{ salvando ? 'Salvando…' : 'Salvar' }}
+      </button>
+      <button type="button" class="admin-vinte-perguntas__botao admin-vinte-perguntas__botao--secundario" [disabled]="salvando" (click)="cancelar()">
+        Cancelar
+      </button>
+    </div>
+  </form>
+</section>
+}

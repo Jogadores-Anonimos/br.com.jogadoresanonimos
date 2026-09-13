@@ -7,7 +7,6 @@ import { paraYoutubeEmbedUrl, paraYoutubeThumbnailUrl } from '../../services/mur
 import { Aviso, AvisosService } from '../../services/avisos/avisos';
 import { RelatoPublicoResumo, RelatosService } from '../../services/relatos/relatos';
 import { ReflexaoPreview } from '../../components/reflexao-preview/reflexao-preview';
-import { WHATSAPP_CHAT_URL } from '../../config/whatsapp.config';
 
 const QUANTIDADE_AVISOS_TEASER = 3;
 const QUANTIDADE_RELATOS_TEASER = 3;
@@ -21,8 +20,6 @@ const TRECHO_RELATO_LIMITE = 70;
   styleUrl: './home.css'
 })
 export class Home implements OnInit {
-  readonly whatsappChatUrl = WHATSAPP_CHAT_URL;
-
   bannersMural: BannerMuralApoio[] = [];
   carregandoMural = true;
   erroMural = false;

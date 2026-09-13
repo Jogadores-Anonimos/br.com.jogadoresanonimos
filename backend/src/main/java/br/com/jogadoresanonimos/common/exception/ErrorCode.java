@@ -62,10 +62,6 @@ public final class ErrorCode {
     public static final String IMAGEM_EM_USO = "IMAGEM_EM_USO";
 
     public static final String CMS_PAGINA_NAO_ENCONTRADA = "CMS_PAGINA_NAO_ENCONTRADA";
-    public static final String CMS_SLUG_EM_USO = "CMS_SLUG_EM_USO";
-    public static final String CMS_BLOCO_REFERENCIA_INVALIDA = "CMS_BLOCO_REFERENCIA_INVALIDA";
-    public static final String CMS_BLOCO_ORDEM_DUPLICADA = "CMS_BLOCO_ORDEM_DUPLICADA";
-    public static final String CMS_BLOCO_TIPO_INVALIDO = "CMS_BLOCO_TIPO_INVALIDO";
     public static final String CMS_HTML_REJEITADO = "CMS_HTML_REJEITADO";
 
     public static final String MURAL_BANNER_NAO_ENCONTRADO = "MURAL_BANNER_NAO_ENCONTRADO";
@@ -88,6 +84,7 @@ public final class ErrorCode {
     public static final String REUNIAO_GRUPO_DADOS_INVALIDOS = "REUNIAO_GRUPO_DADOS_INVALIDOS";
     public static final String REUNIAO_GRUPO_UF_DIVERGENTE = "REUNIAO_GRUPO_UF_DIVERGENTE";
     public static final String REUNIAO_ONLINE_NAO_ENCONTRADA = "REUNIAO_ONLINE_NAO_ENCONTRADA";
+    public static final String REUNIAO_ONLINE_MIDIA_INVALIDA = "REUNIAO_ONLINE_MIDIA_INVALIDA";
 
     public static final String ESCRITORIO_REGIAO_NAO_ENCONTRADA = "ESCRITORIO_REGIAO_NAO_ENCONTRADA";
     public static final String ESCRITORIO_REGIAO_NOME_EM_USO = "ESCRITORIO_REGIAO_NOME_EM_USO";

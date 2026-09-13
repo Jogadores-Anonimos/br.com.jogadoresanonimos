@@ -183,6 +183,10 @@
         <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
       </li>
 
+      <li>
+        <a routerLink="/enderecos" routerLinkActive="active">Endereços</a>
+      </li>
+
       <li class="nav-links-mobile-only">
         <a routerLink="/contribuir" routerLinkActive="active">Contribuir</a>
       </li>
@@ -220,13 +224,14 @@
         (mouseenter)="!isMobileLayout && abrirDropdown('recursos')"
         (mouseleave)="!isMobileLayout && fecharDropdown('recursos')"
       >
-        <a
-          class="dropdown-label"
-          routerLink="/enderecos"
-          routerLinkActive="active"
+        <button
+          class="dropdown-label dropdown-label--button"
+          type="button"
+          (click)="toggleDropdown('recursos', $event)"
+          [attr.aria-expanded]="dropdownsAbertos.recursos"
         >
           Recursos
-        </a>
+        </button>
         <button
           class="dropdown-toggle dropdown-toggle--icon"
           type="button"
@@ -247,14 +252,12 @@
           <li><a routerLink="/vinte-perguntas" routerLinkActive="active">20 Perguntas</a></li>
           <li><a routerLink="/relatos" routerLinkActive="active">Relatos</a></li>
           <li><a routerLink="/anonimato" routerLinkActive="active">Anonimato</a></li>
-          <li><a routerLink="/enderecos" routerLinkActive="active">Endereços</a></li>
           <li><a routerLink="/escritorios" routerLinkActive="active">Escritórios</a></li>
           <li><a href="https://www.jog-anon.com.br/" target="_blank" rel="noopener noreferrer">Jog-Anon (Área de Familiares)</a></li>
         </ul>
       </li>
 
       <li><a routerLink="/escritorios" routerLinkActive="active">Escritórios</a></li>
-      <li><a routerLink="/loja" routerLinkActive="active">Loja</a></li>
     </ul>
 
     <div class="nav-account">

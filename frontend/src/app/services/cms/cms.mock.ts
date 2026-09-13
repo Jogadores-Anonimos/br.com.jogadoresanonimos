@@ -1,11 +1,9 @@
-import { CmsPaginaAdminDetalhe } from './cms.model';
+import { CmsPaginaPublica } from './cms.model';
 
-export const CMS_PAGINAS_MOCK: CmsPaginaAdminDetalhe[] = [
+export const CMS_PAGINAS_MOCK: CmsPaginaPublica[] = [
   {
     slug: 'sobre-nos',
     titulo: 'Sobre Nós',
-    atualizadoEm: '2026-07-01T12:00:00Z',
-    atualizadoPor: 'mock-admin-1',
     blocos: [
       {
         ordem: 1,
@@ -32,8 +30,6 @@ export const CMS_PAGINAS_MOCK: CmsPaginaAdminDetalhe[] = [
   {
     slug: 'literatura',
     titulo: 'Literatura',
-    atualizadoEm: '2026-07-05T14:00:00Z',
-    atualizadoPor: 'mock-admin-1',
     blocos: [
       {
         ordem: 1,
@@ -48,8 +44,6 @@ export const CMS_PAGINAS_MOCK: CmsPaginaAdminDetalhe[] = [
   {
     slug: 'como-funciona',
     titulo: 'Como Funciona',
-    atualizadoEm: '2026-06-20T09:30:00Z',
-    atualizadoPor: 'mock-admin-1',
     blocos: [
       {
         ordem: 1,

@@ -9,7 +9,6 @@ interface AdminMenuItem {
 interface AdminMenuGrupo {
   titulo: string;
   itens: AdminMenuItem[];
-  expansivel?: boolean;
 }
 
 @Component({
@@ -44,27 +43,13 @@ export class AdminLayout {
       ],
     },
     {
-      titulo: 'Páginas do site',
-      expansivel: true,
-      itens: [
-        { label: 'Sobre', rota: 'paginas/sobre' },
-        { label: 'História', rota: 'paginas/historia' },
-        { label: 'Anonimato', rota: 'paginas/anonimato' },
-        { label: 'Privacidade', rota: 'paginas/privacidade' },
-        { label: 'Termos', rota: 'paginas/termos' },
-        { label: 'Jogo Compulsivo', rota: 'paginas/jogo-compulsivo' },
-        { label: 'Uma Nova Chance', rota: 'paginas/uma-nova-chance' },
-        { label: '20 Perguntas', rota: 'paginas/vinte-perguntas' },
-        { label: 'Contribuir', rota: 'paginas/contribuir' },
-      ],
-    },
-    {
       titulo: 'Estrutura de apoio',
       itens: [
         { label: 'Endereços', rota: 'enderecos' },
         { label: 'Escritórios', rota: 'escritorios' },
         { label: 'Linhas de Ajuda', rota: 'hotlines' },
         { label: 'Perguntas Frequentes', rota: 'perguntas-e-respostas' },
+        { label: '20 Perguntas', rota: 'vinte-perguntas' },
       ],
     },
     {

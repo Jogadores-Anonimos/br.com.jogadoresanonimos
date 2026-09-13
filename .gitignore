@@ -12,3 +12,5 @@ Servicos-Externos-e-Contas.md
 Fluxo-Ponta-a-Ponta.md
 *.docx
 hs_err_pid*.log
+.firecrawl
+.staging
