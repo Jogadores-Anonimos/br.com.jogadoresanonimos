@@ -448,7 +448,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-2xs);
   list-style: none;
 }
 

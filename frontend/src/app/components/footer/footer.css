@@ -28,6 +28,11 @@
   min-width: 0;
 }
 
+.footer-column--helpline {
+  display: flex;
+  align-items: flex-start;
+}
+
 .footer-logo-link {
   display: inline-block;
 }
@@ -116,11 +121,6 @@
 .footer-address {
   font-size: 0.95rem;
   font-style: italic;
-}
-
-.footer-helpline-text {
-  font-size: 0.95rem;
-  margin-bottom: var(--spacing-md);
 }
 
 .footer-social-link {
