@@ -245,31 +245,6 @@
         </div>
       }
 
-      @if (grupoProprioOnline(); as grupoProprio) {
-        <div class="online-grupo-proprio">
-          <h4>{{ grupoProprio.nome | tituloGrupo }}</h4>
-          <p class="online-grupo-proprio-descricao">
-            Grupo próprio de reunião online da Jogadores Anônimos do Brasil.
-          </p>
-          @if (grupoProprio.telefone) {
-            <p class="grupo-telefone">Tel: {{ grupoProprio.telefone }}</p>
-          }
-        </div>
-      }
-
-      @if (nomesGruposOnline().length > 0) {
-        <div class="online-legenda">
-          <h4>Grupos online</h4>
-          <ul class="online-legenda-lista">
-            @for (nome of nomesGruposOnline(); track nome) {
-              <li [class.online-legenda-item--proprio]="ehGrupoProprioOnline(nome)">
-                {{ nome | tituloGrupo }}
-              </li>
-            }
-          </ul>
-        </div>
-      }
-
       <div class="online-video-embed">
         <h4>Como acessar</h4>
         <div class="grupo-video-embed">

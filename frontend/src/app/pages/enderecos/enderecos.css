@@ -408,55 +408,11 @@
   color: var(--color-text);
 }
 
-.online-grupo-proprio {
-  background: var(--color-bg-section);
-  border: 2px solid var(--color-grupo-online-laranja);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-}
-
-.online-grupo-proprio h4 {
-  color: var(--color-grupo-online-laranja);
-  font-size: 1.1rem;
-  font-weight: 800;
-  margin-bottom: var(--spacing-xs);
-}
-
-.online-grupo-proprio-descricao {
-  color: var(--color-text);
-  font-size: 0.95rem;
-  line-height: 1.6;
-  margin-bottom: var(--spacing-xs);
-}
-
-.online-legenda h4,
 .online-video-embed h4 {
   color: var(--cor-padrao-ja);
   font-size: 1rem;
   font-weight: 800;
   margin-bottom: var(--spacing-sm);
-}
-
-.online-legenda-lista {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
-}
-
-.online-legenda-lista li {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2xs);
-  background: var(--color-bg-section);
-  color: var(--color-text);
-  font-size: 0.9rem;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-}
-
-.online-legenda-item--proprio {
-  color: var(--color-grupo-online-laranja);
-  font-weight: 700;
 }
 
 .cidade-bloco {

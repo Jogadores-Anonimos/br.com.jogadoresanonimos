@@ -68,7 +68,6 @@ interface DiaGradeOnline {
   itens: ItemGradeOnline[];
 }
 
-const NOME_GRUPO_PROPRIO_ONLINE = 'Grupo Salvador';
 const YOUTUBE_ID_COMO_ACESSAR = 'ETBCaVzBpbc';
 
 const LABEL_DIA_SEMANA: Record<DiaSemana, string> = {
@@ -393,20 +392,6 @@ export class Enderecos implements OnInit, OnDestroy {
       return { diaSemana, rotulo, itens };
     }).filter((dia) => dia.itens.length > 0);
   });
-
-  readonly grupoProprioOnline = computed<ReuniaoOnline | null>(() => {
-    return this.reunioesOnline().find((reuniao) => reuniao.nome.trim() === NOME_GRUPO_PROPRIO_ONLINE) ?? null;
-  });
-
-  readonly nomesGruposOnline = computed<string[]>(() => {
-    return [...new Set(this.reunioesOnline().map((reuniao) => reuniao.nome))].sort((a, b) =>
-      a.localeCompare(b, 'pt-BR'),
-    );
-  });
-
-  ehGrupoProprioOnline(nomeGrupo: string): boolean {
-    return nomeGrupo.trim() === NOME_GRUPO_PROPRIO_ONLINE;
-  }
 
   linkWhatsappGrupoInexistente(): string {
     return montarLinkWhatsapp(WHATSAPP_PHONE_NUMBER, 'Olá! Gostaria de saber sobre grupos na minha região.');
