@@ -58,53 +58,6 @@
       estado a seguir. Se não houver reuniões presenciais, clique em online. Priorize
       reuniões presenciais (por conta do acolhimento e mais recursos).
     </p>
-    <button
-      type="button"
-      class="btn-mapa-toggle"
-      (click)="toggleMapa()"
-      [attr.aria-expanded]="mapaAberto()"
-      aria-controls="mapa-enderecos-painel"
-    >
-      {{ mapaAberto() ? 'Recolher mapa' : 'Ver no mapa' }}
-    </button>
-
-    @if (mapaAberto()) {
-      <div id="mapa-enderecos-painel" class="mapa-bloco">
-        <div class="mapa-wrapper">
-          <div class="mapa-maplibre" #mapaContainer></div>
-        </div>
-
-        @if (!localizacaoPermitida()) {
-          <div class="localizacao-bloco">
-            <p>
-              Permita o acesso à sua localização aproximada para ver o mapa
-              centralizado perto de você.
-            </p>
-            <button
-              type="button"
-              class="btn-cta"
-              (click)="solicitarLocalizacao()"
-              [attr.aria-busy]="localizacaoCarregando()"
-            >
-              {{ localizacaoCarregando() ? 'Obtendo localização…' : 'Permitir localização' }}
-            </button>
-            @if (localizacaoIndisponivel()) {
-              <p class="mapa-erro" role="alert">
-                Não foi possível acessar sua localização. Você ainda pode
-                ver o mapa com todos os grupos presenciais disponíveis.
-              </p>
-            }
-          </div>
-        }
-
-        @if (localizacaoPermitida()) {
-          <p class="mapa-status">
-            Localização aproximada obtida. Ela não é salva nem enviada a
-            nenhum servidor.
-          </p>
-        }
-      </div>
-    }
 
     @if (regioes().length === 0) {
       <p class="estado">
@@ -184,7 +137,7 @@
                 <div class="grupos-grid">
                   @for (grupo of cidade.grupos; track grupo.id) {
                     <div class="grupo-card">
-                      <h5>{{ grupo.nome }}</h5>
+                      <h5>{{ grupo.nome | tituloGrupo }}</h5>
                       <p class="grupo-endereco">
                         {{ grupo.endereco }}@if (grupo.bairro) {, {{ grupo.bairro }}}
                       </p>
@@ -223,117 +176,99 @@
     }
 
     @if (modoExibicao() === 'online') {
-    <div id="painel-modo-online" role="tabpanel" aria-labelledby="tab-modo-online">
-      @if (reunioesOnlinePorDia().length === 0) {
+    <div id="painel-modo-online" role="tabpanel" aria-labelledby="tab-modo-online" class="online-painel">
+      <div class="online-cabecalho">
+        <h3>Reuniões Online</h3>
+        <p class="lead online-subtitulo">
+          Horários das reuniões online da irmandade, organizados por dia da semana.
+        </p>
+      </div>
+
+      @if (gradeOnlinePorDia().length === 0) {
         <p class="estado">Nenhuma reunião online cadastrada no momento.</p>
       }
 
-      @for (dia of reunioesOnlinePorDia(); track dia.diaSemana) {
-        <div class="estado-bloco">
-          <div class="estado-header">
-            <h3>{{ dia.rotulo }}</h3>
-          </div>
-          <div class="grupos-grid">
-            @for (grupo of dia.grupos; track grupo.reuniao.id) {
-              <div class="grupo-card">
-                <h4>{{ grupo.reuniao.nome }}</h4>
-                <p class="grupo-endereco grupo-agenda-resumo">{{ grupo.horarios.join(', ') }}</p>
-                @if (grupo.reuniao.telefone) {
-                  <p class="grupo-telefone">Tel: {{ grupo.reuniao.telefone }}</p>
+      @if (gradeOnlinePorDia().length > 0) {
+        <div class="online-grade">
+          @for (dia of gradeOnlinePorDia(); track dia.diaSemana) {
+            <div class="online-grade-dia">
+              <h4 class="online-grade-dia-titulo">{{ dia.rotulo }}</h4>
+              <ul class="online-grade-lista">
+                @for (item of dia.itens; track item.horario + item.nomeGrupo) {
+                  <li>
+                    <span
+                      class="online-grupo-badge"
+                      [class.online-grupo-badge--laranja]="ehGrupoProprioOnline(item.nomeGrupo)"
+                      [class.online-grupo-badge--roxo]="!ehGrupoProprioOnline(item.nomeGrupo)"
+                      aria-hidden="true"
+                    ></span>
+                    <span class="online-grade-horario">{{ item.horario }}</span>
+                    <span class="online-grade-nome">{{ item.nomeGrupo | tituloGrupo }}</span>
+                  </li>
                 }
-                @if (embedVideoReuniaoOnline(grupo.reuniao); as videoEmbedUrl) {
-                  <div class="grupo-video-embed">
-                    <iframe
-                      [src]="videoEmbedUrl"
-                      title="Vídeo do grupo {{ grupo.reuniao.nome }}"
-                      allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowfullscreen
-                      loading="lazy"
-                    ></iframe>
-                  </div>
-                }
-                @if (grupo.reuniao.panfletoImagemUrl) {
-                  <img
-                    class="grupo-panfleto"
-                    [src]="grupo.reuniao.panfletoImagemUrl"
-                    [alt]="'Panfleto do grupo ' + grupo.reuniao.nome"
-                    loading="lazy"
-                  />
-                }
-                <div class="grupo-card-acoes">
-                  <button type="button" class="btn-detalhes" (click)="abrirDetalhesReuniaoOnline(grupo.reuniao)">
-                    Ver detalhes
-                  </button>
-                  <a
-                    class="btn-falar-grupo"
-                    [href]="linkWhatsappFalarComGrupoOnline(grupo.reuniao)"
-                    target="_blank"
-                    rel="noopener"
-                  >
-                    Falar com o grupo
-                  </a>
-                </div>
-              </div>
-            }
-          </div>
+              </ul>
+            </div>
+          }
         </div>
       }
-    </div>
-    }
-  </section>
-  }
 
-  @if (reuniaoDetalhe) {
-    <div
-      class="detalhes-overlay"
-      (click)="fecharDetalhesSeCliqueForaDoPainel($event)"
-    >
-      <div
-        class="detalhes-painel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="detalhes-titulo"
-      >
-        <button
-          type="button"
-          class="detalhes-fechar"
-          (click)="fecharDetalhes()"
-          aria-label="Fechar detalhes da reunião"
-        >
-          &times;
-        </button>
+      @if (grupoProprioOnline(); as grupoProprio) {
+        <div class="online-grupo-proprio">
+          <h4>{{ grupoProprio.nome | tituloGrupo }}</h4>
+          <p class="online-grupo-proprio-descricao">
+            Grupo próprio de reunião online da Jogadores Anônimos do Brasil.
+          </p>
+          @if (grupoProprio.telefone) {
+            <p class="grupo-telefone">Tel: {{ grupoProprio.telefone }}</p>
+          }
+        </div>
+      }
 
-        <h3 id="detalhes-titulo">{{ reuniaoDetalhe.nome }}</h3>
-        <p class="reuniao-descricao">{{ reuniaoDetalhe.descricao }}</p>
-        <div class="detalhes-agenda">
-          <strong>Agenda:</strong>
-          <ul>
-            @for (item of agendaAgrupadaDaReuniao(reuniaoDetalhe); track item.diaSemana) {
-              <li>{{ rotuloDiaAgenda(item) }} às {{ item.horarios.join(', ') }}</li>
+      @if (nomesGruposOnline().length > 0) {
+        <div class="online-legenda">
+          <h4>Grupos online</h4>
+          <ul class="online-legenda-lista">
+            @for (nome of nomesGruposOnline(); track nome) {
+              <li>
+                <span
+                  class="online-grupo-badge"
+                  [class.online-grupo-badge--laranja]="ehGrupoProprioOnline(nome)"
+                  [class.online-grupo-badge--roxo]="!ehGrupoProprioOnline(nome)"
+                  aria-hidden="true"
+                ></span>
+                {{ nome | tituloGrupo }}
+              </li>
             }
           </ul>
         </div>
+      }
 
-        <div class="detalhes-acoes">
-          <a
-            class="btn-cta btn-whatsapp"
-            [href]="whatsappLink(reuniaoDetalhe)"
-            target="_blank"
-            rel="noopener"
-          >
-            Falar no WhatsApp
-          </a>
-          <a
-            class="btn-cta btn-cta--outline"
-            [href]="whatsappLink(reuniaoDetalhe)"
-            target="_blank"
-            rel="noopener"
-          >
-            Solicitar link da reunião
-          </a>
+      <div class="online-video-embed">
+        <h4>Como acessar</h4>
+        <div class="grupo-video-embed">
+          <iframe
+            [src]="embedVideoComoAcessarOnline"
+            title="Como acessar uma reunião online"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+            loading="lazy"
+          ></iframe>
         </div>
       </div>
+
+      <div class="online-cta">
+        <a
+          class="btn-cta btn-whatsapp"
+          [href]="linkWhatsappPedirLinkReuniaoOnline()"
+          target="_blank"
+          rel="noopener"
+        >
+          Pedir link da reunião
+        </a>
+      </div>
     </div>
+    }
+  </section>
   }
 
   @if (grupoDetalhe) {
@@ -356,7 +291,7 @@
           &times;
         </button>
 
-        <h3 id="detalhes-grupo-titulo">{{ grupoDetalhe.nome }}</h3>
+        <h3 id="detalhes-grupo-titulo">{{ grupoDetalhe.nome | tituloGrupo }}</h3>
         <p class="reuniao-descricao">{{ enderecoCompletoGrupo(grupoDetalhe) }}</p>
         @if (grupoDetalhe.telefones.length) {
           <p class="grupo-telefone">Tel: {{ formatarTelefones(grupoDetalhe.telefones) }}</p>
@@ -374,75 +309,6 @@
           <a
             class="btn-cta btn-whatsapp"
             [href]="whatsappLinkGrupo(grupoDetalhe)"
-            target="_blank"
-            rel="noopener"
-          >
-            Falar no WhatsApp
-          </a>
-        </div>
-      </div>
-    </div>
-  }
-
-  @if (reuniaoOnlineDetalhe) {
-    <div
-      class="detalhes-overlay"
-      (click)="fecharDetalhesSeCliqueForaDoPainel($event)"
-    >
-      <div
-        class="detalhes-painel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="detalhes-reuniao-online-titulo"
-      >
-        <button
-          type="button"
-          class="detalhes-fechar"
-          (click)="fecharDetalhes()"
-          aria-label="Fechar detalhes da reunião online"
-        >
-          &times;
-        </button>
-
-        <h3 id="detalhes-reuniao-online-titulo">{{ reuniaoOnlineDetalhe.nome }}</h3>
-        @if (reuniaoOnlineDetalhe.telefone) {
-          <p class="grupo-telefone">Tel: {{ reuniaoOnlineDetalhe.telefone }}</p>
-        } @else {
-          <p class="reuniao-descricao">Sem contato informado.</p>
-        }
-        <div class="detalhes-agenda">
-          <strong>Agenda:</strong>
-          <ul>
-            @for (item of agendaAgrupadaDaReuniaoOnline(reuniaoOnlineDetalhe); track item.diaSemana) {
-              <li>{{ rotuloDiaAgenda(item) }} às {{ item.horarios.join(', ') }}</li>
-            }
-          </ul>
-        </div>
-
-        @if (embedVideoReuniaoOnline(reuniaoOnlineDetalhe); as videoEmbedUrl) {
-          <div class="grupo-video-embed">
-            <iframe
-              [src]="videoEmbedUrl"
-              title="Vídeo do grupo {{ reuniaoOnlineDetalhe.nome }}"
-              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen
-              loading="lazy"
-            ></iframe>
-          </div>
-        }
-        @if (reuniaoOnlineDetalhe.panfletoImagemUrl) {
-          <img
-            class="grupo-panfleto"
-            [src]="reuniaoOnlineDetalhe.panfletoImagemUrl"
-            [alt]="'Panfleto do grupo ' + reuniaoOnlineDetalhe.nome"
-            loading="lazy"
-          />
-        }
-
-        <div class="detalhes-acoes">
-          <a
-            class="btn-cta btn-whatsapp"
-            [href]="whatsappLinkReuniaoOnline(reuniaoOnlineDetalhe)"
             target="_blank"
             rel="noopener"
           >

@@ -1,28 +1,18 @@
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import {
   Component,
-  ElementRef,
   HostListener,
   OnDestroy,
   OnInit,
-  PLATFORM_ID,
-  ViewChild,
   computed,
-  effect,
   inject,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import type {
-  GeoJSONSource,
-  LngLatLike,
-  Map as MapLibreMap,
-  StyleSpecification,
-} from 'maplibre-gl';
-import type { Feature, FeatureCollection, Point } from 'geojson';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
+import { TituloGrupoPipe } from '../../pipes/titulo-grupo/titulo-grupo';
 import { EscritorioRegionalService, derivarUfsFaltantesPorRegiao } from '../../services/escritorio-regional/escritorio-regional';
 import {
   DiaSemana,
@@ -31,15 +21,12 @@ import {
   RegiaoIntergrupo,
   UnidadeFederativaComRegiao,
 } from '../../services/escritorio-regional/escritorio-regional.model';
-import { ReuniaoService } from '../../services/reuniao/reuniao';
 import { compararHorarios } from '../../services/reuniao/reuniao-horario';
-import { AgendaItemReuniao, DiaSemanaAgendaReuniao, Reuniao } from '../../services/reuniao/reuniao.model';
+import { DiaSemanaAgendaReuniao } from '../../services/reuniao/reuniao.model';
 import { ReuniaoOnlineService } from '../../services/reuniao-online/reuniao-online';
 import { ReuniaoOnline } from '../../services/reuniao-online/reuniao-online.model';
 import { WHATSAPP_PHONE_NUMBER, montarLinkWhatsapp } from '../../config/whatsapp.config';
-import { configurarMapLibreWorker } from '../../config/maplibre-worker.config';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { extrairYoutubeVideoId } from '../../services/mural-de-apoio/youtube.util';
 
 interface CidadeComGrupos {
   cidade: string;
@@ -67,24 +54,19 @@ type ModoExibicaoEnderecos = 'presencial' | 'online';
 
 type DiaSemanaCurto = 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo';
 
-interface AgendaDiaAgrupada {
-  diaSemana: DiaSemanaAgendaReuniao;
-  horarios: string[];
-}
-
-interface GrupoReuniaoOnlinePorDia {
-  diaSemana: DiaSemanaAgendaReuniao;
-  reuniao: ReuniaoOnline;
-  horarios: string[];
-}
-
-interface PropriedadesPontoReuniao {
-  id: string;
-  nome: string;
-  dia: string;
+interface ItemGradeOnline {
   horario: string;
-  local: string;
+  nomeGrupo: string;
 }
+
+interface DiaGradeOnline {
+  diaSemana: DiaSemanaAgendaReuniao;
+  rotulo: DiaSemanaCurto;
+  itens: ItemGradeOnline[];
+}
+
+const NOME_GRUPO_PROPRIO_ONLINE = 'Grupo Salvador';
+const YOUTUBE_ID_COMO_ACESSAR = 'ETBCaVzBpbc';
 
 const LABEL_DIA_SEMANA: Record<DiaSemana, string> = {
   DOMINGO: 'Dom',
@@ -102,15 +84,6 @@ const ORDEM_UF_PRIORITARIA_POR_REGIAO: Record<string, string[]> = {
   SUDESTE: ['SP', 'RJ'],
 };
 
-const RAIO_TERRA_KM = 6371;
-
-const CENTRO_PADRAO: LngLatLike = [-46.62, -23.55];
-const ZOOM_PADRAO = 4;
-const ZOOM_REGIAO_USUARIO = 10;
-const ZOOM_MINIMO_BOUNDS = 11;
-const ZOOM_MAXIMO_BOUNDS = 13;
-const PADDING_BOUNDS_PX = 48;
-
 const DEBOUNCE_FILTRO_TEXTO_MS = 200;
 
 const DIAS_AGENDA: ReadonlyArray<{ diaSemana: DiaSemanaAgendaReuniao; rotulo: DiaSemanaCurto }> = [
@@ -123,116 +96,24 @@ const DIAS_AGENDA: ReadonlyArray<{ diaSemana: DiaSemanaAgendaReuniao; rotulo: Di
   { diaSemana: 'DOMINGO', rotulo: 'Domingo' },
 ];
 
-const ROTULO_DIA: Record<DiaSemanaAgendaReuniao, DiaSemanaCurto> = Object.fromEntries(
-  DIAS_AGENDA.map((dia) => [dia.diaSemana, dia.rotulo]),
-) as Record<DiaSemanaAgendaReuniao, DiaSemanaCurto>;
-
-const FONTE_REUNIOES = 'reunioes';
-const CAMADA_PONTOS_REUNIOES = 'reunioes-pontos';
-const FONTE_USUARIO = 'usuario';
-const CAMADA_PONTO_USUARIO = 'usuario-ponto';
-
-const ESTILO_OSM: StyleSpecification = {
-  version: 8,
-  sources: {
-    osm: {
-      type: 'raster',
-      tiles: [
-        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      ],
-      tileSize: 256,
-      attribution: '&copy; colaboradores do OpenStreetMap',
-    },
-  },
-  layers: [
-    {
-      id: 'osm-tiles',
-      type: 'raster',
-      source: 'osm',
-    },
-  ],
-};
-
-function montarFeatureCollection(reunioes: Reuniao[]): FeatureCollection<Point, PropriedadesPontoReuniao> {
-  const features: Feature<Point, PropriedadesPontoReuniao>[] = [];
-
-  for (const reuniao of reunioes) {
-    if (reuniao.latitude === null || reuniao.longitude === null) {
-      continue;
-    }
-
-    features.push({
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [reuniao.longitude, reuniao.latitude],
-      },
-      properties: {
-        id: reuniao.id,
-        nome: reuniao.nome,
-        dia: reuniao.dia,
-        horario: reuniao.horario,
-        local: reuniao.local,
-      },
-    });
-  }
-
-  return { type: 'FeatureCollection', features };
-}
-
-function montarFeatureUsuario(coords: { latitude: number; longitude: number }): FeatureCollection<Point, Record<string, never>> {
-  return {
-    type: 'FeatureCollection',
-    features: [
-      {
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [coords.longitude, coords.latitude],
-        },
-        properties: {},
-      },
-    ],
-  };
-}
-
-function corPadraoJa(): string {
-  return getComputedStyle(document.documentElement).getPropertyValue('--cor-padrao-ja').trim();
-}
-
-function corSucesso(): string {
-  return getComputedStyle(document.documentElement).getPropertyValue('--color-success').trim();
-}
-
-function corBranca(): string {
-  return getComputedStyle(document.documentElement).getPropertyValue('--white').trim();
-}
-
 @Component({
   selector: 'app-enderecos',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ResourceLayout],
+  imports: [CommonModule, FormsModule, RouterLink, ResourceLayout, TituloGrupoPipe],
   templateUrl: './enderecos.html',
   styleUrl: './enderecos.css',
 })
 export class Enderecos implements OnInit, OnDestroy {
-  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly escritorioRegionalService = inject(EscritorioRegionalService);
-  private readonly reuniaoService = inject(ReuniaoService);
   private readonly reuniaoOnlineService = inject(ReuniaoOnlineService);
   private readonly activatedRoute = inject(ActivatedRoute);
   private readonly sanitizer = inject(DomSanitizer);
 
   readonly regioes = signal<RegiaoIntergrupo[]>([]);
   readonly ufsFaltantesPorRegiao = signal<Map<string, UnidadeFederativaComRegiao[]>>(new Map());
-  readonly reunioes = signal<Reuniao[]>([]);
   readonly reunioesOnline = signal<ReuniaoOnline[]>([]);
   readonly carregando = signal(true);
   readonly erro = signal(false);
-
-  readonly mapaAberto = signal(false);
 
   readonly filtroTexto = signal('');
   private readonly filtroTextoDebounced = signal('');
@@ -243,46 +124,11 @@ export class Enderecos implements OnInit, OnDestroy {
 
   readonly modoExibicao = signal<ModoExibicaoEnderecos>('presencial');
 
-  reuniaoDetalhe: Reuniao | null = null;
   grupoDetalhe: GrupoIntergrupo | null = null;
-  reuniaoOnlineDetalhe: ReuniaoOnline | null = null;
 
-  private readonly userCoords = signal<{ latitude: number; longitude: number } | null>(null);
-  localizacaoPermitida = signal(false);
-  localizacaoIndisponivel = signal(false);
-  localizacaoCarregando = signal(false);
-
-  private maplibregl?: typeof import('maplibre-gl');
-  private mapa?: MapLibreMap;
-  private resizeObserver?: ResizeObserver;
-
-  private mapaContainerAtual?: HTMLDivElement;
-
-  @ViewChild('mapaContainer')
-  set mapaContainerRef(ref: ElementRef<HTMLDivElement> | undefined) {
-    if (!this.isBrowser) {
-      return;
-    }
-    if (ref) {
-      if (this.mapaContainerAtual === ref.nativeElement) {
-        return;
-      }
-      this.mapaContainerAtual = ref.nativeElement;
-      this.carregarMapLibreECriarMapa(ref.nativeElement);
-    } else {
-      this.mapaContainerAtual = undefined;
-      this.destruirMapa();
-    }
-  }
-
-  constructor() {
-    effect(() => {
-      this.filtroTextoDebounced();
-      this.filtroUf();
-      this.regiaoSelecionada();
-      this.atualizarDadosMapa();
-    });
-  }
+  readonly embedVideoComoAcessarOnline: SafeResourceUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
+    `https://www.youtube-nocookie.com/embed/${YOUTUBE_ID_COMO_ACESSAR}`,
+  );
 
   ngOnInit(): void {
     if (this.activatedRoute.snapshot.queryParamMap.get('tipo') === 'online') {
@@ -291,10 +137,9 @@ export class Enderecos implements OnInit, OnDestroy {
     forkJoin({
       estrutura: this.escritorioRegionalService.listarEstrutura(),
       unidadesFederativas: this.escritorioRegionalService.listarUnidadesFederativas(),
-      reunioes: this.reuniaoService.listarReunioes(),
       reunioesOnline: this.reuniaoOnlineService.listarReunioesOnline(),
     }).subscribe({
-      next: ({ estrutura, unidadesFederativas, reunioes, reunioesOnline }) => {
+      next: ({ estrutura, unidadesFederativas, reunioesOnline }) => {
         this.carregando.set(false);
         if (estrutura.success && estrutura.data) {
           const regioesOrdenadas = [...estrutura.data.regioes].sort(
@@ -309,10 +154,6 @@ export class Enderecos implements OnInit, OnDestroy {
           }
         } else {
           this.erro.set(true);
-        }
-
-        if (reunioes.success && reunioes.data) {
-          this.reunioes.set(reunioes.data);
         }
 
         if (reunioesOnline.success && reunioesOnline.data) {
@@ -332,7 +173,6 @@ export class Enderecos implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     clearTimeout(this.debounceFiltroTextoId);
-    this.destruirMapa();
   }
 
   get regiaoAtual(): RegiaoIntergrupo | undefined {
@@ -453,24 +293,40 @@ export class Enderecos implements OnInit, OnDestroy {
     return [...porCidade.entries()].map(([cidade, gruposDaCidade]) => ({ cidade, grupos: gruposDaCidade }));
   }
 
-  readonly reunioesOnlinePorDia = computed<{ diaSemana: DiaSemanaAgendaReuniao; rotulo: DiaSemanaCurto; grupos: GrupoReuniaoOnlinePorDia[] }[]>(() => {
+  readonly gradeOnlinePorDia = computed<DiaGradeOnline[]>(() => {
     const reunioesOnline = this.reunioesOnline();
     return DIAS_AGENDA.map(({ diaSemana, rotulo }) => {
-      const grupos: GrupoReuniaoOnlinePorDia[] = reunioesOnline
-        .filter((reuniao) => reuniao.agenda.some((item) => item.diaSemana === diaSemana))
-        .map((reuniao) => ({
-          diaSemana,
-          reuniao,
-          horarios: [...new Set(
-            reuniao.agenda.filter((item) => item.diaSemana === diaSemana).map((item) => item.horario),
-          )].sort(compararHorarios),
-        }));
-      return { diaSemana, rotulo, grupos };
-    }).filter((dia) => dia.grupos.length > 0);
+      const itens: ItemGradeOnline[] = reunioesOnline
+        .flatMap((reuniao) =>
+          reuniao.agenda
+            .filter((item) => item.diaSemana === diaSemana)
+            .map((item) => ({ horario: item.horario, nomeGrupo: reuniao.nome })),
+        )
+        .sort((a, b) => compararHorarios(a.horario, b.horario));
+      return { diaSemana, rotulo, itens };
+    }).filter((dia) => dia.itens.length > 0);
   });
+
+  readonly grupoProprioOnline = computed<ReuniaoOnline | null>(() => {
+    return this.reunioesOnline().find((reuniao) => reuniao.nome.trim() === NOME_GRUPO_PROPRIO_ONLINE) ?? null;
+  });
+
+  readonly nomesGruposOnline = computed<string[]>(() => {
+    return [...new Set(this.reunioesOnline().map((reuniao) => reuniao.nome))].sort((a, b) =>
+      a.localeCompare(b, 'pt-BR'),
+    );
+  });
+
+  ehGrupoProprioOnline(nomeGrupo: string): boolean {
+    return nomeGrupo.trim() === NOME_GRUPO_PROPRIO_ONLINE;
+  }
 
   linkWhatsappGrupoInexistente(): string {
     return montarLinkWhatsapp(WHATSAPP_PHONE_NUMBER, 'Olá! Gostaria de saber sobre grupos na minha região.');
+  }
+
+  linkWhatsappPedirLinkReuniaoOnline(): string {
+    return montarLinkWhatsapp(WHATSAPP_PHONE_NUMBER, 'Olá! Gostaria de pedir o link de uma reunião online.');
   }
 
   selecionarRegiao(regiao: RegiaoIntergrupo): void {
@@ -486,102 +342,21 @@ export class Enderecos implements OnInit, OnDestroy {
     return telefones.map((t) => (t.label ? `${t.label}: ${t.telefone}` : t.telefone)).join(' / ');
   }
 
-  toggleMapa(): void {
-    this.mapaAberto.update((valor) => !valor);
-  }
-
-  agendaDaReuniao(reuniao: Reuniao): AgendaItemReuniao[] {
-    if (reuniao.agenda?.length) {
-      return reuniao.agenda;
-    }
-    const valorLegado = (reuniao.diaSemana || reuniao.dia)
-      ?.normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/-feira$/, '')
-      .trim();
-    const dia = DIAS_AGENDA.find((item) => item.rotulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() === valorLegado);
-    return dia && reuniao.horario ? [{ diaSemana: dia.diaSemana, horario: reuniao.horario }] : [];
-  }
-
-  resumoAgenda(reuniao: Reuniao): string {
-    return this.agendaAgrupadaDaReuniao(reuniao)
-      .map((item) => `${ROTULO_DIA[item.diaSemana]} ${item.horarios.join(', ')}`)
-      .join(' · ');
-  }
-
-  agendaAgrupadaDaReuniao(reuniao: Reuniao): AgendaDiaAgrupada[] {
-    return DIAS_AGENDA.flatMap(({ diaSemana }) => {
-      const horarios = [...new Set(
-        this.agendaDaReuniao(reuniao)
-          .filter((item) => item.diaSemana === diaSemana)
-          .map((item) => item.horario),
-      )].sort(compararHorarios);
-      return horarios.length ? [{ diaSemana, horarios }] : [];
-    });
-  }
-
-  rotuloDiaAgenda(item: { diaSemana: DiaSemanaAgendaReuniao }): DiaSemanaCurto {
-    return ROTULO_DIA[item.diaSemana];
-  }
-
-  agendaAgrupadaDaReuniaoOnline(reuniao: ReuniaoOnline): AgendaDiaAgrupada[] {
-    return DIAS_AGENDA.flatMap(({ diaSemana }) => {
-      const horarios = [...new Set(
-        reuniao.agenda.filter((item) => item.diaSemana === diaSemana).map((item) => item.horario),
-      )].sort(compararHorarios);
-      return horarios.length ? [{ diaSemana, horarios }] : [];
-    });
-  }
-
-  whatsappLink(reuniao: Reuniao): string {
-    return montarLinkWhatsapp(reuniao.whatsapp || WHATSAPP_PHONE_NUMBER);
-  }
-
   whatsappLinkGrupo(grupo: GrupoIntergrupo): string {
     const telefoneGrupo = grupo.telefones[0]?.telefone;
     return montarLinkWhatsapp(telefoneGrupo || WHATSAPP_PHONE_NUMBER);
-  }
-
-  whatsappLinkReuniaoOnline(reuniao: ReuniaoOnline): string {
-    return montarLinkWhatsapp(reuniao.telefone || WHATSAPP_PHONE_NUMBER);
-  }
-
-  embedVideoReuniaoOnline(reuniao: ReuniaoOnline): SafeResourceUrl | null {
-    const videoId = extrairYoutubeVideoId(reuniao.videoUrl);
-    if (!videoId) {
-      return null;
-    }
-    return this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube-nocookie.com/embed/${videoId}`);
-  }
-
-  linkWhatsappFalarComGrupoOnline(reuniao: ReuniaoOnline): string {
-    return montarLinkWhatsapp(
-      WHATSAPP_PHONE_NUMBER,
-      `Olá! Gostaria de saber mais sobre o grupo online ${reuniao.nome}.`,
-    );
   }
 
   enderecoCompletoGrupo(grupo: GrupoIntergrupo): string {
     return `${grupo.endereco}${grupo.bairro ? `, ${grupo.bairro}` : ''}, ${grupo.cidade}`;
   }
 
-  abrirDetalhes(reuniao: Reuniao): void {
-    this.reuniaoDetalhe = reuniao;
-  }
-
   abrirDetalhesGrupo(grupo: GrupoIntergrupo): void {
     this.grupoDetalhe = grupo;
   }
 
-  abrirDetalhesReuniaoOnline(reuniao: ReuniaoOnline): void {
-    this.reuniaoOnlineDetalhe = reuniao;
-  }
-
   fecharDetalhes(): void {
-    this.reuniaoDetalhe = null;
     this.grupoDetalhe = null;
-    this.reuniaoOnlineDetalhe = null;
   }
 
   fecharDetalhesSeCliqueForaDoPainel(evento: MouseEvent): void {
@@ -592,287 +367,8 @@ export class Enderecos implements OnInit, OnDestroy {
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    if (this.reuniaoDetalhe || this.grupoDetalhe || this.reuniaoOnlineDetalhe) {
+    if (this.grupoDetalhe) {
       this.fecharDetalhes();
     }
-  }
-
-  distanciaKm(reuniao: Reuniao): number | null {
-    const userCoords = this.userCoords();
-    if (!userCoords || reuniao.latitude === null || reuniao.longitude === null) {
-      return null;
-    }
-
-    const dLat = this.paraRadianos(reuniao.latitude - userCoords.latitude);
-    const dLon = this.paraRadianos(reuniao.longitude - userCoords.longitude);
-    const lat1 = this.paraRadianos(userCoords.latitude);
-    const lat2 = this.paraRadianos(reuniao.latitude);
-
-    const a =
-      Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return Math.round(RAIO_TERRA_KM * c * 10) / 10;
-  }
-
-  private paraRadianos(graus: number): number {
-    return (graus * Math.PI) / 180;
-  }
-
-  solicitarLocalizacao(): void {
-    if (!('geolocation' in navigator)) {
-      this.localizacaoIndisponivel.set(true);
-      return;
-    }
-
-    this.localizacaoCarregando.set(true);
-    this.localizacaoIndisponivel.set(false);
-
-    navigator.geolocation.getCurrentPosition(
-      (posicao) => {
-        const coords = {
-          latitude: posicao.coords.latitude,
-          longitude: posicao.coords.longitude,
-        };
-        this.userCoords.set(coords);
-        this.localizacaoPermitida.set(true);
-        this.localizacaoCarregando.set(false);
-        this.atualizarMarcadorUsuario(coords);
-        this.centralizarMapaNoUsuario(coords);
-      },
-      () => {
-        this.localizacaoIndisponivel.set(true);
-        this.localizacaoCarregando.set(false);
-      },
-      { enableHighAccuracy: false, timeout: 8000 },
-    );
-  }
-
-  private grupoIdsVisiveisAposFiltro(): Set<string> {
-    const textoFiltro = this.filtroTextoDebounced().trim().toLowerCase();
-    const ufFiltro = this.filtroUf();
-    const regiao = this.regiaoAtual;
-
-    const ids = new Set<string>();
-    if (!regiao) {
-      return ids;
-    }
-    for (const estado of regiao.estados) {
-      if (ufFiltro !== 'todas' && estado.uf !== ufFiltro) {
-        continue;
-      }
-      for (const grupo of estado.grupos) {
-        if (this.grupoCorrespondeAoFiltro(grupo, textoFiltro)) {
-          ids.add(grupo.id);
-        }
-      }
-    }
-    return ids;
-  }
-
-  private reunioesPresenciaisComCoordenadas(): Reuniao[] {
-    const idsVisiveis = this.grupoIdsVisiveisAposFiltro();
-    return this.reunioes().filter(
-      (r) => r.categoria === 'presencial' && !!r.grupoIntergrupoId && idsVisiveis.has(r.grupoIntergrupoId),
-    );
-  }
-
-  private atualizarDadosMapa(): void {
-    if (!this.mapa || !this.mapa.getSource(FONTE_REUNIOES)) {
-      return;
-    }
-
-    const featureCollection = montarFeatureCollection(this.reunioesPresenciaisComCoordenadas());
-    (this.mapa.getSource(FONTE_REUNIOES) as GeoJSONSource).setData(featureCollection);
-    this.centralizarMapa(featureCollection);
-  }
-
-  private centralizarMapa(featureCollection?: FeatureCollection<Point, PropriedadesPontoReuniao>): void {
-    if (!this.mapa || !this.maplibregl) {
-      return;
-    }
-
-    const features = featureCollection ?? montarFeatureCollection(this.reunioesPresenciaisComCoordenadas());
-
-    if (features.features.length === 0) {
-      this.mapa.setCenter(CENTRO_PADRAO);
-      this.mapa.setZoom(ZOOM_PADRAO);
-      return;
-    }
-
-    if (features.features.length === 1) {
-      const [longitude, latitude] = features.features[0].geometry.coordinates;
-      this.mapa.setCenter([longitude, latitude]);
-      this.mapa.setZoom(ZOOM_MAXIMO_BOUNDS);
-      return;
-    }
-
-    const bounds = new this.maplibregl.LngLatBounds();
-    for (const feature of features.features) {
-      bounds.extend(feature.geometry.coordinates as LngLatLike);
-    }
-    this.mapa.fitBounds(bounds, {
-      padding: PADDING_BOUNDS_PX,
-      minZoom: ZOOM_MINIMO_BOUNDS,
-      maxZoom: ZOOM_MAXIMO_BOUNDS,
-    });
-  }
-
-  private centralizarMapaNoUsuario(coords: { latitude: number; longitude: number }): void {
-    if (!this.mapa) {
-      return;
-    }
-    this.mapa.setCenter([coords.longitude, coords.latitude]);
-    this.mapa.setZoom(ZOOM_REGIAO_USUARIO);
-  }
-
-  private atualizarMarcadorUsuario(coords: { latitude: number; longitude: number }): void {
-    if (!this.mapa || !this.mapa.getSource(FONTE_USUARIO)) {
-      return;
-    }
-    (this.mapa.getSource(FONTE_USUARIO) as GeoJSONSource).setData(montarFeatureUsuario(coords));
-  }
-
-  private async carregarMapLibreECriarMapa(container: HTMLDivElement): Promise<void> {
-    if (!this.maplibregl) {
-      const mod = await import('maplibre-gl');
-      this.maplibregl = (mod as unknown as { default?: typeof import('maplibre-gl') }).default ?? mod;
-      configurarMapLibreWorker(this.maplibregl);
-    }
-    if (this.mapaContainerAtual !== container) {
-      return;
-    }
-    this.criarMapa(container);
-  }
-
-  private criarMapa(container: HTMLDivElement): void {
-    if (!this.maplibregl) {
-      return;
-    }
-    const maplibregl = this.maplibregl;
-
-    this.destruirMapa();
-
-    this.mapa = new maplibregl.Map({
-      container,
-      style: ESTILO_OSM,
-      center: CENTRO_PADRAO,
-      zoom: ZOOM_PADRAO,
-      attributionControl: { compact: true },
-    });
-
-    this.mapa.addControl(new maplibregl.NavigationControl({ showCompass: false }));
-
-    this.mapa.on('load', () => {
-      if (!this.mapa) {
-        return;
-      }
-
-      this.mapa.resize();
-
-      const featureCollection = montarFeatureCollection(this.reunioesPresenciaisComCoordenadas());
-
-      this.mapa.addSource(FONTE_REUNIOES, {
-        type: 'geojson',
-        data: featureCollection,
-      });
-
-      this.mapa.addLayer({
-        id: CAMADA_PONTOS_REUNIOES,
-        type: 'circle',
-        source: FONTE_REUNIOES,
-        paint: {
-          'circle-radius': 7,
-          'circle-color': corPadraoJa(),
-          'circle-stroke-width': 2,
-          'circle-stroke-color': corBranca(),
-        },
-      });
-
-      this.mapa.on('click', CAMADA_PONTOS_REUNIOES, (e) => {
-        const feature = e.features?.[0];
-        if (!feature || feature.geometry.type !== 'Point') {
-          return;
-        }
-
-        const propriedades = feature.properties as PropriedadesPontoReuniao;
-        const reuniao = this.reunioesPresenciaisComCoordenadas().find((r) => r.id === propriedades.id);
-        if (reuniao) {
-          this.abrirDetalhes(reuniao);
-        }
-      });
-
-      this.mapa.on('mouseenter', CAMADA_PONTOS_REUNIOES, () => {
-        if (this.mapa) {
-          this.mapa.getCanvas().style.cursor = 'pointer';
-        }
-      });
-
-      this.mapa.on('mouseleave', CAMADA_PONTOS_REUNIOES, () => {
-        if (this.mapa) {
-          this.mapa.getCanvas().style.cursor = '';
-        }
-      });
-
-      const userCoords = this.userCoords();
-
-      this.mapa.addSource(FONTE_USUARIO, {
-        type: 'geojson',
-        data: userCoords ? montarFeatureUsuario(userCoords) : { type: 'FeatureCollection', features: [] },
-      });
-
-      this.mapa.addLayer({
-        id: CAMADA_PONTO_USUARIO,
-        type: 'circle',
-        source: FONTE_USUARIO,
-        paint: {
-          'circle-radius': 9,
-          'circle-color': corSucesso(),
-          'circle-stroke-width': 3,
-          'circle-stroke-color': corBranca(),
-        },
-      });
-
-      const popupUsuario = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 14 })
-        .setText('Você (localização aproximada)');
-
-      this.mapa.on('mouseenter', CAMADA_PONTO_USUARIO, (e) => {
-        if (!this.mapa) {
-          return;
-        }
-        this.mapa.getCanvas().style.cursor = 'pointer';
-        const feature = e.features?.[0];
-        if (feature && feature.geometry.type === 'Point') {
-          popupUsuario.setLngLat(feature.geometry.coordinates as LngLatLike).addTo(this.mapa);
-        }
-      });
-
-      this.mapa.on('mouseleave', CAMADA_PONTO_USUARIO, () => {
-        if (this.mapa) {
-          this.mapa.getCanvas().style.cursor = '';
-        }
-        popupUsuario.remove();
-      });
-
-      this.mapa.resize();
-
-      if (userCoords) {
-        this.centralizarMapaNoUsuario(userCoords);
-      } else {
-        this.centralizarMapa(featureCollection);
-      }
-    });
-
-    this.resizeObserver = new ResizeObserver(() => {
-      this.mapa?.resize();
-    });
-    this.resizeObserver.observe(container);
-  }
-
-  private destruirMapa(): void {
-    this.resizeObserver?.disconnect();
-    this.resizeObserver = undefined;
-    this.mapa?.remove();
-    this.mapa = undefined;
   }
 }

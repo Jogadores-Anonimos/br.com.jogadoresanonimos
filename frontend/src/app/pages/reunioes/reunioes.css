@@ -182,20 +182,6 @@
   margin-bottom: var(--spacing-lg);
 }
 
-.mapa-wrapper {
-  position: relative;
-  z-index: 0;
-  min-height: 320px;
-  border: 1px solid var(--color-border);
-  background: var(--color-map-panel);
-  overflow: hidden;
-}
-
-.mapa-maplibre {
-  position: absolute;
-  inset: 0;
-}
-
 .localizacao-bloco {
   display: flex;
   flex-direction: column;
@@ -451,10 +437,6 @@
 @media (max-width: 768px) {
   .section {
     padding: var(--spacing-md) 0;
-  }
-
-  .mapa-wrapper {
-    min-height: 260px;
   }
 
   .categorias-grid {

@@ -7,6 +7,18 @@
       nas suas respostas.
     </p>
 
+    @if (embedUrlVideo) {
+      <div class="quiz-video-wrap">
+        <iframe
+          class="quiz-video"
+          [src]="embedUrlVideo"
+          title="As 20 Perguntas de Jogadores Anônimos"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+        ></iframe>
+      </div>
+    }
+
     @if (carregando) {
       <div class="quiz-card quiz-intro-card">
         <p class="quiz-estado" role="status">Carregando perguntas…</p>

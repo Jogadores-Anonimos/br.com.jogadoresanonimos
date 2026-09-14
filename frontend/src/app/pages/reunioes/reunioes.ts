@@ -1,24 +1,15 @@
 import {
   Component,
-  ElementRef,
   HostListener,
   OnDestroy,
   OnInit,
   PLATFORM_ID,
-  ViewChild,
   computed,
   inject,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { isPlatformBrowser } from '@angular/common';
-import type {
-  GeoJSONSource,
-  LngLatLike,
-  Map as MapLibreMap,
-  StyleSpecification,
-} from 'maplibre-gl';
-import type { Feature, FeatureCollection, Point } from 'geojson';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 import { ReuniaoService } from '../../services/reuniao/reuniao';
 import { compararHorarios } from '../../services/reuniao/reuniao-horario';
@@ -29,7 +20,6 @@ import {
   Reuniao,
 } from '../../services/reuniao/reuniao.model';
 import { WHATSAPP_PHONE_NUMBER, montarLinkWhatsapp } from '../../config/whatsapp.config';
-import { configurarMapLibreWorker } from '../../config/maplibre-worker.config';
 
 type DiaSemana = 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo';
 
@@ -49,22 +39,8 @@ interface AgendaDiaAgrupada {
   horarios: string[];
 }
 
-interface PropriedadesPontoReuniao {
-  id: string;
-  nome: string;
-  dia: string;
-  horario: string;
-  local: string;
-}
-
 const RAIO_TERRA_KM = 6371;
 
-const CENTRO_PADRAO: LngLatLike = [-46.62, -23.55];
-const ZOOM_PADRAO = 4;
-const ZOOM_REGIAO_USUARIO = 10;
-const ZOOM_MINIMO_BOUNDS = 11;
-const ZOOM_MAXIMO_BOUNDS = 13;
-const PADDING_BOUNDS_PX = 48;
 const ITENS_POR_PAGINA = 10;
 
 const DEBOUNCE_FILTRO_TEXTO_MS = 200;
@@ -82,89 +58,6 @@ const DIAS_AGENDA: ReadonlyArray<{ diaSemana: DiaSemanaAgendaReuniao; rotulo: Di
 const ROTULO_DIA: Record<DiaSemanaAgendaReuniao, DiaSemana> = Object.fromEntries(
   DIAS_AGENDA.map((dia) => [dia.diaSemana, dia.rotulo]),
 ) as Record<DiaSemanaAgendaReuniao, DiaSemana>;
-
-const FONTE_REUNIOES = 'reunioes';
-const CAMADA_PONTOS_REUNIOES = 'reunioes-pontos';
-const FONTE_USUARIO = 'usuario';
-const CAMADA_PONTO_USUARIO = 'usuario-ponto';
-
-const ESTILO_OSM: StyleSpecification = {
-  version: 8,
-  sources: {
-    osm: {
-      type: 'raster',
-      tiles: [
-        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      ],
-      tileSize: 256,
-      attribution: '&copy; colaboradores do OpenStreetMap',
-    },
-  },
-  layers: [
-    {
-      id: 'osm-tiles',
-      type: 'raster',
-      source: 'osm',
-    },
-  ],
-};
-
-function montarFeatureCollection(reunioes: Reuniao[]): FeatureCollection<Point, PropriedadesPontoReuniao> {
-  const features: Feature<Point, PropriedadesPontoReuniao>[] = [];
-
-  for (const reuniao of reunioes) {
-    if (reuniao.latitude === null || reuniao.longitude === null) {
-      continue;
-    }
-
-    features.push({
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [reuniao.longitude, reuniao.latitude],
-      },
-      properties: {
-        id: reuniao.id,
-        nome: reuniao.nome,
-        dia: reuniao.dia,
-        horario: reuniao.horario,
-        local: reuniao.local,
-      },
-    });
-  }
-
-  return { type: 'FeatureCollection', features };
-}
-
-function montarFeatureUsuario(coords: { latitude: number; longitude: number }): FeatureCollection<Point, Record<string, never>> {
-  return {
-    type: 'FeatureCollection',
-    features: [
-      {
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [coords.longitude, coords.latitude],
-        },
-        properties: {},
-      },
-    ],
-  };
-}
-
-function corPadraoJa(): string {
-  return getComputedStyle(document.documentElement).getPropertyValue('--cor-padrao-ja').trim();
-}
-
-function corSucesso(): string {
-  return getComputedStyle(document.documentElement).getPropertyValue('--color-success').trim();
-}
-
-function corBranca(): string {
-  return getComputedStyle(document.documentElement).getPropertyValue('--white').trim();
-}
 
 @Component({
   selector: 'app-reunioes',
@@ -214,29 +107,6 @@ export class Reunioes implements OnInit, OnDestroy {
 
   reuniaoDetalhe: Reuniao | null = null;
 
-  private maplibregl?: typeof import('maplibre-gl');
-  private mapa?: MapLibreMap;
-  private resizeObserver?: ResizeObserver;
-
-  private mapaContainerAtual?: HTMLDivElement;
-
-  @ViewChild('mapaContainer')
-  set mapaContainerRef(ref: ElementRef<HTMLDivElement> | undefined) {
-    if (!this.isBrowser) {
-      return;
-    }
-    if (ref) {
-      if (this.mapaContainerAtual === ref.nativeElement) {
-        return;
-      }
-      this.mapaContainerAtual = ref.nativeElement;
-      this.carregarMapLibreECriarMapa(ref.nativeElement);
-    } else {
-      this.mapaContainerAtual = undefined;
-      this.destruirMapa();
-    }
-  }
-
   ngOnInit(): void {
     this.carregarReunioes();
 
@@ -255,7 +125,6 @@ export class Reunioes implements OnInit, OnDestroy {
 
       if (envelope.success && envelope.data) {
         this.reunioes.set(envelope.data);
-        this.atualizarDadosMapa();
       } else {
         this.erroCarregamentoReunioes = envelope.error?.message ?? 'Não foi possível carregar as reuniões agora.';
       }
@@ -264,7 +133,6 @@ export class Reunioes implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     clearTimeout(this.debounceFiltroTextoId);
-    this.destruirMapa();
   }
 
   selecionarCategoria(categoria: CategoriaReuniao): void {
@@ -282,13 +150,11 @@ export class Reunioes implements OnInit, OnDestroy {
     this.filtroEstado.set(valor);
     this.filtroCidade.set('todos');
     this.itensVisiveis.set(ITENS_POR_PAGINA);
-    this.atualizarDadosMapa();
   }
 
   aplicarFiltroCidade(valor: string | 'todos'): void {
     this.filtroCidade.set(valor);
     this.itensVisiveis.set(ITENS_POR_PAGINA);
-    this.atualizarDadosMapa();
   }
 
   aplicarFiltroTexto(valor: string): void {
@@ -297,7 +163,6 @@ export class Reunioes implements OnInit, OnDestroy {
     clearTimeout(this.debounceFiltroTextoId);
     this.debounceFiltroTextoId = setTimeout(() => {
       this.filtroTextoDebounced.set(valor);
-      this.atualizarDadosMapa();
     }, DEBOUNCE_FILTRO_TEXTO_MS);
   }
 
@@ -323,8 +188,6 @@ export class Reunioes implements OnInit, OnDestroy {
         this.userCoords.set(coords);
         this.localizacaoPermitida.set(true);
         this.localizacaoCarregando.set(false);
-        this.atualizarMarcadorUsuario(coords);
-        this.centralizarMapaNoUsuario(coords);
       },
       () => {
         this.localizacaoIndisponivel.set(true);
@@ -497,62 +360,6 @@ export class Reunioes implements OnInit, OnDestroy {
     return ROTULO_DIA[item.diaSemana];
   }
 
-  private atualizarDadosMapa(): void {
-    if (!this.mapa || !this.mapa.getSource(FONTE_REUNIOES)) {
-      return;
-    }
-
-    const featureCollection = montarFeatureCollection(this.reunioesFiltradas());
-    (this.mapa.getSource(FONTE_REUNIOES) as GeoJSONSource).setData(featureCollection);
-    this.centralizarMapa(featureCollection);
-  }
-
-  private centralizarMapa(featureCollection?: FeatureCollection<Point, PropriedadesPontoReuniao>): void {
-    if (!this.mapa || !this.maplibregl) {
-      return;
-    }
-
-    const features = featureCollection ?? montarFeatureCollection(this.reunioesFiltradas());
-
-    if (features.features.length === 0) {
-      this.mapa.setCenter(CENTRO_PADRAO);
-      this.mapa.setZoom(ZOOM_PADRAO);
-      return;
-    }
-
-    if (features.features.length === 1) {
-      const [longitude, latitude] = features.features[0].geometry.coordinates;
-      this.mapa.setCenter([longitude, latitude]);
-      this.mapa.setZoom(ZOOM_MAXIMO_BOUNDS);
-      return;
-    }
-
-    const bounds = new this.maplibregl.LngLatBounds();
-    for (const feature of features.features) {
-      bounds.extend(feature.geometry.coordinates as LngLatLike);
-    }
-    this.mapa.fitBounds(bounds, {
-      padding: PADDING_BOUNDS_PX,
-      minZoom: ZOOM_MINIMO_BOUNDS,
-      maxZoom: ZOOM_MAXIMO_BOUNDS,
-    });
-  }
-
-  private centralizarMapaNoUsuario(coords: { latitude: number; longitude: number }): void {
-    if (!this.mapa) {
-      return;
-    }
-    this.mapa.setCenter([coords.longitude, coords.latitude]);
-    this.mapa.setZoom(ZOOM_REGIAO_USUARIO);
-  }
-
-  private atualizarMarcadorUsuario(coords: { latitude: number; longitude: number }): void {
-    if (!this.mapa || !this.mapa.getSource(FONTE_USUARIO)) {
-      return;
-    }
-    (this.mapa.getSource(FONTE_USUARIO) as GeoJSONSource).setData(montarFeatureUsuario(coords));
-  }
-
   abrirDetalhes(reuniao: Reuniao): void {
     this.reuniaoDetalhe = reuniao;
   }
@@ -572,148 +379,5 @@ export class Reunioes implements OnInit, OnDestroy {
     if (this.reuniaoDetalhe) {
       this.fecharDetalhes();
     }
-  }
-
-  private async carregarMapLibreECriarMapa(container: HTMLDivElement): Promise<void> {
-    if (!this.maplibregl) {
-      const mod = await import('maplibre-gl');
-      this.maplibregl = (mod as unknown as { default?: typeof import('maplibre-gl') }).default ?? mod;
-      configurarMapLibreWorker(this.maplibregl);
-    }
-    if (this.mapaContainerAtual !== container) {
-      return;
-    }
-    this.criarMapa(container);
-  }
-
-  private criarMapa(container: HTMLDivElement): void {
-    if (!this.maplibregl) {
-      return;
-    }
-    const maplibregl = this.maplibregl;
-
-    this.destruirMapa();
-
-    this.mapa = new maplibregl.Map({
-      container,
-      style: ESTILO_OSM,
-      center: CENTRO_PADRAO,
-      zoom: ZOOM_PADRAO,
-      attributionControl: { compact: true },
-    });
-
-    this.mapa.addControl(new maplibregl.NavigationControl({ showCompass: false }));
-
-    this.mapa.on('load', () => {
-      if (!this.mapa) {
-        return;
-      }
-
-      this.mapa.resize();
-
-      const featureCollection = montarFeatureCollection(this.reunioesFiltradas());
-
-      this.mapa.addSource(FONTE_REUNIOES, {
-        type: 'geojson',
-        data: featureCollection,
-      });
-
-      this.mapa.addLayer({
-        id: CAMADA_PONTOS_REUNIOES,
-        type: 'circle',
-        source: FONTE_REUNIOES,
-        paint: {
-          'circle-radius': 7,
-          'circle-color': corPadraoJa(),
-          'circle-stroke-width': 2,
-          'circle-stroke-color': corBranca(),
-        },
-      });
-
-      this.mapa.on('click', CAMADA_PONTOS_REUNIOES, (e) => {
-        const feature = e.features?.[0];
-        if (!feature || feature.geometry.type !== 'Point') {
-          return;
-        }
-
-        const propriedades = feature.properties as PropriedadesPontoReuniao;
-        const reuniao = this.reunioesFiltradas().find((r) => r.id === propriedades.id);
-        if (reuniao) {
-          this.abrirDetalhes(reuniao);
-        }
-      });
-
-      this.mapa.on('mouseenter', CAMADA_PONTOS_REUNIOES, () => {
-        if (this.mapa) {
-          this.mapa.getCanvas().style.cursor = 'pointer';
-        }
-      });
-
-      this.mapa.on('mouseleave', CAMADA_PONTOS_REUNIOES, () => {
-        if (this.mapa) {
-          this.mapa.getCanvas().style.cursor = '';
-        }
-      });
-
-      const userCoords = this.userCoords();
-
-      this.mapa.addSource(FONTE_USUARIO, {
-        type: 'geojson',
-        data: userCoords ? montarFeatureUsuario(userCoords) : { type: 'FeatureCollection', features: [] },
-      });
-
-      this.mapa.addLayer({
-        id: CAMADA_PONTO_USUARIO,
-        type: 'circle',
-        source: FONTE_USUARIO,
-        paint: {
-          'circle-radius': 9,
-          'circle-color': corSucesso(),
-          'circle-stroke-width': 3,
-          'circle-stroke-color': corBranca(),
-        },
-      });
-
-      const popupUsuario = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 14 })
-        .setText('Você (localização aproximada)');
-
-      this.mapa.on('mouseenter', CAMADA_PONTO_USUARIO, (e) => {
-        if (!this.mapa) {
-          return;
-        }
-        this.mapa.getCanvas().style.cursor = 'pointer';
-        const feature = e.features?.[0];
-        if (feature && feature.geometry.type === 'Point') {
-          popupUsuario.setLngLat(feature.geometry.coordinates as LngLatLike).addTo(this.mapa);
-        }
-      });
-
-      this.mapa.on('mouseleave', CAMADA_PONTO_USUARIO, () => {
-        if (this.mapa) {
-          this.mapa.getCanvas().style.cursor = '';
-        }
-        popupUsuario.remove();
-      });
-
-      this.mapa.resize();
-
-      if (userCoords) {
-        this.centralizarMapaNoUsuario(userCoords);
-      } else {
-        this.centralizarMapa(featureCollection);
-      }
-    });
-
-    this.resizeObserver = new ResizeObserver(() => {
-      this.mapa?.resize();
-    });
-    this.resizeObserver.observe(container);
-  }
-
-  private destruirMapa(): void {
-    this.resizeObserver?.disconnect();
-    this.resizeObserver = undefined;
-    this.mapa?.remove();
-    this.mapa = undefined;
   }
 }

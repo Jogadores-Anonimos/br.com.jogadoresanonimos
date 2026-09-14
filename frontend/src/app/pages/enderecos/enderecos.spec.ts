@@ -1,7 +1,6 @@
-import { PLATFORM_ID } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
@@ -14,107 +13,10 @@ import {
   RegiaoIntergrupo,
   UnidadeFederativaComRegiao,
 } from '../../services/escritorio-regional/escritorio-regional.model';
-import { ReuniaoService } from '../../services/reuniao/reuniao';
-import { Reuniao } from '../../services/reuniao/reuniao.model';
+import { ReuniaoOnlineService } from '../../services/reuniao-online/reuniao-online';
+import { ReuniaoOnline } from '../../services/reuniao-online/reuniao-online.model';
 import { apiError, apiSuccess } from '../../services/api-envelope';
 import { WHATSAPP_PHONE_NUMBER } from '../../config/whatsapp.config';
-
-interface FonteFake {
-  setData: ReturnType<typeof vi.fn>;
-  dadosAtuais: unknown;
-}
-
-interface MapaFake {
-  addControl: ReturnType<typeof vi.fn>;
-  on: ReturnType<typeof vi.fn>;
-  resize: ReturnType<typeof vi.fn>;
-  remove: ReturnType<typeof vi.fn>;
-  addSource: ReturnType<typeof vi.fn>;
-  addLayer: ReturnType<typeof vi.fn>;
-  getSource: (id: string) => FonteFake;
-  getCanvas: ReturnType<typeof vi.fn>;
-  setCenter: ReturnType<typeof vi.fn>;
-  setZoom: ReturnType<typeof vi.fn>;
-  fitBounds: ReturnType<typeof vi.fn>;
-  handlers: Record<string, (...args: unknown[]) => void>;
-  fontes: Record<string, FonteFake>;
-}
-
-const mapasCriados: MapaFake[] = [];
-
-function criarFonteFake(): FonteFake {
-  const fonte: Partial<FonteFake> = { dadosAtuais: undefined };
-  fonte.setData = vi.fn((dados: unknown) => {
-    fonte.dadosAtuais = dados;
-  });
-  return fonte as FonteFake;
-}
-
-function criarMapaFake(): MapaFake {
-  const mapa: Partial<MapaFake> = {
-    handlers: {},
-    fontes: {},
-  };
-  mapa.addControl = vi.fn();
-  mapa.resize = vi.fn();
-  mapa.remove = vi.fn();
-  mapa.getCanvas = vi.fn(() => ({ style: { cursor: '' } }));
-  mapa.setCenter = vi.fn();
-  mapa.setZoom = vi.fn();
-  mapa.fitBounds = vi.fn();
-  mapa.on = vi.fn((evento: string, layerOuHandler: unknown, talvezHandler?: unknown) => {
-    const chave = typeof talvezHandler === 'function' ? `${evento}:${layerOuHandler}` : evento;
-    const handler = typeof talvezHandler === 'function' ? talvezHandler : layerOuHandler;
-    mapa.handlers![chave] = handler as (...args: unknown[]) => void;
-    return mapa;
-  });
-  mapa.addSource = vi.fn((id: string, config: { data?: unknown }) => {
-    const fonte = criarFonteFake();
-    fonte.dadosAtuais = config?.data;
-    mapa.fontes![id] = fonte;
-  });
-  mapa.addLayer = vi.fn();
-  mapa.getSource = vi.fn((id: string) => mapa.fontes![id]);
-  return mapa as MapaFake;
-}
-
-class LngLatBoundsFake {
-  pontos: unknown[] = [];
-  extend(ponto: unknown): void {
-    this.pontos.push(ponto);
-  }
-}
-
-class ResizeObserverFake {
-  observe(): void {}
-  unobserve(): void {}
-  disconnect(): void {}
-}
-
-vi.mock('maplibre-gl', () => {
-  const modulo = {
-    Map: vi.fn(function MapFake() {
-      const mapa = criarMapaFake();
-      mapasCriados.push(mapa);
-      return mapa;
-    }),
-    LngLatBounds: LngLatBoundsFake,
-    NavigationControl: vi.fn(),
-    Popup: vi.fn(function PopupFake() {
-      return {
-        setLngLat: vi.fn().mockReturnThis(),
-        setText: vi.fn().mockReturnThis(),
-        addTo: vi.fn().mockReturnThis(),
-      };
-    }),
-    setWorkerUrl: vi.fn(),
-  };
-  return { ...modulo, default: modulo };
-});
-
-function dispararLoadDoMapa(mapa: MapaFake): void {
-  mapa.handlers['load']?.();
-}
 
 function grupoFake(overrides: Partial<GrupoIntergrupo> = {}): GrupoIntergrupo {
   return {
@@ -160,29 +62,17 @@ function regiaoFake(overrides: Partial<RegiaoIntergrupo> = {}): RegiaoIntergrupo
   };
 }
 
-function reuniaoFake(overrides: Partial<Reuniao> = {}): Reuniao {
+function reuniaoOnlineFake(overrides: Partial<ReuniaoOnline> = {}): ReuniaoOnline {
   return {
-    id: 'reuniao-1',
+    id: 'reuniao-online-1',
     nome: 'Grupo Esperança Online',
-    categoria: 'virtual',
-    descricao: 'Reunião de apoio mútuo por videochamada.',
+    telefone: null,
+    descricao: null,
+    videoUrl: null,
+    panfletoImagemId: null,
+    panfletoImagemUrl: null,
     agenda: [{ diaSemana: 'SEGUNDA', horario: '19:00' }],
-    dia: 'Segunda',
-    horario: '19:00',
-    local: 'Link de acesso enviado por e-mail',
-    whatsapp: null,
-    diaSemana: null,
-    periodo: null,
-    latitude: null,
-    longitude: null,
-    cep: null,
-    numero: null,
-    logradouro: null,
-    bairro: null,
-    cidade: null,
-    estado: 'SP',
-    linkReuniao: null,
-    avisos: [],
+    atualizadoEm: '2026-01-01T00:00:00.000Z',
     ...overrides,
   };
 }
@@ -191,7 +81,7 @@ describe('Enderecos', () => {
   let component: Enderecos;
   let fixture: ComponentFixture<Enderecos>;
   let escritorioServiceSpy: Record<string, ReturnType<typeof vi.fn>>;
-  let reuniaoServiceSpy: Record<string, ReturnType<typeof vi.fn>>;
+  let reuniaoOnlineServiceSpy: Record<string, ReturnType<typeof vi.fn>>;
 
   const regiao1 = regiaoFake({ id: 'regiao-1', nome: 'Região Um', estados: [estadoFake()] });
   const regiao2 = regiaoFake({ id: 'regiao-2', nome: 'Região Dois', codigo: 'NORDESTE', estados: [] });
@@ -210,16 +100,9 @@ describe('Enderecos', () => {
     ];
   }
 
-  beforeAll(() => {
-    if (typeof globalThis.ResizeObserver === 'undefined') {
-      globalThis.ResizeObserver = ResizeObserverFake as unknown as typeof ResizeObserver;
-    }
-  });
-
-  async function criarComponente(reunioes: Reuniao[] = [], plataforma: 'browser' | 'server' = 'browser'): Promise<void> {
-    mapasCriados.length = 0;
-    reuniaoServiceSpy = {
-      listarReunioes: vi.fn().mockReturnValue(of(apiSuccess(reunioes))),
+  async function criarComponente(reunioesOnline: ReuniaoOnline[] = []): Promise<void> {
+    reuniaoOnlineServiceSpy = {
+      listarReunioesOnline: vi.fn().mockReturnValue(of(apiSuccess(reunioesOnline))),
     };
 
     TestBed.resetTestingModule();
@@ -230,9 +113,8 @@ describe('Enderecos', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
-        { provide: PLATFORM_ID, useValue: plataforma },
         { provide: EscritorioRegionalService, useValue: escritorioServiceSpy },
-        { provide: ReuniaoService, useValue: reuniaoServiceSpy },
+        { provide: ReuniaoOnlineService, useValue: reuniaoOnlineServiceSpy },
       ],
     }).compileComponents();
 
@@ -256,18 +138,18 @@ describe('Enderecos', () => {
       expect(component).toBeTruthy();
     });
 
-    it('carrega regiões e reuniões em paralelo, selecionando a primeira região automaticamente', () => {
+    it('carrega regiões e reuniões online em paralelo, selecionando a primeira região automaticamente', () => {
       expect(component.carregando()).toBe(false);
       expect(component.erro()).toBe(false);
       expect(component.regioes()).toHaveLength(2);
-      expect(component.regiaoSelecionada).toBe('regiao-1');
+      expect(component.regiaoSelecionada()).toBe('regiao-1');
       expect(component.regiaoAtual).toBe(regiao1);
     });
 
     it('troca a região selecionada ao chamar selecionarRegiao', () => {
       component.selecionarRegiao(regiao2);
 
-      expect(component.regiaoSelecionada).toBe('regiao-2');
+      expect(component.regiaoSelecionada()).toBe('regiao-2');
       expect(component.regiaoAtual).toBe(regiao2);
     });
 
@@ -282,6 +164,10 @@ describe('Enderecos', () => {
 
     it('link de WhatsApp para grupo inexistente usa WHATSAPP_PHONE_NUMBER', () => {
       expect(component.linkWhatsappGrupoInexistente()).toContain(WHATSAPP_PHONE_NUMBER);
+    });
+
+    it('link de WhatsApp para pedir reunião online usa WHATSAPP_PHONE_NUMBER', () => {
+      expect(component.linkWhatsappPedirLinkReuniaoOnline()).toContain(WHATSAPP_PHONE_NUMBER);
     });
 
     it('formata telefones com label quando presente e sem label quando ausente', () => {
@@ -306,7 +192,7 @@ describe('Enderecos', () => {
     it('não quebra quando não há regiões, mantendo regiaoSelecionada nula', () => {
       expect(component.carregando()).toBe(false);
       expect(component.erro()).toBe(false);
-      expect(component.regiaoSelecionada).toBeNull();
+      expect(component.regiaoSelecionada()).toBeNull();
       expect(component.regiaoAtual).toBeUndefined();
     });
   });
@@ -342,7 +228,7 @@ describe('Enderecos', () => {
     });
   });
 
-  describe('reconciliação por UF', () => {
+  describe('painel Online', () => {
     beforeEach(() => {
       escritorioServiceSpy = {
         listarEstrutura: vi.fn().mockReturnValue(of(apiSuccess(estruturaCompleta()))),
@@ -350,187 +236,119 @@ describe('Enderecos', () => {
       };
     });
 
-    it('lista reuniões online cuja categoria é virtual e o estado bate com a UF', async () => {
-      const virtualSp = reuniaoFake({ id: 'virtual-sp', estado: 'SP' });
-      const virtualBa = reuniaoFake({ id: 'virtual-ba', estado: 'BA' });
-      await criarComponente([virtualSp, virtualBa]);
-
-      const reunioesOnlineSp = component.reunioesOnlineDaUf('SP');
-
-      expect(reunioesOnlineSp).toEqual([virtualSp]);
-    });
-
-    it('não considera reunião presencial como online mesmo com estado preenchido', async () => {
-      const presencialSp = reuniaoFake({ id: 'presencial-sp', categoria: 'presencial', estado: 'SP' });
-      await criarComponente([presencialSp]);
-
-      expect(component.reunioesOnlineDaUf('SP')).toEqual([]);
-    });
-
-    it('omite sub-seção Online quando não há reunião virtual para a UF', async () => {
-      await criarComponente([]);
-
-      expect(component.reunioesOnlineDaUf('SP')).toHaveLength(0);
-    });
-
-    it('sub-seção Presencial usa os grupos de EstadoIntergrupo.grupos', async () => {
-      const grupo = grupoFake({ id: 'grupo-sp', nome: 'Grupo SP Centro' });
-      const regiaoComGrupo = regiaoFake({
-        id: 'regiao-1',
-        estados: [estadoFake({ uf: 'SP', grupos: [grupo] })],
+    it('agrupa horários de reuniões online por dia da semana', async () => {
+      const reuniaoA = reuniaoOnlineFake({
+        id: 'reuniao-a',
+        nome: 'Grupo A',
+        agenda: [{ diaSemana: 'SEGUNDA', horario: '20:00' }],
       });
-      escritorioServiceSpy['listarEstrutura'] = vi.fn().mockReturnValue(
-        of(apiSuccess({ escritorios: [], regioes: [regiaoComGrupo] })),
-      );
+      const reuniaoB = reuniaoOnlineFake({
+        id: 'reuniao-b',
+        nome: 'Grupo B',
+        agenda: [{ diaSemana: 'SEGUNDA', horario: '19:00' }],
+      });
+      await criarComponente([reuniaoA, reuniaoB]);
+
+      const grade = component.gradeOnlinePorDia();
+      const segunda = grade.find((dia) => dia.diaSemana === 'SEGUNDA');
+
+      expect(segunda?.itens).toEqual([
+        { horario: '19:00', nomeGrupo: 'Grupo B' },
+        { horario: '20:00', nomeGrupo: 'Grupo A' },
+      ]);
+    });
+
+    it('identifica o Grupo Salvador como grupo próprio online', async () => {
+      const grupoSalvador = reuniaoOnlineFake({ id: 'grupo-salvador', nome: 'Grupo Salvador' });
+      await criarComponente([grupoSalvador]);
+
+      expect(component.grupoProprioOnline()).toEqual(grupoSalvador);
+    });
+
+    it('retorna null como grupo próprio quando não há Grupo Salvador cadastrado', async () => {
+      const outroGrupo = reuniaoOnlineFake({ id: 'outro', nome: 'Grupo Outro' });
+      await criarComponente([outroGrupo]);
+
+      expect(component.grupoProprioOnline()).toBeNull();
+    });
+
+    it('lista nomes únicos de grupos online ordenados alfabeticamente', async () => {
+      const reuniaoA = reuniaoOnlineFake({ id: 'a', nome: 'Grupo Zulu', agenda: [{ diaSemana: 'SEGUNDA', horario: '19:00' }] });
+      const reuniaoB = reuniaoOnlineFake({ id: 'b', nome: 'Grupo Alfa', agenda: [{ diaSemana: 'TERCA', horario: '19:00' }] });
+      await criarComponente([reuniaoA, reuniaoB]);
+
+      expect(component.nomesGruposOnline()).toEqual(['Grupo Alfa', 'Grupo Zulu']);
+    });
+
+    it('grade fica vazia quando não há reuniões online cadastradas', async () => {
       await criarComponente([]);
 
-      const item = component.estadosRegiaoAtual().find((i) => i.uf === 'SP');
-      expect(item?.tipo).toBe('com-grupo');
-      if (item?.tipo === 'com-grupo') {
-        expect(item.estado.grupos).toEqual([grupo]);
-      }
+      expect(component.gradeOnlinePorDia()).toHaveLength(0);
+      expect(component.nomesGruposOnline()).toHaveLength(0);
     });
   });
 
-  describe('modal de detalhes', () => {
+  describe('modal de detalhes de grupo presencial', () => {
     beforeEach(async () => {
       escritorioServiceSpy = {
         listarEstrutura: vi.fn().mockReturnValue(of(apiSuccess(estruturaCompleta()))),
         listarUnidadesFederativas: vi.fn().mockReturnValue(of(apiSuccess(unidadesFederativasFake()))),
       };
-      await criarComponente([reuniaoFake()]);
+      await criarComponente();
     });
 
-    it('abre e fecha os detalhes de uma reunião', () => {
-      const reuniao = reuniaoFake();
-      component.abrirDetalhes(reuniao);
-      expect(component.reuniaoDetalhe).toBe(reuniao);
+    it('abre e fecha os detalhes de um grupo', () => {
+      const grupo = grupoFake();
+      component.abrirDetalhesGrupo(grupo);
+      expect(component.grupoDetalhe).toBe(grupo);
 
       component.fecharDetalhes();
-      expect(component.reuniaoDetalhe).toBeNull();
+      expect(component.grupoDetalhe).toBeNull();
     });
 
     it('fecha os detalhes ao pressionar Escape', () => {
-      component.abrirDetalhes(reuniaoFake());
+      component.abrirDetalhesGrupo(grupoFake());
       component.onEscape();
-      expect(component.reuniaoDetalhe).toBeNull();
+      expect(component.grupoDetalhe).toBeNull();
     });
 
     it('não quebra ao pressionar Escape sem detalhes abertos', () => {
       expect(() => component.onEscape()).not.toThrow();
-      expect(component.reuniaoDetalhe).toBeNull();
+      expect(component.grupoDetalhe).toBeNull();
     });
 
     it('fecha os detalhes ao clicar fora do painel (evento no overlay)', () => {
-      component.abrirDetalhes(reuniaoFake());
+      component.abrirDetalhesGrupo(grupoFake());
       const overlay = document.createElement('div');
       const evento = { target: overlay, currentTarget: overlay } as unknown as MouseEvent;
 
       component.fecharDetalhesSeCliqueForaDoPainel(evento);
 
-      expect(component.reuniaoDetalhe).toBeNull();
+      expect(component.grupoDetalhe).toBeNull();
     });
 
     it('mantém os detalhes abertos ao clicar dentro do painel', () => {
-      const reuniao = reuniaoFake();
-      component.abrirDetalhes(reuniao);
+      const grupo = grupoFake();
+      component.abrirDetalhesGrupo(grupo);
       const overlay = document.createElement('div');
       const painel = document.createElement('div');
       const evento = { target: painel, currentTarget: overlay } as unknown as MouseEvent;
 
       component.fecharDetalhesSeCliqueForaDoPainel(evento);
 
-      expect(component.reuniaoDetalhe).toBe(reuniao);
+      expect(component.grupoDetalhe).toBe(grupo);
     });
 
-    it('usa o telefone próprio da reunião no link do WhatsApp quando informado', () => {
-      const reuniao = reuniaoFake({ whatsapp: '5511988887777' });
+    it('usa o telefone do grupo no link do WhatsApp quando informado', () => {
+      const grupo = grupoFake({ telefones: [{ id: 'tel-1', label: null, telefone: '5511988887777' }] });
 
-      expect(component.whatsappLink(reuniao)).toContain('5511988887777');
+      expect(component.whatsappLinkGrupo(grupo)).toContain('5511988887777');
     });
 
-    it('cai para WHATSAPP_PHONE_NUMBER no link do WhatsApp quando a reunião não tem número próprio', () => {
-      const reuniao = reuniaoFake({ whatsapp: null });
+    it('cai para WHATSAPP_PHONE_NUMBER no link do WhatsApp quando o grupo não tem telefone', () => {
+      const grupo = grupoFake({ telefones: [] });
 
-      expect(component.whatsappLink(reuniao)).toContain(WHATSAPP_PHONE_NUMBER);
-    });
-
-    it('agrupa a agenda por dia da semana em ordem cronológica', () => {
-      const reuniao = reuniaoFake({
-        agenda: [
-          { diaSemana: 'SEGUNDA', horario: '20:00' },
-          { diaSemana: 'SEGUNDA', horario: '19:00' },
-          { diaSemana: 'QUINTA', horario: '18:00' },
-        ],
-      });
-
-      expect(component.agendaAgrupadaDaReuniao(reuniao)).toEqual([
-        { diaSemana: 'SEGUNDA', horarios: ['19:00', '20:00'] },
-        { diaSemana: 'QUINTA', horarios: ['18:00'] },
-      ]);
-    });
-  });
-
-  describe('toggle de mapa', () => {
-    beforeEach(() => {
-      escritorioServiceSpy = {
-        listarEstrutura: vi.fn().mockReturnValue(of(apiSuccess(estruturaCompleta()))),
-        listarUnidadesFederativas: vi.fn().mockReturnValue(of(apiSuccess(unidadesFederativasFake()))),
-      };
-    });
-
-    it('não cria o mapa antes do primeiro clique em "Ver no mapa"', async () => {
-      await criarComponente([]);
-      expect(component.mapaAberto()).toBe(false);
-      expect(mapasCriados).toHaveLength(0);
-    });
-
-    it('carrega maplibre-gl e cria o mapa de forma lazy no primeiro toggle', async () => {
-      const reuniaoComCoords = reuniaoFake({
-        id: 'presencial-coords',
-        categoria: 'presencial',
-        estado: null,
-        latitude: -23.55,
-        longitude: -46.62,
-        grupoIntergrupoId: 'grupo-1',
-      });
-      await criarComponente([reuniaoComCoords]);
-
-      component.toggleMapa();
-      fixture.detectChanges();
-      await fixture.whenStable();
-      await new Promise((resolve) => setTimeout(resolve, 0));
-      fixture.detectChanges();
-
-      expect(component.mapaAberto()).toBe(true);
-      expect(mapasCriados).toHaveLength(1);
-
-      const mapa = mapasCriados[0];
-      dispararLoadDoMapa(mapa);
-
-      const fonte = mapa.getSource('reunioes') as FonteFake;
-      const dados = fonte.dadosAtuais as { features: { properties: { id: string } }[] };
-      expect(dados.features).toHaveLength(1);
-      expect(dados.features[0].properties.id).toBe('presencial-coords');
-    });
-
-    it('recolhe o mapa ao clicar novamente, sem recriar o mapa', async () => {
-      await criarComponente([]);
-
-      component.toggleMapa();
-      fixture.detectChanges();
-      await fixture.whenStable();
-      await new Promise((resolve) => setTimeout(resolve, 0));
-      fixture.detectChanges();
-
-      expect(mapasCriados).toHaveLength(1);
-
-      component.toggleMapa();
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect(component.mapaAberto()).toBe(false);
-      expect(mapasCriados).toHaveLength(1);
+      expect(component.whatsappLinkGrupo(grupo)).toContain(WHATSAPP_PHONE_NUMBER);
     });
   });
 });

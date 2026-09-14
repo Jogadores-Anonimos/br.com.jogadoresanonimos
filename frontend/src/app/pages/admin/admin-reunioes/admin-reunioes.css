@@ -504,42 +504,11 @@
   object-fit: cover;
 }
 
-.admin-reunioes__mapa-preview {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.admin-reunioes__mapa-preview-titulo {
-  color: var(--color-text);
-  font-size: 0.9rem;
-  font-weight: var(--font-weight-semibold);
-}
-
-.admin-reunioes__mapa-preview-wrapper {
-  position: relative;
-  z-index: 0;
-  min-height: 220px;
-  border: 1px solid var(--color-border);
-  background: var(--color-map-panel);
-  overflow: hidden;
-}
-
-.admin-reunioes__mapa-preview-maplibre {
-  position: absolute;
-  inset: 0;
+.admin-reunioes__link-maps {
+  width: fit-content;
 }
 
 @media (min-width: 900px) {
-  .admin-reunioes__grid {
-    grid-template-columns: minmax(0, 60ch) minmax(260px, 1fr);
-    align-items: start;
-  }
-
-  .admin-reunioes__mapa-preview-wrapper {
-    min-height: 320px;
-  }
-
   .admin-reunioes__filtros {
     flex-direction: row;
     align-items: flex-end;

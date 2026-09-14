@@ -1,9 +1,9 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Component, ElementRef, OnInit, PLATFORM_ID, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import type { LngLatLike, Map as MapLibreMap, Marker as MapLibreMarker, StyleSpecification } from 'maplibre-gl';
 
 import { SeletorHora12h } from '../../../components/seletor-hora-12h/seletor-hora-12h';
+import { TituloGrupoPipe } from '../../../pipes/titulo-grupo/titulo-grupo';
 import { mapearErrosCampo, mensagemDeErro } from '../../../services/api-envelope';
 import { EnderecoLookupService } from '../../../services/endereco-lookup/endereco-lookup';
 import { ReuniaoService } from '../../../services/reuniao/reuniao';
@@ -17,7 +17,6 @@ import {
 } from '../../../services/reuniao/reuniao.model';
 import { ReuniaoOnlineService } from '../../../services/reuniao-online/reuniao-online';
 import { CriarReuniaoOnlineRequest, ReuniaoOnline } from '../../../services/reuniao-online/reuniao-online.model';
-import { configurarMapLibreWorker } from '../../../config/maplibre-worker.config';
 import { WHATSAPP_PHONE_NUMBER } from '../../../config/whatsapp.config';
 import { Imagem } from '../../../services/imagem/imagem';
 import { extrairYoutubeVideoId, paraYoutubeEmbedUrl } from '../../../services/mural-de-apoio/youtube.util';
@@ -115,33 +114,6 @@ function periodoParaHorario(horario: string): 'Manhã' | 'Tarde' | 'Noite' {
   return 'Noite';
 }
 
-const CENTRO_PADRAO: LngLatLike = [-46.62, -23.55];
-const ZOOM_PADRAO = 11;
-const ZOOM_MARCADOR = 14;
-
-const ESTILO_OSM: StyleSpecification = {
-  version: 8,
-  sources: {
-    osm: {
-      type: 'raster',
-      tiles: [
-        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      ],
-      tileSize: 256,
-      attribution: '&copy; colaboradores do OpenStreetMap',
-    },
-  },
-  layers: [
-    {
-      id: 'osm-tiles',
-      type: 'raster',
-      source: 'osm',
-    },
-  ],
-};
-
 const DIAS_SEMANA = DIAS_AGENDA.map((dia) => dia.rotulo);
 
 const UFS_BRASIL: ReadonlyArray<{ sigla: string; nome: string }> = [
@@ -204,10 +176,6 @@ function normalizarTextoLivre(valor: string): string {
   return paraTitleCase(semEspacosExtras);
 }
 
-function corPadraoJa(): string {
-  return getComputedStyle(document.documentElement).getPropertyValue('--cor-padrao-ja').trim();
-}
-
 function formatarWhatsapp(numeroCru: string): string {
   const digitos = numeroCru.replace(/\D/g, '').replace(/^55/, '');
   const ddd = digitos.slice(0, 2);
@@ -219,7 +187,7 @@ function formatarWhatsapp(numeroCru: string): string {
 @Component({
   selector: 'app-admin-reunioes',
   standalone: true,
-  imports: [CommonModule, FormsModule, SeletorHora12h],
+  imports: [CommonModule, FormsModule, SeletorHora12h, TituloGrupoPipe],
   templateUrl: './admin-reunioes.html',
   styleUrl: './admin-reunioes.css',
 })
@@ -308,32 +276,8 @@ export class AdminReunioes implements OnInit {
   mensagemGeolocalizacao = '';
   erroGeolocalizacao = '';
 
-  private maplibregl?: typeof import('maplibre-gl');
-  private mapaPreview?: MapLibreMap;
-  private marcadorPreview?: MapLibreMarker;
-  private resizeObserver?: ResizeObserver;
-  private mapaInitToken = 0;
-  private mapaPreviewContainerAtual?: HTMLDivElement;
-
   @ViewChild('formularioSecao') formularioSecaoRef?: ElementRef<HTMLElement>;
   @ViewChild('campoNome') campoNomeRef?: ElementRef<HTMLInputElement>;
-
-  @ViewChild('mapaPreviewContainer')
-  set mapaPreviewContainerRef(ref: ElementRef<HTMLDivElement> | undefined) {
-    if (!this.isBrowser) {
-      return;
-    }
-    if (ref) {
-      if (this.mapaPreviewContainerAtual === ref.nativeElement) {
-        return;
-      }
-      this.mapaPreviewContainerAtual = ref.nativeElement;
-      this.carregarMapLibreECriarMapaPreview(ref.nativeElement);
-    } else {
-      this.mapaPreviewContainerAtual = undefined;
-      this.destruirMapaPreview();
-    }
-  }
 
   ngOnInit(): void {
     this.carregarReunioes();
@@ -580,7 +524,6 @@ export class AdminReunioes implements OnInit {
         this.formulario.latitude = primeiro.lat;
         this.formulario.longitude = primeiro.lon;
         this.avisoGeocodificacao = 'Localização atualizada pelo endereço informado.';
-        this.atualizarMapaPreview();
       });
     });
   }
@@ -643,8 +586,16 @@ export class AdminReunioes implements OnInit {
       this.formulario.latitude = '';
       this.formulario.longitude = '';
       this.avisoGeocodificacao = aviso;
-      this.atualizarMapaPreview();
     }
+  }
+
+  linkGoogleMaps(): string | null {
+    const lat = this.formulario.latitude.trim();
+    const lng = this.formulario.longitude.trim();
+    if (!lat || !lng) {
+      return null;
+    }
+    return `https://www.google.com/maps?q=${lat},${lng}`;
   }
 
   alternarDiaAgenda(item: AgendaFormularioItem): void {
@@ -678,39 +629,6 @@ export class AdminReunioes implements OnInit {
 
   private resumoAgendaDeItens(agendaAgrupada: Array<{ diaSemana: DiaSemanaAgendaReuniao; horarios: string[] }>): string {
     return agendaAgrupada.map((item) => `${ROTULO_DIA[item.diaSemana]} ${item.horarios.join(', ')}`).join(' · ');
-  }
-
-  atualizarMapaPreview(): void {
-    if (!this.isBrowser || !this.mapaPreview || !this.maplibregl) {
-      return;
-    }
-
-    const lat = Number(this.formulario.latitude);
-    const lng = Number(this.formulario.longitude);
-    const coordenadasValidas =
-      this.formulario.latitude.trim() !== '' &&
-      this.formulario.longitude.trim() !== '' &&
-      !Number.isNaN(lat) &&
-      !Number.isNaN(lng);
-
-    if (!coordenadasValidas) {
-      this.marcadorPreview?.remove();
-      this.marcadorPreview = undefined;
-      this.mapaPreview.setCenter(CENTRO_PADRAO);
-      this.mapaPreview.setZoom(ZOOM_PADRAO);
-      return;
-    }
-
-    const posicao: LngLatLike = [lng, lat];
-
-    if (this.marcadorPreview) {
-      this.marcadorPreview.setLngLat(posicao);
-    } else {
-      this.marcadorPreview = new this.maplibregl.Marker({ color: corPadraoJa() }).setLngLat(posicao).addTo(this.mapaPreview);
-    }
-
-    this.mapaPreview.setCenter(posicao);
-    this.mapaPreview.setZoom(ZOOM_MARCADOR);
   }
 
   private construirErroFormulario(): string {
@@ -981,57 +899,4 @@ export class AdminReunioes implements OnInit {
     });
   }
 
-  private async carregarMapLibreECriarMapaPreview(container: HTMLDivElement): Promise<void> {
-    const token = ++this.mapaInitToken;
-    if (!this.maplibregl) {
-      const mod = await import('maplibre-gl');
-      this.maplibregl = (mod as unknown as { default?: typeof import('maplibre-gl') }).default ?? mod;
-      configurarMapLibreWorker(this.maplibregl);
-    }
-    if (token !== this.mapaInitToken) {
-      return;
-    }
-    this.criarMapaPreview(container);
-  }
-
-  private criarMapaPreview(container: HTMLDivElement): void {
-    if (!this.maplibregl) {
-      return;
-    }
-
-    this.destruirMapaPreview();
-
-    this.mapaPreview = new this.maplibregl.Map({
-      container,
-      style: ESTILO_OSM,
-      center: CENTRO_PADRAO,
-      zoom: ZOOM_PADRAO,
-      scrollZoom: false,
-      dragRotate: false,
-      dragPan: false,
-      attributionControl: { compact: true },
-    });
-
-    this.mapaPreview.on('load', () => {
-      this.mapaPreview?.resize();
-      this.atualizarMapaPreview();
-    });
-
-    this.resizeObserver = new ResizeObserver(() => {
-      this.mapaPreview?.resize();
-    });
-    this.resizeObserver.observe(container);
-
-    setTimeout(() => this.mapaPreview?.resize(), 200);
-  }
-
-  private destruirMapaPreview(): void {
-    this.mapaInitToken++;
-    this.resizeObserver?.disconnect();
-    this.resizeObserver = undefined;
-    this.marcadorPreview?.remove();
-    this.marcadorPreview = undefined;
-    this.mapaPreview?.remove();
-    this.mapaPreview = undefined;
-  }
 }

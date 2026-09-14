@@ -117,7 +117,7 @@
         <li class="admin-reunioes__card">
           <div class="admin-reunioes__card-cabecalho">
             <div class="admin-reunioes__card-titulo-linha">
-              <h2 class="admin-reunioes__card-titulo">{{ item.nome }}</h2>
+              <h2 class="admin-reunioes__card-titulo">{{ item.nome | tituloGrupo }}</h2>
               <span class="admin-reunioes__badge" [class.admin-reunioes__badge--virtual]="item.origem === 'virtual'">
                 {{ item.origem === 'presencial' ? 'Presencial' : 'Virtual' }}
               </span>
@@ -472,7 +472,6 @@
                 inputmode="decimal"
                 placeholder="Preenchido pela busca de CEP"
                 [(ngModel)]="formulario.latitude"
-                (ngModelChange)="atualizarMapaPreview()"
                 [class.campo-invalido]="errosCampo['latitude']"
                 [attr.aria-invalid]="errosCampo['latitude'] ? 'true' : null"
                 [attr.aria-describedby]="errosCampo['latitude'] ? 'reuniao-latitude-erro' : null"
@@ -491,7 +490,6 @@
                 inputmode="decimal"
                 placeholder="Preenchido pela busca de CEP"
                 [(ngModel)]="formulario.longitude"
-                (ngModelChange)="atualizarMapaPreview()"
                 [class.campo-invalido]="errosCampo['longitude']"
                 [attr.aria-invalid]="errosCampo['longitude'] ? 'true' : null"
                 [attr.aria-describedby]="errosCampo['longitude'] ? 'reuniao-longitude-erro' : null"
@@ -501,6 +499,20 @@
               }
             </div>
           </div>
+
+          @if (linkGoogleMaps(); as mapsUrl) {
+            <div class="admin-reunioes__campo">
+              <a
+                [href]="mapsUrl"
+                target="_blank"
+                rel="noopener"
+                class="admin-reunioes__botao admin-reunioes__botao--secundario admin-reunioes__link-maps"
+              >
+                Conferir endereço no Google Maps
+              </a>
+              <p class="admin-reunioes__ajuda">Confirme o endereço no Google Maps antes de salvar.</p>
+            </div>
+          }
         } @else {
           <p class="admin-reunioes__ajuda">
             Todas as reuniões virtuais usam o WhatsApp institucional fixo {{ whatsappInstitucionalFormatado }} — não é possível definir um número por reunião.
@@ -559,15 +571,6 @@
           </div>
         }
       </div>
-
-      @if (formulario.categoria === 'presencial') {
-        <div class="admin-reunioes__mapa-preview">
-          <span class="admin-reunioes__mapa-preview-titulo">Pré-visualização</span>
-          <div class="admin-reunioes__mapa-preview-wrapper">
-            <div #mapaPreviewContainer class="admin-reunioes__mapa-preview-maplibre"></div>
-          </div>
-        </div>
-      }
     </div>
 
     @if (erroFormulario) {

@@ -1,7 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ResourceLayout } from '../../components/resource-layout/resource-layout';
 import { VintePerguntasService } from '../../services/vinte-perguntas/vinte-perguntas';
+import { extrairYoutubeVideoId } from '../../services/mural-de-apoio/youtube.util';
+
+const VIDEO_URL_VINTE_PERGUNTAS = 'https://www.youtube.com/watch?v=OPkn4eTc2-8';
 
 type Resposta = 'sim' | 'nao';
 
@@ -19,6 +23,9 @@ interface ResultadoQuiz {
 })
 export class VintePerguntas implements OnInit {
   private readonly vintePerguntasService = inject(VintePerguntasService);
+  private readonly sanitizer = inject(DomSanitizer);
+
+  readonly embedUrlVideo: SafeResourceUrl | null = this.criarEmbedUrlVideo();
 
   perguntas: string[] = [];
 
@@ -89,5 +96,12 @@ export class VintePerguntas implements OnInit {
     this.perguntaAtual = 0;
     this.respostas = [];
     this.resultado = null;
+  }
+
+  private criarEmbedUrlVideo(): SafeResourceUrl | null {
+    const videoId = extrairYoutubeVideoId(VIDEO_URL_VINTE_PERGUNTAS);
+    return videoId
+      ? this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube-nocookie.com/embed/${videoId}`)
+      : null;
   }
 }

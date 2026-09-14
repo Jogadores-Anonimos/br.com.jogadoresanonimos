@@ -32,10 +32,6 @@
     <section class="section section-alt">
       @if (categoriaSelecionada() === 'presencial') {
         <div class="mapa-bloco">
-          <div class="mapa-wrapper">
-            <div class="mapa-maplibre" #mapaContainer></div>
-          </div>
-
           @if (!localizacaoPermitida()) {
             <div class="localizacao-bloco">
               <p>
