@@ -4,7 +4,7 @@
 
 .voltar-topo-fab {
   position: fixed;
-  right: calc(var(--spacing-md) + 56px + var(--spacing-xs));
+  right: var(--spacing-md);
   bottom: var(--spacing-md);
   z-index: 900;
 
@@ -52,7 +52,7 @@
 
 @media (max-width: 480px) {
   .voltar-topo-fab {
-    right: calc(var(--spacing-sm) + 56px + var(--spacing-xs));
+    right: var(--spacing-sm);
     bottom: var(--spacing-sm);
   }
 }
