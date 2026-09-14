@@ -1,3 +1,4 @@
+UPDATE reuniao SET grupo_intergrupo_id = NULL WHERE grupo_intergrupo_id IS NOT NULL;
 DELETE FROM grupo_intergrupo_telefone;
 DELETE FROM grupo_intergrupo_horario;
 DELETE FROM grupo_intergrupo;
