@@ -111,6 +111,64 @@
   transform: none;
 }
 
+.localizacao-usuario {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.btn-localizacao {
+  background: var(--color-bg-surface);
+  border: 2px solid var(--cor-padrao-ja);
+  border-radius: var(--radius-sm);
+  color: var(--cor-padrao-ja);
+  font-weight: var(--font-weight-bold);
+  font-size: 0.9rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.btn-localizacao:hover:not(:disabled) {
+  background: var(--cor-padrao-ja);
+  color: var(--white);
+}
+
+.btn-localizacao:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-localizacao:focus-visible {
+  outline: 3px solid var(--cor-padrao-ja);
+  outline-offset: 2px;
+}
+
+.btn-localizacao--limpar {
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.btn-localizacao--limpar:hover {
+  background: var(--color-bg-section);
+  color: var(--color-text);
+}
+
+.localizacao-ajuda {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  max-width: 480px;
+}
+
+.localizacao-ativa {
+  color: var(--cor-padrao-ja);
+  font-weight: var(--font-weight-bold);
+  font-size: 0.9rem;
+}
+
 .filtros {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
@@ -298,6 +356,47 @@
 
 .online-grupo-badge--laranja {
   background: var(--color-grupo-online-laranja);
+}
+
+.online-grupo-badge--amarelo {
+  background: var(--color-grupo-online-amarelo);
+}
+
+.online-grupo-badge--azul {
+  background: var(--color-grupo-online-azul);
+}
+
+.online-grupo-badge--verde {
+  background: var(--color-grupo-online-verde);
+}
+
+.online-grupo-badge--branco {
+  background: var(--color-grupo-online-branco);
+  border: 1px solid var(--color-border);
+}
+
+.online-grupo-badge--magenta {
+  background: var(--color-grupo-online-magenta);
+}
+
+.online-grupo-badge--cinza {
+  background: var(--color-grupo-online-cinza);
+}
+
+.online-grupo-badge--rosa {
+  background: var(--color-grupo-online-rosa);
+}
+
+.online-grupo-badge--preto {
+  background: var(--color-grupo-online-preto);
+}
+
+.online-grupo-badge--vinho {
+  background: var(--color-grupo-online-vinho);
+}
+
+.online-grupo-badge--vermelho {
+  background: var(--color-grupo-online-vermelho);
 }
 
 .online-grade-horario {

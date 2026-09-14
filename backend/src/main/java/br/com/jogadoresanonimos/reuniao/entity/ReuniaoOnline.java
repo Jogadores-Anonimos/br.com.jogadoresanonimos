@@ -4,6 +4,8 @@ import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
@@ -38,6 +40,10 @@ public class ReuniaoOnline {
     @Column(name = "panfleto_imagem_id")
     private UUID panfletoImagemId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cor", nullable = false, length = 20)
+    private CorReuniaoOnline cor;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "reuniao_online_horario", joinColumns = @JoinColumn(name = "reuniao_online_id"))
     private List<AgendaItemReuniaoOnline> agenda = new ArrayList<>();
@@ -52,24 +58,26 @@ public class ReuniaoOnline {
     }
 
     public ReuniaoOnline(String nome, String telefone, String descricao, String videoUrl, UUID panfletoImagemId,
-                          List<AgendaItemReuniaoOnline> agenda) {
+                          CorReuniaoOnline cor, List<AgendaItemReuniaoOnline> agenda) {
         this.nome = nome;
         this.telefone = telefone;
         this.descricao = descricao;
         this.videoUrl = videoUrl;
         this.panfletoImagemId = panfletoImagemId;
+        this.cor = cor;
         this.agenda = new ArrayList<>(agenda);
         this.criadoEm = Instant.now();
         this.atualizadoEm = Instant.now();
     }
 
     public void editar(String nome, String telefone, String descricao, String videoUrl, UUID panfletoImagemId,
-                        List<AgendaItemReuniaoOnline> agenda) {
+                        CorReuniaoOnline cor, List<AgendaItemReuniaoOnline> agenda) {
         this.nome = nome;
         this.telefone = telefone;
         this.descricao = descricao;
         this.videoUrl = videoUrl;
         this.panfletoImagemId = panfletoImagemId;
+        this.cor = cor;
         this.agenda.clear();
         this.agenda.addAll(agenda);
         this.atualizadoEm = Instant.now();
@@ -97,6 +105,10 @@ public class ReuniaoOnline {
 
     public UUID getPanfletoImagemId() {
         return panfletoImagemId;
+    }
+
+    public CorReuniaoOnline getCor() {
+        return cor;
     }
 
     public List<AgendaItemReuniaoOnline> getAgenda() {

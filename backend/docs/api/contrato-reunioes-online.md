@@ -1,5 +1,15 @@
 # Contrato de API — Módulo Reunião Online
 
+> **Nota de 2026-09-14**: adicionado campo `cor` (enum
+> `CorReuniaoOnline`), editável pelo admin por grupo. Ver seção "Cor do
+> grupo (2026-09-14)" abaixo. **Altera o contrato já consumido pelo
+> `frontend-services`** (`ReuniaoOnlineResponse`,
+> `CriarReuniaoOnlineRequest`, `EditarReuniaoOnlineRequest`) — mudança
+> aditiva (campo novo opcional, nenhum campo existente muda de
+> nome/tipo/obrigatoriedade), não é breaking: cliente antigo que não
+> enviar `cor` continua funcionando (aplica default `ROXO` no create,
+> mantém valor atual no edit).
+
 > **Nota de 2026-09-12**: adicionado conteúdo de apoio opcional por
 > grupo — `videoUrl` (embed, ex: YouTube) e `panfletoImagemId` (upload
 > de imagem, mesmo pipeline de storage do CMS/mural). Ver seção
@@ -116,6 +126,53 @@ lógica de `BannerMuralService.resolverUrl`) só aparece na resposta
 (`GET`/`POST`/`PUT`), nunca é campo de request — request sempre envia
 `panfletoImagemId`.
 
+### Cor do grupo (2026-09-14)
+
+Cada `ReuniaoOnline` tem um campo `cor` (`CorReuniaoOnline`, enum
+persistido como `VARCHAR(20)` via `@Enumerated(EnumType.STRING)`),
+editável pelo admin. Antes desta entrega a cor era decidida
+inteiramente no frontend (Grupo Salvador = laranja, resto = roxo,
+hardcoded); agora é dado persistido e configurável por grupo.
+
+Valores possíveis (`CorReuniaoOnline`): `ROXO`, `LARANJA`, `AMARELO`,
+`AZUL`, `VERDE`, `BRANCO`, `MAGENTA`, `CINZA`, `ROSA`, `PRETO`, `VINHO`,
+`VERMELHO`. Nomes semânticos escolhidos para casar com os tokens de cor
+do design system do frontend (não é código hex — o frontend mapeia
+nome → token/hex do lado dele).
+
+`cor` é opcional nos dois requests:
+- `CriarReuniaoOnlineRequest.cor`: se omitido/`null`, aplica default
+  `ROXO`.
+- `EditarReuniaoOnlineRequest.cor`: se omitido/`null`, mantém a cor
+  atual do registro (edição parcial só deste campo — não força o admin
+  a sempre reenviar cor ao editar outro atributo).
+
+`ReuniaoOnlineResponse.cor` sempre presente (nunca `null` na resposta,
+já que todo registro tem cor definida — via default do create ou da
+migration).
+
+Seed (`ReuniaoOnlineSeedRunner`, os 12 grupos institucionais): não
+envia `cor` explicitamente, recebe o default `ROXO`. Grupo Salvador
+(seedado antes, via `V16`) foi migrado para `LARANJA` na migration
+desta entrega (`V21`), preservando o comportamento visual anterior
+(Salvador já era laranja no frontend hardcoded).
+
+### Migration — `V21__adiciona_cor_reuniao_online.sql`
+
+```sql
+ALTER TABLE reuniao_online
+    ADD COLUMN cor VARCHAR(20) NOT NULL DEFAULT 'ROXO';
+
+UPDATE reuniao_online
+SET cor = 'LARANJA'
+WHERE nome = 'Grupo Salvador';
+```
+
+Aditiva (`NOT NULL DEFAULT`, sem quebrar linha existente). Reservada
+como `V21`, sequência imediata após
+`V20__seed_grupos_presenciais_referencia.sql` (última migration
+existente no momento em que esta tarefa começou).
+
 ### Migration — `V18__adiciona_video_panfleto_reuniao_online.sql`
 
 ```sql
@@ -202,6 +259,7 @@ Convenções gerais (mesmas do restante do projeto):
       "videoUrl": "string (link YouTube) ou null",
       "panfletoImagemId": "uuid ou null",
       "panfletoImagemUrl": "string ou null (resolvida a partir de panfletoImagemId, só leitura)",
+      "cor": "ROXO",
       "agenda": [
         { "diaSemana": "QUINTA", "horario": "20h00" },
         { "diaSemana": "SABADO", "horario": "10h00" }
@@ -247,6 +305,7 @@ Convenções gerais (mesmas do restante do projeto):
   "descricao": "string, até 2000 chars, opcional",
   "videoUrl": "string, até 500 chars, opcional — deve conter youtube.com ou youtu.be quando enviado",
   "panfletoImagemId": "uuid, opcional — precisa corresponder a um upload já existente em POST /api/v1/admin/imagens",
+  "cor": "ROXO | LARANJA | AMARELO | AZUL | VERDE | BRANCO | MAGENTA | CINZA | ROSA | PRETO | VINHO | VERMELHO, opcional — default ROXO se omitido",
   "agenda": [
     { "diaSemana": "QUINTA", "horario": "20h00" },
     { "diaSemana": "SABADO", "horario": "10h00" }
@@ -300,7 +359,10 @@ não duplicado aqui).
 `CriarReuniaoOnlineRequest`. Edição substitui a agenda inteira pela
 lista enviada (sem merge parcial — diferente do modo de compatibilidade
 legado de `reuniao`, que não se aplica aqui por não existir cliente
-legado consumindo este contrato).
+legado consumindo este contrato). Exceção: `cor` omitido/`null` **não**
+reseta para `ROXO` — mantém o valor atual do registro (único campo com
+esse comportamento "patch-like" dentro de um request que, em tudo mais,
+é substituição total).
 
 **Response 200**: `ReuniaoOnlineResponse` atualizado.
 
@@ -373,7 +435,8 @@ coluna `descricao` só existe a partir de `V17` (ver seção "Migration —
 - Pacote `br.com.jogadoresanonimos.reuniao`, mesmo módulo de `Reuniao`
   (mesmo domínio de negócio — reunião —, só que outro tipo de
   entidade), classes sufixadas `Online` para não colidir com as
-  existentes: `ReuniaoOnline` (entity), `AgendaItemReuniaoOnline`
+  existentes: `ReuniaoOnline` (entity), `CorReuniaoOnline` (enum, desde
+  2026-09-14), `AgendaItemReuniaoOnline`
   (embeddable, reaproveita `DiaSemanaReuniao`), `ReuniaoOnlineRepository`,
   `ReuniaoOnlineService`, `ReuniaoOnlineController` (público),
   `ReuniaoOnlineAdminController` (admin).
@@ -403,12 +466,19 @@ coluna `descricao` só existe a partir de `V17` (ver seção "Migration —
 
 - `frontend-services`: service Angular consumindo os endpoints acima.
   Model `ReuniaoOnline { id, nome, telefone, descricao, videoUrl,
-  panfletoImagemId, panfletoImagemUrl, agenda: { diaSemana, horario }[],
+  panfletoImagemId, panfletoImagemUrl, cor, agenda: { diaSemana, horario }[],
   atualizadoEm }` — `descricao` e `telefone` já documentados desde
   2026-08-31; `videoUrl` (`string | null`), `panfletoImagemId`
   (`string | null`, uuid) e `panfletoImagemUrl` (`string | null`, só
-  leitura, resolvida pelo backend) são os campos novos desde
-  2026-09-12. Fluxo de upload de panfleto no admin: reaproveitar o
+  leitura, resolvida pelo backend) são campos desde 2026-09-12. Campo
+  novo desde 2026-09-14: `cor` (union type de string literal —
+  `'ROXO' | 'LARANJA' | 'AMARELO' | 'AZUL' | 'VERDE' | 'BRANCO' |
+  'MAGENTA' | 'CINZA' | 'ROSA' | 'PRETO' | 'VINHO' | 'VERMELHO'`,
+  sempre presente na resposta, opcional nos requests de criar/editar
+  com os defaults descritos na seção "Cor do grupo" acima). Sugestão:
+  mapear cada valor para o token de cor correspondente do design system
+  no service/component do frontend, sem hardcode de hex fora desse
+  mapeamento único. Fluxo de upload de panfleto no admin: reaproveitar o
   service Angular já existente que chama
   `POST /api/v1/admin/imagens` (mesmo fluxo do CMS/mural) e só enviar o
   `id` retornado como `panfletoImagemId` no payload de

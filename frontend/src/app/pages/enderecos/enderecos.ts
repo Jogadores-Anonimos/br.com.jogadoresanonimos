@@ -1,9 +1,10 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import {
   Component,
   HostListener,
   OnDestroy,
   OnInit,
+  PLATFORM_ID,
   computed,
   inject,
   signal,
@@ -24,9 +25,10 @@ import {
 import { compararHorarios } from '../../services/reuniao/reuniao-horario';
 import { DiaSemanaAgendaReuniao } from '../../services/reuniao/reuniao.model';
 import { ReuniaoOnlineService } from '../../services/reuniao-online/reuniao-online';
-import { ReuniaoOnline } from '../../services/reuniao-online/reuniao-online.model';
+import { CorReuniaoOnline, ReuniaoOnline } from '../../services/reuniao-online/reuniao-online.model';
 import { WHATSAPP_PHONE_NUMBER, montarLinkWhatsapp } from '../../config/whatsapp.config';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { resolverUfPorCoordenada } from './geolocalizacao-uf';
 
 interface CidadeComGrupos {
   cidade: string;
@@ -54,12 +56,10 @@ type ModoExibicaoEnderecos = 'presencial' | 'online';
 
 type DiaSemanaCurto = 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo';
 
-type CorMarcadorOnline = 'roxo' | 'laranja';
-
 interface ItemGradeOnline {
   horario: string;
   nomeGrupo: string;
-  cor: CorMarcadorOnline;
+  cor: CorReuniaoOnline;
 }
 
 interface DiaGradeOnline {
@@ -89,7 +89,7 @@ const ORDEM_UF_PRIORITARIA_POR_REGIAO: Record<string, string[]> = {
 
 const DEBOUNCE_FILTRO_TEXTO_MS = 200;
 
-const COR_MARCADOR_FALLBACK: CorMarcadorOnline = 'roxo';
+const CHAVE_SESSION_STORAGE_UF_USUARIO = 'jab-enderecos-uf-usuario';
 
 const DIAS_AGENDA: ReadonlyArray<{ diaSemana: DiaSemanaAgendaReuniao; rotulo: DiaSemanaCurto }> = [
   { diaSemana: 'SEGUNDA', rotulo: 'Segunda' },
@@ -113,6 +113,7 @@ export class Enderecos implements OnInit, OnDestroy {
   private readonly reuniaoOnlineService = inject(ReuniaoOnlineService);
   private readonly activatedRoute = inject(ActivatedRoute);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   readonly regioes = signal<RegiaoIntergrupo[]>([]);
   readonly ufsFaltantesPorRegiao = signal<Map<string, UnidadeFederativaComRegiao[]>>(new Map());
@@ -129,6 +130,10 @@ export class Enderecos implements OnInit, OnDestroy {
 
   readonly modoExibicao = signal<ModoExibicaoEnderecos>('presencial');
 
+  readonly ufUsuario = signal<string | null>(null);
+  readonly localizandoUsuario = signal(false);
+  readonly erroLocalizacaoUsuario = signal(false);
+
   grupoDetalhe: GrupoIntergrupo | null = null;
 
   readonly embedVideoComoAcessarOnline: SafeResourceUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
@@ -139,6 +144,7 @@ export class Enderecos implements OnInit, OnDestroy {
     if (this.activatedRoute.snapshot.queryParamMap.get('tipo') === 'online') {
       this.modoExibicao.set('online');
     }
+    this.ufUsuario.set(this.lerUfSalva());
     forkJoin({
       estrutura: this.escritorioRegionalService.listarEstrutura(),
       unidadesFederativas: this.escritorioRegionalService.listarUnidadesFederativas(),
@@ -174,6 +180,71 @@ export class Enderecos implements OnInit, OnDestroy {
 
   selecionarModoExibicao(modo: ModoExibicaoEnderecos): void {
     this.modoExibicao.set(modo);
+  }
+
+  private lerUfSalva(): string | null {
+    if (!this.isBrowser) {
+      return null;
+    }
+    try {
+      return sessionStorage.getItem(CHAVE_SESSION_STORAGE_UF_USUARIO);
+    } catch {
+      return null;
+    }
+  }
+
+  private salvarUfNaSessao(uf: string): void {
+    if (!this.isBrowser) {
+      return;
+    }
+    try {
+      sessionStorage.setItem(CHAVE_SESSION_STORAGE_UF_USUARIO, uf);
+    } catch {
+      return;
+    }
+  }
+
+  private removerUfDaSessao(): void {
+    if (!this.isBrowser) {
+      return;
+    }
+    try {
+      sessionStorage.removeItem(CHAVE_SESSION_STORAGE_UF_USUARIO);
+    } catch {
+      return;
+    }
+  }
+
+  usarMinhaLocalizacao(): void {
+    if (!this.isBrowser || !navigator.geolocation) {
+      this.erroLocalizacaoUsuario.set(true);
+      return;
+    }
+    this.localizandoUsuario.set(true);
+    this.erroLocalizacaoUsuario.set(false);
+    navigator.geolocation.getCurrentPosition(
+      (posicao) => {
+        this.localizandoUsuario.set(false);
+        const uf = resolverUfPorCoordenada(posicao.coords.latitude, posicao.coords.longitude);
+        if (uf) {
+          this.ufUsuario.set(uf);
+          this.salvarUfNaSessao(uf);
+        } else {
+          this.erroLocalizacaoUsuario.set(true);
+        }
+      },
+      () => {
+        this.localizandoUsuario.set(false);
+        this.erroLocalizacaoUsuario.set(true);
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 },
+    );
+  }
+
+  limparMinhaLocalizacao(): void {
+    this.ufUsuario.set(null);
+    this.erroLocalizacaoUsuario.set(false);
+    this.removerUfDaSessao();
   }
 
   ngOnDestroy(): void {
@@ -259,7 +330,14 @@ export class Enderecos implements OnInit, OnDestroy {
       }));
 
     const ordemPrioritaria = ORDEM_UF_PRIORITARIA_POR_REGIAO[regiao.codigo] ?? [];
+    const ufUsuario = this.ufUsuario();
     return [...comGrupo, ...semGrupo].sort((a, b) => {
+      if (ufUsuario && (a.uf === ufUsuario || b.uf === ufUsuario)) {
+        if (a.uf === ufUsuario && b.uf === ufUsuario) {
+          return 0;
+        }
+        return a.uf === ufUsuario ? -1 : 1;
+      }
       const prioridadeA = ordemPrioritaria.indexOf(a.uf);
       const prioridadeB = ordemPrioritaria.indexOf(b.uf);
       if (prioridadeA !== -1 || prioridadeB !== -1) {
@@ -298,13 +376,6 @@ export class Enderecos implements OnInit, OnDestroy {
     return [...porCidade.entries()].map(([cidade, gruposDaCidade]) => ({ cidade, grupos: gruposDaCidade }));
   }
 
-  private corMarcadorOnline(nomeGrupo: string): CorMarcadorOnline {
-    if (this.ehGrupoProprioOnline(nomeGrupo)) {
-      return 'laranja';
-    }
-    return COR_MARCADOR_FALLBACK;
-  }
-
   readonly gradeOnlinePorDia = computed<DiaGradeOnline[]>(() => {
     const reunioesOnline = this.reunioesOnline();
     return DIAS_AGENDA.map(({ diaSemana, rotulo }) => {
@@ -315,7 +386,7 @@ export class Enderecos implements OnInit, OnDestroy {
             .map((item) => ({
               horario: item.horario,
               nomeGrupo: reuniao.nome,
-              cor: this.corMarcadorOnline(reuniao.nome),
+              cor: reuniao.cor,
             })),
         )
         .sort((a, b) => compararHorarios(a.horario, b.horario));

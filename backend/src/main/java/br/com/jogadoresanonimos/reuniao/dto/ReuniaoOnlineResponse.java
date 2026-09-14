@@ -1,6 +1,7 @@
 package br.com.jogadoresanonimos.reuniao.dto;
 
 import br.com.jogadoresanonimos.reuniao.entity.AgendaItemReuniaoOnlineComparator;
+import br.com.jogadoresanonimos.reuniao.entity.CorReuniaoOnline;
 import br.com.jogadoresanonimos.reuniao.entity.ReuniaoOnline;
 
 import java.time.Instant;
@@ -8,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 public record ReuniaoOnlineResponse(UUID id, String nome, String telefone, String descricao, String videoUrl,
-                                     UUID panfletoImagemId, String panfletoImagemUrl,
+                                     UUID panfletoImagemId, String panfletoImagemUrl, CorReuniaoOnline cor,
                                      List<ReuniaoOnlineAgendaItemResponse> agenda, Instant atualizadoEm) {
 
     public static ReuniaoOnlineResponse from(ReuniaoOnline reuniaoOnline, String panfletoImagemUrl) {
@@ -18,6 +19,7 @@ public record ReuniaoOnlineResponse(UUID id, String nome, String telefone, Strin
                 .toList();
         return new ReuniaoOnlineResponse(reuniaoOnline.getId(), reuniaoOnline.getNome(),
                 reuniaoOnline.getTelefone(), reuniaoOnline.getDescricao(), reuniaoOnline.getVideoUrl(),
-                reuniaoOnline.getPanfletoImagemId(), panfletoImagemUrl, agenda, reuniaoOnline.getAtualizadoEm());
+                reuniaoOnline.getPanfletoImagemId(), panfletoImagemUrl, reuniaoOnline.getCor(), agenda,
+                reuniaoOnline.getAtualizadoEm());
     }
 }

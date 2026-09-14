@@ -7,6 +7,7 @@ import br.com.jogadoresanonimos.reuniao.dto.EditarReuniaoOnlineRequest;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoOnlineAgendaItemRequest;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoOnlineAgendaItemResponse;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoOnlineResponse;
+import br.com.jogadoresanonimos.reuniao.entity.CorReuniaoOnline;
 import br.com.jogadoresanonimos.reuniao.service.ReuniaoOnlineService;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
@@ -54,15 +55,15 @@ class ReuniaoOnlineAdminControllerTest {
 
     private ReuniaoOnlineResponse reuniaoOnlineResponse(UUID id) {
         return new ReuniaoOnlineResponse(id, "Grupo Salvador", "21 99472-1933", "descrição", null, null, null,
-                agendaResponse(), Instant.now());
+                CorReuniaoOnline.ROXO, agendaResponse(), Instant.now());
     }
 
     private CriarReuniaoOnlineRequest criarRequest() {
-        return new CriarReuniaoOnlineRequest("Grupo Salvador", null, "descrição", null, null, agendaRequest());
+        return new CriarReuniaoOnlineRequest("Grupo Salvador", null, "descrição", null, null, null, agendaRequest());
     }
 
     private EditarReuniaoOnlineRequest editarRequest() {
-        return new EditarReuniaoOnlineRequest("Grupo Salvador editado", null, "descrição editada", null, null,
+        return new EditarReuniaoOnlineRequest("Grupo Salvador editado", null, "descrição editada", null, null, null,
                 agendaRequest());
     }
 
@@ -90,7 +91,7 @@ class ReuniaoOnlineAdminControllerTest {
 
     @Test
     void criar_comNomeEmBranco_deveFalharValidacao() {
-        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest(" ", null, "descrição", null, null,
+        CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest(" ", null, "descrição", null, null, null,
                 agendaRequest());
         Set<ConstraintViolation<CriarReuniaoOnlineRequest>> violacoes = validator.validate(request);
         assertThat(violacoes)

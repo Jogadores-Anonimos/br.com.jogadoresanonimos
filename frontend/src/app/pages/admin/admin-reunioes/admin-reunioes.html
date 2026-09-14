@@ -232,7 +232,7 @@
         </div>
 
         <div class="admin-reunioes__campo">
-          <label for="reuniao-descricao">Descrição</label>
+          <label for="reuniao-descricao">Descrição{{ formulario.categoria === 'virtual' ? ' (opcional)' : '' }}</label>
           <textarea
             id="reuniao-descricao"
             name="descricao"
@@ -241,7 +241,7 @@
             [class.campo-invalido]="errosCampo['descricao']"
             [attr.aria-invalid]="errosCampo['descricao'] ? 'true' : null"
             [attr.aria-describedby]="errosCampo['descricao'] ? 'reuniao-descricao-erro' : null"
-            required
+            [required]="formulario.categoria === 'presencial'"
           ></textarea>
           @if (errosCampo['descricao']) {
             <span id="reuniao-descricao-erro" class="admin-reunioes__campo-erro" role="alert">{{ errosCampo['descricao'] }}</span>
@@ -517,6 +517,15 @@
           <p class="admin-reunioes__ajuda">
             Todas as reuniões virtuais usam o WhatsApp institucional fixo {{ whatsappInstitucionalFormatado }} — não é possível definir um número por reunião.
           </p>
+
+          <div class="admin-reunioes__campo">
+            <label for="reuniao-cor">Cor do marcador</label>
+            <select id="reuniao-cor" name="cor" [(ngModel)]="formulario.cor">
+              @for (cor of coresReuniaoOnline; track cor.valor) {
+                <option [value]="cor.valor">{{ cor.rotulo }}</option>
+              }
+            </select>
+          </div>
 
           <div class="admin-reunioes__campo">
             <label for="reuniao-video-url">Link do vídeo (YouTube, opcional)</label>

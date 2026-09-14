@@ -69,7 +69,7 @@ public class ReuniaoOnlineSeedRunner implements CommandLineRunner {
             if (nomesExistentes.contains(nome)) {
                 continue;
             }
-            reuniaoOnlineService.criar(new CriarReuniaoOnlineRequest(nome, "", null, null, null, GRADE_AGREGADA));
+            reuniaoOnlineService.criar(new CriarReuniaoOnlineRequest(nome, "", null, null, null, null, GRADE_AGREGADA));
         }
     }
 }

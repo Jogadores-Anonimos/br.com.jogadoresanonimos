@@ -58,6 +58,16 @@
 
   --color-grupo-online-roxo: #6d28d9;
   --color-grupo-online-laranja: #ea580c;
+  --color-grupo-online-amarelo: #eab308;
+  --color-grupo-online-azul: #2563eb;
+  --color-grupo-online-verde: #16a34a;
+  --color-grupo-online-branco: #ffffff;
+  --color-grupo-online-magenta: #c026d3;
+  --color-grupo-online-cinza: #64748b;
+  --color-grupo-online-rosa: #ec4899;
+  --color-grupo-online-preto: #1e293b;
+  --color-grupo-online-vinho: #7f1d1d;
+  --color-grupo-online-vermelho: #dc2626;
 }
 
 html {

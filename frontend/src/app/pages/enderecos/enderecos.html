@@ -77,6 +77,33 @@
     </div>
     }
 
+    <div class="localizacao-usuario" role="group" aria-label="Ordenar por localização">
+      @if (!ufUsuario()) {
+        <button
+          type="button"
+          class="btn-localizacao"
+          [disabled]="localizandoUsuario()"
+          (click)="usarMinhaLocalizacao()"
+        >
+          {{ localizandoUsuario() ? 'Localizando…' : 'Usar minha localização' }}
+        </button>
+        <span class="localizacao-ajuda">
+          Mostra primeiro o estado onde você está. A localização é processada só no seu
+          aparelho e não é enviada para nossos servidores.
+        </span>
+      } @else {
+        <span class="localizacao-ativa">Priorizando reuniões em {{ ufUsuario() }}.</span>
+        <button type="button" class="btn-localizacao btn-localizacao--limpar" (click)="limparMinhaLocalizacao()">
+          Limpar localização
+        </button>
+      }
+      @if (erroLocalizacaoUsuario()) {
+        <p class="estado estado--erro" role="alert">
+          Não foi possível usar sua localização agora. A listagem seguirá na ordem padrão.
+        </p>
+      }
+    </div>
+
     @if (regiaoAtual) {
       <div class="filtros" role="group" aria-label="Filtrar grupos">
         <span class="filtros-titulo">Filtrar grupos</span>

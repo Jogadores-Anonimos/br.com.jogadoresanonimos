@@ -11,6 +11,7 @@ import br.com.jogadoresanonimos.reuniao.dto.EditarReuniaoOnlineRequest;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoOnlineAgendaItemRequest;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoOnlineResponse;
 import br.com.jogadoresanonimos.reuniao.entity.AgendaItemReuniaoOnline;
+import br.com.jogadoresanonimos.reuniao.entity.CorReuniaoOnline;
 import br.com.jogadoresanonimos.reuniao.entity.DiaSemanaReuniao;
 import br.com.jogadoresanonimos.reuniao.entity.ReuniaoOnline;
 import br.com.jogadoresanonimos.reuniao.repository.ReuniaoOnlineRepository;
@@ -55,8 +56,9 @@ public class ReuniaoOnlineService {
         List<AgendaItemReuniaoOnline> agenda = normalizarAgenda(request.agenda());
         String videoUrl = normalizar(request.videoUrl());
         validarMidia(videoUrl, request.panfletoImagemId());
+        CorReuniaoOnline cor = request.cor() != null ? request.cor() : CorReuniaoOnline.ROXO;
         ReuniaoOnline reuniaoOnline = new ReuniaoOnline(request.nome().trim(), telefoneInstitucional,
-                normalizar(request.descricao()), videoUrl, request.panfletoImagemId(), agenda);
+                normalizar(request.descricao()), videoUrl, request.panfletoImagemId(), cor, agenda);
         reuniaoOnline = reuniaoOnlineRepository.save(reuniaoOnline);
         return paraResponse(reuniaoOnline);
     }
@@ -67,8 +69,9 @@ public class ReuniaoOnlineService {
         List<AgendaItemReuniaoOnline> agenda = normalizarAgenda(request.agenda());
         String videoUrl = normalizar(request.videoUrl());
         validarMidia(videoUrl, request.panfletoImagemId());
+        CorReuniaoOnline cor = request.cor() != null ? request.cor() : reuniaoOnline.getCor();
         reuniaoOnline.editar(request.nome().trim(), telefoneInstitucional, normalizar(request.descricao()),
-                videoUrl, request.panfletoImagemId(), agenda);
+                videoUrl, request.panfletoImagemId(), cor, agenda);
         return paraResponse(reuniaoOnline);
     }
 

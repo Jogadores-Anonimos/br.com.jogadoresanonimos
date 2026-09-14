@@ -16,7 +16,11 @@ import {
   Reuniao,
 } from '../../../services/reuniao/reuniao.model';
 import { ReuniaoOnlineService } from '../../../services/reuniao-online/reuniao-online';
-import { CriarReuniaoOnlineRequest, ReuniaoOnline } from '../../../services/reuniao-online/reuniao-online.model';
+import {
+  CorReuniaoOnline,
+  CriarReuniaoOnlineRequest,
+  ReuniaoOnline,
+} from '../../../services/reuniao-online/reuniao-online.model';
 import { WHATSAPP_PHONE_NUMBER } from '../../../config/whatsapp.config';
 import { Imagem } from '../../../services/imagem/imagem';
 import { extrairYoutubeVideoId, paraYoutubeEmbedUrl } from '../../../services/mural-de-apoio/youtube.util';
@@ -59,6 +63,7 @@ interface FormularioReuniao {
   estado: string;
   videoUrl: string;
   panfletoImagemId: string;
+  cor: CorReuniaoOnline;
 }
 
 interface AgendaFormularioItem {
@@ -104,8 +109,24 @@ function formularioVazio(): FormularioReuniao {
     estado: '',
     videoUrl: '',
     panfletoImagemId: '',
+    cor: 'roxo',
   };
 }
+
+const CORES_REUNIAO_ONLINE: ReadonlyArray<{ valor: CorReuniaoOnline; rotulo: string }> = [
+  { valor: 'roxo', rotulo: 'Roxo' },
+  { valor: 'laranja', rotulo: 'Laranja' },
+  { valor: 'amarelo', rotulo: 'Amarelo' },
+  { valor: 'azul', rotulo: 'Azul' },
+  { valor: 'verde', rotulo: 'Verde' },
+  { valor: 'branco', rotulo: 'Branco' },
+  { valor: 'magenta', rotulo: 'Magenta' },
+  { valor: 'cinza', rotulo: 'Cinza' },
+  { valor: 'rosa', rotulo: 'Rosa' },
+  { valor: 'preto', rotulo: 'Preto' },
+  { valor: 'vinho', rotulo: 'Vinho' },
+  { valor: 'vermelho', rotulo: 'Vermelho' },
+];
 
 function periodoParaHorario(horario: string): 'Manhã' | 'Tarde' | 'Noite' {
   const hora = Number(horario.split(':')[0]);
@@ -201,6 +222,7 @@ export class AdminReunioes implements OnInit {
 
   readonly diasSemanaFiltro = DIAS_SEMANA;
   readonly ufsBrasil = UFS_BRASIL;
+  readonly coresReuniaoOnline = CORES_REUNIAO_ONLINE;
   readonly whatsappInstitucionalFormatado = formatarWhatsapp(WHATSAPP_PHONE_NUMBER);
 
   carregando = true;
@@ -401,6 +423,7 @@ export class AdminReunioes implements OnInit {
       this.reuniaoEmEdicao = reuniao;
       this.reuniaoOnlineEmEdicao = null;
       this.formulario = {
+        ...formularioVazio(),
         nome: reuniao.nome,
         categoria: 'presencial',
         descricao: reuniao.descricao,
@@ -431,6 +454,7 @@ export class AdminReunioes implements OnInit {
         agenda: this.agendaParaFormulario(reuniaoOnline.agenda),
         videoUrl: reuniaoOnline.videoUrl ?? '',
         panfletoImagemId: reuniaoOnline.panfletoImagemId ?? '',
+        cor: reuniaoOnline.cor,
       };
       this.panfletoImagemUrl = reuniaoOnline.panfletoImagemUrl ?? null;
     } else {
@@ -660,7 +684,7 @@ export class AdminReunioes implements OnInit {
     if (!this.formulario.nome.trim()) {
       this.errosCampo['nome'] = 'Nome do grupo é obrigatório.';
     }
-    if (!this.formulario.descricao.trim()) {
+    if (!virtual && !this.formulario.descricao.trim()) {
       this.errosCampo['descricao'] = 'Descrição é obrigatória.';
     }
     const agenda = this.formulario.agenda
@@ -794,10 +818,11 @@ export class AdminReunioes implements OnInit {
   private salvarVirtual(agenda: AgendaItemReuniao[]): void {
     const request: CriarReuniaoOnlineRequest = {
       nome: normalizarTextoLivre(this.formulario.nome),
-      descricao: normalizarTextoLivre(this.formulario.descricao),
+      descricao: normalizarTextoLivre(this.formulario.descricao) || undefined,
       agenda,
       videoUrl: this.formulario.videoUrl.trim() || undefined,
       panfletoImagemId: this.formulario.panfletoImagemId.trim() || undefined,
+      cor: this.formulario.cor,
     };
 
     const acao = this.reuniaoOnlineEmEdicao

@@ -1,11 +1,33 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
 import { ApiEnvelope, apiError, apiErrorDeHttpError } from '../api-envelope';
-import { CriarReuniaoOnlineRequest, EditarReuniaoOnlineRequest, ReuniaoOnline } from './reuniao-online.model';
+import {
+  CorReuniaoOnline,
+  CriarReuniaoOnlineRequest,
+  EditarReuniaoOnlineRequest,
+  ReuniaoOnline,
+  ReuniaoOnlineApi,
+} from './reuniao-online.model';
+
+function normalizarReuniaoOnline(reuniao: ReuniaoOnlineApi): ReuniaoOnline {
+  return { ...reuniao, cor: reuniao.cor.toLowerCase() as CorReuniaoOnline };
+}
+
+function normalizarEnvelope(envelope: ApiEnvelope<ReuniaoOnlineApi>): ApiEnvelope<ReuniaoOnline> {
+  return { ...envelope, data: envelope.data ? normalizarReuniaoOnline(envelope.data) : null };
+}
+
+function normalizarEnvelopeLista(envelope: ApiEnvelope<ReuniaoOnlineApi[]>): ApiEnvelope<ReuniaoOnline[]> {
+  return { ...envelope, data: envelope.data ? envelope.data.map(normalizarReuniaoOnline) : null };
+}
+
+function montarPayload<T extends CriarReuniaoOnlineRequest>(req: T): T {
+  return { ...req, cor: req.cor ? (req.cor.toUpperCase() as T['cor']) : undefined };
+}
 
 @Injectable({ providedIn: 'root' })
 export class ReuniaoOnlineService {
@@ -14,7 +36,8 @@ export class ReuniaoOnlineService {
   private readonly adminUrl = `${environment.apiBaseUrl}/admin/reunioes-online`;
 
   listarReunioesOnline(): Observable<ApiEnvelope<ReuniaoOnline[]>> {
-    return this.http.get<ApiEnvelope<ReuniaoOnline[]>>(this.publicaUrl).pipe(
+    return this.http.get<ApiEnvelope<ReuniaoOnlineApi[]>>(this.publicaUrl).pipe(
+      map(normalizarEnvelopeLista),
       catchError(() =>
         of(apiError<ReuniaoOnline[]>('INTERNAL_ERROR', 'Não foi possível carregar as reuniões online no momento.')),
       ),
@@ -22,7 +45,8 @@ export class ReuniaoOnlineService {
   }
 
   listarReunioesOnlineAdmin(): Observable<ApiEnvelope<ReuniaoOnline[]>> {
-    return this.http.get<ApiEnvelope<ReuniaoOnline[]>>(this.adminUrl).pipe(
+    return this.http.get<ApiEnvelope<ReuniaoOnlineApi[]>>(this.adminUrl).pipe(
+      map(normalizarEnvelopeLista),
       catchError(() =>
         of(apiError<ReuniaoOnline[]>('INTERNAL_ERROR', 'Não foi possível carregar as reuniões online.')),
       ),
@@ -30,7 +54,8 @@ export class ReuniaoOnlineService {
   }
 
   criarReuniaoOnlineAdmin(req: CriarReuniaoOnlineRequest): Observable<ApiEnvelope<ReuniaoOnline>> {
-    return this.http.post<ApiEnvelope<ReuniaoOnline>>(this.adminUrl, req).pipe(
+    return this.http.post<ApiEnvelope<ReuniaoOnlineApi>>(this.adminUrl, montarPayload(req)).pipe(
+      map(normalizarEnvelope),
       catchError((erro) =>
         of(apiErrorDeHttpError<ReuniaoOnline>(erro, 'INTERNAL_ERROR', 'Não foi possível criar a reunião online agora.')),
       ),
@@ -38,7 +63,8 @@ export class ReuniaoOnlineService {
   }
 
   editarReuniaoOnlineAdmin(id: string, req: EditarReuniaoOnlineRequest): Observable<ApiEnvelope<ReuniaoOnline>> {
-    return this.http.put<ApiEnvelope<ReuniaoOnline>>(`${this.adminUrl}/${id}`, req).pipe(
+    return this.http.put<ApiEnvelope<ReuniaoOnlineApi>>(`${this.adminUrl}/${id}`, montarPayload(req)).pipe(
+      map(normalizarEnvelope),
       catchError((erro) =>
         of(apiErrorDeHttpError<ReuniaoOnline>(erro, 'INTERNAL_ERROR', 'Não foi possível salvar as alterações.')),
       ),

@@ -10,6 +10,7 @@ import br.com.jogadoresanonimos.reuniao.dto.EditarReuniaoOnlineRequest;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoOnlineAgendaItemRequest;
 import br.com.jogadoresanonimos.reuniao.dto.ReuniaoOnlineResponse;
 import br.com.jogadoresanonimos.reuniao.entity.AgendaItemReuniaoOnline;
+import br.com.jogadoresanonimos.reuniao.entity.CorReuniaoOnline;
 import br.com.jogadoresanonimos.reuniao.entity.DiaSemanaReuniao;
 import br.com.jogadoresanonimos.reuniao.entity.ReuniaoOnline;
 import br.com.jogadoresanonimos.reuniao.repository.ReuniaoOnlineRepository;
@@ -57,16 +58,16 @@ class ReuniaoOnlineServiceTest {
 
     private ReuniaoOnline reuniaoOnline() {
         return new ReuniaoOnline("Grupo Online Segunda", TELEFONE_INSTITUCIONAL, "descricao", null, null,
-                List.of(new AgendaItemReuniaoOnline(DiaSemanaReuniao.SEGUNDA, "19h")));
+                CorReuniaoOnline.ROXO, List.of(new AgendaItemReuniaoOnline(DiaSemanaReuniao.SEGUNDA, "19h")));
     }
 
     private CriarReuniaoOnlineRequest criarRequest() {
-        return new CriarReuniaoOnlineRequest("Grupo Online Segunda", "11 90000-0000", "descricao", null, null,
+        return new CriarReuniaoOnlineRequest("Grupo Online Segunda", "11 90000-0000", "descricao", null, null, null,
                 List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
     }
 
     private EditarReuniaoOnlineRequest editarRequest() {
-        return new EditarReuniaoOnlineRequest("Grupo Online Editado", "11 90000-0000", "nova descricao", null, null,
+        return new EditarReuniaoOnlineRequest("Grupo Online Editado", "11 90000-0000", "nova descricao", null, null, null,
                 List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
     }
 
@@ -91,7 +92,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comTelefoneNuloNoRequest_deveGravarTelefoneInstitucional() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
-                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+                null, null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
         when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoOnlineService.criar(request);
         ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
@@ -102,7 +103,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_devePersistirDescricaoNormalizada() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null,
-                "  descricao com espacos  ", null, null,
+                "  descricao com espacos  ", null, null, null,
                 List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
         when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoOnlineService.criar(request);
@@ -114,7 +115,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comDescricaoEmBranco_devePersistirNulo() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "   ",
-                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+                null, null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
         when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoOnlineService.criar(request);
         ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
@@ -125,7 +126,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_devePersistirNomeSemEspacosNasBordas() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("  Grupo Online Segunda  ", null,
-                "descricao", null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+                "descricao", null, null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
         when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         reuniaoOnlineService.criar(request);
         ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
@@ -136,7 +137,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comAgendaDeDiaEHorarioDuplicado_deveRejeitarSemPersistir() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
-                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h"),
+                null, null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h"),
                         new ReuniaoOnlineAgendaItemRequest("segunda-feira", " 19h ")));
         assertThatThrownBy(() -> reuniaoOnlineService.criar(request))
                 .isInstanceOf(ValidationException.class);
@@ -146,7 +147,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comAgendaMesmoDiaHorariosDiferentes_devePersistirAmbos() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
-                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h"),
+                null, null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h"),
                         new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "20h")));
         when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         ReuniaoOnlineResponse resultado = reuniaoOnlineService.criar(request);
@@ -157,7 +158,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comDiaSemanaComAcentoESufixoFeira_deveConverterCorretamente() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Terça", null, "descricao",
-                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("Terça-feira", "20h")));
+                null, null, null, List.of(new ReuniaoOnlineAgendaItemRequest("Terça-feira", "20h")));
         when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         ArgumentCaptor<ReuniaoOnline> captor = ArgumentCaptor.forClass(ReuniaoOnline.class);
         reuniaoOnlineService.criar(request);
@@ -169,7 +170,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comDiaSemanaInvalido_deveRejeitarSemPersistir() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
-                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("Ferias", "19h")));
+                null, null, null, List.of(new ReuniaoOnlineAgendaItemRequest("Ferias", "19h")));
         assertThatThrownBy(() -> reuniaoOnlineService.criar(request))
                 .isInstanceOf(ValidationException.class);
         verify(reuniaoOnlineRepository, never()).save(any());
@@ -178,7 +179,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comHorarioEmBranco_deveRejeitarSemPersistir() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
-                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "   ")));
+                null, null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "   ")));
         assertThatThrownBy(() -> reuniaoOnlineService.criar(request))
                 .isInstanceOf(ValidationException.class);
         verify(reuniaoOnlineRepository, never()).save(any());
@@ -187,7 +188,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comVideoUrlForaDoPadraoYoutube_deveRejeitarSemPersistir() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
-                "https://vimeo.com/123", null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+                "https://vimeo.com/123", null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
         assertThatThrownBy(() -> reuniaoOnlineService.criar(request))
                 .isInstanceOf(ValidationException.class);
         verify(reuniaoOnlineRepository, never()).save(any());
@@ -196,7 +197,7 @@ class ReuniaoOnlineServiceTest {
     @Test
     void criar_comVideoUrlDoYoutube_devePersistir() {
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
-                "https://youtu.be/abc123", null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+                "https://youtu.be/abc123", null, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
         when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         ReuniaoOnlineResponse resultado = reuniaoOnlineService.criar(request);
         assertThat(resultado.videoUrl()).isEqualTo("https://youtu.be/abc123");
@@ -207,7 +208,7 @@ class ReuniaoOnlineServiceTest {
         UUID imagemId = UUID.randomUUID();
         when(imagemRepository.existsById(imagemId)).thenReturn(false);
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
-                null, imagemId, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+                null, imagemId, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
         assertThatThrownBy(() -> reuniaoOnlineService.criar(request))
                 .isInstanceOf(ValidationException.class);
         verify(reuniaoOnlineRepository, never()).save(any());
@@ -222,7 +223,7 @@ class ReuniaoOnlineServiceTest {
         lenient().when(storageClient.urlPublicaPara("chave-panfleto.jpg")).thenReturn("https://storage/chave-panfleto.jpg");
         when(reuniaoOnlineRepository.save(any(ReuniaoOnline.class))).thenAnswer(invocation -> invocation.getArgument(0));
         CriarReuniaoOnlineRequest request = new CriarReuniaoOnlineRequest("Grupo Online Segunda", null, "descricao",
-                null, imagemId, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
+                null, imagemId, null, List.of(new ReuniaoOnlineAgendaItemRequest("SEGUNDA", "19h")));
         ReuniaoOnlineResponse resultado = reuniaoOnlineService.criar(request);
         assertThat(resultado.panfletoImagemId()).isEqualTo(imagemId);
         assertThat(resultado.panfletoImagemUrl()).isEqualTo("https://storage/chave-panfleto.jpg");
@@ -253,7 +254,7 @@ class ReuniaoOnlineServiceTest {
         ReuniaoOnline reuniaoOnline = reuniaoOnline();
         when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
         EditarReuniaoOnlineRequest request = new EditarReuniaoOnlineRequest("Grupo Online Editado", null,
-                "nova descricao", null, null, List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h"),
+                "nova descricao", null, null, null, List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h"),
                 new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
         assertThatThrownBy(() -> reuniaoOnlineService.editar(id, request))
                 .isInstanceOf(ValidationException.class);
@@ -266,7 +267,7 @@ class ReuniaoOnlineServiceTest {
         ReuniaoOnline reuniaoOnline = reuniaoOnline();
         when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
         EditarReuniaoOnlineRequest request = new EditarReuniaoOnlineRequest("Grupo Online Editado", null, "   ",
-                null, null, List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
+                null, null, null, List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
         ReuniaoOnlineResponse resultado = reuniaoOnlineService.editar(id, request);
         assertThat(resultado.descricao()).isNull();
     }
@@ -277,7 +278,7 @@ class ReuniaoOnlineServiceTest {
         ReuniaoOnline reuniaoOnline = reuniaoOnline();
         when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
         EditarReuniaoOnlineRequest request = new EditarReuniaoOnlineRequest("Grupo Online Editado", null,
-                "nova descricao", null, null, List.of(new ReuniaoOnlineAgendaItemRequest("sábado", "10h")));
+                "nova descricao", null, null, null, List.of(new ReuniaoOnlineAgendaItemRequest("sábado", "10h")));
         ReuniaoOnlineResponse resultado = reuniaoOnlineService.editar(id, request);
         assertThat(resultado.agenda()).extracting("diaSemana")
                 .containsExactly("SABADO");
@@ -289,7 +290,7 @@ class ReuniaoOnlineServiceTest {
         ReuniaoOnline reuniaoOnline = reuniaoOnline();
         when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
         EditarReuniaoOnlineRequest request = new EditarReuniaoOnlineRequest("Grupo Online Editado", null,
-                "nova descricao", "https://vimeo.com/123", null,
+                "nova descricao", "https://vimeo.com/123", null, null,
                 List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
         assertThatThrownBy(() -> reuniaoOnlineService.editar(id, request))
                 .isInstanceOf(ValidationException.class);
@@ -304,7 +305,7 @@ class ReuniaoOnlineServiceTest {
         when(reuniaoOnlineRepository.findById(id)).thenReturn(Optional.of(reuniaoOnline));
         when(imagemRepository.existsById(imagemId)).thenReturn(false);
         EditarReuniaoOnlineRequest request = new EditarReuniaoOnlineRequest("Grupo Online Editado", null,
-                "nova descricao", null, imagemId, List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
+                "nova descricao", null, imagemId, null, List.of(new ReuniaoOnlineAgendaItemRequest("TERCA", "20h")));
         assertThatThrownBy(() -> reuniaoOnlineService.editar(id, request))
                 .isInstanceOf(ValidationException.class);
         assertThat(reuniaoOnline.getPanfletoImagemId()).isNull();
