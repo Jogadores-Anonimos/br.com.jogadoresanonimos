@@ -122,6 +122,15 @@
   transform: scale(1.15);
 }
 
+.mural-card__legenda {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto var(--spacing-xs);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
 .mural-card {
   display: flex;
   flex-direction: column;

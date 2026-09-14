@@ -25,6 +25,9 @@
               [class.mural-carrossel__slide--ativo]="indice === slideAtual"
               [attr.aria-hidden]="indice === slideAtual ? null : 'true'"
             >
+              @if (banner.legenda) {
+                <p class="mural-card__legenda">{{ banner.legenda }}</p>
+              }
               @if (banner.linkDestino && !banner.videoUrl) {
                 <a class="mural-card" [routerLink]="banner.linkDestino" [attr.tabindex]="indice === slideAtual ? null : '-1'">
                   <div class="mural-card__imagem-wrap">

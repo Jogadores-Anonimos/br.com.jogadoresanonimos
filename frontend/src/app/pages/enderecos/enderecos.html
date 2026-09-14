@@ -21,7 +21,9 @@
   <section class="section section-alt">
     <h2>Endereços</h2>
     <p class="lead">
-      Escolha entre reuniões presenciais, organizadas por região e estado, ou reuniões online.
+      Verifique se há reuniões presenciais em sua região — elas estão organizadas por
+      estado a seguir. Se não houver reuniões presenciais, clique em online. Priorize
+      reuniões presenciais (por conta do acolhimento e mais recursos).
     </p>
 
     <div class="modo-toggle" role="tablist" aria-label="Tipo de reunião">
@@ -53,12 +55,6 @@
 
     @if (modoExibicao() === 'presencial') {
     <div id="painel-modo-presencial" role="tabpanel" aria-labelledby="tab-modo-presencial">
-    <p class="lead lead-presencial-intro">
-      Verifique se há reuniões presenciais em sua região — elas estão organizadas por
-      estado a seguir. Se não houver reuniões presenciais, clique em online. Priorize
-      reuniões presenciais (por conta do acolhimento e mais recursos).
-    </p>
-
     @if (regioes().length === 0) {
       <p class="estado">
         Nenhum endereço cadastrado no momento.
@@ -161,8 +157,9 @@
             <div class="grupos-grid">
               <div class="grupo-card grupo-card--sem-grupo">
                 <p class="grupo-endereco">
-                  Ainda não temos um grupo presencial aqui, mas já formamos grupos de apoio pelo
-                  WhatsApp — e é assim que os grupos físicos começam. Fale com a Linha de Ajuda:
+                  Ainda não temos um grupo presencial aqui, mas estamos reunindo pessoas com
+                  problemas de jogo, para a abertura de grupo local: Fale com o WhatsApp da Linha
+                  de Ajuda:
                   <a [href]="linkWhatsappGrupoInexistente()" target="_blank" rel="noopener">21 99472-1933</a>
                 </p>
               </div>
@@ -178,10 +175,20 @@
     @if (modoExibicao() === 'online') {
     <div id="painel-modo-online" role="tabpanel" aria-labelledby="tab-modo-online" class="online-painel">
       <div class="online-cabecalho">
-        <h3>Reuniões Online</h3>
-        <p class="lead online-subtitulo">
-          Horários das reuniões online da irmandade, organizados por dia da semana.
-        </p>
+        <div class="online-cabecalho-texto">
+          <h3>Reuniões Online</h3>
+          <p class="lead online-subtitulo">
+            Horários das reuniões online da irmandade, organizados por dia da semana.
+          </p>
+        </div>
+        <a
+          class="btn-cta btn-whatsapp online-cabecalho-cta"
+          [href]="linkWhatsappPedirLinkReuniaoOnline()"
+          target="_blank"
+          rel="noopener"
+        >
+          Fale com a linha de ajuda
+        </a>
       </div>
 
       @if (gradeOnlinePorDia().length === 0) {
@@ -198,8 +205,7 @@
                   <li>
                     <span
                       class="online-grupo-badge"
-                      [class.online-grupo-badge--laranja]="ehGrupoProprioOnline(item.nomeGrupo)"
-                      [class.online-grupo-badge--roxo]="!ehGrupoProprioOnline(item.nomeGrupo)"
+                      [class]="'online-grupo-badge--' + item.cor"
                       aria-hidden="true"
                     ></span>
                     <span class="online-grade-horario">{{ item.horario }}</span>
@@ -229,13 +235,7 @@
           <h4>Grupos online</h4>
           <ul class="online-legenda-lista">
             @for (nome of nomesGruposOnline(); track nome) {
-              <li>
-                <span
-                  class="online-grupo-badge"
-                  [class.online-grupo-badge--laranja]="ehGrupoProprioOnline(nome)"
-                  [class.online-grupo-badge--roxo]="!ehGrupoProprioOnline(nome)"
-                  aria-hidden="true"
-                ></span>
+              <li [class.online-legenda-item--proprio]="ehGrupoProprioOnline(nome)">
                 {{ nome | tituloGrupo }}
               </li>
             }
@@ -254,17 +254,6 @@
             loading="lazy"
           ></iframe>
         </div>
-      </div>
-
-      <div class="online-cta">
-        <a
-          class="btn-cta btn-whatsapp"
-          [href]="linkWhatsappPedirLinkReuniaoOnline()"
-          target="_blank"
-          rel="noopener"
-        >
-          Pedir link da reunião
-        </a>
       </div>
     </div>
     }

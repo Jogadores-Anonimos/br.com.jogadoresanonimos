@@ -595,12 +595,24 @@
   margin: 0 auto;
 }
 
+.mural-teaser__item {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.mural-teaser__legenda {
+  width: 100%;
+  margin: 0 0 var(--spacing-xs);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
 .mural-teaser__card {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 320px;
-  margin: 0 auto;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);

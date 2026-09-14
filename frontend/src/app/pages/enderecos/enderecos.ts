@@ -54,9 +54,12 @@ type ModoExibicaoEnderecos = 'presencial' | 'online';
 
 type DiaSemanaCurto = 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo';
 
+type CorMarcadorOnline = 'roxo' | 'laranja';
+
 interface ItemGradeOnline {
   horario: string;
   nomeGrupo: string;
+  cor: CorMarcadorOnline;
 }
 
 interface DiaGradeOnline {
@@ -85,6 +88,8 @@ const ORDEM_UF_PRIORITARIA_POR_REGIAO: Record<string, string[]> = {
 };
 
 const DEBOUNCE_FILTRO_TEXTO_MS = 200;
+
+const COR_MARCADOR_FALLBACK: CorMarcadorOnline = 'roxo';
 
 const DIAS_AGENDA: ReadonlyArray<{ diaSemana: DiaSemanaAgendaReuniao; rotulo: DiaSemanaCurto }> = [
   { diaSemana: 'SEGUNDA', rotulo: 'Segunda' },
@@ -293,6 +298,13 @@ export class Enderecos implements OnInit, OnDestroy {
     return [...porCidade.entries()].map(([cidade, gruposDaCidade]) => ({ cidade, grupos: gruposDaCidade }));
   }
 
+  private corMarcadorOnline(nomeGrupo: string): CorMarcadorOnline {
+    if (this.ehGrupoProprioOnline(nomeGrupo)) {
+      return 'laranja';
+    }
+    return COR_MARCADOR_FALLBACK;
+  }
+
   readonly gradeOnlinePorDia = computed<DiaGradeOnline[]>(() => {
     const reunioesOnline = this.reunioesOnline();
     return DIAS_AGENDA.map(({ diaSemana, rotulo }) => {
@@ -300,7 +312,11 @@ export class Enderecos implements OnInit, OnDestroy {
         .flatMap((reuniao) =>
           reuniao.agenda
             .filter((item) => item.diaSemana === diaSemana)
-            .map((item) => ({ horario: item.horario, nomeGrupo: reuniao.nome })),
+            .map((item) => ({
+              horario: item.horario,
+              nomeGrupo: reuniao.nome,
+              cor: this.corMarcadorOnline(reuniao.nome),
+            })),
         )
         .sort((a, b) => compararHorarios(a.horario, b.horario));
       return { diaSemana, rotulo, itens };
@@ -326,7 +342,7 @@ export class Enderecos implements OnInit, OnDestroy {
   }
 
   linkWhatsappPedirLinkReuniaoOnline(): string {
-    return montarLinkWhatsapp(WHATSAPP_PHONE_NUMBER, 'Olá! Gostaria de pedir o link de uma reunião online.');
+    return montarLinkWhatsapp(WHATSAPP_PHONE_NUMBER, 'Olá, gostaria do link de uma reunião online de JA');
   }
 
   selecionarRegiao(regiao: RegiaoIntergrupo): void {

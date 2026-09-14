@@ -217,17 +217,21 @@
   font-weight: 800;
 }
 
-.lead-presencial-intro {
-  margin-bottom: var(--spacing-lg);
-}
-
 .online-painel {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
 }
 
-.online-cabecalho h3 {
+.online-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.online-cabecalho-texto h3 {
   color: var(--cor-padrao-ja);
   font-size: 1.3rem;
   font-weight: 800;
@@ -237,6 +241,10 @@
 .online-subtitulo {
   margin-bottom: 0;
   font-size: 1rem;
+}
+
+.online-cabecalho-cta {
+  flex-shrink: 0;
 }
 
 .online-grade {
@@ -347,8 +355,9 @@
   border-radius: var(--radius-sm);
 }
 
-.online-cta {
-  text-align: center;
+.online-legenda-item--proprio {
+  color: var(--color-grupo-online-laranja);
+  font-weight: 700;
 }
 
 .cidade-bloco {
@@ -652,6 +661,15 @@
 
   .detalhes-painel {
     padding: var(--spacing-md);
+  }
+
+  .online-cabecalho {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .online-cabecalho-cta {
+    text-align: center;
   }
 }
 
