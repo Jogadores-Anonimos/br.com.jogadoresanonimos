@@ -27,6 +27,7 @@ import { DiaSemanaAgendaReuniao } from '../../services/reuniao/reuniao.model';
 import { ReuniaoOnlineService } from '../../services/reuniao-online/reuniao-online';
 import { CorReuniaoOnline, ReuniaoOnline } from '../../services/reuniao-online/reuniao-online.model';
 import { WHATSAPP_PHONE_NUMBER, montarLinkWhatsapp } from '../../config/whatsapp.config';
+import { EMAIL_JAONLINE_TEAMS, LINK_EMAIL_JAONLINE_TEAMS } from '../../config/contato.config';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { resolverUfPorCoordenada } from './geolocalizacao-uf';
 
@@ -138,6 +139,8 @@ export class Enderecos implements OnInit, OnDestroy {
   readonly embedVideoComoAcessarOnline: SafeResourceUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
     `https://www.youtube-nocookie.com/embed/${YOUTUBE_ID_COMO_ACESSAR}`,
   );
+  readonly emailJaonlineTeams = EMAIL_JAONLINE_TEAMS;
+  readonly linkEmailJaonlineTeams = LINK_EMAIL_JAONLINE_TEAMS;
 
   ngOnInit(): void {
     if (this.activatedRoute.snapshot.queryParamMap.get('tipo') === 'online') {

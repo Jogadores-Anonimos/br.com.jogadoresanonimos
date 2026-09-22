@@ -414,6 +414,16 @@
   font-weight: 800;
   margin-bottom: var(--spacing-sm);
 }
+.online-teams {
+  margin-top: var(--spacing-lg);
+}
+.online-teams h3 {
+  color: var(--cor-padrao-ja);
+}
+.online-teams-email {
+  color: var(--cor-padrao-ja);
+  font-weight: 700;
+}
 
 .cidade-bloco {
   margin-bottom: var(--spacing-md);

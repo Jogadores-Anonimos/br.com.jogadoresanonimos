@@ -19,6 +19,16 @@
   margin-bottom: var(--spacing-md);
 }
 
+.lead-aviso {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  font-weight: 600;
+  border-left: 3px solid var(--color-primary);
+  padding-left: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
 .estado {
   color: var(--color-text-muted);
   font-size: 0.95rem;

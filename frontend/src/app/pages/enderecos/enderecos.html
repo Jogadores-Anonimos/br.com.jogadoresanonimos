@@ -203,7 +203,7 @@
     <div id="painel-modo-online" role="tabpanel" aria-labelledby="tab-modo-online" class="online-painel">
       <div class="online-cabecalho">
         <div class="online-cabecalho-texto">
-          <h3>Reuniões Online</h3>
+          <h3>Reuniões Online no Zoom</h3>
           <p class="lead online-subtitulo">
             Horários das reuniões online da irmandade, organizados por dia da semana.
           </p>
@@ -256,6 +256,17 @@
             loading="lazy"
           ></iframe>
         </div>
+      </div>
+      <div class="online-teams">
+        <h3>Reuniões Online no Teams</h3>
+        <p class="lead online-subtitulo">
+          O grupo JAONLINE realiza uma reunião semanal pelo Microsoft Teams.
+        </p>
+        <p>
+          O dia, o horário e o link da reunião são enviados por e-mail. Para
+          participar, solicite o link escrevendo para
+          <a class="online-teams-email" [href]="linkEmailJaonlineTeams">{{ emailJaonlineTeams }}</a>.
+        </p>
       </div>
     </div>
     }
@@ -311,12 +322,9 @@
   }
 
   <section class="cta-final">
-    <h2>Não encontrou o contato da sua região?</h2>
-    <p>
-      Enquanto os endereços regionais são confirmados, você também pode
-      encontrar apoio pelos nossos hotlines.
-    </p>
-    <a class="btn-cta" routerLink="/hotlines">Ver Hotlines Brasil</a>
+    <h2>Não encontrou grupo em sua região?</h2>
+    <p>Para obter as opções de ajuda ou saber como abrir um grupo de JA, clique no botão abaixo:</p>
+    <a class="btn-cta" routerLink="/grupos-em-formacao">Grupos em Formação</a>
   </section>
 
 </app-resource-layout>

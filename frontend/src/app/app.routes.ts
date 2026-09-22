@@ -353,6 +353,20 @@ export const routes: Routes = [
     },
   },
   {
+    path: 'grupos-em-formacao',
+    loadComponent: () =>
+      import('./pages/grupos-em-formacao/grupos-em-formacao').then((m) => m.GruposEmFormacao),
+    data: {
+      seo: {
+        title: 'Grupos em Formação | Jogadores Anônimos do Brasil',
+        description:
+          'Veja como começar um novo grupo de Jogadores Anônimos na sua cidade, com apoio da irmandade.',
+        ogTitle: 'Grupos em Formação | JA Brasil',
+        ogDescription: 'Como abrir um novo grupo de JA com apoio da irmandade.',
+      },
+    },
+  },
+  {
     path: 'contribuir',
     loadComponent: () => import('./pages/contribuir/contribuir').then((m) => m.Contribuir),
     data: {
