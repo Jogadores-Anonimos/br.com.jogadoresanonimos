@@ -49,7 +49,7 @@
   min-height: 760px;
   padding: var(--spacing-xl) var(--spacing-md) var(--spacing-xl) 120px;
   color: var(--white);
-  background-image: url('/images/home/hero-reuniao.jpg');
+  background-image: url('/images/home/hero-reuniao.webp');
   background-size: cover;
   background-position: center 62%;
   isolation: isolate;
@@ -409,7 +409,7 @@
   position: absolute;
   inset: 0;
   z-index: -2;
-  background-image: url('/images/home/reuniao-discussao.jpg');
+  background-image: url('/images/home/reuniao-discussao.webp');
   background-size: cover;
   background-position: center;
   filter: grayscale(1);

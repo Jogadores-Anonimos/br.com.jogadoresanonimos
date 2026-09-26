@@ -32,7 +32,7 @@ interface PedidoConta {
   styleUrl: './minha-conta.css',
 })
 export class MinhaConta {
-  readonly bannerSrc = '/images/home/reuniao-discussao.jpg';
+  readonly bannerSrc = '/images/home/reuniao-discussao.webp';
 
   private readonly bibliotecaPessoal = inject(BibliotecaPessoalService);
   private readonly arquivoService = inject(ArquivoService);

@@ -17,7 +17,7 @@ declare const grecaptcha: any;
   styleUrl: './esqueci-senha.css',
 })
 export class EsqueciSenha {
-  readonly bannerSrc = '/images/home/reuniao-discussao.jpg';
+  readonly bannerSrc = '/images/home/reuniao-discussao.webp';
 
   private readonly appRef = inject(ApplicationRef);
   private readonly recaptchaLoader = inject(RecaptchaLoader);

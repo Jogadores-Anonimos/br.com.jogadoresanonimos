@@ -14,7 +14,7 @@ export const CMS_PAGINAS_MOCK: CmsPaginaPublica[] = [
         ordem: 2,
         tipo: 'imagem',
         imagemId: 'mock-imagem-1',
-        url: '/images/home/reuniao-discussao.jpg',
+        url: '/images/home/reuniao-discussao.webp',
         alt: 'Grupo de apoio reunido em círculo',
       },
       {

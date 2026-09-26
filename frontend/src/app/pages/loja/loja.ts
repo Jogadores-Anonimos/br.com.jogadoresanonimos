@@ -16,7 +16,7 @@ interface ProdutoPreview {
   styleUrl: './loja.css',
 })
 export class Loja {
-  readonly bannerSrc = '/images/home/reuniao-discussao.jpg';
+  readonly bannerSrc = '/images/home/reuniao-discussao.webp';
 
   readonly categorias: string[] = [
     'Todos os Produtos',

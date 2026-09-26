@@ -22,7 +22,7 @@ export class Relatos implements OnInit {
   private readonly relatosService = inject(RelatosService);
   readonly auth = inject(Auth);
 
-  readonly bannerSrc = '/images/home/reuniao-discussao.jpg';
+  readonly bannerSrc = '/images/home/reuniao-discussao.webp';
   readonly textoMinLength = TEXTO_MIN_LENGTH;
   readonly textoMaxLength = TEXTO_MAX_LENGTH;
   readonly nomeExibicaoMaxLength = NOME_EXIBICAO_MAX_LENGTH;

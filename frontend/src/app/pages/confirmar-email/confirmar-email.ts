@@ -15,7 +15,7 @@ type EstadoConfirmacaoEmail = 'carregando' | 'sucesso' | 'expirado';
   styleUrl: './confirmar-email.css',
 })
 export class ConfirmarEmail {
-  readonly bannerSrc = '/images/home/reuniao-discussao.jpg';
+  readonly bannerSrc = '/images/home/reuniao-discussao.webp';
 
   private readonly auth = inject(Auth);
   private readonly route = inject(ActivatedRoute);

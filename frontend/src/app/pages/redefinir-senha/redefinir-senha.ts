@@ -13,7 +13,7 @@ import { Auth } from '../../services/auth/auth';
   styleUrl: './redefinir-senha.css',
 })
 export class RedefinirSenha {
-  readonly bannerSrc = '/images/home/reuniao-discussao.jpg';
+  readonly bannerSrc = '/images/home/reuniao-discussao.webp';
 
   private readonly auth = inject(Auth);
   private readonly route = inject(ActivatedRoute);

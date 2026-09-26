@@ -13,7 +13,7 @@ export class ResourceLayout {
 
   @Input() breadcrumbLabel?: string;
 
-  @Input() bannerSrc = '/images/home/reuniao-discussao.jpg';
+  @Input() bannerSrc = '/images/home/reuniao-discussao.webp';
 
   @Input() mostrarSidebar = true;
 }

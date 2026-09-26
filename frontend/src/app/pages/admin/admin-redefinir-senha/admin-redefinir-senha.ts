@@ -14,7 +14,7 @@ import { AdminAuthService } from '../../../services/admin-auth/admin-auth';
   styleUrl: './admin-redefinir-senha.css',
 })
 export class AdminRedefinirSenha {
-  readonly bannerSrc = '/images/home/reuniao-discussao.jpg';
+  readonly bannerSrc = '/images/home/reuniao-discussao.webp';
 
   private readonly adminAuth = inject(AdminAuthService);
 
