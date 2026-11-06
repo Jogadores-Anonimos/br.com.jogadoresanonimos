@@ -83,9 +83,7 @@ const LABEL_DIA_SEMANA: Record<DiaSemana, string> = {
 
 const ORDEM_REGIOES = ['SUDESTE', 'SUL', 'CENTRO_OESTE', 'NORTE', 'NORDESTE'];
 
-const ORDEM_UF_PRIORITARIA_POR_REGIAO: Record<string, string[]> = {
-  SUDESTE: ['SP', 'RJ'],
-};
+const ORDEM_UF_PRIORITARIA_POR_REGIAO: Record<string, string[]> = {};
 
 const DEBOUNCE_FILTRO_TEXTO_MS = 200;
 
@@ -375,7 +373,12 @@ export class Enderecos implements OnInit, OnDestroy {
         porCidade.set(chave, [grupo]);
       }
     }
-    return [...porCidade.entries()].map(([cidade, gruposDaCidade]) => ({ cidade, grupos: gruposDaCidade }));
+    return [...porCidade.entries()]
+      .sort(([a], [b]) => a.localeCompare(b, 'pt-BR'))
+      .map(([cidade, gruposDaCidade]) => ({
+        cidade,
+        grupos: [...gruposDaCidade].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
+      }));
   }
 
   readonly gradeOnlinePorDia = computed<DiaGradeOnline[]>(() => {
