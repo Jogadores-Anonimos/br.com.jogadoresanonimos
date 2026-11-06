@@ -8,7 +8,7 @@ export const routes: Routes = [
     component: Home,
     data: {
       seo: {
-        title: 'Jogadores Anônimos do Brasil | Apoio para jogo compulsivo',
+        title: 'Jogadores Anônimos do Brasil | Ajuda para deter o jogo compulsivo',
         description:
           'Associação de apoio a pessoas com problema de jogo compulsivo e suas famílias. Reuniões, relatos e informação em todo o Brasil, sem julgamento.',
         ogTitle: 'Jogadores Anônimos do Brasil',
